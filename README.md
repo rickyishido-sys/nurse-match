@@ -61,3 +61,31 @@ git push origin main
 ```
 
 `main` への push をトリガーに、Vercel側で自動デプロイされ、`nurse.kranz.design` に反映されます。
+
+## 管理者ログイン（本番）
+- 本番の管理者ログインURLは `https://nurse.kranz.design/admin/login` です（パスは `/admin/login`）。
+- `src/middleware.ts` の `PUBLIC_PATHS` に `/admin/login` が含まれているため、本番でも未ログイン状態でアクセス可能です。
+- ログイン後のリダイレクト先:
+  - `super_admin` → `/admin`
+  - `female_admin` → `/admin/female`
+  - `male_admin` → `/admin/male`
+
+## 初期 super_admin 作成手順（Supabase）
+1. Supabase Dashboard の **Authentication > Users** で管理者用ユーザーを作成（Email/Password）。
+2. 作成したユーザーの `id`（UUID）を確認。
+3. SQL Editor で以下を実行して `public.users.role` を `super_admin` に更新。
+
+```sql
+-- 例: 既に public.users に対象ユーザー行がある前提
+update public.users
+set role = 'super_admin'
+where id = (
+  select id
+  from auth.users
+  where email = 'admin@example.com'
+);
+```
+
+補足:
+- 対象ユーザーが `public.users` に未作成の場合は、先に該当ユーザー行を作成してから `role` を更新してください。
+- `female_admin` / `male_admin` を作る場合は同様に `role` をそれぞれ変更します。
