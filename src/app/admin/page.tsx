@@ -1,0 +1,208 @@
+import { redirect } from 'next/navigation';
+import { AppShell } from '@/components/app-shell';
+import { Badge } from '@/components/badges';
+import {
+  adminMatchHoldDeletionAction,
+  adminMaleReviewAction,
+  adminModerationAction,
+  adminNurseAction,
+  adminReportAction,
+  adminSuspendAction,
+  adminVerificationAction,
+} from '@/lib/actions';
+import { getAdminData, getCurrentUser } from '@/lib/data';
+import { maritalStatusLabel } from '@/lib/labels';
+
+function statusTone(status: string): 'amber' | 'green' | 'gray' {
+  if (status === 'approved' || status === 'resolved') return 'green';
+  if (status === 'pending' || status === 'open' || status === 'reviewing') return 'amber';
+  return 'gray';
+}
+
+export default async function AdminPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect('/login');
+  if (user.role !== 'admin') redirect('/home');
+
+  const data = await getAdminData(user.id);
+  const pendingCount = data.users.filter((u) => u.verificationStatus === 'pending').length;
+  const userMap = new Map(data.users.map((u) => [u.id, u.nickname]));
+
+  return (
+    <AppShell user={user}>
+      <section className='space-y-4'>
+        <article className='rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm'>
+          <h1 className='text-xl font-bold text-slate-900'>管理画面</h1>
+          <div className='mt-3 flex flex-wrap gap-2'>
+            <Badge tone='amber'>審査待ち {pendingCount}</Badge>
+            <Badge tone='gray'>通報件数 {data.reports.length}</Badge>
+            <Badge tone='navy'>監査ログ {data.adminActions.length}</Badge>
+          </div>
+        </article>
+
+        <div className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
+          <h2 className='font-semibold text-slate-900'>審査対象ユーザー</h2>
+          {data.users.map((u) => {
+            const female = data.femaleProfiles.find((f) => f.userId === u.id)?.profile;
+            const male = data.maleProfiles.find((m) => m.userId === u.id)?.profile;
+
+            return (
+              <article key={u.id} className='rounded-2xl border border-slate-100 bg-slate-50/60 p-3 text-xs'>
+                <div className='mb-2 flex flex-wrap items-center gap-2'>
+                  <p className='font-semibold text-slate-900'>{u.nickname} ({u.gender}/{u.role})</p>
+                  <Badge tone={statusTone(u.verificationStatus)}>本人 {u.verificationStatus}</Badge>
+                  {male ? <Badge tone={statusTone(male.maleReviewStatus)}>男性審査 {male.maleReviewStatus}</Badge> : null}
+                  {female ? <Badge tone={statusTone(female.nurseVerificationStatus)}>看護師確認 {female.nurseVerificationStatus}</Badge> : null}
+                </div>
+
+                <p>{u.email}</p>
+                <div className='mt-2 flex flex-wrap gap-2'>
+                  {u.identityDocumentUrl ? (
+                    <a href={u.identityDocumentUrl} target='_blank' rel='noreferrer' className='rounded-lg border border-slate-200 bg-white px-2 py-1'>
+                      本人書類確認
+                    </a>
+                  ) : (
+                    <span className='rounded-lg border border-slate-200 bg-white px-2 py-1'>本人書類なし</span>
+                  )}
+                  {u.gender === 'female' && female?.nurseDocumentUrl ? (
+                    <a href={female.nurseDocumentUrl} target='_blank' rel='noreferrer' className='rounded-lg border border-slate-200 bg-white px-2 py-1'>
+                      看護師書類確認
+                    </a>
+                  ) : null}
+                </div>
+
+                {u.gender === 'male' ? (
+                  <p className='mt-2'>職種 {male?.job} / 年収 {male?.income} / 婚姻 {male ? maritalStatusLabel(male.maritalStatus) : '-'}</p>
+                ) : null}
+
+                <div className='mt-3 grid grid-cols-1 gap-2'>
+                  <form action={adminVerificationAction} className='flex flex-wrap gap-2'>
+                    <input type='hidden' name='userId' value={u.id} />
+                    <select name='status' defaultValue={u.verificationStatus} className='rounded-lg border border-slate-200 bg-white px-2 py-1'>
+                      <option value='pending'>pending</option>
+                      <option value='approved'>approved</option>
+                      <option value='rejected'>rejected</option>
+                    </select>
+                    <input name='rejectedReason' defaultValue={u.rejectedReason ?? ''} placeholder='rejected reason' className='rounded-lg border border-slate-200 bg-white px-2 py-1' />
+                    <button className='rounded-lg bg-slate-900 px-2 py-1 text-white'>本人確認更新</button>
+                  </form>
+
+                  {u.gender === 'female' ? (
+                    <form action={adminNurseAction} className='flex gap-2'>
+                      <input type='hidden' name='userId' value={u.id} />
+                      <select name='status' defaultValue={female?.nurseVerificationStatus} className='rounded-lg border border-slate-200 bg-white px-2 py-1'>
+                        <option value='pending'>pending</option>
+                        <option value='approved'>approved</option>
+                        <option value='rejected'>rejected</option>
+                      </select>
+                      <button className='rounded-lg bg-pink-600 px-2 py-1 text-white'>看護師確認更新</button>
+                    </form>
+                  ) : null}
+
+                  {u.gender === 'male' ? (
+                    <form action={adminMaleReviewAction} className='flex flex-wrap gap-2'>
+                      <input type='hidden' name='userId' value={u.id} />
+                      <select name='status' defaultValue={male?.maleReviewStatus ?? 'pending'} className='rounded-lg border border-slate-200 bg-white px-2 py-1'>
+                        <option value='pending'>pending</option>
+                        <option value='approved'>approved</option>
+                        <option value='rejected'>rejected</option>
+                      </select>
+                      <input name='internalMemo' defaultValue={male?.internalMemo ?? ''} placeholder='internal memo' className='rounded-lg border border-slate-200 bg-white px-2 py-1' />
+                      <button className='rounded-lg bg-indigo-600 px-2 py-1 text-white'>男性審査更新</button>
+                    </form>
+                  ) : null}
+
+                  <form action={adminModerationAction} className='flex flex-wrap gap-2'>
+                    <input type='hidden' name='userId' value={u.id} />
+                    <select name='moderationAction' defaultValue={u.moderationAction} className='rounded-lg border border-slate-200 bg-white px-2 py-1'>
+                      <option value='none'>none</option>
+                      <option value='warning'>warning</option>
+                      <option value='suspend'>suspend</option>
+                      <option value='permanent_ban'>permanent_ban</option>
+                    </select>
+                    <input name='rejectedReason' defaultValue={u.rejectedReason ?? ''} placeholder='memo/reason' className='rounded-lg border border-slate-200 bg-white px-2 py-1' />
+                    <button className='rounded-lg border border-slate-300 bg-white px-2 py-1'>moderation更新</button>
+                  </form>
+
+                  <form action={adminSuspendAction} className='flex gap-2'>
+                    <input type='hidden' name='userId' value={u.id} />
+                    <input type='hidden' name='suspend' value={u.isSuspended ? 'false' : 'true'} />
+                    <button className='rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-red-700'>
+                      {u.isSuspended ? '停止解除' : '停止 / 永久停止'}
+                    </button>
+                  </form>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
+          <h2 className='font-semibold text-slate-900'>通報一覧</h2>
+          {data.reports.map((report) => (
+            <article key={report.id} className='rounded-2xl border border-slate-100 bg-slate-50/60 p-3 text-xs'>
+              <p className='font-semibold text-slate-800'>理由: {report.reason}</p>
+              <p className='text-slate-600'>reasonType: {report.reasonType}</p>
+              <p className='mb-2 text-slate-600'>{report.detail}</p>
+              <form action={adminReportAction} className='flex gap-2'>
+                <input type='hidden' name='reportId' value={report.id} />
+                <select name='status' defaultValue={report.status} className='rounded-lg border border-slate-200 bg-white px-2 py-1'>
+                  <option value='open'>open</option>
+                  <option value='reviewing'>reviewing</option>
+                  <option value='resolved'>resolved</option>
+                  <option value='dismissed'>dismissed</option>
+                </select>
+                <button className='rounded-lg bg-slate-900 px-2 py-1 text-white'>更新</button>
+              </form>
+            </article>
+          ))}
+        </div>
+
+        <div className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
+          <h2 className='font-semibold text-slate-900'>関係成立 / 削除予定</h2>
+          {data.relationshipMatches.length === 0 ? (
+            <p className='text-xs text-slate-500'>relationship_mode のマッチはありません。</p>
+          ) : (
+            data.relationshipMatches.map((match) => (
+              <article key={match.id} className='rounded-2xl border border-slate-100 bg-slate-50/60 p-3 text-xs'>
+                <p className='font-semibold text-slate-800'>
+                  {userMap.get(match.userAId) ?? match.userAId} × {userMap.get(match.userBId) ?? match.userBId}
+                </p>
+                <p className='text-slate-600'>status: {match.relationshipStatus}</p>
+                <p className='text-slate-600'>relationshipStartedAt: {match.relationshipStartedAt ?? '-'}</p>
+                <p className='text-slate-600'>scheduledDeleteAt: {match.scheduledDeleteAt ?? '-'}</p>
+                <form action={adminMatchHoldDeletionAction} className='mt-2 flex items-center gap-2'>
+                  <input type='hidden' name='matchId' value={match.id} />
+                  <input type='hidden' name='holdDeletion' value={match.holdDeletion ? 'false' : 'true'} />
+                  <button className='rounded-lg border border-slate-300 bg-white px-2 py-1'>
+                    {match.holdDeletion ? '削除保留を解除' : '削除保留にする'}
+                  </button>
+                  <Badge tone={match.holdDeletion ? 'amber' : 'gray'}>{match.holdDeletion ? 'holdDeletion: true' : 'holdDeletion: false'}</Badge>
+                </form>
+              </article>
+            ))
+          )}
+        </div>
+
+        <div className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
+          <h2 className='font-semibold text-slate-900'>監査ログ</h2>
+          {data.adminActions.length === 0 ? (
+            <p className='text-xs text-slate-500'>ログはまだありません。</p>
+          ) : (
+            <ul className='space-y-2 text-xs'>
+              {data.adminActions.map((log) => (
+                <li key={log.id} className='rounded-xl border border-slate-100 bg-slate-50 p-3'>
+                  <p className='font-semibold text-slate-800'>{log.actionType}</p>
+                  <p className='text-slate-600'>admin: {log.adminUserId} / target: {log.targetUserId}</p>
+                  <p className='text-slate-500'>before: {log.beforeValue ?? '-'} / after: {log.afterValue ?? '-'}</p>
+                  {log.note ? <p className='text-slate-500'>note: {log.note}</p> : null}
+                  <p className='text-slate-400'>{new Date(log.createdAt).toLocaleString('ja-JP')}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+    </AppShell>
+  );
+}

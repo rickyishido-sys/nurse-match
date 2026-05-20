@@ -1,0 +1,403 @@
+'use server';
+
+import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import {
+  blockUser,
+  createReport,
+  getCurrentUser,
+  markMatchAsRelationshipMode,
+  saveProfile,
+  sendMessage,
+  swipe,
+  updateMatchHoldDeletion,
+  updateMaleReview,
+  updateNurseVerification,
+  updateReport,
+  updateSuspended,
+  updateUserModerationState,
+  updateVerification,
+} from '@/lib/data';
+import { USE_MOCK_DATA } from '@/lib/config';
+import { getUserByEmail, updateUser } from '@/lib/mock-data';
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { uploadDocument } from '@/lib/upload';
+import type { MaritalStatus, ModerationAction, ReportReasonType, ReportStatus } from '@/lib/types/domain';
+import type { Database } from '@/lib/types/database';
+
+export async function setDemoUserAction(formData: FormData) {
+  if (!USE_MOCK_DATA) return;
+
+  const userId = String(formData.get('userId') ?? 'u_f_1');
+  const cookieStore = await cookies();
+  cookieStore.set('demo_user_id', userId);
+  revalidatePath('/');
+}
+
+export async function setFemaleSearchPreferenceAction(formData: FormData) {
+  const payload = {
+    view: String(formData.get('view') ?? 'card'),
+    ageMin: String(formData.get('ageMin') ?? ''),
+    ageMax: String(formData.get('ageMax') ?? ''),
+    location: String(formData.get('location') ?? ''),
+    job: String(formData.get('job') ?? ''),
+    incomeMin: String(formData.get('incomeMin') ?? ''),
+    maritalFilter: String(formData.get('maritalFilter') ?? 'single_only'),
+    verifiedOnly: formData.get('verifiedOnly') ? 'on' : undefined,
+    maleReviewedOnly: formData.get('maleReviewedOnly') ? 'on' : undefined,
+    incomeVerifiedOnly: formData.get('incomeVerifiedOnly') ? 'on' : undefined,
+    facePhotoOnly: formData.get('facePhotoOnly') ? 'on' : undefined,
+    smoking: String(formData.get('smoking') ?? ''),
+    drinking: String(formData.get('drinking') ?? ''),
+    heightMin: String(formData.get('heightMin') ?? ''),
+  };
+
+  const cookieStore = await cookies();
+  cookieStore.set('female_search_filters', JSON.stringify(payload), {
+    path: '/',
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  revalidatePath('/home/female');
+}
+
+export async function loginAction(formData: FormData) {
+  const email = String(formData.get('email') ?? '').trim();
+  const password = String(formData.get('password') ?? '').trim();
+
+  if (USE_MOCK_DATA) {
+    const user = getUserByEmail(email);
+    if (!user) throw new Error('ユーザーが見つかりません');
+    const cookieStore = await cookies();
+    cookieStore.set('demo_user_id', user.id);
+    redirect('/home');
+  }
+
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) throw new Error('Supabase設定が不足しています');
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw new Error(error.message);
+
+  redirect('/home');
+}
+
+export async function logoutAction() {
+  if (USE_MOCK_DATA) {
+    const cookieStore = await cookies();
+    cookieStore.delete('demo_user_id');
+    redirect('/login');
+  }
+
+  const supabase = await createServerSupabaseClient();
+  if (supabase) {
+    await supabase.auth.signOut();
+  }
+  redirect('/login');
+}
+
+export async function registerAction(formData: FormData) {
+  const gender = String(formData.get('gender') ?? 'female') as 'female' | 'male';
+  const birthdate = String(formData.get('birthdate') ?? '2000-01-01');
+  const age = Number(formData.get('age') ?? 0);
+
+  if (age < 18) throw new Error('未成年は登録できません');
+
+  const payload = {
+    nickname: String(formData.get('nickname') ?? '').trim(),
+    location: String(formData.get('location') ?? '').trim(),
+    bio: String(formData.get('bio') ?? '').trim(),
+    desiredGender: String(formData.get('desiredGender') ?? 'both') as 'male' | 'female' | 'both',
+    email: String(formData.get('email') ?? '').trim(),
+    password: String(formData.get('password') ?? '').trim(),
+    job: String(formData.get('job') ?? '').trim(),
+    income: String(formData.get('income') ?? '').trim(),
+    maritalStatus: String(formData.get('maritalStatus') ?? 'single') as MaritalStatus,
+  };
+
+  if (!payload.nickname || !payload.email || !payload.password) {
+    throw new Error('必須項目が不足しています');
+  }
+
+  if (gender === 'female' && !formData.get('nurseDocument')) {
+    throw new Error('女性は看護師資格確認書類が必須です');
+  }
+
+  if (gender === 'male' && (!payload.job || !payload.income || !payload.maritalStatus)) {
+    throw new Error('男性は職種・年収・婚姻状態が必須です');
+  }
+
+  if (USE_MOCK_DATA) {
+    const userId = String(formData.get('userId') ?? 'u_f_1');
+    const identityUrl = await uploadDocument(formData.get('identityDocument') as File, userId, 'identity');
+    const profileImageUrl = await uploadDocument(formData.get('profileImage') as File, userId, 'profile');
+
+    updateUser(userId, {
+      nickname: payload.nickname,
+      birthdate,
+      age,
+      gender,
+      location: payload.location,
+      bio: payload.bio,
+      desiredGender: payload.desiredGender,
+      verificationStatus: 'pending',
+      identityDocumentUrl: identityUrl,
+      profileImageUrl: profileImageUrl ?? undefined,
+    });
+
+    await saveProfile(userId, {
+      nickname: payload.nickname,
+      location: payload.location,
+      bio: payload.bio,
+      desiredGender: payload.desiredGender,
+      workplaceType: String(formData.get('workplaceType') ?? 'other'),
+      hasNightShift: formData.get('hasNightShift') ? 'on' : 'off',
+      nurseDocumentUrl: (await uploadDocument(formData.get('nurseDocument') as File, userId, 'nurse')) ?? '',
+      job: payload.job,
+      income: payload.income,
+      maritalStatus: payload.maritalStatus,
+      height: String(formData.get('height') ?? '170'),
+      bodyType: String(formData.get('bodyType') ?? '普通'),
+      holiday: String(formData.get('holiday') ?? ''),
+      smoking: String(formData.get('smoking') ?? ''),
+      drinking: String(formData.get('drinking') ?? ''),
+      profileImageUrl: profileImageUrl ?? '',
+    });
+
+    revalidatePath('/pending-review');
+    redirect('/pending-review');
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const adminSupabase = createAdminSupabaseClient();
+  if (!supabase || !adminSupabase) throw new Error('Supabase設定が不足しています');
+
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    email: payload.email,
+    password: payload.password,
+  });
+  if (signUpError) throw new Error(signUpError.message);
+
+  const authUserId = signUpData.user?.id;
+  if (!authUserId) throw new Error('ユーザー作成に失敗しました');
+
+  const identityUrl = await uploadDocument(formData.get('identityDocument') as File, authUserId, 'identity');
+  const nurseUrl = await uploadDocument(formData.get('nurseDocument') as File, authUserId, 'nurse');
+  const profileImageUrl = await uploadDocument(formData.get('profileImage') as File, authUserId, 'profile');
+
+  const userInsert: Database['public']['Tables']['users']['Insert'] = {
+    id: authUserId,
+    email: payload.email,
+    role: 'user',
+    gender,
+    nickname: payload.nickname,
+    birthdate,
+    age,
+    location: payload.location,
+    bio: payload.bio,
+    profile_image_url: profileImageUrl ?? '',
+    desired_gender: payload.desiredGender,
+    verification_status: 'pending',
+    identity_document_url: identityUrl,
+    rejected_reason: null,
+    moderation_action: 'none',
+    is_suspended: false,
+  };
+
+  const { error: usersInsertErr } = await adminSupabase.from('users').insert(userInsert);
+  if (usersInsertErr) throw new Error(usersInsertErr.message);
+
+  const identityInsert: Database['public']['Tables']['identity_documents']['Insert'] = {
+    user_id: authUserId,
+    document_url: identityUrl ?? '',
+    status: 'pending',
+  };
+  await adminSupabase.from('identity_documents').insert(identityInsert);
+
+  if (gender === 'female') {
+    const femaleInsert: Database['public']['Tables']['female_profiles']['Insert'] = {
+      user_id: authUserId,
+      nurse_document_url: nurseUrl ?? '',
+      nurse_verification_status: 'pending',
+      workplace_type: String(formData.get('workplaceType') ?? 'other') as
+        | 'hospital'
+        | 'clinic'
+        | 'beauty'
+        | 'nightshift'
+        | 'other',
+      has_night_shift: Boolean(formData.get('hasNightShift')),
+    };
+    const { error } = await adminSupabase.from('female_profiles').insert(femaleInsert);
+    if (error) throw new Error(error.message);
+  } else {
+    const maleInsert: Database['public']['Tables']['male_profiles']['Insert'] = {
+      user_id: authUserId,
+      job: payload.job,
+      income: payload.income,
+      marital_status: payload.maritalStatus,
+      has_children: false,
+      male_review_status: 'pending',
+      income_verified: false,
+      face_photo_verified: false,
+      internal_memo: null,
+      height: Number(formData.get('height') ?? 170),
+      body_type: String(formData.get('bodyType') ?? ''),
+      holiday: String(formData.get('holiday') ?? ''),
+      smoking: String(formData.get('smoking') ?? ''),
+      drinking: String(formData.get('drinking') ?? ''),
+      night_shift_understanding: false,
+      shift_work_understanding: false,
+      late_night_contact_ok: false,
+      first_date_cost: '',
+      personality_tags: [],
+    };
+    const { error } = await adminSupabase.from('male_profiles').insert(maleInsert);
+    if (error) throw new Error(error.message);
+  }
+
+  revalidatePath('/pending-review');
+  redirect('/pending-review');
+}
+
+export async function swipeAction(formData: FormData) {
+  const fromUserId = String(formData.get('fromUserId'));
+  const toUserId = String(formData.get('toUserId'));
+  const action = String(formData.get('action')) as 'like' | 'skip';
+
+  await swipe(fromUserId, toUserId, action);
+  revalidatePath('/home/female');
+  revalidatePath('/matches');
+}
+
+export async function sendMessageAction(formData: FormData) {
+  const matchId = String(formData.get('matchId'));
+  const senderId = String(formData.get('senderId'));
+  const body = String(formData.get('body'));
+  if (!body.trim()) return;
+
+  await sendMessage(matchId, senderId, body.trim());
+  revalidatePath(`/chat/${matchId}`);
+}
+
+export async function blockUserAction(formData: FormData) {
+  const blockerUserId = String(formData.get('blockerUserId'));
+  const blockedUserId = String(formData.get('blockedUserId'));
+  await blockUser(blockerUserId, blockedUserId);
+
+  revalidatePath('/blocked-users');
+  revalidatePath('/home/female');
+  revalidatePath('/matches');
+  revalidatePath('/chat');
+}
+
+export async function markRelationshipModeAction(formData: FormData) {
+  const matchId = String(formData.get('matchId'));
+  const actorUserId = String(formData.get('actorUserId'));
+
+  await markMatchAsRelationshipMode(matchId, actorUserId);
+  revalidatePath('/matches');
+  revalidatePath(`/chat/${matchId}`);
+  revalidatePath('/home/female');
+}
+
+export async function saveProfileAction(formData: FormData) {
+  const userId = String(formData.get('userId'));
+  const nurseDoc = await uploadDocument(formData.get('nurseDocument') as File, userId, 'nurse');
+  const profileImage = await uploadDocument(formData.get('profileImage') as File, userId, 'profile');
+
+  const payload = Object.fromEntries(formData.entries()) as Record<string, string>;
+  const personalityTags = formData
+    .getAll('personalityTag')
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+  payload.personalityTags = personalityTags.join(',');
+  payload.nurseDocumentUrl = nurseDoc ?? '';
+  payload.profileImageUrl = profileImage ?? '';
+  await saveProfile(userId, payload);
+
+  revalidatePath('/profile/edit');
+  revalidatePath('/pending-review');
+}
+
+export async function adminVerificationAction(formData: FormData) {
+  const userId = String(formData.get('userId'));
+  const status = String(formData.get('status')) as 'pending' | 'approved' | 'rejected';
+  const rejectedReason = String(formData.get('rejectedReason') ?? '').trim();
+  const admin = await getCurrentUser();
+  if (!admin || admin.role !== 'admin') return;
+
+  await updateVerification(userId, status, rejectedReason || undefined, admin.id);
+  revalidatePath('/admin');
+}
+
+export async function adminNurseAction(formData: FormData) {
+  const userId = String(formData.get('userId'));
+  const status = String(formData.get('status')) as 'pending' | 'approved' | 'rejected';
+  const admin = await getCurrentUser();
+  if (!admin || admin.role !== 'admin') return;
+
+  await updateNurseVerification(userId, status, admin.id);
+  revalidatePath('/admin');
+}
+
+export async function adminMaleReviewAction(formData: FormData) {
+  const userId = String(formData.get('userId'));
+  const status = String(formData.get('status')) as 'pending' | 'approved' | 'rejected';
+  const internalMemo = String(formData.get('internalMemo') ?? '').trim();
+  const admin = await getCurrentUser();
+  if (!admin || admin.role !== 'admin') return;
+
+  await updateMaleReview(userId, status, internalMemo, admin.id);
+  revalidatePath('/admin');
+}
+
+export async function adminSuspendAction(formData: FormData) {
+  const userId = String(formData.get('userId'));
+  const suspend = String(formData.get('suspend')) === 'true';
+  const admin = await getCurrentUser();
+  if (!admin || admin.role !== 'admin') return;
+
+  await updateSuspended(userId, suspend, admin.id);
+  revalidatePath('/admin');
+}
+
+export async function adminModerationAction(formData: FormData) {
+  const userId = String(formData.get('userId'));
+  const moderationAction = String(formData.get('moderationAction')) as ModerationAction;
+  const rejectedReason = String(formData.get('rejectedReason') ?? '').trim() || null;
+  const admin = await getCurrentUser();
+  if (!admin || admin.role !== 'admin') return;
+
+  await updateUserModerationState(userId, moderationAction, rejectedReason, admin.id);
+  revalidatePath('/admin');
+}
+
+export async function adminReportAction(formData: FormData) {
+  const reportId = String(formData.get('reportId'));
+  const status = String(formData.get('status')) as ReportStatus;
+  await updateReport(reportId, status);
+  revalidatePath('/admin');
+}
+
+export async function adminMatchHoldDeletionAction(formData: FormData) {
+  const matchId = String(formData.get('matchId'));
+  const holdDeletion = String(formData.get('holdDeletion')) === 'true';
+  const admin = await getCurrentUser();
+  if (!admin || admin.role !== 'admin') return;
+
+  await updateMatchHoldDeletion(matchId, holdDeletion);
+  revalidatePath('/admin');
+}
+
+export async function createReportAction(formData: FormData) {
+  const reporterId = String(formData.get('reporterId'));
+  const targetUserId = String(formData.get('targetUserId'));
+  const reason = String(formData.get('reason') ?? '通報');
+  const reasonType = String(formData.get('reasonType') ?? 'other') as ReportReasonType;
+  const detail = String(formData.get('detail') ?? '');
+
+  await createReport({ reporterId, targetUserId, reason, reasonType, detail });
+  revalidatePath('/admin');
+  revalidatePath('/chat');
+}

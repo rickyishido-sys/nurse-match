@@ -1,0 +1,452 @@
+import type {
+  AdminActionLog,
+  AdminActionType,
+  AppUser,
+  BlockRecord,
+  FemaleProfile,
+  LikeRecord,
+  MaleProfile,
+  MatchRecord,
+  MessageRecord,
+  ModerationAction,
+  ReportReasonType,
+  ReportRecord,
+  ReportStatus,
+  VerificationStatus,
+} from '@/lib/types/domain';
+
+const now = new Date().toISOString();
+
+const users: AppUser[] = [
+  {
+    id: 'u_f_1',
+    email: 'hana@nursematch.app',
+    role: 'user',
+    gender: 'female',
+    nickname: 'はな',
+    birthdate: '1996-03-10',
+    age: 30,
+    location: '東京都',
+    bio: '都内で働く看護師です。休日はカフェ巡り。',
+    profileImageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800',
+    desiredGender: 'both',
+    verificationStatus: 'approved',
+    identityDocumentUrl: 'mock://identity/u_f_1-id.pdf',
+    rejectedReason: null,
+    moderationAction: 'none',
+    isSuspended: false,
+  },
+  {
+    id: 'u_f_2',
+    email: 'yui@nursematch.app',
+    role: 'user',
+    gender: 'female',
+    nickname: 'ゆい',
+    birthdate: '1998-05-23',
+    age: 27,
+    location: '神奈川県',
+    bio: '夜勤あり。映画好きです。',
+    profileImageUrl: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=800',
+    desiredGender: 'female',
+    verificationStatus: 'approved',
+    identityDocumentUrl: 'mock://identity/u_f_2-id.pdf',
+    rejectedReason: null,
+    moderationAction: 'none',
+    isSuspended: false,
+  },
+  {
+    id: 'u_m_1',
+    email: 'taro@nursematch.app',
+    role: 'user',
+    gender: 'male',
+    nickname: 'タロウ',
+    birthdate: '1992-11-05',
+    age: 33,
+    location: '東京都',
+    bio: 'IT企業勤務。穏やかな性格です。',
+    profileImageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800',
+    desiredGender: 'female',
+    verificationStatus: 'approved',
+    identityDocumentUrl: 'mock://identity/u_m_1-id.pdf',
+    rejectedReason: null,
+    moderationAction: 'none',
+    isSuspended: false,
+  },
+  {
+    id: 'u_m_2',
+    email: 'ken@nursematch.app',
+    role: 'user',
+    gender: 'male',
+    nickname: 'けん',
+    birthdate: '1994-07-18',
+    age: 31,
+    location: '埼玉県',
+    bio: '休日はランニングしています。',
+    profileImageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800',
+    desiredGender: 'female',
+    verificationStatus: 'pending',
+    identityDocumentUrl: 'mock://identity/u_m_2-id.pdf',
+    rejectedReason: null,
+    moderationAction: 'none',
+    isSuspended: false,
+  },
+  {
+    id: 'admin_1',
+    email: 'admin@nursematch.app',
+    role: 'admin',
+    gender: 'female',
+    nickname: '運営',
+    birthdate: '1990-01-01',
+    age: 36,
+    location: '東京都',
+    bio: '運営アカウント',
+    profileImageUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800',
+    desiredGender: 'both',
+    verificationStatus: 'approved',
+    identityDocumentUrl: 'mock://identity/admin-id.pdf',
+    rejectedReason: null,
+    moderationAction: 'none',
+    isSuspended: false,
+  },
+];
+
+const femaleProfiles: FemaleProfile[] = [
+  {
+    userId: 'u_f_1',
+    nurseDocumentUrl: 'mock://nurse/u_f_1-license.pdf',
+    nurseVerificationStatus: 'approved',
+    workplaceType: 'hospital',
+    hasNightShift: true,
+  },
+  {
+    userId: 'u_f_2',
+    nurseDocumentUrl: 'mock://nurse/u_f_2-license.pdf',
+    nurseVerificationStatus: 'approved',
+    workplaceType: 'clinic',
+    hasNightShift: false,
+  },
+];
+
+const maleProfiles: MaleProfile[] = [
+  {
+    userId: 'u_m_1',
+    job: 'ITエンジニア',
+    income: '700万円',
+    maritalStatus: 'single',
+    hasChildren: false,
+    maleReviewStatus: 'approved',
+    incomeVerified: true,
+    facePhotoVerified: true,
+    internalMemo: null,
+    height: 178,
+    bodyType: '普通',
+    holiday: '土日',
+    smoking: 'しない',
+    drinking: 'ときどき',
+    nightShiftUnderstanding: true,
+    shiftWorkUnderstanding: true,
+    lateNightContactOk: false,
+    firstDateCost: '男性が多めに負担',
+    personalityTags: ['誠実', '聞き上手', '清潔感重視'],
+  },
+  {
+    userId: 'u_m_2',
+    job: '営業',
+    income: '500万円',
+    maritalStatus: 'partner',
+    hasChildren: false,
+    maleReviewStatus: 'pending',
+    incomeVerified: false,
+    facePhotoVerified: true,
+    internalMemo: '婚姻状態の補足提出待ち',
+    height: 172,
+    bodyType: '細身',
+    holiday: 'シフト',
+    smoking: 'しない',
+    drinking: 'しない',
+    nightShiftUnderstanding: true,
+    shiftWorkUnderstanding: true,
+    lateNightContactOk: true,
+    firstDateCost: '相談して決めたい',
+    personalityTags: ['落ち着いている', '優しい'],
+  },
+];
+
+const likes: LikeRecord[] = [
+  {
+    id: 'like_1',
+    fromUserId: 'u_f_2',
+    toUserId: 'u_f_1',
+    status: 'like',
+    createdAt: now,
+  },
+];
+
+const matches: MatchRecord[] = [
+  {
+    id: 'match_1',
+    userAId: 'u_f_2',
+    userBId: 'u_f_1',
+    relationshipStatus: 'active',
+    relationshipStartedAt: null,
+    scheduledDeleteAt: null,
+    holdDeletion: false,
+    createdAt: now,
+  },
+];
+
+const messages: MessageRecord[] = [
+  {
+    id: 'msg_1',
+    matchId: 'match_1',
+    senderId: 'u_f_2',
+    body: 'はじめまして！よろしくお願いします。',
+    createdAt: now,
+  },
+];
+
+const reports: ReportRecord[] = [
+  {
+    id: 'report_1',
+    reporterId: 'u_f_1',
+    targetUserId: 'u_m_1',
+    reason: '婚姻状態が事実と異なる可能性',
+    reasonType: 'fake_marital_status',
+    detail: 'プロフィール記載と会話内容が矛盾していました。',
+    status: 'open',
+    createdAt: now,
+  },
+];
+
+const blocks: BlockRecord[] = [];
+
+const adminActions: AdminActionLog[] = [];
+
+function uuid(prefix: string) {
+  return `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
+}
+
+export function listUsers() {
+  return users;
+}
+
+export function getUserById(userId: string) {
+  return users.find((user) => user.id === userId) ?? null;
+}
+
+export function getUserByEmail(email: string) {
+  return users.find((user) => user.email === email) ?? null;
+}
+
+export function updateUser(userId: string, patch: Partial<AppUser>) {
+  const target = users.find((user) => user.id === userId);
+  if (!target) return null;
+  Object.assign(target, patch);
+  return target;
+}
+
+export function updateUserModeration(userId: string, moderationAction: ModerationAction, rejectedReason: string | null) {
+  return updateUser(userId, { moderationAction, rejectedReason });
+}
+
+export function getFemaleProfile(userId: string) {
+  return femaleProfiles.find((profile) => profile.userId === userId) ?? null;
+}
+
+export function getMaleProfile(userId: string) {
+  return maleProfiles.find((profile) => profile.userId === userId) ?? null;
+}
+
+export function upsertFemaleProfile(profile: FemaleProfile) {
+  const idx = femaleProfiles.findIndex((item) => item.userId === profile.userId);
+  if (idx >= 0) {
+    femaleProfiles[idx] = profile;
+  } else {
+    femaleProfiles.push(profile);
+  }
+}
+
+export function upsertMaleProfile(profile: MaleProfile) {
+  const idx = maleProfiles.findIndex((item) => item.userId === profile.userId);
+  if (idx >= 0) {
+    maleProfiles[idx] = profile;
+  } else {
+    maleProfiles.push(profile);
+  }
+}
+
+export function setNurseVerificationStatus(userId: string, status: VerificationStatus) {
+  const profile = femaleProfiles.find((item) => item.userId === userId);
+  if (!profile) return null;
+  profile.nurseVerificationStatus = status;
+  return profile;
+}
+
+export function setMaleReviewStatus(userId: string, status: MaleProfile['maleReviewStatus'], internalMemo?: string) {
+  const profile = maleProfiles.find((item) => item.userId === userId);
+  if (!profile) return null;
+  profile.maleReviewStatus = status;
+  if (typeof internalMemo === 'string') {
+    profile.internalMemo = internalMemo || null;
+  }
+  return profile;
+}
+
+export function listLikes() {
+  return likes;
+}
+
+export function addLike(fromUserId: string, toUserId: string, status: 'like' | 'skip') {
+  const existing = likes.find((item) => item.fromUserId === fromUserId && item.toUserId === toUserId);
+  if (existing) {
+    existing.status = status;
+    return existing;
+  }
+
+  const record: LikeRecord = {
+    id: uuid('like'),
+    fromUserId,
+    toUserId,
+    status,
+    createdAt: new Date().toISOString(),
+  };
+  likes.push(record);
+  return record;
+}
+
+export function listMatchesForUser(userId: string) {
+  return matches.filter((match) => match.userAId === userId || match.userBId === userId);
+}
+
+export function ensureMatch(userAId: string, userBId: string) {
+  const existing = matches.find(
+    (match) =>
+      (match.userAId === userAId && match.userBId === userBId) ||
+      (match.userAId === userBId && match.userBId === userAId),
+  );
+  if (existing) return existing;
+
+  const match: MatchRecord = {
+    id: uuid('match'),
+    userAId,
+    userBId,
+    relationshipStatus: 'active',
+    relationshipStartedAt: null,
+    scheduledDeleteAt: null,
+    holdDeletion: false,
+    createdAt: new Date().toISOString(),
+  };
+  matches.push(match);
+  return match;
+}
+
+export function updateMatch(matchId: string, patch: Partial<MatchRecord>) {
+  const match = matches.find((item) => item.id === matchId);
+  if (!match) return null;
+  Object.assign(match, patch);
+  return match;
+}
+
+export function getMatchById(matchId: string) {
+  return matches.find((match) => match.id === matchId) ?? null;
+}
+
+export function listMessages(matchId: string) {
+  return messages.filter((message) => message.matchId === matchId);
+}
+
+export function addMessage(matchId: string, senderId: string, body: string) {
+  const message: MessageRecord = {
+    id: uuid('msg'),
+    matchId,
+    senderId,
+    body,
+    createdAt: new Date().toISOString(),
+  };
+  messages.push(message);
+  return message;
+}
+
+export function listReports() {
+  return reports;
+}
+
+export function setReportStatus(reportId: string, status: ReportStatus) {
+  const report = reports.find((item) => item.id === reportId);
+  if (!report) return null;
+  report.status = status;
+  return report;
+}
+
+export function addReport(input: {
+  reporterId: string;
+  targetUserId: string;
+  reason: string;
+  reasonType: ReportReasonType;
+  detail: string;
+}) {
+  const row: ReportRecord = {
+    id: uuid('report'),
+    reporterId: input.reporterId,
+    targetUserId: input.targetUserId,
+    reason: input.reason,
+    reasonType: input.reasonType,
+    detail: input.detail,
+    status: 'open',
+    createdAt: new Date().toISOString(),
+  };
+  reports.push(row);
+  return row;
+}
+
+export function listBlocksForUser(userId: string) {
+  return blocks.filter((b) => b.blockerUserId === userId);
+}
+
+export function isBlockedBetween(userAId: string, userBId: string) {
+  return blocks.some(
+    (b) =>
+      (b.blockerUserId === userAId && b.blockedUserId === userBId) ||
+      (b.blockerUserId === userBId && b.blockedUserId === userAId),
+  );
+}
+
+export function addBlock(blockerUserId: string, blockedUserId: string) {
+  const exists = blocks.find((b) => b.blockerUserId === blockerUserId && b.blockedUserId === blockedUserId);
+  if (exists) return exists;
+
+  const row: BlockRecord = {
+    id: uuid('block'),
+    blockerUserId,
+    blockedUserId,
+    createdAt: new Date().toISOString(),
+  };
+  blocks.push(row);
+  return row;
+}
+
+export function listAdminActions() {
+  return adminActions;
+}
+
+export function addAdminAction(input: {
+  adminUserId: string;
+  targetUserId: string;
+  actionType: AdminActionType;
+  beforeValue?: string | null;
+  afterValue?: string | null;
+  note?: string | null;
+}) {
+  const row: AdminActionLog = {
+    id: uuid('admin_action'),
+    adminUserId: input.adminUserId,
+    targetUserId: input.targetUserId,
+    actionType: input.actionType,
+    beforeValue: input.beforeValue ?? null,
+    afterValue: input.afterValue ?? null,
+    note: input.note ?? null,
+    createdAt: new Date().toISOString(),
+  };
+  adminActions.unshift(row);
+  return row;
+}
