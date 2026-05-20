@@ -7,6 +7,7 @@ import {
   addMessage,
   addReport,
   getRiskCheck,
+  listDailyRecommendations,
   ensureMatch,
   getFemaleProfile,
   getMaleProfile,
@@ -23,6 +24,7 @@ import {
   listProfileImages,
   listUsers,
   replaceProfileImages,
+  replaceDailyRecommendations,
   toggleFavorite,
   setMaleReviewStatus,
   setNurseVerificationStatus,
@@ -40,6 +42,7 @@ import { getAdminSignedDocumentUrl, getSignedProfileImageUrl } from '@/lib/stora
 import type {
   AdminActionType,
   AppUser,
+  DailyRecommendationRecord,
   FemaleProfile,
   MaleProfile,
   MaritalStatus,
@@ -225,6 +228,16 @@ export const DEFAULT_FEMALE_FILTERS: FemaleSearchFilters = {
   incomeVerifiedOnly: false,
   facePhotoOnly: false,
 };
+
+function getJstDateString(date = new Date()) {
+  return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Tokyo' });
+}
+
+function recommendationReason(rank: number) {
+  if (rank <= 3) return '希望条件との一致度が高い候補です';
+  if (rank <= 6) return '価値観と生活リズムの相性が良い候補です';
+  return '今日の新着候補としておすすめです';
+}
 
 const RELATIONSHIP_DELETE_AFTER_DAYS = 60;
 
@@ -506,6 +519,270 @@ export async function getCandidateCards(user: AppUser, filters: FemaleSearchFilt
       profileImages: await getProfileImagesByUserId(candidate.id),
     })),
   );
+}
+
+type DailyRecommendationCard = {
+  recommendation: DailyRecommendationRecord;
+  user: AppUser;
+  maleProfile: MaleProfile | null;
+  femaleProfile: FemaleProfile | null;
+  profileImages: ProfileImageRecord[];
+};
+
+function sortByRecommendationPriority(baseUser: AppUser, a: AppUser, b: AppUser) {
+  const locationScoreA = a.location === baseUser.location ? 0 : 1;
+  const locationScoreB = b.location === baseUser.location ? 0 : 1;
+  if (locationScoreA !== locationScoreB) return locationScoreA - locationScoreB;
+  const ageDiffA = Math.abs(a.age - baseUser.age);
+  const ageDiffB = Math.abs(b.age - baseUser.age);
+  return ageDiffA - ageDiffB;
+}
+
+export async function generateDailyRecommendations(userId: string, recommendationDate = getJstDateString()) {
+  if (USE_MOCK_DATA) {
+    const user = getUserById(userId);
+    if (!user || user.gender !== 'female') return [] as DailyRecommendationRecord[];
+    const blocked = new Set(listBlocksForUser(user.id).map((item) => item.blockedUserId));
+    const swiped = new Set(listLikes().filter((item) => item.fromUserId === user.id).map((item) => item.toUserId));
+    const candidates = listUsers()
+      .filter((candidate) => candidate.id !== user.id)
+      .filter((candidate) => candidate.verificationStatus === 'approved' && !candidate.isSuspended)
+      .filter((candidate) => !blocked.has(candidate.id) && !isBlockedBetween(user.id, candidate.id))
+      .filter((candidate) => !swiped.has(candidate.id))
+      .filter((candidate) => !hasAnyRelationshipModeInMock(candidate.id))
+      .filter((candidate) => {
+        if (candidate.gender === 'male') {
+          const mp = getMaleProfile(candidate.id);
+          return Boolean(mp && mp.maleReviewStatus === 'approved');
+        }
+        if (user.desiredGender === 'male') return false;
+        const fp = getFemaleProfile(candidate.id);
+        return Boolean(fp && fp.nurseVerificationStatus === 'approved');
+      })
+      .sort((a, b) => sortByRecommendationPriority(user, a, b))
+      .slice(0, 10);
+
+    const rows: DailyRecommendationRecord[] = candidates.map((candidate, idx) => ({
+      id: `daily_${user.id}_${recommendationDate}_${idx + 1}`,
+      userId: user.id,
+      targetUserId: candidate.id,
+      recommendationDate,
+      rank: idx + 1,
+      reason: recommendationReason(idx + 1),
+      createdAt: new Date().toISOString(),
+    }));
+    replaceDailyRecommendations(user.id, recommendationDate, rows);
+    return rows;
+  }
+
+  const admin = createAdminSupabaseClient();
+  if (!admin) return [] as DailyRecommendationRecord[];
+  const { data: userRow } = await admin.from('users').select('*').eq('id', userId).single();
+  if (!userRow) return [] as DailyRecommendationRecord[];
+  const user = mapUser(userRow);
+  if (user.gender !== 'female') return [] as DailyRecommendationRecord[];
+
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return [] as DailyRecommendationRecord[];
+  const blockedSet = await getBlockedRelationSetForUser(userId);
+  const { data: likedRows } = await supabase.from('likes').select('to_user_id').eq('from_user_id', userId);
+  const swiped = new Set((likedRows ?? []).map((row) => row.to_user_id));
+
+  const [{ data: usersRows }, { data: maleRows }, { data: femaleRows }] = await Promise.all([
+    supabase
+      .from('public_user_cards')
+      .select('*')
+      .eq('verification_status', 'approved')
+      .eq('is_suspended', false)
+      .neq('id', userId),
+    supabase.from('male_profile_public').select('*'),
+    supabase.from('female_profile_public').select('*'),
+  ]);
+  const maleMap = new Map((maleRows ?? []).map((row) => [row.user_id, row]));
+  const femaleMap = new Map((femaleRows ?? []).map((row) => [row.user_id, row]));
+
+  const filtered = (usersRows ?? [])
+    .map((row) => mapPublicUserCard(row))
+    .filter((candidate) => !blockedSet.has(candidate.id))
+    .filter((candidate) => !swiped.has(candidate.id))
+    .filter((candidate) => {
+      if (candidate.gender === 'male') {
+        const mp = maleMap.get(candidate.id);
+        return Boolean(mp && mp.male_review_status === 'approved');
+      }
+      if (user.desiredGender === 'male') return false;
+      const fp = femaleMap.get(candidate.id);
+      return Boolean(fp && fp.nurse_verification_status === 'approved');
+    });
+
+  const picked: AppUser[] = [];
+  for (const candidate of filtered.sort((a, b) => sortByRecommendationPriority(user, a, b))) {
+    if (picked.length >= 10) break;
+    if (await hasAnyRelationshipMode(candidate.id)) continue;
+    picked.push(candidate);
+  }
+
+  await admin.from('daily_recommendations').delete().eq('user_id', userId).eq('recommendation_date', recommendationDate);
+  if (picked.length === 0) return [] as DailyRecommendationRecord[];
+  const insertRows: Database['public']['Tables']['daily_recommendations']['Insert'][] = picked.map((candidate, idx) => ({
+    user_id: userId,
+    target_user_id: candidate.id,
+    recommendation_date: recommendationDate,
+    rank: idx + 1,
+    reason: recommendationReason(idx + 1),
+  }));
+  await admin.from('daily_recommendations').insert(insertRows);
+  const { data: savedRows } = await admin
+    .from('daily_recommendations')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('recommendation_date', recommendationDate)
+    .order('rank', { ascending: true });
+  return (savedRows ?? []).map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    targetUserId: row.target_user_id,
+    recommendationDate: row.recommendation_date,
+    rank: row.rank,
+    reason: row.reason,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function getDailyRecommendationCards(user: AppUser, recommendationDate = getJstDateString()) {
+  if (user.gender !== 'female') return [] as DailyRecommendationCard[];
+
+  let dailyRows: DailyRecommendationRecord[] = [];
+  if (USE_MOCK_DATA) {
+    dailyRows = listDailyRecommendations(user.id, recommendationDate);
+    if (dailyRows.length === 0) {
+      dailyRows = await generateDailyRecommendations(user.id, recommendationDate);
+    }
+    return dailyRows
+      .map((row) => {
+        const target = getUserById(row.targetUserId);
+        if (!target) return null;
+        const images = listProfileImages(target.id);
+        return {
+          recommendation: row,
+          user: {
+            ...target,
+            profileImageUrl: images.find((img) => img.isMain)?.imageUrl ?? target.profileImageUrl,
+          },
+          maleProfile: getMaleProfile(target.id),
+          femaleProfile: getFemaleProfile(target.id),
+          profileImages: images,
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => Boolean(row));
+  }
+
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return [] as DailyRecommendationCard[];
+  const admin = createAdminSupabaseClient();
+  if (!admin) return [] as DailyRecommendationCard[];
+
+  const { data: existingRows } = await supabase
+    .from('daily_recommendations')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('recommendation_date', recommendationDate)
+    .order('rank', { ascending: true });
+  if (!existingRows || existingRows.length === 0) {
+    await generateDailyRecommendations(user.id, recommendationDate);
+  }
+  const { data: rows } = await supabase
+    .from('daily_recommendations')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('recommendation_date', recommendationDate)
+    .order('rank', { ascending: true });
+  const targetIds = (rows ?? []).map((row) => row.target_user_id);
+  if (targetIds.length === 0) return [] as DailyRecommendationCard[];
+
+  const [{ data: userRows }, { data: maleRows }, { data: femaleRows }] = await Promise.all([
+    supabase.from('public_user_cards').select('*').in('id', targetIds),
+    supabase.from('male_profile_public').select('*').in('user_id', targetIds),
+    supabase.from('female_profile_public').select('*').in('user_id', targetIds),
+  ]);
+  const userMap = new Map(
+    await Promise.all(
+      (userRows ?? []).map(async (row) => {
+        const mapped = mapPublicUserCard(row);
+        const images = await getProfileImagesByUserId(mapped.id);
+        return [
+          mapped.id,
+          {
+            user: await resolveProfileImage({
+              ...mapped,
+              profileImageUrl: images.find((img) => img.isMain)?.imageUrl ?? mapped.profileImageUrl,
+            }),
+            images,
+          },
+        ] as const;
+      }),
+    ),
+  );
+  const maleMap = new Map(
+    (maleRows ?? []).map((m) => [
+      m.user_id,
+      {
+        userId: m.user_id,
+        job: m.job,
+        income: m.income,
+        maritalStatus: m.marital_status,
+        hasChildren: m.has_children,
+        maleReviewStatus: m.male_review_status,
+        incomeVerified: m.income_verified,
+        facePhotoVerified: m.face_photo_verified,
+        internalMemo: null,
+        height: m.height ?? 170,
+        bodyType: m.body_type ?? '',
+        holiday: m.holiday ?? '',
+        smoking: m.smoking ?? '',
+        drinking: m.drinking ?? '',
+        nightShiftUnderstanding: m.night_shift_understanding,
+        shiftWorkUnderstanding: m.shift_work_understanding,
+        lateNightContactOk: m.late_night_contact_ok,
+        firstDateCost: m.first_date_cost ?? '',
+        personalityTags: m.personality_tags ?? [],
+      } satisfies MaleProfile,
+    ]),
+  );
+  const femaleMap = new Map(
+    (femaleRows ?? []).map((f) => [
+      f.user_id,
+      {
+        userId: f.user_id,
+        nurseDocumentUrl: '',
+        nurseVerificationStatus: f.nurse_verification_status,
+        workplaceType: f.workplace_type,
+        hasNightShift: f.has_night_shift,
+      } satisfies FemaleProfile,
+    ]),
+  );
+
+  return (rows ?? [])
+    .map((row) => {
+      const mapped = userMap.get(row.target_user_id);
+      if (!mapped) return null;
+      return {
+        recommendation: {
+          id: row.id,
+          userId: row.user_id,
+          targetUserId: row.target_user_id,
+          recommendationDate: row.recommendation_date,
+          rank: row.rank,
+          reason: row.reason,
+          createdAt: row.created_at,
+        },
+        user: mapped.user,
+        maleProfile: maleMap.get(row.target_user_id) ?? null,
+        femaleProfile: femaleMap.get(row.target_user_id) ?? null,
+        profileImages: mapped.images,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => Boolean(row));
 }
 
 export async function swipe(fromUserId: string, toUserId: string, action: 'like' | 'skip') {

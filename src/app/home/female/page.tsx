@@ -5,8 +5,8 @@ import { redirect } from 'next/navigation';
 import { Badge } from '@/components/badges';
 import { AppShell } from '@/components/app-shell';
 import { SwipeCard } from '@/components/swipe-card';
-import { setFemaleSearchPreferenceAction, swipeAction } from '@/lib/actions';
-import { DEFAULT_FEMALE_FILTERS, getCandidateCards, getCurrentUser } from '@/lib/data';
+import { setFemaleSearchPreferenceAction, swipeAction, toggleFavoriteAction } from '@/lib/actions';
+import { DEFAULT_FEMALE_FILTERS, generateDailyRecommendations, getCandidateCards, getCurrentUser, getDailyRecommendationCards } from '@/lib/data';
 import { getAccessState } from '@/lib/guard';
 import { maritalStatusLabel } from '@/lib/labels';
 
@@ -85,14 +85,72 @@ export default async function FemaleHomePage({ searchParams }: { searchParams: P
 
   const viewMode = merged.view ?? 'card';
   const cards = await getCandidateCards(user, filters);
+  await generateDailyRecommendations(user.id);
+  const recommendations = await getDailyRecommendationCards(user);
 
   return (
     <AppShell user={user}>
       <section className='space-y-4'>
         <article className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
+          <div>
+            <h1 className='text-lg font-bold text-slate-900'>本日のおすすめ</h1>
+            <p className='text-sm text-slate-500'>あなたの条件に合わせて、今日の10人を選びました</p>
+          </div>
+          {recommendations.length === 0 ? (
+            <p className='text-sm text-slate-500'>本日のおすすめ候補は準備中です。</p>
+          ) : (
+            <div className='space-y-3'>
+              {recommendations.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)).map((entry) => (
+                <article key={entry.recommendation.id} className='rounded-2xl border border-slate-100 bg-slate-50/70 p-3'>
+                  <div className='flex items-start gap-3'>
+                    <div className='relative h-16 w-16 overflow-hidden rounded-xl border border-slate-200'>
+                      <Image src={entry.user.profileImageUrl} alt={entry.user.nickname} fill className='object-cover' />
+                    </div>
+                    <div className='flex-1'>
+                      <p className='text-sm font-semibold text-slate-900'>
+                        #{entry.recommendation.rank} {entry.user.nickname}・{entry.user.age}
+                      </p>
+                      <p className='text-xs text-slate-600'>{entry.user.location}</p>
+                      {entry.maleProfile ? (
+                        <p className='text-xs text-slate-600'>
+                          職種 {entry.maleProfile.job} / 婚姻 {maritalStatusLabel(entry.maleProfile.maritalStatus)}
+                        </p>
+                      ) : null}
+                      <p className='mt-1 text-[11px] text-slate-500'>{entry.recommendation.reason}</p>
+                    </div>
+                  </div>
+                  <div className='mt-2 grid grid-cols-5 gap-1'>
+                    <form action={toggleFavoriteAction}>
+                      <input type='hidden' name='userId' value={user.id} />
+                      <input type='hidden' name='targetUserId' value={entry.user.id} />
+                      <button className='h-9 w-full rounded-lg border border-slate-200 bg-white text-[11px] font-semibold text-slate-700'>保存</button>
+                    </form>
+                    <form action={swipeAction}>
+                      <input type='hidden' name='fromUserId' value={user.id} />
+                      <input type='hidden' name='toUserId' value={entry.user.id} />
+                      <input type='hidden' name='action' value='like' />
+                      <button className='h-9 w-full rounded-lg bg-slate-900 text-[11px] font-semibold text-white'>Like</button>
+                    </form>
+                    <form action={swipeAction}>
+                      <input type='hidden' name='fromUserId' value={user.id} />
+                      <input type='hidden' name='toUserId' value={entry.user.id} />
+                      <input type='hidden' name='action' value='skip' />
+                      <button className='h-9 w-full rounded-lg border border-slate-200 bg-white text-[11px] font-semibold text-slate-700'>Skip</button>
+                    </form>
+                    <Link href={`/favorites`} className='col-span-2 flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-[11px] font-semibold text-slate-700'>
+                      詳細を見る
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </article>
+
+        <article className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
           <div className='flex items-center justify-between'>
             <div>
-              <h1 className='text-lg font-bold text-slate-900'>条件検索</h1>
+              <h2 className='text-lg font-bold text-slate-900'>条件検索</h2>
               <p className='text-sm text-slate-500'>審査制マッチング向けの詳細検索</p>
             </div>
             <div className='grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 text-xs'>

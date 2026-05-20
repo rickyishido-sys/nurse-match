@@ -126,6 +126,22 @@ export type Database = {
         Insert: Omit<Database['public']['Tables']['favorites']['Row'], 'id' | 'created_at'> & { id?: string; created_at?: string };
         Update: Partial<Database['public']['Tables']['favorites']['Row']>;
       };
+      daily_recommendations: {
+        Row: {
+          id: string;
+          user_id: string;
+          target_user_id: string;
+          recommendation_date: string;
+          rank: number;
+          reason: string;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['daily_recommendations']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['daily_recommendations']['Row']>;
+      };
       matches: {
         Row: {
           id: string;

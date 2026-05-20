@@ -91,6 +91,18 @@ create table if not exists favorites (
   constraint favorites_not_self check (user_id <> target_user_id)
 );
 
+create table if not exists daily_recommendations (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  target_user_id uuid not null references users(id) on delete cascade,
+  recommendation_date date not null,
+  rank int not null check (rank between 1 and 10),
+  reason text not null default '',
+  created_at timestamptz not null default now(),
+  constraint daily_recommendations_unique_rank unique (user_id, recommendation_date, rank),
+  constraint daily_recommendations_unique_target unique (user_id, recommendation_date, target_user_id)
+);
+
 create table if not exists matches (
   id uuid primary key default gen_random_uuid(),
   user_a_id uuid not null references users(id) on delete cascade,
@@ -236,6 +248,7 @@ alter table identity_documents enable row level security;
 alter table profile_images enable row level security;
 alter table likes enable row level security;
 alter table favorites enable row level security;
+alter table daily_recommendations enable row level security;
 alter table matches enable row level security;
 alter table messages enable row level security;
 alter table reports enable row level security;
@@ -341,6 +354,18 @@ for insert with check (auth.uid() = user_id);
 
 drop policy if exists favorites_delete_owner on favorites;
 create policy favorites_delete_owner on favorites
+for delete using (auth.uid() = user_id or is_admin(auth.uid()));
+
+drop policy if exists daily_recommendations_select_owner_or_admin on daily_recommendations;
+create policy daily_recommendations_select_owner_or_admin on daily_recommendations
+for select using (auth.uid() = user_id or is_admin(auth.uid()));
+
+drop policy if exists daily_recommendations_insert_owner_or_admin on daily_recommendations;
+create policy daily_recommendations_insert_owner_or_admin on daily_recommendations
+for insert with check (auth.uid() = user_id or is_admin(auth.uid()));
+
+drop policy if exists daily_recommendations_delete_owner_or_admin on daily_recommendations;
+create policy daily_recommendations_delete_owner_or_admin on daily_recommendations
 for delete using (auth.uid() = user_id or is_admin(auth.uid()));
 
 -- matches policies

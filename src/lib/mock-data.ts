@@ -3,6 +3,7 @@ import type {
   AdminActionType,
   AppUser,
   BlockRecord,
+  DailyRecommendationRecord,
   FavoriteRecord,
   FemaleProfile,
   LikeRecord,
@@ -325,6 +326,18 @@ const profileImages: ProfileImageRecord[] = [
   },
 ];
 
+const dailyRecommendations: DailyRecommendationRecord[] = [
+  {
+    id: 'daily_1',
+    userId: 'u_f_1',
+    targetUserId: 'u_m_1',
+    recommendationDate: new Date().toISOString().slice(0, 10),
+    rank: 1,
+    reason: '希望条件との一致度が高い候補です',
+    createdAt: now,
+  },
+];
+
 function uuid(prefix: string) {
   return `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
 }
@@ -439,6 +452,21 @@ export function addLike(fromUserId: string, toUserId: string, status: 'like' | '
 
 export function listFavorites(userId: string) {
   return favorites.filter((item) => item.userId === userId);
+}
+
+export function listDailyRecommendations(userId: string, recommendationDate: string) {
+  return dailyRecommendations
+    .filter((item) => item.userId === userId && item.recommendationDate === recommendationDate)
+    .sort((a, b) => a.rank - b.rank);
+}
+
+export function replaceDailyRecommendations(userId: string, recommendationDate: string, rows: DailyRecommendationRecord[]) {
+  for (let i = dailyRecommendations.length - 1; i >= 0; i -= 1) {
+    if (dailyRecommendations[i].userId === userId && dailyRecommendations[i].recommendationDate === recommendationDate) {
+      dailyRecommendations.splice(i, 1);
+    }
+  }
+  dailyRecommendations.push(...rows);
 }
 
 export function toggleFavorite(userId: string, targetUserId: string) {

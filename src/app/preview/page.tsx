@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { toggleFavoriteAction } from '@/lib/actions';
-import { DEFAULT_FEMALE_FILTERS, getCandidateCards, getCurrentUser, getFavoriteTargetIds } from '@/lib/data';
+import { DEFAULT_FEMALE_FILTERS, generateDailyRecommendations, getCandidateCards, getCurrentUser, getDailyRecommendationCards, getFavoriteTargetIds } from '@/lib/data';
 import { isAdminRole } from '@/lib/guard';
 
 export default async function PreviewPage() {
@@ -12,7 +12,21 @@ export default async function PreviewPage() {
   if (isAdminRole(user.role)) redirect('/admin');
   if (user.onboardingStatus === 'verified') redirect('/home');
 
-  const candidates = (await getCandidateCards(user, DEFAULT_FEMALE_FILTERS)).slice(0, 3);
+  const candidates =
+    user.gender === 'female'
+      ? (await (async () => {
+          await generateDailyRecommendations(user.id);
+          const recommended = await getDailyRecommendationCards(user);
+          return recommended
+            .filter((item): item is NonNullable<typeof item> => Boolean(item))
+            .map((item) => ({
+            user: item.user,
+            recommendation: item.recommendation,
+            }));
+        })()).slice(0, 3)
+      : (await getCandidateCards(user, DEFAULT_FEMALE_FILTERS))
+          .slice(0, 3)
+          .map((item) => ({ user: item.user, recommendation: null }));
   const favorites = await getFavoriteTargetIds(user.id);
 
   return (
@@ -46,6 +60,7 @@ export default async function PreviewPage() {
                     {favorites.has(card.user.id) ? <span className='ml-2 text-xs text-emerald-600'>お気に入り済み</span> : null}
                   </p>
                   <p className='text-xs text-slate-500'>{card.user.age}歳 / {card.user.location}</p>
+                  {card.recommendation ? <p className='text-[11px] text-slate-500'>おすすめ理由: {card.recommendation.reason}</p> : null}
                   <p className='mt-1 text-xs text-slate-500'>詳細プロフィールは本人確認後に表示されます</p>
                   <form action={toggleFavoriteAction} className='mt-2'>
                     <input type='hidden' name='userId' value={user.id} />

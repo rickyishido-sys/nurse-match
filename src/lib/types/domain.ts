@@ -102,6 +102,16 @@ export type FavoriteRecord = {
   createdAt: string;
 };
 
+export type DailyRecommendationRecord = {
+  id: string;
+  userId: string;
+  targetUserId: string;
+  recommendationDate: string;
+  rank: number;
+  reason: string;
+  createdAt: string;
+};
+
 export type RiskCheckRecord = {
   id: string;
   userId: string;
