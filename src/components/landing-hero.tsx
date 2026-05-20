@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 const HERO_IMAGES = [
-  '/hero/nurse-hero-01.png?v=20260520-1426',
-  '/hero/nurse-hero-02.png?v=20260520-1426',
-  '/hero/nurse-hero-03.png?v=20260520-1426',
-  '/hero/nurse-hero-04.png?v=20260520-1426',
-  '/hero/nurse-hero-05.png?v=20260520-1426',
+  '/hero/nurse-hero-01.png?v=20260520-1430',
+  '/hero/nurse-hero-02.png?v=20260520-1430',
+  '/hero/nurse-hero-03.png?v=20260520-1430',
+  '/hero/nurse-hero-04.png?v=20260520-1430',
+  '/hero/nurse-hero-05.png?v=20260520-1430',
 ];
 
 export function LandingHero() {

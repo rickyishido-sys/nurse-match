@@ -50,3 +50,14 @@ npm run dev
 npm run lint
 npm run build
 ```
+
+## デプロイ（Vercel Git連携）
+GitHub Actionsは使わず、Vercel標準のGit連携で本番反映します。
+
+```bash
+git add .
+git commit -m "update"
+git push origin main
+```
+
+`main` への push をトリガーに、Vercel側で自動デプロイされ、`nurse.kranz.design` に反映されます。
