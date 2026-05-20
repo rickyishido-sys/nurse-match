@@ -28,8 +28,8 @@ export function AppShell({ user, children }: AppShellProps) {
                 管理画面
               </Link>
             ) : (
-              <Link href='/matches' className='rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600'>
-                マッチ
+              <Link href='/favorites' className='rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600'>
+                お気に入り
               </Link>
             )}
             {user ? (

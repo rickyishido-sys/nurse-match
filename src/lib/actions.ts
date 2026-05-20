@@ -14,6 +14,7 @@ import {
   swipe,
   toggleFavoriteCandidate,
   runRiskCheckForUser,
+  updateRiskCheckDetails,
   updateMatchHoldDeletion,
   updateMaleReview,
   updateNurseVerification,
@@ -285,6 +286,16 @@ export async function toggleFavoriteAction(formData: FormData) {
   const targetUserId = String(formData.get('targetUserId'));
   await toggleFavoriteCandidate(userId, targetUserId);
   revalidatePath('/preview');
+  revalidatePath('/favorites');
+}
+
+export async function favoriteLikeAction(formData: FormData) {
+  const fromUserId = String(formData.get('fromUserId'));
+  const toUserId = String(formData.get('toUserId'));
+  await swipe(fromUserId, toUserId, 'like');
+  revalidatePath('/favorites');
+  revalidatePath('/home/female');
+  revalidatePath('/matches');
 }
 
 export async function sendMessageAction(formData: FormData) {
@@ -451,6 +462,18 @@ export async function adminRunRiskCheckAction(formData: FormData) {
   const admin = await getCurrentUser();
   if (!admin || (admin.role !== 'female_admin' && admin.role !== 'male_admin' && admin.role !== 'super_admin')) return;
   await runRiskCheckForUser(userId, admin.id);
+  revalidatePath('/admin');
+  revalidatePath('/admin/female');
+  revalidatePath('/admin/male');
+}
+
+export async function adminRiskCheckUpdateAction(formData: FormData) {
+  const userId = String(formData.get('userId'));
+  const status = String(formData.get('status')) as 'clear' | 'review_required' | 'rejected';
+  const adminMemo = String(formData.get('adminMemo') ?? '').trim();
+  const admin = await requireAdminForTarget(userId, ['female_admin', 'male_admin', 'super_admin']);
+  if (!admin) return;
+  await updateRiskCheckDetails(userId, status, adminMemo, admin.id);
   revalidatePath('/admin');
   revalidatePath('/admin/female');
   revalidatePath('/admin/male');

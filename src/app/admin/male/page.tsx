@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { Badge } from '@/components/badges';
-import { adminMaleReviewAction, adminReportAction, adminRunRiskCheckAction, adminSuspendAction } from '@/lib/actions';
+import { adminMaleReviewAction, adminReportAction, adminRiskCheckUpdateAction, adminRunRiskCheckAction, adminSuspendAction } from '@/lib/actions';
 import { getAdminData, getCurrentUser } from '@/lib/data';
 
 export const metadata = {
@@ -16,6 +16,8 @@ export default async function MaleAdminPage() {
   const data = await getAdminData(user.id);
   const males = data.users.filter((u) => u.gender === 'male');
   const maleReports = data.reports.filter((r) => males.some((u) => u.id === r.targetUserId));
+  const maleRiskChecks = data.riskChecks.filter((r): r is NonNullable<typeof r> => Boolean(r)).filter((r) => males.some((u) => u.id === r.userId));
+  const maleMap = new Map(males.map((u) => [u.id, u.nickname]));
 
   return (
     <AppShell user={user}>
@@ -77,6 +79,38 @@ export default async function MaleAdminPage() {
               </select>
               <button className='rounded-lg bg-slate-900 px-2 py-1 text-white'>更新</button>
             </form>
+          ))}
+        </article>
+
+        <article className='space-y-2 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
+          <h2 className='font-semibold text-slate-900'>男性リスクチェック詳細</h2>
+          {maleRiskChecks.map((risk) => (
+            <div key={risk.id} className='rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs'>
+              <p className='font-semibold text-slate-900'>{maleMap.get(risk.userId) ?? risk.userId}</p>
+              <p className='text-slate-600'>検索日時: {new Date(risk.searchedAt).toLocaleString('ja-JP')}</p>
+              <p className='text-slate-600'>検索キーワード: {risk.searchKeywords.join(' / ') || '-'}</p>
+              <p className='text-slate-600'>ヒット件数: {risk.hitCount}</p>
+              <div className='space-y-1'>
+                {(risk.sourceUrls ?? []).map((url: string) => (
+                  <a key={url} href={url} target='_blank' rel='noreferrer' className='block truncate text-blue-600 underline'>
+                    {url}
+                  </a>
+                ))}
+              </div>
+              <p className='text-slate-600'>status: {risk.status}</p>
+              <p className='text-slate-600'>最終判断者: {risk.finalDeciderId ? maleMap.get(risk.finalDeciderId) ?? risk.finalDeciderId : '-'}</p>
+              <p className='text-slate-600'>判断日時: {risk.decidedAt ? new Date(risk.decidedAt).toLocaleString('ja-JP') : '-'}</p>
+              <form action={adminRiskCheckUpdateAction} className='mt-2 flex flex-wrap gap-2'>
+                <input type='hidden' name='userId' value={risk.userId} />
+                <select name='status' defaultValue={risk.status} className='rounded-lg border border-slate-200 bg-white px-2 py-1'>
+                  <option value='clear'>clear</option>
+                  <option value='review_required'>review_required</option>
+                  <option value='rejected'>rejected</option>
+                </select>
+                <input name='adminMemo' defaultValue={risk.adminMemo ?? ''} placeholder='管理者メモ' className='flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1' />
+                <button className='rounded-lg bg-slate-900 px-2 py-1 text-white'>更新</button>
+              </form>
+            </div>
           ))}
         </article>
       </section>

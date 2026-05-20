@@ -7,6 +7,7 @@ import {
   adminModerationAction,
   adminNurseAction,
   adminReportAction,
+  adminRiskCheckUpdateAction,
   adminRunRiskCheckAction,
   adminSuspendAction,
   adminVerificationAction,
@@ -172,6 +173,56 @@ export default async function AdminPage() {
               </form>
             </article>
           ))}
+        </div>
+
+        <div className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
+          <h2 className='font-semibold text-slate-900'>リスクチェック詳細</h2>
+          {data.riskChecks.filter((r): r is NonNullable<typeof r> => Boolean(r)).length === 0 ? (
+            <p className='text-xs text-slate-500'>リスクチェック履歴はありません。</p>
+          ) : (
+            data.riskChecks
+              .filter((r): r is NonNullable<typeof r> => Boolean(r))
+              .map((risk) => (
+              <article key={risk.id} className='rounded-2xl border border-slate-100 bg-slate-50/60 p-3 text-xs'>
+                <p className='font-semibold text-slate-900'>{userMap.get(risk.userId) ?? risk.userId}</p>
+                <p className='text-slate-600'>検索日時: {new Date(risk.searchedAt).toLocaleString('ja-JP')}</p>
+                <p className='text-slate-600'>ヒット件数: {risk.hitCount}</p>
+                <p className='text-slate-600'>status: {risk.status}</p>
+                <p className='text-slate-600'>最終判断者: {risk.finalDeciderId ? userMap.get(risk.finalDeciderId) ?? risk.finalDeciderId : '-'}</p>
+                <p className='text-slate-600'>判断日時: {risk.decidedAt ? new Date(risk.decidedAt).toLocaleString('ja-JP') : '-'}</p>
+                <p className='mt-1 text-slate-600'>検索キーワード: {risk.searchKeywords.length > 0 ? risk.searchKeywords.join(' / ') : '-'}</p>
+                <div className='mt-1 space-y-1'>
+                  {(risk.sourceUrls ?? []).length === 0 ? (
+                    <p className='text-slate-500'>参照URLなし</p>
+                  ) : (
+                    risk.sourceUrls.map((url: string) => (
+                      <a key={url} href={url} target='_blank' rel='noreferrer' className='block truncate text-blue-600 underline'>
+                        {url}
+                      </a>
+                    ))
+                  )}
+                </div>
+                <p className='mt-2 rounded-lg bg-white px-2 py-1 text-slate-600'>
+                  AIは反社確定判定をしません。公開情報の確認候補として扱い、最終判断は管理者が行います。
+                </p>
+                <form action={adminRiskCheckUpdateAction} className='mt-2 flex flex-wrap gap-2'>
+                  <input type='hidden' name='userId' value={risk.userId} />
+                  <select name='status' defaultValue={risk.status} className='rounded-lg border border-slate-200 bg-white px-2 py-1'>
+                    <option value='clear'>clear</option>
+                    <option value='review_required'>review_required</option>
+                    <option value='rejected'>rejected</option>
+                  </select>
+                  <input
+                    name='adminMemo'
+                    defaultValue={risk.adminMemo ?? ''}
+                    placeholder='管理者メモ'
+                    className='min-w-[220px] flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1'
+                  />
+                  <button className='rounded-lg bg-slate-900 px-2 py-1 text-white'>更新</button>
+                </form>
+              </article>
+            ))
+          )}
         </div>
 
         <div className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
