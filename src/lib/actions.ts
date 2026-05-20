@@ -12,6 +12,8 @@ import {
   saveProfileImages,
   sendMessage,
   swipe,
+  toggleFavoriteCandidate,
+  runRiskCheckForUser,
   updateMatchHoldDeletion,
   updateMaleReview,
   updateNurseVerification,
@@ -143,6 +145,7 @@ export async function registerAction(formData: FormData) {
       bio: payload.bio,
       desiredGender: payload.desiredGender,
       onboardingStatus: 'provisional',
+      riskCheckStatus: 'not_checked',
       verificationStatus: 'pending',
       identityDocumentUrl: identityUrl,
       profileImageUrl: profileImageUrl ?? undefined,
@@ -204,6 +207,7 @@ export async function registerAction(formData: FormData) {
     profile_image_url: profileImageUrl ?? '',
     desired_gender: payload.desiredGender,
     onboarding_status: 'provisional',
+    risk_check_status: 'not_checked',
     verification_status: 'pending',
     identity_document_url: identityUrl,
     rejected_reason: null,
@@ -274,6 +278,13 @@ export async function swipeAction(formData: FormData) {
   await swipe(fromUserId, toUserId, action);
   revalidatePath('/home/female');
   revalidatePath('/matches');
+}
+
+export async function toggleFavoriteAction(formData: FormData) {
+  const userId = String(formData.get('userId'));
+  const targetUserId = String(formData.get('targetUserId'));
+  await toggleFavoriteCandidate(userId, targetUserId);
+  revalidatePath('/preview');
 }
 
 export async function sendMessageAction(formData: FormData) {
@@ -353,6 +364,12 @@ export async function adminVerificationAction(formData: FormData) {
   const rejectedReason = String(formData.get('rejectedReason') ?? '').trim();
   const admin = await requireAdminForTarget(userId, ['female_admin', 'male_admin', 'super_admin']);
   if (!admin) return;
+  if (status === 'approved') {
+    const risk = await runRiskCheckForUser(userId, admin.id);
+    if (!risk || risk.status === 'review_required' || risk.status === 'rejected') {
+      throw new Error('リスクチェックで要確認が検出されました。管理者が最終確認してください。');
+    }
+  }
 
   await updateVerification(userId, status, rejectedReason || undefined, admin.id);
   revalidatePath('/admin');
@@ -427,6 +444,16 @@ export async function adminMatchHoldDeletionAction(formData: FormData) {
 
   await updateMatchHoldDeletion(matchId, holdDeletion, admin.id);
   revalidatePath('/admin');
+}
+
+export async function adminRunRiskCheckAction(formData: FormData) {
+  const userId = String(formData.get('userId'));
+  const admin = await getCurrentUser();
+  if (!admin || (admin.role !== 'female_admin' && admin.role !== 'male_admin' && admin.role !== 'super_admin')) return;
+  await runRiskCheckForUser(userId, admin.id);
+  revalidatePath('/admin');
+  revalidatePath('/admin/female');
+  revalidatePath('/admin/male');
 }
 
 export async function createReportAction(formData: FormData) {

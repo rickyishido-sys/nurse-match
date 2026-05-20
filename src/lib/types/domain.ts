@@ -5,6 +5,7 @@ export type VerificationStatus = 'pending' | 'approved' | 'rejected';
 export type MaleReviewStatus = 'pending' | 'approved' | 'rejected';
 export type MaritalStatus = 'single' | 'married' | 'divorced' | 'partner';
 export type OnboardingStatus = 'provisional' | 'profile_completed' | 'verified';
+export type RiskCheckStatus = 'not_checked' | 'checking' | 'clear' | 'review_required' | 'rejected';
 
 export type ModerationAction = 'none' | 'warning' | 'suspend' | 'permanent_ban';
 export type ReportReasonType =
@@ -39,6 +40,7 @@ export type AppUser = {
   profileImageUrl: string;
   desiredGender: DesiredGender;
   onboardingStatus: OnboardingStatus;
+  riskCheckStatus: RiskCheckStatus;
   verificationStatus: VerificationStatus;
   identityDocumentUrl: string | null;
   rejectedReason: string | null;
@@ -91,6 +93,26 @@ export type LikeRecord = {
   toUserId: string;
   status: 'like' | 'skip';
   createdAt: string;
+};
+
+export type FavoriteRecord = {
+  id: string;
+  userId: string;
+  targetUserId: string;
+  createdAt: string;
+};
+
+export type RiskCheckRecord = {
+  id: string;
+  userId: string;
+  status: RiskCheckStatus;
+  searchedAt: string;
+  searchKeywords: string[];
+  hitCount: number;
+  sourceUrls: string[];
+  adminMemo: string | null;
+  finalDeciderId: string | null;
+  decidedAt: string | null;
 };
 
 export type MatchRecord = {

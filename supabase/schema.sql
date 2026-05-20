@@ -14,6 +14,7 @@ create table if not exists users (
   profile_image_url text not null default '',
   desired_gender text not null default 'both' check (desired_gender in ('male', 'female', 'both')),
   onboarding_status text not null default 'provisional' check (onboarding_status in ('provisional', 'profile_completed', 'verified')),
+  risk_check_status text not null default 'not_checked' check (risk_check_status in ('not_checked', 'checking', 'clear', 'review_required', 'rejected')),
   verification_status text not null default 'pending' check (verification_status in ('pending', 'approved', 'rejected')),
   identity_document_url text,
   rejected_reason text,
@@ -79,6 +80,15 @@ create table if not exists likes (
   status text not null check (status in ('like', 'skip')),
   created_at timestamptz not null default now(),
   unique (from_user_id, to_user_id)
+);
+
+create table if not exists favorites (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  target_user_id uuid not null references users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  constraint favorites_unique_pair unique (user_id, target_user_id),
+  constraint favorites_not_self check (user_id <> target_user_id)
 );
 
 create table if not exists matches (
@@ -151,6 +161,21 @@ create table if not exists admin_audit_logs (
   created_at timestamptz not null default now()
 );
 
+create table if not exists risk_checks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references users(id) on delete cascade,
+  status text not null check (status in ('not_checked', 'checking', 'clear', 'review_required', 'rejected')),
+  searched_at timestamptz not null default now(),
+  search_keywords text[] not null default '{}',
+  hit_count int not null default 0,
+  source_urls text[] not null default '{}',
+  admin_memo text,
+  final_decider_id uuid references users(id) on delete set null,
+  decided_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists idx_users_verification on users(verification_status, is_suspended);
 create index if not exists idx_likes_from on likes(from_user_id);
 create index if not exists idx_matches_users on matches(user_a_id, user_b_id);
@@ -210,12 +235,14 @@ alter table male_profiles enable row level security;
 alter table identity_documents enable row level security;
 alter table profile_images enable row level security;
 alter table likes enable row level security;
+alter table favorites enable row level security;
 alter table matches enable row level security;
 alter table messages enable row level security;
 alter table reports enable row level security;
 alter table blocks enable row level security;
 alter table admin_actions enable row level security;
 alter table admin_audit_logs enable row level security;
+alter table risk_checks enable row level security;
 
 -- Helper
 create or replace function is_admin(uid uuid)
@@ -304,6 +331,18 @@ for insert with check (
   )
 );
 
+drop policy if exists favorites_select_owner on favorites;
+create policy favorites_select_owner on favorites
+for select using (auth.uid() = user_id or is_admin(auth.uid()));
+
+drop policy if exists favorites_insert_owner on favorites;
+create policy favorites_insert_owner on favorites
+for insert with check (auth.uid() = user_id);
+
+drop policy if exists favorites_delete_owner on favorites;
+create policy favorites_delete_owner on favorites
+for delete using (auth.uid() = user_id or is_admin(auth.uid()));
+
 -- matches policies
 drop policy if exists matches_select_member_or_admin on matches;
 create policy matches_select_member_or_admin on matches
@@ -379,6 +418,18 @@ for select using (is_admin(auth.uid()));
 drop policy if exists admin_audit_logs_insert_admin_only on admin_audit_logs;
 create policy admin_audit_logs_insert_admin_only on admin_audit_logs
 for insert with check (is_admin(auth.uid()));
+
+drop policy if exists risk_checks_select_self_or_admin on risk_checks;
+create policy risk_checks_select_self_or_admin on risk_checks
+for select using (auth.uid() = user_id or is_admin(auth.uid()));
+
+drop policy if exists risk_checks_insert_admin_only on risk_checks;
+create policy risk_checks_insert_admin_only on risk_checks
+for insert with check (is_admin(auth.uid()));
+
+drop policy if exists risk_checks_update_admin_only on risk_checks;
+create policy risk_checks_update_admin_only on risk_checks
+for update using (is_admin(auth.uid())) with check (is_admin(auth.uid()));
 
 -- =========================
 -- Storage buckets and policies

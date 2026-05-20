@@ -7,6 +7,7 @@ import {
   adminModerationAction,
   adminNurseAction,
   adminReportAction,
+  adminRunRiskCheckAction,
   adminSuspendAction,
   adminVerificationAction,
 } from '@/lib/actions';
@@ -20,6 +21,12 @@ export const metadata = {
 function statusTone(status: string): 'amber' | 'green' | 'gray' {
   if (status === 'approved' || status === 'resolved') return 'green';
   if (status === 'pending' || status === 'open' || status === 'reviewing') return 'amber';
+  return 'gray';
+}
+
+function riskTone(status: string): 'amber' | 'green' | 'gray' {
+  if (status === 'clear') return 'green';
+  if (status === 'review_required' || status === 'checking' || status === 'not_checked') return 'amber';
   return 'gray';
 }
 
@@ -55,6 +62,7 @@ export default async function AdminPage() {
                 <div className='mb-2 flex flex-wrap items-center gap-2'>
                   <p className='font-semibold text-slate-900'>{u.nickname} ({u.gender}/{u.role})</p>
                   <Badge tone={statusTone(u.verificationStatus)}>本人 {u.verificationStatus}</Badge>
+                  <Badge tone={riskTone(u.riskCheckStatus)}>リスク {u.riskCheckStatus}</Badge>
                   {male ? <Badge tone={statusTone(male.maleReviewStatus)}>男性審査 {male.maleReviewStatus}</Badge> : null}
                   {female ? <Badge tone={statusTone(female.nurseVerificationStatus)}>看護師確認 {female.nurseVerificationStatus}</Badge> : null}
                 </div>
@@ -89,6 +97,10 @@ export default async function AdminPage() {
                     </select>
                     <input name='rejectedReason' defaultValue={u.rejectedReason ?? ''} placeholder='rejected reason' className='rounded-lg border border-slate-200 bg-white px-2 py-1' />
                     <button className='rounded-lg bg-slate-900 px-2 py-1 text-white'>本人確認更新</button>
+                  </form>
+                  <form action={adminRunRiskCheckAction}>
+                    <input type='hidden' name='userId' value={u.id} />
+                    <button className='rounded-lg border border-slate-300 bg-white px-2 py-1'>リスクチェック実行</button>
                   </form>
 
                   {u.gender === 'female' ? (

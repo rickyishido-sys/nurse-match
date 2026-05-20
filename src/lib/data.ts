@@ -6,6 +6,7 @@ import {
   addLike,
   addMessage,
   addReport,
+  getRiskCheck,
   ensureMatch,
   getFemaleProfile,
   getMaleProfile,
@@ -17,16 +18,19 @@ import {
   listLikes,
   listMatchesForUser,
   listMessages,
+  listFavorites,
   listReports,
   listProfileImages,
   listUsers,
   replaceProfileImages,
+  toggleFavorite,
   setMaleReviewStatus,
   setNurseVerificationStatus,
   setReportStatus,
   updateMatch,
   updateUser,
   updateUserModeration,
+  upsertRiskCheck,
   upsertFemaleProfile,
   upsertMaleProfile,
 } from '@/lib/mock-data';
@@ -44,6 +48,8 @@ import type {
   ProfileImageRecord,
   ReportReasonType,
   ReportStatus,
+  RiskCheckRecord,
+  RiskCheckStatus,
 } from '@/lib/types/domain';
 import type { Database } from '@/lib/types/database';
 
@@ -61,6 +67,7 @@ function mapUser(row: Database['public']['Tables']['users']['Row']): AppUser {
     profileImageUrl: row.profile_image_url,
     desiredGender: row.desired_gender,
     onboardingStatus: row.onboarding_status,
+    riskCheckStatus: row.risk_check_status,
     verificationStatus: row.verification_status,
     identityDocumentUrl: row.identity_document_url,
     rejectedReason: row.rejected_reason,
@@ -128,6 +135,7 @@ function mapPublicUserCard(row: Database['public']['Views']['public_user_cards']
     profileImageUrl: row.profile_image_url,
     desiredGender: row.desired_gender,
     onboardingStatus: 'verified',
+    riskCheckStatus: 'clear',
     verificationStatus: row.verification_status,
     identityDocumentUrl: null,
     rejectedReason: null,
@@ -590,6 +598,131 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
   }
 }
 
+export async function getFavoriteTargetIds(userId: string) {
+  if (USE_MOCK_DATA) {
+    return new Set(listFavorites(userId).map((row) => row.targetUserId));
+  }
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return new Set<string>();
+  const { data } = await supabase.from('favorites').select('target_user_id').eq('user_id', userId);
+  return new Set((data ?? []).map((row) => row.target_user_id));
+}
+
+export async function toggleFavoriteCandidate(userId: string, targetUserId: string) {
+  if (USE_MOCK_DATA) {
+    return toggleFavorite(userId, targetUserId);
+  }
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return false;
+  const { data: existing } = await supabase
+    .from('favorites')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('target_user_id', targetUserId)
+    .maybeSingle();
+  if (existing) {
+    await supabase.from('favorites').delete().eq('id', existing.id);
+    return false;
+  }
+  await supabase.from('favorites').insert({ user_id: userId, target_user_id: targetUserId });
+  return true;
+}
+
+function buildRiskCheckSummary(nickname: string, birthdate: string) {
+  const keywords = [`${nickname} ${birthdate}`, `${nickname} 事件`, `${nickname} 反社`];
+  const riskWordDetected = /(暴力団|詐欺|制裁|反社|マネロン)/.test(nickname);
+  return {
+    searchKeywords: keywords,
+    hitCount: riskWordDetected ? 1 : 0,
+    sourceUrls: riskWordDetected ? ['https://example.com/review-required'] : [],
+    status: (riskWordDetected ? 'review_required' : 'clear') as RiskCheckStatus,
+    adminMemo: riskWordDetected
+      ? '同姓同名候補を含むため手動確認が必要です。AIは断定しません。'
+      : '重大な一致なし。最終判断は管理者が実施。',
+  };
+}
+
+export async function runRiskCheckForUser(userId: string, adminUserId: string): Promise<RiskCheckRecord | null> {
+  if (USE_MOCK_DATA) {
+    const user = getUserById(userId);
+    if (!user) return null;
+    const now = new Date().toISOString();
+    const summary = buildRiskCheckSummary(user.nickname, user.birthdate);
+    const row: RiskCheckRecord = {
+      id: `risk_${userId}`,
+      userId,
+      status: summary.status,
+      searchedAt: now,
+      searchKeywords: summary.searchKeywords,
+      hitCount: summary.hitCount,
+      sourceUrls: summary.sourceUrls,
+      adminMemo: summary.adminMemo,
+      finalDeciderId: summary.status === 'clear' ? adminUserId : null,
+      decidedAt: summary.status === 'clear' ? now : null,
+    };
+    upsertRiskCheck(row);
+    updateUser(userId, { riskCheckStatus: row.status });
+    return row;
+  }
+
+  const admin = createAdminSupabaseClient();
+  if (!admin) return null;
+  const { data: user } = await admin.from('users').select('nickname,birthdate').eq('id', userId).single();
+  if (!user) return null;
+  const now = new Date().toISOString();
+  const summary = buildRiskCheckSummary(user.nickname, user.birthdate);
+
+  await admin.from('users').update({ risk_check_status: 'checking' }).eq('id', userId);
+  const upsert: Database['public']['Tables']['risk_checks']['Insert'] = {
+    user_id: userId,
+    status: summary.status,
+    searched_at: now,
+    search_keywords: summary.searchKeywords,
+    hit_count: summary.hitCount,
+    source_urls: summary.sourceUrls,
+    admin_memo: summary.adminMemo,
+    final_decider_id: summary.status === 'clear' ? adminUserId : null,
+    decided_at: summary.status === 'clear' ? now : null,
+  };
+  await admin.from('risk_checks').upsert(upsert, { onConflict: 'user_id' });
+  await admin.from('users').update({ risk_check_status: summary.status }).eq('id', userId);
+
+  const { data: saved } = await admin.from('risk_checks').select('*').eq('user_id', userId).single();
+  if (!saved) return null;
+  return {
+    id: saved.id,
+    userId: saved.user_id,
+    status: saved.status,
+    searchedAt: saved.searched_at,
+    searchKeywords: saved.search_keywords,
+    hitCount: saved.hit_count,
+    sourceUrls: saved.source_urls,
+    adminMemo: saved.admin_memo,
+    finalDeciderId: saved.final_decider_id,
+    decidedAt: saved.decided_at,
+  };
+}
+
+export async function getRiskCheckByUserId(userId: string): Promise<RiskCheckRecord | null> {
+  if (USE_MOCK_DATA) return getRiskCheck(userId);
+  const admin = createAdminSupabaseClient();
+  if (!admin) return null;
+  const { data } = await admin.from('risk_checks').select('*').eq('user_id', userId).maybeSingle();
+  if (!data) return null;
+  return {
+    id: data.id,
+    userId: data.user_id,
+    status: data.status,
+    searchedAt: data.searched_at,
+    searchKeywords: data.search_keywords,
+    hitCount: data.hit_count,
+    sourceUrls: data.source_urls,
+    adminMemo: data.admin_memo,
+    finalDeciderId: data.final_decider_id,
+    decidedAt: data.decided_at,
+  };
+}
+
 export async function getMatches(userId: string) {
   if (USE_MOCK_DATA) {
     return listMatchesForUser(userId)
@@ -798,6 +931,7 @@ export async function getAdminData(adminUserId?: string) {
         .filter((user) => user.gender === 'male')
         .map((user) => ({ userId: user.id, profile: getMaleProfile(user.id) })),
       adminActions: listAdminActions(),
+      riskChecks: listUsers().map((user) => getRiskCheck(user.id)).filter(Boolean),
       relationshipMatches,
     };
   }
@@ -805,7 +939,7 @@ export async function getAdminData(adminUserId?: string) {
   const supabase = createAdminSupabaseClient();
   if (!supabase) throw new Error('SUPABASE_SERVICE_ROLE_KEY が未設定です');
 
-  const [{ data: usersRows }, { data: reportRows }, { data: femaleRows }, { data: maleRows }, { data: actionRows }, { data: matchRows }] =
+  const [{ data: usersRows }, { data: reportRows }, { data: femaleRows }, { data: maleRows }, { data: actionRows }, { data: matchRows }, { data: riskRows }] =
     await Promise.all([
       supabase.from('users').select('*').order('created_at', { ascending: false }),
       supabase.from('reports').select('*').order('created_at', { ascending: false }),
@@ -813,6 +947,7 @@ export async function getAdminData(adminUserId?: string) {
       supabase.from('male_profiles').select('*'),
       supabase.from('admin_actions').select('*').order('created_at', { ascending: false }).limit(50),
       supabase.from('matches').select('*').in('relationship_status', ['relationship_mode', 'scheduled_delete']),
+      supabase.from('risk_checks').select('*'),
     ]);
 
   const isAdmin = Boolean(adminUserId);
@@ -861,6 +996,18 @@ export async function getAdminData(adminUserId?: string) {
       afterValue: a.after_value,
       note: a.note,
       createdAt: a.created_at,
+    })),
+    riskChecks: (riskRows ?? []).map((row) => ({
+      id: row.id,
+      userId: row.user_id,
+      status: row.status,
+      searchedAt: row.searched_at,
+      searchKeywords: row.search_keywords,
+      hitCount: row.hit_count,
+      sourceUrls: row.source_urls,
+      adminMemo: row.admin_memo,
+      finalDeciderId: row.final_decider_id,
+      decidedAt: row.decided_at,
     })),
     relationshipMatches: (matchRows ?? []).map((m) => ({
       id: m.id,

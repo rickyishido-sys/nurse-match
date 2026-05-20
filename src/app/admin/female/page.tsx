@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { Badge } from '@/components/badges';
-import { adminNurseAction, adminReportAction, adminSuspendAction } from '@/lib/actions';
+import { adminNurseAction, adminReportAction, adminRunRiskCheckAction, adminSuspendAction } from '@/lib/actions';
 import { getAdminData, getCurrentUser } from '@/lib/data';
 
 export const metadata = {
@@ -36,6 +36,7 @@ export default async function FemaleAdminPage() {
               <div key={u.id} className='rounded-2xl border border-slate-100 bg-slate-50 p-3 text-xs'>
                 <p className='font-semibold text-slate-900'>{u.nickname}</p>
                 <p className='text-slate-600'>看護師確認: {fp?.nurseVerificationStatus ?? 'pending'}</p>
+                <p className='text-slate-600'>リスクチェック: {u.riskCheckStatus}</p>
                 <div className='mt-2 flex flex-wrap gap-2'>
                   <form action={adminNurseAction} className='flex gap-2'>
                     <input type='hidden' name='userId' value={u.id} />
@@ -50,6 +51,10 @@ export default async function FemaleAdminPage() {
                     <input type='hidden' name='userId' value={u.id} />
                     <input type='hidden' name='suspend' value={u.isSuspended ? 'false' : 'true'} />
                     <button className='rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-red-700'>{u.isSuspended ? '停止解除' : '停止'}</button>
+                  </form>
+                  <form action={adminRunRiskCheckAction}>
+                    <input type='hidden' name='userId' value={u.id} />
+                    <button className='rounded-lg border border-slate-300 bg-white px-2 py-1'>リスクチェック</button>
                   </form>
                 </div>
               </div>

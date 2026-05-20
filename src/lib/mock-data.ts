@@ -3,6 +3,7 @@ import type {
   AdminActionType,
   AppUser,
   BlockRecord,
+  FavoriteRecord,
   FemaleProfile,
   LikeRecord,
   MaleProfile,
@@ -13,6 +14,7 @@ import type {
   ReportReasonType,
   ReportRecord,
   ReportStatus,
+  RiskCheckRecord,
   VerificationStatus,
 } from '@/lib/types/domain';
 
@@ -32,6 +34,7 @@ const users: AppUser[] = [
     profileImageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800',
     desiredGender: 'both',
     onboardingStatus: 'verified',
+    riskCheckStatus: 'clear',
     verificationStatus: 'approved',
     identityDocumentUrl: 'mock://identity/u_f_1-id.pdf',
     rejectedReason: null,
@@ -51,6 +54,7 @@ const users: AppUser[] = [
     profileImageUrl: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=800',
     desiredGender: 'female',
     onboardingStatus: 'verified',
+    riskCheckStatus: 'clear',
     verificationStatus: 'approved',
     identityDocumentUrl: 'mock://identity/u_f_2-id.pdf',
     rejectedReason: null,
@@ -70,6 +74,7 @@ const users: AppUser[] = [
     profileImageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800',
     desiredGender: 'female',
     onboardingStatus: 'verified',
+    riskCheckStatus: 'clear',
     verificationStatus: 'approved',
     identityDocumentUrl: 'mock://identity/u_m_1-id.pdf',
     rejectedReason: null,
@@ -89,6 +94,7 @@ const users: AppUser[] = [
     profileImageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800',
     desiredGender: 'female',
     onboardingStatus: 'provisional',
+    riskCheckStatus: 'not_checked',
     verificationStatus: 'pending',
     identityDocumentUrl: 'mock://identity/u_m_2-id.pdf',
     rejectedReason: null,
@@ -108,6 +114,7 @@ const users: AppUser[] = [
     profileImageUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800',
     desiredGender: 'both',
     onboardingStatus: 'verified',
+    riskCheckStatus: 'clear',
     verificationStatus: 'approved',
     identityDocumentUrl: 'mock://identity/admin-id.pdf',
     rejectedReason: null,
@@ -127,6 +134,7 @@ const users: AppUser[] = [
     profileImageUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800',
     desiredGender: 'both',
     onboardingStatus: 'verified',
+    riskCheckStatus: 'clear',
     verificationStatus: 'approved',
     identityDocumentUrl: 'mock://identity/admin-f-id.pdf',
     rejectedReason: null,
@@ -146,6 +154,7 @@ const users: AppUser[] = [
     profileImageUrl: 'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=800',
     desiredGender: 'both',
     onboardingStatus: 'verified',
+    riskCheckStatus: 'clear',
     verificationStatus: 'approved',
     identityDocumentUrl: 'mock://identity/admin-m-id.pdf',
     rejectedReason: null,
@@ -226,6 +235,15 @@ const likes: LikeRecord[] = [
   },
 ];
 
+const favorites: FavoriteRecord[] = [
+  {
+    id: 'favorite_1',
+    userId: 'u_m_2',
+    targetUserId: 'u_f_1',
+    createdAt: now,
+  },
+];
+
 const matches: MatchRecord[] = [
   {
     id: 'match_1',
@@ -265,6 +283,20 @@ const reports: ReportRecord[] = [
 const blocks: BlockRecord[] = [];
 
 const adminActions: AdminActionLog[] = [];
+const riskChecks: RiskCheckRecord[] = [
+  {
+    id: 'risk_1',
+    userId: 'u_f_1',
+    status: 'clear',
+    searchedAt: now,
+    searchKeywords: ['はな 1996-03-10', 'はな 看護師'],
+    hitCount: 0,
+    sourceUrls: [],
+    adminMemo: '重大な一致なし',
+    finalDeciderId: 'admin_1',
+    decidedAt: now,
+  },
+];
 
 const profileImages: ProfileImageRecord[] = [
   {
@@ -405,6 +437,25 @@ export function addLike(fromUserId: string, toUserId: string, status: 'like' | '
   return record;
 }
 
+export function listFavorites(userId: string) {
+  return favorites.filter((item) => item.userId === userId);
+}
+
+export function toggleFavorite(userId: string, targetUserId: string) {
+  const idx = favorites.findIndex((item) => item.userId === userId && item.targetUserId === targetUserId);
+  if (idx >= 0) {
+    favorites.splice(idx, 1);
+    return false;
+  }
+  favorites.push({
+    id: uuid('favorite'),
+    userId,
+    targetUserId,
+    createdAt: new Date().toISOString(),
+  });
+  return true;
+}
+
 export function listMatchesForUser(userId: string) {
   return matches.filter((match) => match.userAId === userId || match.userBId === userId);
 }
@@ -518,6 +569,19 @@ export function addBlock(blockerUserId: string, blockedUserId: string) {
 
 export function listAdminActions() {
   return adminActions;
+}
+
+export function getRiskCheck(userId: string) {
+  return riskChecks.find((item) => item.userId === userId) ?? null;
+}
+
+export function upsertRiskCheck(record: RiskCheckRecord) {
+  const idx = riskChecks.findIndex((item) => item.userId === record.userId);
+  if (idx >= 0) {
+    riskChecks[idx] = record;
+  } else {
+    riskChecks.push(record);
+  }
 }
 
 export function addAdminAction(input: {

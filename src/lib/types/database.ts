@@ -15,6 +15,7 @@ export type Database = {
           profile_image_url: string;
           desired_gender: 'male' | 'female' | 'both';
           onboarding_status: 'provisional' | 'profile_completed' | 'verified';
+          risk_check_status: 'not_checked' | 'checking' | 'clear' | 'review_required' | 'rejected';
           verification_status: 'pending' | 'approved' | 'rejected';
           identity_document_url: string | null;
           rejected_reason: string | null;
@@ -115,6 +116,16 @@ export type Database = {
         Insert: Omit<Database['public']['Tables']['likes']['Row'], 'id' | 'created_at'> & { id?: string; created_at?: string };
         Update: Partial<Database['public']['Tables']['likes']['Row']>;
       };
+      favorites: {
+        Row: {
+          id: string;
+          user_id: string;
+          target_user_id: string;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['favorites']['Row'], 'id' | 'created_at'> & { id?: string; created_at?: string };
+        Update: Partial<Database['public']['Tables']['favorites']['Row']>;
+      };
       matches: {
         Row: {
           id: string;
@@ -199,6 +210,28 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['admin_audit_logs']['Row']>;
+      };
+      risk_checks: {
+        Row: {
+          id: string;
+          user_id: string;
+          status: 'not_checked' | 'checking' | 'clear' | 'review_required' | 'rejected';
+          searched_at: string;
+          search_keywords: string[];
+          hit_count: number;
+          source_urls: string[];
+          admin_memo: string | null;
+          final_decider_id: string | null;
+          decided_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['risk_checks']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['risk_checks']['Row']>;
       };
     };
     Views: {
