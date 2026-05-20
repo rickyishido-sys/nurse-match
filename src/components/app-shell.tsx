@@ -12,6 +12,8 @@ type AppShellProps = {
 
 export function AppShell({ user, children }: AppShellProps) {
   const showBottomNav = user !== null;
+  const isAdmin = user?.role === 'female_admin' || user?.role === 'male_admin' || user?.role === 'super_admin';
+  const adminHref = user?.role === 'female_admin' ? '/admin/female' : user?.role === 'male_admin' ? '/admin/male' : '/admin';
 
   return (
     <div className='safe-area-padding mx-auto flex min-h-screen w-full max-w-[390px] flex-col border-x border-slate-100/80 bg-white/90 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)] backdrop-blur'>
@@ -21,8 +23,8 @@ export function AppShell({ user, children }: AppShellProps) {
             Nurse Match
           </Link>
           <div className='flex items-center gap-2'>
-            {user?.role === 'admin' ? (
-              <Link href='/admin' className='rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600'>
+            {isAdmin ? (
+              <Link href={adminHref} className='rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600'>
                 管理画面
               </Link>
             ) : (

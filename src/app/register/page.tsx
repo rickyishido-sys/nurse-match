@@ -9,15 +9,8 @@ export default async function RegisterPage() {
     <AppShell user={user}>
       <section className='space-y-4'>
         <article className='rounded-[28px] border border-slate-100 bg-white p-5 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.55)]'>
-          <h1 className='text-xl font-bold text-slate-900'>登録情報入力</h1>
-          <p className='mt-1 text-xs text-slate-500'>審査制のため、入力情報と書類をもとに運営が確認します。</p>
-
-          <div className='mt-4 grid grid-cols-4 gap-2 text-[11px] font-semibold text-slate-600'>
-            <div className='rounded-xl bg-slate-900 px-2 py-2 text-center text-white'>1. 基本情報</div>
-            <div className='rounded-xl bg-slate-100 px-2 py-2 text-center'>2. プロフィール</div>
-            <div className='rounded-xl bg-slate-100 px-2 py-2 text-center'>3. 書類提出</div>
-            <div className='rounded-xl bg-slate-100 px-2 py-2 text-center'>4. 確認</div>
-          </div>
+          <h1 className='text-xl font-bold text-slate-900'>仮登録</h1>
+          <p className='mt-1 text-xs text-slate-500'>メールアドレス・パスワード・性別・生年月日・居住地・ニックネームで開始できます。</p>
         </article>
 
         <form action={registerAction} className='space-y-4'>
@@ -57,7 +50,7 @@ export default async function RegisterPage() {
           </article>
 
           <article className='rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
-            <h2 className='mb-3 text-sm font-bold text-slate-900'>2. プロフィール</h2>
+            <h2 className='mb-3 text-sm font-bold text-slate-900'>2. 初期プロフィール</h2>
             <div className='space-y-3 text-sm'>
               <label className='grid gap-1'>
                 居住地
@@ -79,7 +72,7 @@ export default async function RegisterPage() {
           </article>
 
           <article className='rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
-            <h2 className='mb-3 text-sm font-bold text-slate-900'>3. 書類提出</h2>
+            <h2 className='mb-3 text-sm font-bold text-slate-900'>3. 追加情報（任意）</h2>
             <div className='space-y-3 text-sm'>
               <label className='grid gap-1'>
                 プロフィール写真
@@ -87,7 +80,7 @@ export default async function RegisterPage() {
               </label>
               <label className='grid gap-1'>
                 本人確認書類 (必須)
-                <input type='file' name='identityDocument' required className='rounded-xl border border-slate-200 px-3 py-2' />
+                <input type='file' name='identityDocument' className='rounded-xl border border-slate-200 px-3 py-2' />
               </label>
 
               <div className='rounded-2xl border border-pink-100 bg-pink-50/70 p-3'>
@@ -127,8 +120,8 @@ export default async function RegisterPage() {
 
           <article className='rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
             <h2 className='mb-3 text-sm font-bold text-slate-900'>4. 確認</h2>
-            <p className='mb-3 text-xs text-slate-500'>入力内容と書類提出後、審査結果が出るまでアプリは利用できません。</p>
-            <button className='h-12 w-full rounded-2xl bg-slate-900 text-sm font-semibold text-white'>登録して審査へ進む</button>
+            <p className='mb-3 text-xs text-slate-500'>仮登録後は /preview で雰囲気を確認できます。接触機能は本人確認後に解放されます。</p>
+            <button className='h-12 w-full rounded-2xl bg-slate-900 text-sm font-semibold text-white'>仮登録する</button>
           </article>
         </form>
       </section>

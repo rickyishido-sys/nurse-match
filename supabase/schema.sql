@@ -4,7 +4,7 @@ create extension if not exists pgcrypto;
 create table if not exists users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null unique,
-  role text not null default 'user' check (role in ('user', 'admin')),
+  role text not null default 'user' check (role in ('user', 'female_admin', 'male_admin', 'super_admin')),
   gender text not null check (gender in ('female', 'male')),
   nickname text not null,
   birthdate date not null,
@@ -13,6 +13,7 @@ create table if not exists users (
   bio text not null default '',
   profile_image_url text not null default '',
   desired_gender text not null default 'both' check (desired_gender in ('male', 'female', 'both')),
+  onboarding_status text not null default 'provisional' check (onboarding_status in ('provisional', 'profile_completed', 'verified')),
   verification_status text not null default 'pending' check (verification_status in ('pending', 'approved', 'rejected')),
   identity_document_url text,
   rejected_reason text,
@@ -58,6 +59,17 @@ create table if not exists identity_documents (
   document_url text not null,
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   created_at timestamptz not null default now()
+);
+
+create table if not exists profile_images (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  image_url text not null,
+  sort_order int not null default 1 check (sort_order between 1 and 3),
+  is_main boolean not null default false,
+  approved_status text not null default 'pending' check (approved_status in ('pending', 'approved', 'rejected')),
+  created_at timestamptz not null default now(),
+  constraint profile_images_unique_order unique (user_id, sort_order)
 );
 
 create table if not exists likes (
@@ -130,6 +142,15 @@ create table if not exists admin_actions (
   created_at timestamptz not null default now()
 );
 
+create table if not exists admin_audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  admin_user_id uuid not null references users(id) on delete cascade,
+  target_user_id uuid references users(id) on delete set null,
+  action text not null check (action in ('approve', 'reject', 'suspend', 'permanent_ban', 'image_reject', 'deletion_hold')),
+  reason text,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists idx_users_verification on users(verification_status, is_suspended);
 create index if not exists idx_likes_from on likes(from_user_id);
 create index if not exists idx_matches_users on matches(user_a_id, user_b_id);
@@ -187,12 +208,14 @@ alter table users enable row level security;
 alter table female_profiles enable row level security;
 alter table male_profiles enable row level security;
 alter table identity_documents enable row level security;
+alter table profile_images enable row level security;
 alter table likes enable row level security;
 alter table matches enable row level security;
 alter table messages enable row level security;
 alter table reports enable row level security;
 alter table blocks enable row level security;
 alter table admin_actions enable row level security;
+alter table admin_audit_logs enable row level security;
 
 -- Helper
 create or replace function is_admin(uid uuid)
@@ -200,7 +223,7 @@ returns boolean
 language sql
 stable
 as $$
-  select exists(select 1 from users where id = uid and role = 'admin');
+  select exists(select 1 from users where id = uid and role in ('female_admin', 'male_admin', 'super_admin'));
 $$;
 
 -- users policies
@@ -250,6 +273,19 @@ for select using (auth.uid() = user_id or is_admin(auth.uid()));
 drop policy if exists identity_insert_self on identity_documents;
 create policy identity_insert_self on identity_documents
 for insert with check (auth.uid() = user_id);
+
+-- profile_images policies
+drop policy if exists profile_images_select_self_or_admin on profile_images;
+create policy profile_images_select_self_or_admin on profile_images
+for select using (auth.uid() = user_id or is_admin(auth.uid()));
+
+drop policy if exists profile_images_insert_self on profile_images;
+create policy profile_images_insert_self on profile_images
+for insert with check (auth.uid() = user_id);
+
+drop policy if exists profile_images_update_self_or_admin on profile_images;
+create policy profile_images_update_self_or_admin on profile_images
+for update using (auth.uid() = user_id or is_admin(auth.uid())) with check (auth.uid() = user_id or is_admin(auth.uid()));
 
 -- likes policies (男性 from_user を禁止)
 drop policy if exists likes_select_self_or_admin on likes;
@@ -334,6 +370,14 @@ for select using (is_admin(auth.uid()));
 
 drop policy if exists admin_actions_insert_admin_only on admin_actions;
 create policy admin_actions_insert_admin_only on admin_actions
+for insert with check (is_admin(auth.uid()));
+
+drop policy if exists admin_audit_logs_select_admin_only on admin_audit_logs;
+create policy admin_audit_logs_select_admin_only on admin_audit_logs
+for select using (is_admin(auth.uid()));
+
+drop policy if exists admin_audit_logs_insert_admin_only on admin_audit_logs;
+create policy admin_audit_logs_insert_admin_only on admin_audit_logs
 for insert with check (is_admin(auth.uid()));
 
 -- =========================

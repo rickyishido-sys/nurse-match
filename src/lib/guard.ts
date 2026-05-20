@@ -2,6 +2,10 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser, getFemaleProfileByUserId, getMaleProfileByUserId } from '@/lib/data';
 import type { AppAccessState, AppUser } from '@/lib/types/domain';
 
+export function isAdminRole(role: AppUser['role']) {
+  return role === 'female_admin' || role === 'male_admin' || role === 'super_admin';
+}
+
 export async function requireUser() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
@@ -11,6 +15,7 @@ export async function requireUser() {
 export async function getAccessState(user: AppUser): Promise<AppAccessState> {
   if (user.isSuspended) return 'suspended';
   if (user.verificationStatus === 'rejected') return 'rejected';
+  if (user.onboardingStatus !== 'verified') return 'pending';
   if (user.verificationStatus !== 'approved') return 'pending';
 
   if (user.gender === 'female') {

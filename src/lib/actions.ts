@@ -9,6 +9,7 @@ import {
   getCurrentUser,
   markMatchAsRelationshipMode,
   saveProfile,
+  saveProfileImages,
   sendMessage,
   swipe,
   updateMatchHoldDeletion,
@@ -71,6 +72,9 @@ export async function loginAction(formData: FormData) {
     if (!user) throw new Error('ユーザーが見つかりません');
     const cookieStore = await cookies();
     cookieStore.set('demo_user_id', user.id);
+    if (user.role === 'female_admin') redirect('/admin/female');
+    if (user.role === 'male_admin') redirect('/admin/male');
+    if (user.role === 'super_admin') redirect('/admin');
     redirect('/home');
   }
 
@@ -80,6 +84,10 @@ export async function loginAction(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw new Error(error.message);
 
+  const me = await getCurrentUser();
+  if (me?.role === 'female_admin') redirect('/admin/female');
+  if (me?.role === 'male_admin') redirect('/admin/male');
+  if (me?.role === 'super_admin') redirect('/admin');
   redirect('/home');
 }
 
@@ -120,17 +128,10 @@ export async function registerAction(formData: FormData) {
     throw new Error('必須項目が不足しています');
   }
 
-  if (gender === 'female' && !formData.get('nurseDocument')) {
-    throw new Error('女性は看護師資格確認書類が必須です');
-  }
-
-  if (gender === 'male' && (!payload.job || !payload.income || !payload.maritalStatus)) {
-    throw new Error('男性は職種・年収・婚姻状態が必須です');
-  }
-
   if (USE_MOCK_DATA) {
     const userId = String(formData.get('userId') ?? 'u_f_1');
-    const identityUrl = await uploadDocument(formData.get('identityDocument') as File, userId, 'identity');
+    const identityFile = formData.get('identityDocument') as File | null;
+    const identityUrl = identityFile && identityFile.size > 0 ? await uploadDocument(identityFile, userId, 'identity') : null;
     const profileImageUrl = await uploadDocument(formData.get('profileImage') as File, userId, 'profile');
 
     updateUser(userId, {
@@ -141,6 +142,7 @@ export async function registerAction(formData: FormData) {
       location: payload.location,
       bio: payload.bio,
       desiredGender: payload.desiredGender,
+      onboardingStatus: 'provisional',
       verificationStatus: 'pending',
       identityDocumentUrl: identityUrl,
       profileImageUrl: profileImageUrl ?? undefined,
@@ -182,9 +184,12 @@ export async function registerAction(formData: FormData) {
   const authUserId = signUpData.user?.id;
   if (!authUserId) throw new Error('ユーザー作成に失敗しました');
 
-  const identityUrl = await uploadDocument(formData.get('identityDocument') as File, authUserId, 'identity');
-  const nurseUrl = await uploadDocument(formData.get('nurseDocument') as File, authUserId, 'nurse');
-  const profileImageUrl = await uploadDocument(formData.get('profileImage') as File, authUserId, 'profile');
+  const identityFile = formData.get('identityDocument') as File | null;
+  const nurseFile = formData.get('nurseDocument') as File | null;
+  const profileImageFile = formData.get('profileImage') as File | null;
+  const identityUrl = identityFile && identityFile.size > 0 ? await uploadDocument(identityFile, authUserId, 'identity') : null;
+  const nurseUrl = nurseFile && nurseFile.size > 0 ? await uploadDocument(nurseFile, authUserId, 'nurse') : null;
+  const profileImageUrl = profileImageFile && profileImageFile.size > 0 ? await uploadDocument(profileImageFile, authUserId, 'profile') : null;
 
   const userInsert: Database['public']['Tables']['users']['Insert'] = {
     id: authUserId,
@@ -198,6 +203,7 @@ export async function registerAction(formData: FormData) {
     bio: payload.bio,
     profile_image_url: profileImageUrl ?? '',
     desired_gender: payload.desiredGender,
+    onboarding_status: 'provisional',
     verification_status: 'pending',
     identity_document_url: identityUrl,
     rejected_reason: null,
@@ -304,7 +310,9 @@ export async function markRelationshipModeAction(formData: FormData) {
 export async function saveProfileAction(formData: FormData) {
   const userId = String(formData.get('userId'));
   const nurseDoc = await uploadDocument(formData.get('nurseDocument') as File, userId, 'nurse');
-  const profileImage = await uploadDocument(formData.get('profileImage') as File, userId, 'profile');
+  const profileImage1 = await uploadDocument(formData.get('profileImage') as File, userId, 'profile');
+  const profileImage2 = await uploadDocument(formData.get('profileImage2') as File, userId, 'profile');
+  const profileImage3 = await uploadDocument(formData.get('profileImage3') as File, userId, 'profile');
 
   const payload = Object.fromEntries(formData.entries()) as Record<string, string>;
   const personalityTags = formData
@@ -313,80 +321,111 @@ export async function saveProfileAction(formData: FormData) {
     .filter(Boolean);
   payload.personalityTags = personalityTags.join(',');
   payload.nurseDocumentUrl = nurseDoc ?? '';
-  payload.profileImageUrl = profileImage ?? '';
+  payload.profileImageUrl = profileImage1 ?? '';
   await saveProfile(userId, payload);
+  await saveProfileImages(userId, [profileImage1, profileImage2, profileImage3].filter(Boolean) as string[]);
 
   revalidatePath('/profile/edit');
   revalidatePath('/pending-review');
+}
+
+async function requireAdminForTarget(
+  targetUserId: string,
+  allowed: Array<'female_admin' | 'male_admin' | 'super_admin'>,
+) {
+  const admin = await getCurrentUser();
+  if (!admin) return null;
+  if (!allowed.includes(admin.role as 'female_admin' | 'male_admin' | 'super_admin')) return null;
+  if (admin.role === 'super_admin') return admin;
+
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return null;
+  const { data: target } = await supabase.from('users').select('gender').eq('id', targetUserId).single();
+  if (!target) return null;
+  if (admin.role === 'female_admin' && target.gender !== 'female') return null;
+  if (admin.role === 'male_admin' && target.gender !== 'male') return null;
+  return admin;
 }
 
 export async function adminVerificationAction(formData: FormData) {
   const userId = String(formData.get('userId'));
   const status = String(formData.get('status')) as 'pending' | 'approved' | 'rejected';
   const rejectedReason = String(formData.get('rejectedReason') ?? '').trim();
-  const admin = await getCurrentUser();
-  if (!admin || admin.role !== 'admin') return;
+  const admin = await requireAdminForTarget(userId, ['female_admin', 'male_admin', 'super_admin']);
+  if (!admin) return;
 
   await updateVerification(userId, status, rejectedReason || undefined, admin.id);
   revalidatePath('/admin');
+  revalidatePath('/admin/female');
+  revalidatePath('/admin/male');
 }
 
 export async function adminNurseAction(formData: FormData) {
   const userId = String(formData.get('userId'));
   const status = String(formData.get('status')) as 'pending' | 'approved' | 'rejected';
-  const admin = await getCurrentUser();
-  if (!admin || admin.role !== 'admin') return;
+  const admin = await requireAdminForTarget(userId, ['female_admin', 'super_admin']);
+  if (!admin) return;
 
   await updateNurseVerification(userId, status, admin.id);
   revalidatePath('/admin');
+  revalidatePath('/admin/female');
 }
 
 export async function adminMaleReviewAction(formData: FormData) {
   const userId = String(formData.get('userId'));
   const status = String(formData.get('status')) as 'pending' | 'approved' | 'rejected';
   const internalMemo = String(formData.get('internalMemo') ?? '').trim();
-  const admin = await getCurrentUser();
-  if (!admin || admin.role !== 'admin') return;
+  const admin = await requireAdminForTarget(userId, ['male_admin', 'super_admin']);
+  if (!admin) return;
 
   await updateMaleReview(userId, status, internalMemo, admin.id);
   revalidatePath('/admin');
+  revalidatePath('/admin/male');
 }
 
 export async function adminSuspendAction(formData: FormData) {
   const userId = String(formData.get('userId'));
   const suspend = String(formData.get('suspend')) === 'true';
-  const admin = await getCurrentUser();
-  if (!admin || admin.role !== 'admin') return;
+  const admin = await requireAdminForTarget(userId, ['female_admin', 'male_admin', 'super_admin']);
+  if (!admin) return;
 
   await updateSuspended(userId, suspend, admin.id);
   revalidatePath('/admin');
+  revalidatePath('/admin/female');
+  revalidatePath('/admin/male');
 }
 
 export async function adminModerationAction(formData: FormData) {
   const userId = String(formData.get('userId'));
   const moderationAction = String(formData.get('moderationAction')) as ModerationAction;
   const rejectedReason = String(formData.get('rejectedReason') ?? '').trim() || null;
-  const admin = await getCurrentUser();
-  if (!admin || admin.role !== 'admin') return;
+  const admin = await requireAdminForTarget(userId, ['female_admin', 'male_admin', 'super_admin']);
+  if (!admin) return;
 
   await updateUserModerationState(userId, moderationAction, rejectedReason, admin.id);
   revalidatePath('/admin');
+  revalidatePath('/admin/female');
+  revalidatePath('/admin/male');
 }
 
 export async function adminReportAction(formData: FormData) {
   const reportId = String(formData.get('reportId'));
   const status = String(formData.get('status')) as ReportStatus;
+  const admin = await getCurrentUser();
+  if (!admin || (admin.role !== 'female_admin' && admin.role !== 'male_admin' && admin.role !== 'super_admin')) return;
   await updateReport(reportId, status);
   revalidatePath('/admin');
+  revalidatePath('/admin/female');
+  revalidatePath('/admin/male');
 }
 
 export async function adminMatchHoldDeletionAction(formData: FormData) {
   const matchId = String(formData.get('matchId'));
   const holdDeletion = String(formData.get('holdDeletion')) === 'true';
   const admin = await getCurrentUser();
-  if (!admin || admin.role !== 'admin') return;
+  if (!admin || admin.role !== 'super_admin') return;
 
-  await updateMatchHoldDeletion(matchId, holdDeletion);
+  await updateMatchHoldDeletion(matchId, holdDeletion, admin.id);
   revalidatePath('/admin');
 }
 

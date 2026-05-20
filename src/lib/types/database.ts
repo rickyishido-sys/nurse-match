@@ -5,7 +5,7 @@ export type Database = {
         Row: {
           id: string;
           email: string;
-          role: 'user' | 'admin';
+          role: 'user' | 'female_admin' | 'male_admin' | 'super_admin';
           gender: 'female' | 'male';
           nickname: string;
           birthdate: string;
@@ -14,6 +14,7 @@ export type Database = {
           bio: string;
           profile_image_url: string;
           desired_gender: 'male' | 'female' | 'both';
+          onboarding_status: 'provisional' | 'profile_completed' | 'verified';
           verification_status: 'pending' | 'approved' | 'rejected';
           identity_document_url: string | null;
           rejected_reason: string | null;
@@ -31,6 +32,22 @@ export type Database = {
           age: number;
         };
         Update: Partial<Database['public']['Tables']['users']['Row']>;
+      };
+      profile_images: {
+        Row: {
+          id: string;
+          user_id: string;
+          image_url: string;
+          sort_order: number;
+          is_main: boolean;
+          approved_status: 'pending' | 'approved' | 'rejected';
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['profile_images']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['profile_images']['Row']>;
       };
       female_profiles: {
         Row: {
@@ -167,6 +184,21 @@ export type Database = {
         };
         Insert: Omit<Database['public']['Tables']['admin_actions']['Row'], 'id' | 'created_at'> & { id?: string; created_at?: string };
         Update: Partial<Database['public']['Tables']['admin_actions']['Row']>;
+      };
+      admin_audit_logs: {
+        Row: {
+          id: string;
+          admin_user_id: string;
+          target_user_id: string | null;
+          action: 'approve' | 'reject' | 'suspend' | 'permanent_ban' | 'image_reject' | 'deletion_hold';
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['admin_audit_logs']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['admin_audit_logs']['Row']>;
       };
     };
     Views: {

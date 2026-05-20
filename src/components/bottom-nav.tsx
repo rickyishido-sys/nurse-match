@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 
 type BottomNavProps = {
-  role?: 'user' | 'admin';
+  role?: 'user' | 'female_admin' | 'male_admin' | 'super_admin';
 };
 
 type NavItem = { href: string; label: string };
@@ -25,7 +25,8 @@ export function BottomNav({ role = 'user' }: BottomNavProps) {
     { href: '/community-guidelines', label: 'ガイド' },
   ];
 
-  const items = role === 'admin' ? adminItems : userItems;
+  const isAdmin = role === 'female_admin' || role === 'male_admin' || role === 'super_admin';
+  const items = isAdmin ? adminItems : userItems;
 
   return (
     <nav className='fixed bottom-0 left-1/2 z-30 w-full max-w-[390px] -translate-x-1/2 border-t border-slate-200 bg-white/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur'>

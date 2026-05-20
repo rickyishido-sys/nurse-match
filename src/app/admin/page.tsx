@@ -13,6 +13,10 @@ import {
 import { getAdminData, getCurrentUser } from '@/lib/data';
 import { maritalStatusLabel } from '@/lib/labels';
 
+export const metadata = {
+  robots: { index: false, follow: false },
+};
+
 function statusTone(status: string): 'amber' | 'green' | 'gray' {
   if (status === 'approved' || status === 'resolved') return 'green';
   if (status === 'pending' || status === 'open' || status === 'reviewing') return 'amber';
@@ -22,7 +26,7 @@ function statusTone(status: string): 'amber' | 'green' | 'gray' {
 export default async function AdminPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
-  if (user.role !== 'admin') redirect('/home');
+  if (user.role !== 'super_admin') redirect('/home');
 
   const data = await getAdminData(user.id);
   const pendingCount = data.users.filter((u) => u.verificationStatus === 'pending').length;

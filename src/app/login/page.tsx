@@ -35,6 +35,9 @@ export default async function LoginPage() {
         <Link href='/register' className='mt-4 inline-block text-xs text-slate-600 underline'>
           新規登録はこちら
         </Link>
+        <Link href='/admin/login' className='ml-3 mt-4 inline-block text-xs text-slate-600 underline'>
+          管理者ログイン
+        </Link>
       </section>
     </AppShell>
   );

@@ -22,9 +22,10 @@ export default async function MaleHomePage() {
   if (user.gender !== 'male') redirect('/home/female');
 
   const state = await getAccessState(user);
-  if (state === 'pending') redirect('/pending-review');
   if (state === 'rejected') redirect('/rejected');
   if (state === 'suspended') redirect('/suspended');
+  if (user.onboardingStatus !== 'verified') redirect('/preview');
+  if (state === 'pending') redirect('/pending-review');
 
   const matches = await getMatches(user.id);
   const maleProfile = await getMaleProfileByUserId(user.id);

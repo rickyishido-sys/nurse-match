@@ -9,6 +9,7 @@ import type {
   MatchRecord,
   MessageRecord,
   ModerationAction,
+  ProfileImageRecord,
   ReportReasonType,
   ReportRecord,
   ReportStatus,
@@ -30,6 +31,7 @@ const users: AppUser[] = [
     bio: '都内で働く看護師です。休日はカフェ巡り。',
     profileImageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800',
     desiredGender: 'both',
+    onboardingStatus: 'verified',
     verificationStatus: 'approved',
     identityDocumentUrl: 'mock://identity/u_f_1-id.pdf',
     rejectedReason: null,
@@ -48,6 +50,7 @@ const users: AppUser[] = [
     bio: '夜勤あり。映画好きです。',
     profileImageUrl: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=800',
     desiredGender: 'female',
+    onboardingStatus: 'verified',
     verificationStatus: 'approved',
     identityDocumentUrl: 'mock://identity/u_f_2-id.pdf',
     rejectedReason: null,
@@ -66,6 +69,7 @@ const users: AppUser[] = [
     bio: 'IT企業勤務。穏やかな性格です。',
     profileImageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800',
     desiredGender: 'female',
+    onboardingStatus: 'verified',
     verificationStatus: 'approved',
     identityDocumentUrl: 'mock://identity/u_m_1-id.pdf',
     rejectedReason: null,
@@ -84,6 +88,7 @@ const users: AppUser[] = [
     bio: '休日はランニングしています。',
     profileImageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800',
     desiredGender: 'female',
+    onboardingStatus: 'provisional',
     verificationStatus: 'pending',
     identityDocumentUrl: 'mock://identity/u_m_2-id.pdf',
     rejectedReason: null,
@@ -93,7 +98,7 @@ const users: AppUser[] = [
   {
     id: 'admin_1',
     email: 'admin@nursematch.app',
-    role: 'admin',
+    role: 'super_admin',
     gender: 'female',
     nickname: '運営',
     birthdate: '1990-01-01',
@@ -102,8 +107,47 @@ const users: AppUser[] = [
     bio: '運営アカウント',
     profileImageUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800',
     desiredGender: 'both',
+    onboardingStatus: 'verified',
     verificationStatus: 'approved',
     identityDocumentUrl: 'mock://identity/admin-id.pdf',
+    rejectedReason: null,
+    moderationAction: 'none',
+    isSuspended: false,
+  },
+  {
+    id: 'admin_f_1',
+    email: 'female-admin@nursematch.app',
+    role: 'female_admin',
+    gender: 'female',
+    nickname: '女性管理',
+    birthdate: '1991-01-01',
+    age: 35,
+    location: '東京都',
+    bio: '女性管理アカウント',
+    profileImageUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800',
+    desiredGender: 'both',
+    onboardingStatus: 'verified',
+    verificationStatus: 'approved',
+    identityDocumentUrl: 'mock://identity/admin-f-id.pdf',
+    rejectedReason: null,
+    moderationAction: 'none',
+    isSuspended: false,
+  },
+  {
+    id: 'admin_m_1',
+    email: 'male-admin@nursematch.app',
+    role: 'male_admin',
+    gender: 'male',
+    nickname: '男性管理',
+    birthdate: '1991-01-01',
+    age: 35,
+    location: '東京都',
+    bio: '男性管理アカウント',
+    profileImageUrl: 'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=800',
+    desiredGender: 'both',
+    onboardingStatus: 'verified',
+    verificationStatus: 'approved',
+    identityDocumentUrl: 'mock://identity/admin-m-id.pdf',
     rejectedReason: null,
     moderationAction: 'none',
     isSuspended: false,
@@ -222,6 +266,33 @@ const blocks: BlockRecord[] = [];
 
 const adminActions: AdminActionLog[] = [];
 
+const profileImages: ProfileImageRecord[] = [
+  {
+    id: 'pi_f1_1',
+    userId: 'u_f_1',
+    imageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800',
+    sortOrder: 1,
+    isMain: true,
+    approvedStatus: 'approved',
+  },
+  {
+    id: 'pi_f1_2',
+    userId: 'u_f_1',
+    imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800',
+    sortOrder: 2,
+    isMain: false,
+    approvedStatus: 'approved',
+  },
+  {
+    id: 'pi_m1_1',
+    userId: 'u_m_1',
+    imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800',
+    sortOrder: 1,
+    isMain: true,
+    approvedStatus: 'approved',
+  },
+];
+
 function uuid(prefix: string) {
   return `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
 }
@@ -243,6 +314,26 @@ export function updateUser(userId: string, patch: Partial<AppUser>) {
   if (!target) return null;
   Object.assign(target, patch);
   return target;
+}
+
+export function listProfileImages(userId: string) {
+  return profileImages.filter((item) => item.userId === userId).sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export function upsertProfileImage(image: ProfileImageRecord) {
+  const idx = profileImages.findIndex((item) => item.id === image.id || (item.userId === image.userId && item.sortOrder === image.sortOrder));
+  if (idx >= 0) {
+    profileImages[idx] = image;
+  } else {
+    profileImages.push(image);
+  }
+}
+
+export function replaceProfileImages(userId: string, images: ProfileImageRecord[]) {
+  for (let i = profileImages.length - 1; i >= 0; i -= 1) {
+    if (profileImages[i].userId === userId) profileImages.splice(i, 1);
+  }
+  profileImages.push(...images);
 }
 
 export function updateUserModeration(userId: string, moderationAction: ModerationAction, rejectedReason: string | null) {

@@ -57,9 +57,10 @@ export default async function FemaleHomePage({ searchParams }: { searchParams: P
   if (user.gender !== 'female') redirect('/home/male');
 
   const state = await getAccessState(user);
-  if (state === 'pending') redirect('/pending-review');
   if (state === 'rejected') redirect('/rejected');
   if (state === 'suspended') redirect('/suspended');
+  if (user.onboardingStatus !== 'verified') redirect('/preview');
+  if (state === 'pending') redirect('/pending-review');
 
   const params = await searchParams;
   const cookieStore = await cookies();
@@ -146,7 +147,7 @@ export default async function FemaleHomePage({ searchParams }: { searchParams: P
         ) : viewMode === 'card' ? (
           cards.map((card) => (
             <div key={card.user.id} className='space-y-3'>
-              <SwipeCard user={card.user} maleProfile={card.maleProfile} femaleProfile={card.femaleProfile} />
+              <SwipeCard user={card.user} maleProfile={card.maleProfile} femaleProfile={card.femaleProfile} profileImages={card.profileImages} />
               <div className='grid grid-cols-2 gap-3'>
                 <form action={swipeAction}>
                   <input type='hidden' name='fromUserId' value={user.id} />

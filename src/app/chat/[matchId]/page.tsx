@@ -6,24 +6,25 @@ import { ChatBox } from '@/components/chat-box';
 import { MatchRelationshipActions } from '@/components/match-relationship-actions';
 import { blockUserAction, createReportAction } from '@/lib/actions';
 import { getChat, getCurrentUser } from '@/lib/data';
-import { getAccessState } from '@/lib/guard';
+import { getAccessState, isAdminRole } from '@/lib/guard';
 
 export default async function ChatPage({ params }: { params: Promise<{ matchId: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
-  if (user.role !== 'admin') {
+  if (!isAdminRole(user.role)) {
     const state = await getAccessState(user);
-    if (state === 'pending') redirect('/pending-review');
     if (state === 'rejected') redirect('/rejected');
     if (state === 'suspended') redirect('/suspended');
+    if (user.onboardingStatus !== 'verified') redirect('/preview');
+    if (state === 'pending') redirect('/pending-review');
   }
 
   const { matchId } = await params;
   const { match, messages } = await getChat(matchId);
   if (!match) notFound();
 
-  const isMember = match.userAId === user.id || match.userBId === user.id || user.role === 'admin';
+  const isMember = match.userAId === user.id || match.userBId === user.id || isAdminRole(user.role);
   if (!isMember) notFound();
 
   const partnerId = match.userAId === user.id ? match.userBId : match.userAId;

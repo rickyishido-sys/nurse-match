@@ -1,9 +1,10 @@
-export type UserRole = 'user' | 'admin';
+export type UserRole = 'user' | 'female_admin' | 'male_admin' | 'super_admin';
 export type Gender = 'female' | 'male';
 export type DesiredGender = 'male' | 'female' | 'both';
 export type VerificationStatus = 'pending' | 'approved' | 'rejected';
 export type MaleReviewStatus = 'pending' | 'approved' | 'rejected';
 export type MaritalStatus = 'single' | 'married' | 'divorced' | 'partner';
+export type OnboardingStatus = 'provisional' | 'profile_completed' | 'verified';
 
 export type ModerationAction = 'none' | 'warning' | 'suspend' | 'permanent_ban';
 export type ReportReasonType =
@@ -37,11 +38,21 @@ export type AppUser = {
   bio: string;
   profileImageUrl: string;
   desiredGender: DesiredGender;
+  onboardingStatus: OnboardingStatus;
   verificationStatus: VerificationStatus;
   identityDocumentUrl: string | null;
   rejectedReason: string | null;
   moderationAction: ModerationAction;
   isSuspended: boolean;
+};
+
+export type ProfileImageRecord = {
+  id: string;
+  userId: string;
+  imageUrl: string;
+  sortOrder: number;
+  isMain: boolean;
+  approvedStatus: VerificationStatus;
 };
 
 export type FemaleProfile = {

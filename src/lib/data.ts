@@ -18,7 +18,9 @@ import {
   listMatchesForUser,
   listMessages,
   listReports,
+  listProfileImages,
   listUsers,
+  replaceProfileImages,
   setMaleReviewStatus,
   setNurseVerificationStatus,
   setReportStatus,
@@ -38,6 +40,8 @@ import type {
   MaleProfile,
   MaritalStatus,
   ModerationAction,
+  OnboardingStatus,
+  ProfileImageRecord,
   ReportReasonType,
   ReportStatus,
 } from '@/lib/types/domain';
@@ -56,11 +60,23 @@ function mapUser(row: Database['public']['Tables']['users']['Row']): AppUser {
     bio: row.bio,
     profileImageUrl: row.profile_image_url,
     desiredGender: row.desired_gender,
+    onboardingStatus: row.onboarding_status,
     verificationStatus: row.verification_status,
     identityDocumentUrl: row.identity_document_url,
     rejectedReason: row.rejected_reason,
     moderationAction: row.moderation_action,
     isSuspended: row.is_suspended,
+  };
+}
+
+function mapProfileImage(row: Database['public']['Tables']['profile_images']['Row']): ProfileImageRecord {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    imageUrl: row.image_url,
+    sortOrder: row.sort_order,
+    isMain: row.is_main,
+    approvedStatus: row.approved_status,
   };
 }
 
@@ -111,6 +127,7 @@ function mapPublicUserCard(row: Database['public']['Views']['public_user_cards']
     bio: row.bio,
     profileImageUrl: row.profile_image_url,
     desiredGender: row.desired_gender,
+    onboardingStatus: 'verified',
     verificationStatus: row.verification_status,
     identityDocumentUrl: null,
     rejectedReason: null,
@@ -126,6 +143,31 @@ async function resolveProfileImage(user: AppUser) {
     ...user,
     profileImageUrl: signed ?? user.profileImageUrl,
   };
+}
+
+async function resolveProfileImages(images: ProfileImageRecord[]) {
+  if (USE_MOCK_DATA) return images;
+  return Promise.all(
+    images.map(async (image) => ({
+      ...image,
+      imageUrl: (await getSignedProfileImageUrl(image.imageUrl)) ?? image.imageUrl,
+    })),
+  );
+}
+
+export async function getProfileImagesByUserId(userId: string) {
+  if (USE_MOCK_DATA) {
+    return listProfileImages(userId);
+  }
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('profile_images')
+    .select('*')
+    .eq('user_id', userId)
+    .order('sort_order', { ascending: true })
+    .limit(3);
+  return resolveProfileImages((data ?? []).map(mapProfileImage));
 }
 
 async function getBlockedRelationSetForUser(userId: string) {
@@ -239,6 +281,23 @@ async function insertAdminActionLog(input: {
     after_value: input.afterValue ?? null,
     note: input.note ?? null,
   });
+
+  const auditActionMap: Partial<Record<AdminActionType, Database['public']['Tables']['admin_audit_logs']['Insert']['action']>> = {
+    verification_status_changed: input.afterValue === 'approved' ? 'approve' : input.afterValue === 'rejected' ? 'reject' : undefined,
+    nurse_verification_status_changed: input.afterValue === 'approved' ? 'approve' : input.afterValue === 'rejected' ? 'reject' : undefined,
+    male_review_status_changed: input.afterValue === 'approved' ? 'approve' : input.afterValue === 'rejected' ? 'reject' : undefined,
+    user_suspended: input.afterValue === 'true' ? 'suspend' : undefined,
+    user_permanent_banned: 'permanent_ban',
+  };
+  const auditAction = auditActionMap[input.actionType];
+  if (auditAction) {
+    await admin.from('admin_audit_logs').insert({
+      admin_user_id: input.adminUserId,
+      target_user_id: input.targetUserId,
+      action: auditAction,
+      reason: input.note ?? null,
+    });
+  }
 }
 
 export async function getCurrentUser() {
@@ -326,9 +385,13 @@ export async function getCandidateCards(user: AppUser, filters: FemaleSearchFilt
         return true;
       })
       .map((candidate) => ({
-        user: candidate,
+        user: {
+          ...candidate,
+          profileImageUrl: listProfileImages(candidate.id).find((img) => img.isMain)?.imageUrl ?? candidate.profileImageUrl,
+        },
         maleProfile: getMaleProfile(candidate.id),
         femaleProfile: getFemaleProfile(candidate.id),
+        profileImages: listProfileImages(candidate.id),
       }));
   }
 
@@ -425,9 +488,14 @@ export async function getCandidateCards(user: AppUser, filters: FemaleSearchFilt
 
   return Promise.all(
     relationshipFiltered.map(async (candidate) => ({
-      user: await resolveProfileImage(candidate),
+      user: await resolveProfileImage({
+        ...candidate,
+        profileImageUrl:
+          (await getProfileImagesByUserId(candidate.id)).find((img) => img.isMain)?.imageUrl ?? candidate.profileImageUrl,
+      }),
       maleProfile: maleMap.get(candidate.id) ?? null,
       femaleProfile: femaleMap.get(candidate.id) ?? null,
+      profileImages: await getProfileImagesByUserId(candidate.id),
     })),
   );
 }
@@ -437,6 +505,7 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
     const from = getUserById(fromUserId);
     const to = getUserById(toUserId);
     if (!from || !to || from.gender === 'male' || isBlockedBetween(fromUserId, toUserId)) return;
+    if (from.onboardingStatus !== 'verified' || to.onboardingStatus !== 'verified') return;
     if (hasAnyRelationshipModeInMock(fromUserId) || hasAnyRelationshipModeInMock(toUserId)) return;
 
     addLike(fromUserId, toUserId, action);
@@ -467,16 +536,21 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
   const supabase = await createServerSupabaseClient();
   if (!supabase) return;
 
-  const { data: fromUserRow } = await supabase.from('users').select('gender').eq('id', fromUserId).single();
-  if (!fromUserRow || fromUserRow.gender !== 'female') {
+  const { data: fromUserRow } = await supabase
+    .from('users')
+    .select('gender,onboarding_status')
+    .eq('id', fromUserId)
+    .single();
+  if (!fromUserRow || fromUserRow.gender !== 'female' || fromUserRow.onboarding_status !== 'verified') {
     throw new Error('男性ユーザーはスワイプできません');
   }
 
   await supabase.from('likes').upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action });
   if (action !== 'like') return;
 
-  const { data: toUserRow } = await supabase.from('users').select('gender').eq('id', toUserId).single();
+  const { data: toUserRow } = await supabase.from('users').select('gender,onboarding_status').eq('id', toUserId).single();
   if (!toUserRow) return;
+  if (toUserRow.onboarding_status !== 'verified') return;
 
   if (toUserRow.gender === 'male') {
     const { data: existing } = await supabase
@@ -629,6 +703,8 @@ export async function sendMessage(matchId: string, senderId: string, body: strin
   if (USE_MOCK_DATA) {
     const match = getMatchById(matchId);
     if (!match || isBlockedBetween(match.userAId, match.userBId)) return;
+    const sender = getUserById(senderId);
+    if (!sender || sender.onboardingStatus !== 'verified') return;
     if (match.relationshipStatus !== 'active') {
       throw new Error('成立済みマッチはチャット送信できません');
     }
@@ -645,6 +721,10 @@ export async function sendMessage(matchId: string, senderId: string, body: strin
     .eq('id', matchId)
     .maybeSingle();
   if (!match) return;
+  const { data: sender } = await supabase.from('users').select('onboarding_status').eq('id', senderId).single();
+  if (!sender || sender.onboarding_status !== 'verified') {
+    throw new Error('本人確認完了後にメッセージ送信できます');
+  }
   if (!isMatchActive(match)) {
     throw new Error('成立済みマッチはチャット送信できません');
   }
@@ -1177,20 +1257,39 @@ export async function markMatchAsRelationshipMode(matchId: string, actorUserId: 
     .eq('id', matchId);
 }
 
-export async function updateMatchHoldDeletion(matchId: string, holdDeletion: boolean) {
+export async function updateMatchHoldDeletion(matchId: string, holdDeletion: boolean, adminUserId?: string) {
   if (USE_MOCK_DATA) {
     updateMatch(matchId, { holdDeletion });
     return;
   }
   const supabase = createAdminSupabaseClient();
   if (!supabase) return;
+  const { data: before } = await supabase.from('matches').select('hold_deletion,user_a_id,user_b_id').eq('id', matchId).maybeSingle();
   await supabase.from('matches').update({ hold_deletion: holdDeletion }).eq('id', matchId);
+  if (adminUserId && before && before.hold_deletion !== holdDeletion) {
+    await supabase.from('admin_audit_logs').insert({
+      admin_user_id: adminUserId,
+      target_user_id: before.user_a_id,
+      action: 'deletion_hold',
+      reason: `match:${matchId} hold=${holdDeletion}`,
+    });
+    await supabase.from('admin_audit_logs').insert({
+      admin_user_id: adminUserId,
+      target_user_id: before.user_b_id,
+      action: 'deletion_hold',
+      reason: `match:${matchId} hold=${holdDeletion}`,
+    });
+  }
 }
 
 export async function saveProfile(userId: string, form: Record<string, string>) {
   if (USE_MOCK_DATA) {
     const user = getUserById(userId);
     if (!user) return;
+
+    const images = listProfileImages(userId);
+    const hasProfileImage = Boolean(form.profileImageUrl || images.length > 0 || user.profileImageUrl);
+    let onboardingStatus: OnboardingStatus = 'provisional';
 
     updateUser(userId, {
       nickname: form.nickname,
@@ -1223,6 +1322,9 @@ export async function saveProfile(userId: string, form: Record<string, string>) 
         firstDateCost: form.firstDateCost || '',
         personalityTags: form.personalityTags ? form.personalityTags.split(',').map((item) => item.trim()).filter(Boolean) : [],
       });
+      const hasRequired =
+        hasProfileImage && Boolean(form.job) && Boolean(form.income) && Boolean(form.maritalStatus) && Boolean(form.bio);
+      onboardingStatus = hasRequired ? 'profile_completed' : 'provisional';
     } else {
       const current = getFemaleProfile(userId);
       upsertFemaleProfile({
@@ -1232,16 +1334,33 @@ export async function saveProfile(userId: string, form: Record<string, string>) 
         workplaceType: (form.workplaceType as FemaleProfile['workplaceType']) ?? 'other',
         hasNightShift: form.hasNightShift === 'on',
       });
+      const hasRequired = hasProfileImage && Boolean(form.desiredGender) && Boolean(form.workplaceType);
+      onboardingStatus = hasRequired ? 'profile_completed' : 'provisional';
     }
+
+    if (
+      onboardingStatus === 'profile_completed' &&
+      user.verificationStatus === 'approved' &&
+      ((user.gender === 'female' && getFemaleProfile(userId)?.nurseVerificationStatus === 'approved') ||
+        (user.gender === 'male' && getMaleProfile(userId)?.maleReviewStatus === 'approved'))
+    ) {
+      onboardingStatus = 'verified';
+    }
+    updateUser(userId, { onboardingStatus });
     return;
   }
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return;
 
-  const { data: userRow } = await supabase.from('users').select('gender, desired_gender').eq('id', userId).single();
+  const { data: userRow } = await supabase
+    .from('users')
+    .select('gender, desired_gender, verification_status, profile_image_url')
+    .eq('id', userId)
+    .single();
   if (!userRow) return;
 
+  let onboardingStatus: OnboardingStatus = 'provisional';
   await supabase
     .from('users')
     .update({
@@ -1276,6 +1395,14 @@ export async function saveProfile(userId: string, form: Record<string, string>) 
       first_date_cost: form.firstDateCost || '',
       personality_tags: form.personalityTags ? form.personalityTags.split(',').map((item) => item.trim()).filter(Boolean) : [],
     });
+    onboardingStatus =
+      (form.profileImageUrl || userRow.profile_image_url) && form.job && form.income && form.maritalStatus && form.bio
+        ? 'profile_completed'
+        : 'provisional';
+    const { data: mp } = await supabase.from('male_profiles').select('male_review_status').eq('user_id', userId).maybeSingle();
+    if (onboardingStatus === 'profile_completed' && userRow.verification_status === 'approved' && mp?.male_review_status === 'approved') {
+      onboardingStatus = 'verified';
+    }
   } else {
     const { data: current } = await supabase.from('female_profiles').select('*').eq('user_id', userId).maybeSingle();
     await supabase.from('female_profiles').upsert({
@@ -1285,5 +1412,47 @@ export async function saveProfile(userId: string, form: Record<string, string>) 
       workplace_type: (form.workplaceType as FemaleProfile['workplaceType']) ?? 'other',
       has_night_shift: form.hasNightShift === 'on',
     });
+    onboardingStatus =
+      (form.profileImageUrl || userRow.profile_image_url) && form.desiredGender && form.workplaceType
+        ? 'profile_completed'
+        : 'provisional';
+    const { data: fp } = await supabase.from('female_profiles').select('nurse_verification_status').eq('user_id', userId).maybeSingle();
+    if (onboardingStatus === 'profile_completed' && userRow.verification_status === 'approved' && fp?.nurse_verification_status === 'approved') {
+      onboardingStatus = 'verified';
+    }
   }
+
+  await supabase.from('users').update({ onboarding_status: onboardingStatus }).eq('id', userId);
+}
+
+export async function saveProfileImages(userId: string, imageUrls: string[]) {
+  const normalized = imageUrls.slice(0, 3).map((url, idx) => ({
+    id: `${userId}-img-${idx + 1}`,
+    userId,
+    imageUrl: url,
+    sortOrder: idx + 1,
+    isMain: idx === 0,
+    approvedStatus: 'pending' as const,
+  }));
+
+  if (USE_MOCK_DATA) {
+    if (normalized.length === 0) return;
+    replaceProfileImages(userId, normalized);
+    updateUser(userId, { profileImageUrl: normalized[0].imageUrl });
+    return;
+  }
+
+  const supabase = createAdminSupabaseClient();
+  if (!supabase || normalized.length === 0) return;
+  await supabase.from('profile_images').delete().eq('user_id', userId);
+  await supabase.from('profile_images').insert(
+    normalized.map((img) => ({
+      user_id: img.userId,
+      image_url: img.imageUrl,
+      sort_order: img.sortOrder,
+      is_main: img.isMain,
+      approved_status: img.approvedStatus,
+    })),
+  );
+  await supabase.from('users').update({ profile_image_url: normalized[0].imageUrl }).eq('id', userId);
 }

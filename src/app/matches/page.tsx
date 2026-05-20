@@ -4,17 +4,18 @@ import { redirect } from 'next/navigation';
 import { Badge } from '@/components/badges';
 import { AppShell } from '@/components/app-shell';
 import { getCurrentUser, getMatches } from '@/lib/data';
-import { getAccessState } from '@/lib/guard';
+import { getAccessState, isAdminRole } from '@/lib/guard';
 
 export default async function MatchesPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
-  if (user.role !== 'admin') {
+  if (!isAdminRole(user.role)) {
     const state = await getAccessState(user);
-    if (state === 'pending') redirect('/pending-review');
     if (state === 'rejected') redirect('/rejected');
     if (state === 'suspended') redirect('/suspended');
+    if (user.onboardingStatus !== 'verified') redirect('/preview');
+    if (state === 'pending') redirect('/pending-review');
   }
 
   const matches = await getMatches(user.id);

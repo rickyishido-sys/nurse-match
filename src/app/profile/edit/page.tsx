@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { saveProfileAction } from '@/lib/actions';
-import { getCurrentUser, getFemaleProfileByUserId, getMaleProfileByUserId } from '@/lib/data';
+import { getCurrentUser, getFemaleProfileByUserId, getMaleProfileByUserId, getProfileImagesByUserId } from '@/lib/data';
 import { maritalStatusLabel } from '@/lib/labels';
 
 const VALUE_TAGS = ['落ち着いている', '誠実', '清潔感重視', 'よく笑う', '聞き上手', '優しい', 'アウトドア', 'インドア'] as const;
@@ -13,6 +13,7 @@ export default async function EditProfilePage() {
 
   const femaleProfile = await getFemaleProfileByUserId(user.id);
   const maleProfile = await getMaleProfileByUserId(user.id);
+  const profileImages = await getProfileImagesByUserId(user.id);
 
   return (
     <AppShell user={user}>
@@ -29,9 +30,27 @@ export default async function EditProfilePage() {
             <h2 className='mb-3 text-sm font-bold text-slate-900'>基本情報</h2>
             <div className='grid gap-2'>
               <label className='grid gap-1'>
-                <span className='text-xs font-semibold text-slate-500'>プロフィール写真</span>
+                <span className='text-xs font-semibold text-slate-500'>プロフィール写真 (メイン)</span>
                 <input type='file' name='profileImage' className='rounded-xl border border-slate-200 px-3 py-2' />
               </label>
+              <label className='grid gap-1'>
+                <span className='text-xs font-semibold text-slate-500'>プロフィール写真 (サブ2)</span>
+                <input type='file' name='profileImage2' className='rounded-xl border border-slate-200 px-3 py-2' />
+              </label>
+              <label className='grid gap-1'>
+                <span className='text-xs font-semibold text-slate-500'>プロフィール写真 (サブ3)</span>
+                <input type='file' name='profileImage3' className='rounded-xl border border-slate-200 px-3 py-2' />
+              </label>
+              <p className='text-[11px] text-slate-500'>最大10MB / 最大3枚。男性は顔写真1枚以上、女性はプロフィール画像1枚以上が必須です。</p>
+              {profileImages.length > 0 ? (
+                <div className='grid gap-1 text-[11px] text-slate-600'>
+                  {profileImages.map((img) => (
+                    <p key={img.id}>
+                      画像{img.sortOrder}: {img.approvedStatus === 'approved' ? '写真確認済み' : '写真確認中'}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
               <input name='nickname' defaultValue={user.nickname} placeholder='ニックネーム' className='h-11 rounded-xl border border-slate-200 px-3' />
               <div className='grid grid-cols-2 gap-2'>
                 <input name='location' defaultValue={user.location} placeholder='地域' className='h-11 rounded-xl border border-slate-200 px-3' />
