@@ -1,50 +1,113 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { AppShell } from '@/components/app-shell';
-import { isAdminRole } from '@/lib/guard';
-import { getCurrentUser } from '@/lib/data';
+import Image from 'next/image';
+import { requestRegisterVerificationAction } from '@/lib/actions';
 
-export default async function RegisterPage() {
-  const user = await getCurrentUser();
-  if (user && isAdminRole(user.role)) {
-    if (user.role === 'female_admin') redirect('/admin/female');
-    if (user.role === 'male_admin') redirect('/admin/male');
-    redirect('/admin');
-  }
-  if (user && user.role === 'user') redirect('/home');
+type RegisterPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function pickFirst(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0] ?? '';
+  return value ?? '';
+}
+
+export default async function RegisterPage({ searchParams }: RegisterPageProps) {
+  const params = searchParams ? await searchParams : {};
+  const status = pickFirst(params.status);
+  const error = pickFirst(params.error);
+  const email = pickFirst(params.email);
 
   return (
-    <AppShell user={user}>
-      <section className='space-y-4'>
-        <article className='rounded-[28px] border border-slate-100 bg-white p-6 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.55)]'>
-          <h1 className='text-xl font-bold text-slate-900'>はじめての方</h1>
-          <p className='mt-1 text-sm text-slate-600'>まずは連絡先確認から始めます</p>
-          <div className='mt-4 space-y-3'>
-            <label className='grid gap-1 text-sm'>
-              メールアドレス
-              <input type='email' placeholder='email@example.com' className='h-11 rounded-xl border border-slate-200 px-3 text-slate-700' />
+    <main className='min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff_0%,_#fdf2f8_45%,_#ffffff_100%)] px-4 py-8'>
+      <div className='mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[420px] items-center'>
+        <section className='w-full rounded-[32px] border border-sky-100/80 bg-white/95 p-6 shadow-[0_16px_45px_-35px_rgba(15,23,42,0.3)] backdrop-blur-sm sm:p-7'>
+          <div className='mb-6 flex justify-center'>
+            <Image
+              src='/logo/nurse-match-logo-horizontal.png'
+              alt='ナースマッチ ロゴ'
+              width={300}
+              height={94}
+              className='h-12 w-auto object-contain sm:h-14'
+              priority
+            />
+          </div>
+
+          <h1 className='mb-1 text-center text-2xl font-bold tracking-tight text-slate-900'>はじめる</h1>
+          <p className='mb-6 text-center text-sm text-slate-600'>まずは連絡先確認から始めます</p>
+
+          {status === 'sent-email' ? (
+            <p className='mb-4 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs leading-5 text-sky-700'>
+              {email ? `${email} 宛に認証リンクを送信しました。` : '認証リンクを送信しました。'} メール内のリンクを開いて登録を続けてください。
+            </p>
+          ) : null}
+          {status === 'sms-preparing' ? (
+            <p className='mb-4 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-700'>
+              SMS認証は現在準備中です。先にメール認証をご利用ください。
+            </p>
+          ) : null}
+          {error === 'contact-required' ? (
+            <p className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
+              メールアドレスまたは携帯番号を入力してください。
+            </p>
+          ) : null}
+          {error === 'email-required' ? (
+            <p className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
+              現在はメール認証を優先提供しています。メールアドレスを入力してください。
+            </p>
+          ) : null}
+          {error === 'send-failed' || error === 'config' ? (
+            <p className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
+              認証リンク送信に失敗しました。時間をおいて再度お試しください。
+            </p>
+          ) : null}
+
+          <form action={requestRegisterVerificationAction} className='space-y-4'>
+            <label className='block'>
+              <span className='mb-1.5 block text-xs font-medium text-slate-600'>メールアドレス</span>
+              <input
+                type='email'
+                name='email'
+                placeholder='email@example.com'
+                className='w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100'
+              />
             </label>
             <p className='text-center text-xs text-slate-500'>または</p>
-            <label className='grid gap-1 text-sm'>
-              携帯番号
-              <input type='tel' placeholder='09012345678' className='h-11 rounded-xl border border-slate-200 px-3 text-slate-700' />
+            <label className='block'>
+              <span className='mb-1.5 block text-xs font-medium text-slate-600'>携帯番号</span>
+              <input
+                type='tel'
+                name='phone'
+                placeholder='09012345678'
+                className='w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100'
+              />
             </label>
-          </div>
-          <Link
-            href='/register/details'
-            className='mt-5 inline-flex h-11 w-full items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white'
-          >
-            連絡先確認へ進む
-          </Link>
-        </article>
 
-        <article className='rounded-2xl border border-slate-100 bg-white p-4 text-center text-sm text-slate-600 shadow-sm'>
-          <p>すでに登録済みの方はこちら</p>
-          <Link href='/login' className='mt-1 inline-block text-sm font-semibold text-slate-900 underline'>
-            ログイン
-          </Link>
-        </article>
-      </section>
-    </AppShell>
+            <button
+              type='submit'
+              name='method'
+              value='email'
+              className='w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800'
+            >
+              認証リンクを送る
+            </button>
+            <button
+              type='submit'
+              name='method'
+              value='sms'
+              className='w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500'
+            >
+              SMS認証コードを送る（準備中）
+            </button>
+          </form>
+
+          <div className='mt-5 text-center text-xs text-slate-600'>
+            登録済みの方はこちら{' '}
+            <Link href='/login' className='font-medium text-slate-700 underline underline-offset-2'>
+              ログイン
+            </Link>
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }

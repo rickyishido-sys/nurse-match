@@ -1,6 +1,6 @@
 'use server';
 
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import {
@@ -100,6 +100,57 @@ export async function loginAction(formData: FormData) {
   const me = await getCurrentUser();
   if (me) redirect(resolvePostLoginPath(me));
   redirect('/login');
+}
+
+function resolveRequestOrigin(hostname: string | null, proto: string | null) {
+  if (!hostname) return null;
+  const scheme = proto === 'http' || proto === 'https' ? proto : 'https';
+  return `${scheme}://${hostname}`;
+}
+
+export async function requestRegisterVerificationAction(formData: FormData) {
+  const method = String(formData.get('method') ?? 'email');
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  const phone = String(formData.get('phone') ?? '').trim();
+
+  if (method === 'sms') {
+    redirect('/register?status=sms-preparing');
+  }
+
+  if (!email && !phone) {
+    redirect('/register?error=contact-required');
+  }
+
+  if (!email) {
+    redirect('/register?error=email-required');
+  }
+
+  if (USE_MOCK_DATA) {
+    redirect(`/register?status=sent-email&email=${encodeURIComponent(email)}`);
+  }
+
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) {
+    redirect('/register?error=config');
+  }
+
+  const headerStore = await headers();
+  const requestOrigin = resolveRequestOrigin(headerStore.get('x-forwarded-host') ?? headerStore.get('host'), headerStore.get('x-forwarded-proto'));
+  const emailRedirectTo = requestOrigin ? `${requestOrigin}/register/details` : undefined;
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      ...(emailRedirectTo ? { emailRedirectTo } : {}),
+      shouldCreateUser: true,
+    },
+  });
+
+  if (error) {
+    redirect('/register?error=send-failed');
+  }
+
+  redirect(`/register?status=sent-email&email=${encodeURIComponent(email)}`);
 }
 
 export async function logoutAction() {
