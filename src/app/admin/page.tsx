@@ -12,6 +12,7 @@ import {
   adminSuspendAction,
   adminVerificationAction,
 } from '@/lib/actions';
+import { getAdminMetrics } from '@/lib/admin-metrics';
 import { getAdminData, getCurrentUser } from '@/lib/data';
 import { maritalStatusLabel } from '@/lib/labels';
 
@@ -31,12 +32,36 @@ function riskTone(status: string): 'amber' | 'green' | 'gray' {
   return 'gray';
 }
 
+function KpiCard({ label, value }: { label: string; value: string | number }) {
+  return (
+    <article className='rounded-2xl border border-slate-100 bg-gradient-to-b from-white to-blue-50/30 p-3'>
+      <p className='text-[11px] text-slate-500'>{label}</p>
+      <p className='mt-1 text-2xl font-bold text-slate-900'>{value}</p>
+    </article>
+  );
+}
+
+function DistList({ items }: { items: Array<{ label: string; count: number }> }) {
+  if (items.length === 0) return <p className='text-xs text-slate-500'>データなし</p>;
+  return (
+    <ul className='space-y-1 text-xs'>
+      {items.slice(0, 6).map((item) => (
+        <li key={item.label} className='flex items-center justify-between'>
+          <span className='text-slate-600'>{item.label}</span>
+          <span className='font-semibold text-slate-900'>{item.count}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default async function AdminPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
   if (user.role !== 'super_admin') redirect('/home');
 
   const data = await getAdminData(user.id);
+  const metrics = await getAdminMetrics('all');
   const pendingCount = data.users.filter((u) => u.verificationStatus === 'pending').length;
   const userMap = new Map(data.users.map((u) => [u.id, u.nickname]));
 
@@ -50,6 +75,91 @@ export default async function AdminPage() {
             <Badge tone='gray'>通報件数 {data.reports.length}</Badge>
             <Badge tone='navy'>監査ログ {data.adminActions.length}</Badge>
           </div>
+        </article>
+
+        <article className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
+          <h2 className='font-semibold text-slate-900'>1. 利用者数</h2>
+          <div className='grid grid-cols-2 gap-2 md:grid-cols-4'>
+            <KpiCard label='総登録者数' value={metrics.userCounts.total} />
+            <KpiCard label='女性登録者数' value={metrics.userCounts.female} />
+            <KpiCard label='男性登録者数' value={metrics.userCounts.male} />
+            <KpiCard label='仮登録数' value={metrics.userCounts.provisional} />
+            <KpiCard label='本人確認済み数' value={metrics.userCounts.verified} />
+            <KpiCard label='看護師確認済み女性数' value={metrics.userCounts.nurseApprovedFemale} />
+            <KpiCard label='男性審査通過数' value={metrics.userCounts.maleReviewApproved} />
+            <KpiCard label='停止中ユーザー数' value={metrics.userCounts.suspended} />
+          </div>
+        </article>
+
+        <article className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
+          <h2 className='font-semibold text-slate-900'>2. マッチング数</h2>
+          <div className='grid grid-cols-2 gap-2 md:grid-cols-3'>
+            <KpiCard label='累計マッチ数' value={metrics.matching.totalMatches} />
+            <KpiCard label='今日のマッチ数' value={metrics.matching.todayMatches} />
+            <KpiCard label='直近7日マッチ数' value={metrics.matching.sevenDayMatches} />
+            <KpiCard label='メッセージ送信数' value={metrics.matching.messageCount} />
+            <KpiCard label='relationship_mode 数' value={metrics.matching.relationshipMode} />
+            <KpiCard label='scheduled_delete 数' value={metrics.matching.scheduledDelete} />
+          </div>
+        </article>
+
+        <article className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
+          <h2 className='font-semibold text-slate-900'>3. 登録者属性</h2>
+          <div className='grid gap-3 md:grid-cols-2'>
+            <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>性別比率</p><DistList items={metrics.attributes.genderRatio} /></div>
+            <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>年齢帯</p><DistList items={metrics.attributes.ageBands} /></div>
+            <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>居住地</p><DistList items={metrics.attributes.locations} /></div>
+            <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>男性の職種</p><DistList items={metrics.attributes.maleJobs} /></div>
+            <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>男性の年収帯</p><DistList items={metrics.attributes.maleIncomeBands} /></div>
+            <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>男性の婚姻状態</p><DistList items={metrics.attributes.maleMaritalStatus} /></div>
+            <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>女性の勤務形態</p><DistList items={metrics.attributes.femaleWorkplaceType} /></div>
+            <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>夜勤有無</p><DistList items={metrics.attributes.femaleNightShift} /></div>
+          </div>
+        </article>
+
+        <article className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
+          <h2 className='font-semibold text-slate-900'>4. 審査状況</h2>
+          <div className='grid grid-cols-2 gap-2 md:grid-cols-4'>
+            <KpiCard label='本人確認 pending' value={metrics.reviews.verification.pending} />
+            <KpiCard label='本人確認 approved' value={metrics.reviews.verification.approved} />
+            <KpiCard label='本人確認 rejected' value={metrics.reviews.verification.rejected} />
+            <KpiCard label='看護師確認 pending' value={metrics.reviews.nurse.pending} />
+            <KpiCard label='看護師確認 approved' value={metrics.reviews.nurse.approved} />
+            <KpiCard label='看護師確認 rejected' value={metrics.reviews.nurse.rejected} />
+            <KpiCard label='男性審査 pending' value={metrics.reviews.maleReview.pending} />
+            <KpiCard label='男性審査 approved' value={metrics.reviews.maleReview.approved} />
+            <KpiCard label='男性審査 rejected' value={metrics.reviews.maleReview.rejected} />
+            <KpiCard label='写真審査 pending' value={metrics.reviews.photo.pending} />
+            <KpiCard label='写真審査 approved' value={metrics.reviews.photo.approved} />
+            <KpiCard label='写真審査 rejected' value={metrics.reviews.photo.rejected} />
+          </div>
+          <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'>
+            <p className='mb-2 text-xs font-semibold text-slate-700'>riskCheckStatus 別件数</p>
+            <DistList items={metrics.reviews.riskCheck} />
+          </div>
+        </article>
+
+        <article className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
+          <h2 className='font-semibold text-slate-900'>5. 通報・安全性</h2>
+          <div className='grid grid-cols-2 gap-2 md:grid-cols-5'>
+            <KpiCard label='未対応通報数' value={metrics.safety.reportOpen} />
+            <KpiCard label='reviewing 通報数' value={metrics.safety.reportReviewing} />
+            <KpiCard label='resolved 通報数' value={metrics.safety.reportResolved} />
+            <KpiCard label='ブロック数' value={metrics.safety.blockCount} />
+            <KpiCard label='permanent_ban 数' value={metrics.safety.permanentBanCount} />
+          </div>
+        </article>
+
+        <article className='space-y-2 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
+          <h2 className='font-semibold text-slate-900'>6. 入金・課金</h2>
+          <div className='grid grid-cols-2 gap-2 md:grid-cols-5'>
+            <KpiCard label='月間売上' value='-' />
+            <KpiCard label='有料男性会員数' value='-' />
+            <KpiCard label='解約数' value='-' />
+            <KpiCard label='ARPU' value='-' />
+            <KpiCard label='MRR' value='-' />
+          </div>
+          <p className='text-xs text-slate-500'>決済機能追加後に自動集計されます</p>
         </article>
 
         <div className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>

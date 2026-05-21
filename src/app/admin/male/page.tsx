@@ -2,11 +2,35 @@ import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { Badge } from '@/components/badges';
 import { adminMaleReviewAction, adminReportAction, adminRiskCheckUpdateAction, adminRunRiskCheckAction, adminSuspendAction } from '@/lib/actions';
+import { getAdminMetrics } from '@/lib/admin-metrics';
 import { getAdminData, getCurrentUser } from '@/lib/data';
 
 export const metadata = {
   robots: { index: false, follow: false },
 };
+
+function KpiCard({ label, value }: { label: string; value: string | number }) {
+  return (
+    <article className='rounded-2xl border border-slate-100 bg-gradient-to-b from-white to-blue-50/30 p-3'>
+      <p className='text-[11px] text-slate-500'>{label}</p>
+      <p className='mt-1 text-2xl font-bold text-slate-900'>{value}</p>
+    </article>
+  );
+}
+
+function DistList({ items }: { items: Array<{ label: string; count: number }> }) {
+  if (items.length === 0) return <p className='text-xs text-slate-500'>データなし</p>;
+  return (
+    <ul className='space-y-1 text-xs'>
+      {items.slice(0, 6).map((item) => (
+        <li key={item.label} className='flex items-center justify-between'>
+          <span className='text-slate-600'>{item.label}</span>
+          <span className='font-semibold text-slate-900'>{item.count}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default async function MaleAdminPage() {
   const user = await getCurrentUser();
@@ -14,6 +38,7 @@ export default async function MaleAdminPage() {
   if (user.role !== 'male_admin' && user.role !== 'super_admin') redirect('/home');
 
   const data = await getAdminData(user.id);
+  const metrics = await getAdminMetrics('male');
   const males = data.users.filter((u) => u.gender === 'male');
   const maleReports = data.reports.filter((r) => males.some((u) => u.id === r.targetUserId));
   const maleRiskChecks = data.riskChecks.filter((r): r is NonNullable<typeof r> => Boolean(r)).filter((r) => males.some((u) => u.id === r.userId));
@@ -27,6 +52,25 @@ export default async function MaleAdminPage() {
           <div className='mt-2 flex flex-wrap gap-2'>
             <Badge tone='amber'>男性審査待ち {males.filter((u) => data.maleProfiles.find((m) => m.userId === u.id)?.profile?.maleReviewStatus === 'pending').length}</Badge>
             <Badge tone='gray'>男性通報 {maleReports.length}</Badge>
+          </div>
+        </article>
+
+        <article className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
+          <h2 className='font-semibold text-slate-900'>男性管理KPI</h2>
+          <div className='grid grid-cols-2 gap-2 md:grid-cols-4'>
+            <KpiCard label='男性登録数' value={metrics.userCounts.male} />
+            <KpiCard label='仮登録数' value={metrics.userCounts.provisional} />
+            <KpiCard label='男性審査通過数' value={metrics.userCounts.maleReviewApproved} />
+            <KpiCard label='停止中ユーザー数' value={metrics.userCounts.suspended} />
+            <KpiCard label='男性通報 open' value={metrics.safety.reportOpen} />
+            <KpiCard label='男性通報 reviewing' value={metrics.safety.reportReviewing} />
+            <KpiCard label='男性通報 resolved' value={metrics.safety.reportResolved} />
+            <KpiCard label='男性写真審査 pending' value={metrics.reviews.photo.pending} />
+          </div>
+          <div className='grid gap-3 md:grid-cols-3'>
+            <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>男性の職種</p><DistList items={metrics.attributes.maleJobs} /></div>
+            <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>男性の年収帯</p><DistList items={metrics.attributes.maleIncomeBands} /></div>
+            <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>男性の婚姻状態</p><DistList items={metrics.attributes.maleMaritalStatus} /></div>
           </div>
         </article>
 
