@@ -101,6 +101,7 @@ where id = (
 ### 重要
 - Supabase Auth 側のユーザー作成が先に必要です。
 - `public.users` だけ追加してもログインできません。
+- Auth と `public.users` の同期が必要です（`auth.users.id` と `public.users.id` を一致させる）。
 
 ### Supabase 手順
 1. Authentication > Users で上記2メールのユーザーを作成。
