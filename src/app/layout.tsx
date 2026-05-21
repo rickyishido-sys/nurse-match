@@ -13,9 +13,9 @@ export const metadata: Metadata = {
   applicationName: 'Nurse Match',
   manifest: '/manifest.webmanifest',
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
-    apple: '/icons/apple-touch-icon.png',
+    icon: [{ url: '/icon.png?v=2', type: 'image/png' }, { url: '/favicon.ico?v=2', type: 'image/x-icon' }],
+    shortcut: [{ url: '/favicon.ico?v=2', type: 'image/x-icon' }],
+    apple: [{ url: '/icons/apple-touch-icon.png?v=2', sizes: '180x180', type: 'image/png' }],
   },
   appleWebApp: {
     capable: true,
