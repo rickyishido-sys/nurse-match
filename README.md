@@ -95,6 +95,7 @@ where id = (
 - 対象:
   - 女性: `test-female@nursematch.app`
   - 男性: `test-male@nursematch.app`
+- パスワード（共通）: `test1234`
 - 両者とも `is_test_user=true` で管理画面に `TEST` バッジ表示されます。
 
 ### 重要
@@ -103,6 +104,9 @@ where id = (
 
 ### Supabase 手順
 1. Authentication > Users で上記2メールのユーザーを作成。
+   - Email: `test-female@nursematch.app` / Password: `test1234`
+   - Email: `test-male@nursematch.app` / Password: `test1234`
+   - Email confirmed を有効にして作成すること（ログイン検証を簡略化）
 2. `auth.users.id` を確認。
 3. `supabase/seed.sql` のテストユーザーUUIDを `auth.users.id` に置換して実行。
 4. `public.users`, `public.female_profiles`, `public.male_profiles` が upsert されます。
