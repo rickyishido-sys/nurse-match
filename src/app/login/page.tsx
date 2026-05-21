@@ -1,48 +1,15 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import Image from 'next/image';
-import { AppShell } from '@/components/app-shell';
 import { loginAction } from '@/lib/actions';
-import { getCurrentUser } from '@/lib/data';
-import { isAdminRole } from '@/lib/guard';
-
-function loginLandingPath(user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>) {
-  if (user.role === 'female_admin') return '/admin/female';
-  if (user.role === 'male_admin') return '/admin/male';
-  if (user.role === 'super_admin') return '/admin';
-  if (user.onboardingStatus === 'provisional') return '/preview';
-  if (user.onboardingStatus === 'profile_completed') return '/pending-review';
-  return '/home';
-}
 
 export default async function LoginPage() {
-  const user = await getCurrentUser();
-  if (user && isAdminRole(user.role)) {
-    if (user.role === 'female_admin') redirect('/admin/female');
-    if (user.role === 'male_admin') redirect('/admin/male');
-    redirect('/admin');
-  }
-  if (user) redirect(loginLandingPath(user));
-
   return (
-    <AppShell user={user}>
-      <section className='rounded-3xl bg-white p-5 shadow-lg'>
-        <div className='mb-3'>
-          <Image
-            src='/logo/nurse-match-logo-horizontal.png'
-            alt='ナースマッチ ロゴ'
-            width={320}
-            height={100}
-            className='h-10 w-auto object-contain'
-          />
+    <main className='mx-auto flex min-h-screen w-full max-w-[390px] items-center bg-white px-4 py-8'>
+      <section className='w-full rounded-3xl border border-slate-100 bg-white p-5 shadow-lg'>
+        <div className='mb-3 text-lg font-bold text-slate-900'>
+          ナースマッチ
         </div>
         <h1 className='mb-1 text-xl font-bold'>登録済みの方</h1>
         <p className='mb-4 text-xs text-slate-500'>メールアドレスまたは携帯番号でログイン</p>
-
-        <div className='mb-4 grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1 text-xs'>
-          <span className='rounded-lg bg-white px-3 py-2 text-center font-semibold text-slate-900'>メール</span>
-          <span className='rounded-lg px-3 py-2 text-center text-slate-500'>SMS（準備中）</span>
-        </div>
 
         <form action={loginAction} className='space-y-3'>
           <input
@@ -71,6 +38,6 @@ export default async function LoginPage() {
           管理者ログイン
         </Link>
       </section>
-    </AppShell>
+    </main>
   );
 }
