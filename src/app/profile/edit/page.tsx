@@ -4,6 +4,7 @@ import { AppShell } from '@/components/app-shell';
 import { saveProfileAction } from '@/lib/actions';
 import { getCurrentUser, getFemaleProfileByUserId, getMaleProfileByUserId, getProfileImagesByUserId } from '@/lib/data';
 import { maritalStatusLabel } from '@/lib/labels';
+import { MALE_JOB_OPTIONS } from '@/lib/male-job-options';
 
 const VALUE_TAGS = ['落ち着いている', '誠実', '清潔感重視', 'よく笑う', '聞き上手', '優しい', 'アウトドア', 'インドア'] as const;
 
@@ -78,7 +79,14 @@ export default async function EditProfilePage() {
               <article className='rounded-3xl border border-slate-100 bg-white p-4 text-sm shadow-sm'>
                 <h2 className='mb-3 text-sm font-bold text-slate-900'>ライフスタイル</h2>
                 <div className='grid grid-cols-2 gap-2'>
-                  <input name='job' defaultValue={maleProfile?.job} placeholder='職種' className='h-11 rounded-xl border border-slate-200 px-3' />
+                  <select name='job' defaultValue={maleProfile?.job ?? ''} className='h-11 rounded-xl border border-slate-200 px-3'>
+                    <option value=''>職種を選択</option>
+                    {MALE_JOB_OPTIONS.map((job) => (
+                      <option key={job} value={job}>
+                        {job}
+                      </option>
+                    ))}
+                  </select>
                   <input name='income' defaultValue={maleProfile?.income} placeholder='年収' className='h-11 rounded-xl border border-slate-200 px-3' />
                   <input name='smoking' defaultValue={maleProfile?.smoking} placeholder='喫煙' className='h-11 rounded-xl border border-slate-200 px-3' />
                   <input name='drinking' defaultValue={maleProfile?.drinking} placeholder='飲酒' className='h-11 rounded-xl border border-slate-200 px-3' />

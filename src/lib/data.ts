@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { USE_MOCK_DATA } from '@/lib/config';
+import { normalizeMaleJob } from '@/lib/male-job-options';
 import {
   addAdminAction,
   addBlock,
@@ -2482,7 +2483,7 @@ export async function saveProfile(userId: string, form: Record<string, string>) 
       const current = getMaleProfile(userId);
       upsertMaleProfile({
         userId,
-        job: form.job,
+        job: normalizeMaleJob(form.job),
         income: form.income,
         maritalStatus: (form.maritalStatus as MaritalStatus) ?? 'single',
         hasChildren: form.hasChildren === 'on',
@@ -2556,7 +2557,7 @@ export async function saveProfile(userId: string, form: Record<string, string>) 
     const { data: current } = await supabase.from('male_profiles').select('*').eq('user_id', userId).maybeSingle();
     await supabase.from('male_profiles').upsert({
       user_id: userId,
-      job: form.job,
+      job: normalizeMaleJob(form.job),
       income: form.income,
       marital_status: (form.maritalStatus as MaritalStatus) ?? 'single',
       has_children: form.hasChildren === 'on',

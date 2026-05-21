@@ -74,7 +74,7 @@ insert into public.male_profiles (
   late_night_contact_ok, first_date_cost, personality_tags
 )
 values
-  ('11111111-1111-1111-1111-1111111111m1', 'IT企業経営', '1000万円〜1500万円', 'single', false, 'approved', true, true, null, 178, '普通', '土日', 'なし', 'たまに', true, true, true, '男性が負担', array['誠実', '落ち着き'])
+  ('11111111-1111-1111-1111-1111111111m1', '看護師', '1000万円〜1500万円', 'single', false, 'approved', true, true, null, 178, '普通', '土日', 'なし', 'たまに', true, true, true, '男性が負担', array['誠実', '落ち着き'])
 on conflict (user_id) do update
 set
   job = excluded.job,

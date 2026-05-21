@@ -15,6 +15,7 @@ import {
 import { getAdminMetrics } from '@/lib/admin-metrics';
 import { getAdminData, getCurrentUser } from '@/lib/data';
 import { maritalStatusLabel, seekingGenderLabel } from '@/lib/labels';
+import { normalizeMaleJob } from '@/lib/male-job-options';
 
 export const metadata = {
   robots: { index: false, follow: false },
@@ -197,7 +198,10 @@ export default async function AdminPage() {
                 </div>
 
                 {u.gender === 'male' ? (
-                  <p className='mt-2'>職種 {male?.job} / 年収 {male?.income} / 婚姻 {male ? maritalStatusLabel(male.maritalStatus) : '-'}</p>
+                  <p className='mt-2'>
+                    職種 {male ? normalizeMaleJob(male.job) || '未設定' : '-'} / 年収 {male?.income} / 婚姻{' '}
+                    {male ? maritalStatusLabel(male.maritalStatus) : '-'}
+                  </p>
                 ) : null}
 
                 <div className='mt-3 grid grid-cols-1 gap-2'>

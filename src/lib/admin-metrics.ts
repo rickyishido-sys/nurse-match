@@ -1,4 +1,5 @@
 import { USE_MOCK_DATA } from '@/lib/config';
+import { normalizeMaleJob } from '@/lib/male-job-options';
 import {
   getFemaleProfile,
   getMaleProfile,
@@ -188,7 +189,7 @@ export async function getAdminMetrics(scope: Scope): Promise<AdminMetrics> {
         genderRatio: countBy(users.map((u) => (u.gender === 'female' ? '女性' : '男性'))),
         ageBands: countBy(users.map((u) => toAgeBand(u.age))),
         locations: countBy(users.map((u) => u.location || '未設定')),
-        maleJobs: countBy(maleProfiles.map((p) => p.job || '未設定')),
+        maleJobs: countBy(maleProfiles.map((p) => normalizeMaleJob(p.job) || '未設定')),
         maleIncomeBands: countBy(maleProfiles.map((p) => toIncomeBand(p.income))),
         maleMaritalStatus: countBy(maleProfiles.map((p) => p.maritalStatus)),
         femaleWorkplaceType: countBy(femaleProfiles.map((p) => p.workplaceType)),
@@ -340,7 +341,7 @@ export async function getAdminMetrics(scope: Scope): Promise<AdminMetrics> {
       genderRatio: countBy(users.map((u) => (u.gender === 'female' ? '女性' : '男性'))),
       ageBands: countBy(users.map((u) => toAgeBand(u.age))),
       locations: countBy(users.map((u) => u.location || '未設定')),
-      maleJobs: countBy(scopedMale.map((m) => m.job || '未設定')),
+      maleJobs: countBy(scopedMale.map((m) => normalizeMaleJob(m.job) || '未設定')),
       maleIncomeBands: countBy(scopedMale.map((m) => toIncomeBand(m.income))),
       maleMaritalStatus: countBy(scopedMale.map((m) => m.marital_status)),
       femaleWorkplaceType: countBy(scopedFemale.map((f) => f.workplace_type)),

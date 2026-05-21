@@ -36,6 +36,7 @@ import {
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { uploadDocument } from '@/lib/upload';
+import { normalizeMaleJob } from '@/lib/male-job-options';
 import type { MaritalStatus, ModerationAction, ReportReasonType, ReportStatus } from '@/lib/types/domain';
 import type { Database } from '@/lib/types/database';
 
@@ -245,7 +246,7 @@ export async function registerAction(formData: FormData) {
     desiredGender: String(formData.get('desiredGender') ?? 'both') as 'male' | 'female' | 'both',
     email: normalizeEmail(String(formData.get('email') ?? '')),
     password: String(formData.get('password') ?? '').trim(),
-    job: String(formData.get('job') ?? '').trim(),
+    job: normalizeMaleJob(String(formData.get('job') ?? '').trim()),
     income: String(formData.get('income') ?? '').trim(),
     maritalStatus: String(formData.get('maritalStatus') ?? 'single') as MaritalStatus,
   };
@@ -454,7 +455,7 @@ export async function registerDetailsAction(formData: FormData) {
       desiredGender: seekingGender,
       workplaceType: String(formData.get('workplaceType') ?? 'other'),
       hasNightShift: String(formData.get('hasNightShift') ?? 'off'),
-      job: String(formData.get('job') ?? ''),
+      job: normalizeMaleJob(String(formData.get('job') ?? '')),
       income: String(formData.get('income') ?? ''),
       maritalStatus: String(formData.get('maritalStatus') ?? 'single'),
       height: String(formData.get('height') ?? '170'),
@@ -588,7 +589,7 @@ export async function registerDetailsAction(formData: FormData) {
   await adminSupabase.from('male_profiles').upsert(
     {
       user_id: userId,
-      job: String(formData.get('job') ?? ''),
+      job: normalizeMaleJob(String(formData.get('job') ?? '')),
       income: String(formData.get('income') ?? ''),
       marital_status: String(formData.get('maritalStatus') ?? 'single'),
       has_children: existingMale?.has_children ?? false,

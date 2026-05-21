@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { registerDetailsAction } from '@/lib/actions';
+import { MALE_JOB_OPTIONS } from '@/lib/male-job-options';
 
 type RegisterDetailsDefaults = {
   gender: 'female' | 'male';
@@ -147,7 +148,14 @@ export function RegisterDetailsFlow({ defaults, error }: RegisterDetailsFlowProp
             <article className={activeStep === 'male' ? 'space-y-3' : 'hidden'}>
               <label className='grid gap-1 text-sm'>
                 職種
-                <input name='job' defaultValue={defaults.job} className='h-11 rounded-xl border border-slate-200 px-3' />
+                <select name='job' defaultValue={defaults.job || ''} className='h-11 rounded-xl border border-slate-200 px-3'>
+                  <option value=''>選択してください</option>
+                  {MALE_JOB_OPTIONS.map((job) => (
+                    <option key={job} value={job}>
+                      {job}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className='grid gap-1 text-sm'>
                 年収帯

@@ -254,7 +254,7 @@ const femaleProfiles: FemaleProfile[] = [
 const maleProfiles: MaleProfile[] = [
   {
     userId: 'u_m_1',
-    job: 'ITエンジニア',
+    job: 'IT',
     income: '700万円',
     maritalStatus: 'single',
     hasChildren: false,
@@ -275,7 +275,7 @@ const maleProfiles: MaleProfile[] = [
   },
   {
     userId: 'u_m_2',
-    job: '営業',
+    job: '看護師',
     income: '500万円',
     maritalStatus: 'partner',
     hasChildren: false,
@@ -296,7 +296,7 @@ const maleProfiles: MaleProfile[] = [
   },
   {
     userId: 'u_m_test',
-    job: 'IT企業経営',
+    job: '経営者',
     income: '1000万円〜1500万円',
     maritalStatus: 'single',
     hasChildren: false,
