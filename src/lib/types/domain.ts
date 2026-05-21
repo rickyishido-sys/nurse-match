@@ -30,6 +30,7 @@ export type AdminActionType =
 export type AppUser = {
   id: string;
   email: string;
+  phone?: string | null;
   role: UserRole;
   gender: Gender;
   nickname: string;

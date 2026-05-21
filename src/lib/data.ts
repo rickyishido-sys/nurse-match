@@ -67,6 +67,7 @@ function mapUser(row: Database['public']['Tables']['users']['Row']): AppUser {
   return {
     id: row.id,
     email: row.email,
+    phone: row.phone,
     role: row.role,
     gender: row.gender,
     nickname: row.nickname,
@@ -136,6 +137,7 @@ function mapPublicUserCard(row: Database['public']['Views']['public_user_cards']
   return {
     id: row.id,
     email: '',
+    phone: null,
     role: 'user',
     gender: row.gender,
     nickname: row.nickname,

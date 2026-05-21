@@ -25,7 +25,7 @@ import {
   updateVerification,
 } from '@/lib/data';
 import { USE_MOCK_DATA } from '@/lib/config';
-import { getUserByEmail, updateUser } from '@/lib/mock-data';
+import { getUserByEmail, getUserByPhone, updateUser } from '@/lib/mock-data';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { uploadDocument } from '@/lib/upload';
@@ -108,30 +108,72 @@ function resolveRequestOrigin(hostname: string | null, proto: string | null) {
   return `${scheme}://${hostname}`;
 }
 
+function normalizeEmail(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function normalizePhone(value: string) {
+  return value.trim().replace(/[^\d+]/g, '');
+}
+
+function redirectDuplicateError(type: 'email' | 'phone') {
+  if (type === 'email') redirect('/register?error=duplicate-email');
+  redirect('/register?error=duplicate-phone');
+}
+
+function isSupabaseDuplicateError(message: string | undefined | null) {
+  const text = (message ?? '').toLowerCase();
+  return text.includes('already') || text.includes('duplicate') || text.includes('unique');
+}
+
 export async function requestRegisterVerificationAction(formData: FormData) {
   const method = String(formData.get('method') ?? 'email');
-  const email = String(formData.get('email') ?? '').trim().toLowerCase();
-  const phone = String(formData.get('phone') ?? '').trim();
-
-  if (method === 'sms') {
-    redirect('/register?status=sms-preparing');
-  }
+  const email = normalizeEmail(String(formData.get('email') ?? ''));
+  const phone = normalizePhone(String(formData.get('phone') ?? ''));
 
   if (!email && !phone) {
     redirect('/register?error=contact-required');
   }
 
-  if (!email) {
+  if (method === 'email' && !email) {
     redirect('/register?error=email-required');
   }
 
   if (USE_MOCK_DATA) {
+    if (email && getUserByEmail(email)) {
+      redirectDuplicateError('email');
+    }
+    if (phone && getUserByPhone(phone)) {
+      redirectDuplicateError('phone');
+    }
+    if (method === 'sms') {
+      redirect('/register?status=sms-preparing');
+    }
     redirect(`/register?status=sent-email&email=${encodeURIComponent(email)}`);
   }
 
   const supabase = await createServerSupabaseClient();
-  if (!supabase) {
+  const adminSupabase = createAdminSupabaseClient();
+  if (!supabase || !adminSupabase) {
     redirect('/register?error=config');
+  }
+
+  if (email) {
+    const { data: existingEmail } = await adminSupabase.from('users').select('id').ilike('email', email).limit(1).maybeSingle();
+    if (existingEmail) {
+      redirectDuplicateError('email');
+    }
+  }
+
+  if (phone) {
+    const { data: existingPhone } = await adminSupabase.from('users').select('id').eq('phone', phone).limit(1).maybeSingle();
+    if (existingPhone) {
+      redirectDuplicateError('phone');
+    }
+  }
+
+  if (method === 'sms') {
+    redirect('/register?status=sms-preparing');
   }
 
   const headerStore = await headers();
@@ -147,6 +189,9 @@ export async function requestRegisterVerificationAction(formData: FormData) {
   });
 
   if (error) {
+    if (isSupabaseDuplicateError(error.message)) {
+      redirectDuplicateError('email');
+    }
     redirect('/register?error=send-failed');
   }
 
@@ -179,7 +224,7 @@ export async function registerAction(formData: FormData) {
     location: String(formData.get('location') ?? '').trim(),
     bio: String(formData.get('bio') ?? '').trim(),
     desiredGender: String(formData.get('desiredGender') ?? 'both') as 'male' | 'female' | 'both',
-    email: String(formData.get('email') ?? '').trim(),
+    email: normalizeEmail(String(formData.get('email') ?? '')),
     password: String(formData.get('password') ?? '').trim(),
     job: String(formData.get('job') ?? '').trim(),
     income: String(formData.get('income') ?? '').trim(),
@@ -191,6 +236,9 @@ export async function registerAction(formData: FormData) {
   }
 
   if (USE_MOCK_DATA) {
+    if (getUserByEmail(payload.email)) {
+      redirectDuplicateError('email');
+    }
     const userId = String(formData.get('userId') ?? 'u_f_1');
     const identityFile = formData.get('identityDocument') as File | null;
     const identityUrl = identityFile && identityFile.size > 0 ? await uploadDocument(identityFile, userId, 'identity') : null;
@@ -238,11 +286,21 @@ export async function registerAction(formData: FormData) {
   const adminSupabase = createAdminSupabaseClient();
   if (!supabase || !adminSupabase) throw new Error('Supabase設定が不足しています');
 
+  const { data: existingEmail } = await adminSupabase.from('users').select('id').ilike('email', payload.email).limit(1).maybeSingle();
+  if (existingEmail) {
+    redirectDuplicateError('email');
+  }
+
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email: payload.email,
     password: payload.password,
   });
-  if (signUpError) throw new Error(signUpError.message);
+  if (signUpError) {
+    if (isSupabaseDuplicateError(signUpError.message)) {
+      redirectDuplicateError('email');
+    }
+    throw new Error(signUpError.message);
+  }
 
   const authUserId = signUpData.user?.id;
   if (!authUserId) throw new Error('ユーザー作成に失敗しました');

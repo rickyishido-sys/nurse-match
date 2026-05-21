@@ -30,6 +30,7 @@ const users: AppUser[] = [
   {
     id: 'u_f_1',
     email: 'hana@nursematch.app',
+    phone: '09011112221',
     role: 'user',
     gender: 'female',
     nickname: 'はな',
@@ -51,6 +52,7 @@ const users: AppUser[] = [
   {
     id: 'u_f_2',
     email: 'yui@nursematch.app',
+    phone: '09011112222',
     role: 'user',
     gender: 'female',
     nickname: 'ゆい',
@@ -72,6 +74,7 @@ const users: AppUser[] = [
   {
     id: 'u_m_1',
     email: 'taro@nursematch.app',
+    phone: '09011112223',
     role: 'user',
     gender: 'male',
     nickname: 'タロウ',
@@ -93,6 +96,7 @@ const users: AppUser[] = [
   {
     id: 'u_m_2',
     email: 'ken@nursematch.app',
+    phone: '09011112224',
     role: 'user',
     gender: 'male',
     nickname: 'けん',
@@ -114,6 +118,7 @@ const users: AppUser[] = [
   {
     id: 'u_f_test',
     email: 'test-female@nursematch.app',
+    phone: '09011112225',
     role: 'user',
     gender: 'female',
     nickname: 'さくら',
@@ -135,6 +140,7 @@ const users: AppUser[] = [
   {
     id: 'u_m_test',
     email: 'test-male@nursematch.app',
+    phone: '09011112226',
     role: 'user',
     gender: 'male',
     nickname: '蓮',
@@ -156,6 +162,7 @@ const users: AppUser[] = [
   {
     id: 'admin_1',
     email: 'admin@nursematch.app',
+    phone: '09011112227',
     role: 'super_admin',
     gender: 'female',
     nickname: '運営',
@@ -177,6 +184,7 @@ const users: AppUser[] = [
   {
     id: 'admin_f_1',
     email: 'female-admin@nursematch.app',
+    phone: '09011112228',
     role: 'female_admin',
     gender: 'female',
     nickname: '女性管理',
@@ -198,6 +206,7 @@ const users: AppUser[] = [
   {
     id: 'admin_m_1',
     email: 'male-admin@nursematch.app',
+    phone: '09011112229',
     role: 'male_admin',
     gender: 'male',
     nickname: '男性管理',
@@ -469,6 +478,10 @@ export function getUserById(userId: string) {
 
 export function getUserByEmail(email: string) {
   return users.find((user) => user.email === email) ?? null;
+}
+
+export function getUserByPhone(phone: string) {
+  return users.find((user) => user.phone === phone) ?? null;
 }
 
 export function updateUser(userId: string, patch: Partial<AppUser>) {

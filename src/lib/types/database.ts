@@ -5,6 +5,7 @@ export type Database = {
         Row: {
           id: string;
           email: string;
+          phone: string | null;
           role: 'user' | 'female_admin' | 'male_admin' | 'super_admin';
           gender: 'female' | 'male';
           nickname: string;

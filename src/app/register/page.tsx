@@ -50,6 +50,22 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
               メールアドレスまたは携帯番号を入力してください。
             </p>
           ) : null}
+          {error === 'duplicate-email' ? (
+            <div className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
+              <p>このメールアドレスはすでに登録されています。ログインしてください。</p>
+              <Link href='/login' className='mt-1 inline-block font-semibold underline underline-offset-2'>
+                ログインする
+              </Link>
+            </div>
+          ) : null}
+          {error === 'duplicate-phone' ? (
+            <div className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
+              <p>この電話番号はすでに登録されています。ログインしてください。</p>
+              <Link href='/login' className='mt-1 inline-block font-semibold underline underline-offset-2'>
+                ログインする
+              </Link>
+            </div>
+          ) : null}
           {error === 'email-required' ? (
             <p className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
               現在はメール認証を優先提供しています。メールアドレスを入力してください。

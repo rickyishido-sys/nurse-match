@@ -4,6 +4,7 @@ create extension if not exists pgcrypto;
 create table if not exists users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null unique,
+  phone text unique,
   role text not null default 'user' check (role in ('user', 'female_admin', 'male_admin', 'super_admin')),
   gender text not null check (gender in ('female', 'male')),
   nickname text not null,
