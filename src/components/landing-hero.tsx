@@ -56,7 +56,7 @@ export function LandingHero() {
             alt='ナースマッチ ロゴ'
             width={300}
             height={94}
-            className='h-auto w-52 object-contain sm:w-60'
+            className='h-10 w-auto object-contain sm:h-11'
           />
         </div>
         <h1 className='mt-3 text-[2rem] font-bold leading-[1.3] tracking-tight'>

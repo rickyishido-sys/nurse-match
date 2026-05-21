@@ -24,7 +24,7 @@ export default async function AdminLoginPage() {
             alt='ナースマッチ ロゴ'
             width={320}
             height={100}
-            className='h-auto w-56 object-contain'
+            className='h-10 w-auto object-contain'
           />
         </div>
         <h1 className='text-xl font-bold text-slate-900'>管理者ログイン</h1>

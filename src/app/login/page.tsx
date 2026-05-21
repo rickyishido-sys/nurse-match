@@ -24,7 +24,7 @@ export default async function LoginPage() {
             alt='ナースマッチ ロゴ'
             width={320}
             height={100}
-            className='h-auto w-56 object-contain'
+            className='h-10 w-auto object-contain'
           />
         </div>
         <h1 className='mb-1 text-xl font-bold'>ログイン</h1>
