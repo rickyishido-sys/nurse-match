@@ -70,12 +70,20 @@ export function LandingHero() {
           審査制の出会いを。
         </p>
 
-        <Link
-          href='/register'
-          className='mt-8 flex h-12 w-full items-center justify-center rounded-2xl bg-white text-base font-bold text-slate-900 shadow-[0_12px_24px_-12px_rgba(255,255,255,0.95)]'
-        >
-          はじめる
-        </Link>
+        <div className='mt-8 grid grid-cols-2 gap-2'>
+          <Link
+            href='/register'
+            className='flex h-12 w-full items-center justify-center rounded-2xl bg-white text-base font-bold text-slate-900 shadow-[0_12px_24px_-12px_rgba(255,255,255,0.95)]'
+          >
+            はじめる
+          </Link>
+          <Link
+            href='/login'
+            className='flex h-12 w-full items-center justify-center rounded-2xl border border-white/45 bg-white/10 text-base font-semibold text-white backdrop-blur-sm'
+          >
+            ログイン
+          </Link>
+        </div>
 
         <div className='mt-4 flex gap-2 text-[10px] font-medium text-slate-200/95'>
           <span className='rounded-full border border-white/30 bg-white/10 px-3 py-1'>本人確認</span>

@@ -22,6 +22,7 @@ export async function middleware(request: NextRequest) {
 
   if (
     PUBLIC_PATHS.some((path) => pathname === path) ||
+    pathname.startsWith('/register/') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
     pathname.startsWith('/icons') ||

@@ -32,6 +32,18 @@ import { uploadDocument } from '@/lib/upload';
 import type { MaritalStatus, ModerationAction, ReportReasonType, ReportStatus } from '@/lib/types/domain';
 import type { Database } from '@/lib/types/database';
 
+function resolvePostLoginPath(user: {
+  role: 'user' | 'female_admin' | 'male_admin' | 'super_admin';
+  onboardingStatus: 'provisional' | 'profile_completed' | 'verified';
+}) {
+  if (user.role === 'female_admin') return '/admin/female';
+  if (user.role === 'male_admin') return '/admin/male';
+  if (user.role === 'super_admin') return '/admin';
+  if (user.onboardingStatus === 'provisional') return '/preview';
+  if (user.onboardingStatus === 'profile_completed') return '/pending-review';
+  return '/home';
+}
+
 export async function setDemoUserAction(formData: FormData) {
   if (!USE_MOCK_DATA) return;
 
@@ -76,10 +88,7 @@ export async function loginAction(formData: FormData) {
     if (!user) throw new Error('ユーザーが見つかりません');
     const cookieStore = await cookies();
     cookieStore.set('demo_user_id', user.id);
-    if (user.role === 'female_admin') redirect('/admin/female');
-    if (user.role === 'male_admin') redirect('/admin/male');
-    if (user.role === 'super_admin') redirect('/admin');
-    redirect('/home');
+    redirect(resolvePostLoginPath(user));
   }
 
   const supabase = await createServerSupabaseClient();
@@ -89,10 +98,8 @@ export async function loginAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   const me = await getCurrentUser();
-  if (me?.role === 'female_admin') redirect('/admin/female');
-  if (me?.role === 'male_admin') redirect('/admin/male');
-  if (me?.role === 'super_admin') redirect('/admin');
-  redirect('/home');
+  if (me) redirect(resolvePostLoginPath(me));
+  redirect('/login');
 }
 
 export async function logoutAction() {
@@ -172,8 +179,8 @@ export async function registerAction(formData: FormData) {
       profileImageUrl: profileImageUrl ?? '',
     });
 
-    revalidatePath('/pending-review');
-    redirect('/pending-review');
+    revalidatePath('/preview');
+    redirect('/preview');
   }
 
   const supabase = await createServerSupabaseClient();
@@ -268,8 +275,8 @@ export async function registerAction(formData: FormData) {
     if (error) throw new Error(error.message);
   }
 
-  revalidatePath('/pending-review');
-  redirect('/pending-review');
+  revalidatePath('/preview');
+  redirect('/preview');
 }
 
 export async function swipeAction(formData: FormData) {
