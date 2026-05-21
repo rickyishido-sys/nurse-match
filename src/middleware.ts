@@ -25,6 +25,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
     pathname.startsWith('/icons') ||
+    pathname.startsWith('/logo') ||
     pathname.startsWith('/hero') ||
     pathname === '/manifest.webmanifest'
   ) {
