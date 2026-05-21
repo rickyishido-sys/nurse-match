@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import Image from 'next/image';
 import { AppShell } from '@/components/app-shell';
 import { loginAction } from '@/lib/actions';
 import { getCurrentUser } from '@/lib/data';
@@ -17,6 +18,12 @@ export default async function LoginPage() {
   return (
     <AppShell user={user}>
       <section className='rounded-3xl bg-white p-5 shadow-lg'>
+        <div className='mb-3 flex items-center gap-2'>
+          <div className='relative h-8 w-8 overflow-hidden rounded-full border border-slate-200'>
+            <Image src='/logo/nurse-match-logo.png' alt='ナースマッチ ロゴ' fill className='object-cover' />
+          </div>
+          <p className='text-sm font-semibold text-slate-700'>ナースマッチ</p>
+        </div>
         <h1 className='mb-1 text-xl font-bold'>ログイン</h1>
         <p className='mb-4 text-xs text-slate-500'>Supabase Auth (email/password)</p>
 

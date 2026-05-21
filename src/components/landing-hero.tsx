@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 const HERO_IMAGES = [
@@ -49,7 +50,12 @@ export function LandingHero() {
       <div className='absolute inset-0 z-10 bg-gradient-to-b from-black/5 via-black/15 to-black/45' />
 
       <div className='relative z-20 flex min-h-[84svh] flex-col justify-end px-6 pb-8 pt-10 text-white'>
-        <p className='text-xs font-semibold tracking-[0.24em] text-slate-200'>NURSE MATCH</p>
+        <div className='mb-1 flex items-center gap-2 opacity-90'>
+          <div className='relative h-6 w-6 overflow-hidden rounded-full border border-white/30'>
+            <Image src='/logo/nurse-match-logo.png' alt='ナースマッチ ロゴ' fill className='object-cover' />
+          </div>
+          <p className='text-[10px] font-semibold tracking-[0.2em] text-slate-200'>ナースマッチ</p>
+        </div>
         <h1 className='mt-3 text-[2rem] font-bold leading-[1.3] tracking-tight'>
           選ぶのは、
           <br />

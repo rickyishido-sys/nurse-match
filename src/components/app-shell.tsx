@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { logoutAction, setDemoUserAction } from '@/lib/actions';
 import { BottomNav } from '@/components/bottom-nav';
 import { USE_MOCK_DATA } from '@/lib/config';
@@ -19,8 +20,11 @@ export function AppShell({ user, children }: AppShellProps) {
     <div className='safe-area-padding mx-auto flex min-h-screen w-full max-w-[390px] flex-col border-x border-slate-100/80 bg-white/90 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)] backdrop-blur'>
       <header className='sticky top-0 z-20 border-b border-slate-100/90 bg-white/95 px-4 py-3 backdrop-blur'>
         <div className='mb-2 flex items-center justify-between'>
-          <Link href='/' className='text-lg font-bold tracking-tight text-slate-900'>
-            Nurse Match
+          <Link href='/' className='flex items-center gap-2 text-lg font-bold tracking-tight text-slate-900'>
+            <span className='relative h-8 w-8 overflow-hidden rounded-full border border-slate-200 bg-slate-900'>
+              <Image src='/logo/nurse-match-logo.png' alt='ナースマッチ ロゴ' fill className='object-cover' />
+            </span>
+            <span>ナースマッチ</span>
           </Link>
           <div className='flex items-center gap-2'>
             {isAdmin ? (
