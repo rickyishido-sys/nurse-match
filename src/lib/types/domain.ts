@@ -63,7 +63,7 @@ export type FemaleProfile = {
   userId: string;
   nurseDocumentUrl: string;
   nurseVerificationStatus: VerificationStatus;
-  workplaceType: 'hospital' | 'clinic' | 'beauty' | 'nightshift' | 'other';
+  workplaceType: 'hospital' | 'clinic' | 'beauty' | 'nightshift' | 'care_facility' | 'home_visit' | 'other';
   hasNightShift: boolean;
 };
 

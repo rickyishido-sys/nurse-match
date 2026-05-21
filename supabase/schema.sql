@@ -30,7 +30,7 @@ create table if not exists female_profiles (
   user_id uuid primary key references users(id) on delete cascade,
   nurse_document_url text not null,
   nurse_verification_status text not null default 'pending' check (nurse_verification_status in ('pending', 'approved', 'rejected')),
-  workplace_type text not null check (workplace_type in ('hospital', 'clinic', 'beauty', 'nightshift', 'other')),
+  workplace_type text not null check (workplace_type in ('hospital', 'clinic', 'beauty', 'nightshift', 'care_facility', 'home_visit', 'other')),
   has_night_shift boolean not null default false
 );
 

@@ -57,7 +57,7 @@ export type Database = {
           user_id: string;
           nurse_document_url: string;
           nurse_verification_status: 'pending' | 'approved' | 'rejected';
-          workplace_type: 'hospital' | 'clinic' | 'beauty' | 'nightshift' | 'other';
+          workplace_type: 'hospital' | 'clinic' | 'beauty' | 'nightshift' | 'care_facility' | 'home_visit' | 'other';
           has_night_shift: boolean;
         };
         Insert: Database['public']['Tables']['female_profiles']['Row'];
@@ -319,7 +319,7 @@ export type Database = {
         Row: {
           user_id: string;
           nurse_verification_status: 'pending' | 'approved' | 'rejected';
-          workplace_type: 'hospital' | 'clinic' | 'beauty' | 'nightshift' | 'other';
+          workplace_type: 'hospital' | 'clinic' | 'beauty' | 'nightshift' | 'care_facility' | 'home_visit' | 'other';
           has_night_shift: boolean;
         };
       };

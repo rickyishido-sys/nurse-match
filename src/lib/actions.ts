@@ -25,7 +25,7 @@ import {
   updateVerification,
 } from '@/lib/data';
 import { USE_MOCK_DATA } from '@/lib/config';
-import { getUserByEmail, getUserByPhone, updateUser } from '@/lib/mock-data';
+import { getUserByEmail, getUserByPhone, listProfileImages, updateUser } from '@/lib/mock-data';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { uploadDocument } from '@/lib/upload';
@@ -124,6 +124,18 @@ function redirectDuplicateError(type: 'email' | 'phone') {
 function isSupabaseDuplicateError(message: string | undefined | null) {
   const text = (message ?? '').toLowerCase();
   return text.includes('already') || text.includes('duplicate') || text.includes('unique');
+}
+
+function calculateAgeFromBirthdate(birthdate: string) {
+  const birthday = new Date(birthdate);
+  if (Number.isNaN(birthday.getTime())) return 0;
+  const today = new Date();
+  let age = today.getFullYear() - birthday.getFullYear();
+  const monthDiff = today.getMonth() - birthday.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthday.getDate())) {
+    age -= 1;
+  }
+  return age;
 }
 
 export async function requestRegisterVerificationAction(formData: FormData) {
@@ -386,6 +398,193 @@ export async function registerAction(formData: FormData) {
 
   revalidatePath('/preview');
   redirect('/preview');
+}
+
+export async function registerDetailsAction(formData: FormData) {
+  const gender = String(formData.get('gender') ?? 'female') as 'female' | 'male';
+  const nickname = String(formData.get('nickname') ?? '').trim();
+  const birthdate = String(formData.get('birthdate') ?? '').trim();
+  const location = String(formData.get('location') ?? '').trim();
+  const bio = String(formData.get('bio') ?? '').trim();
+  const desiredGender = String(formData.get('desiredGender') ?? 'both') as 'male' | 'female' | 'both';
+  const age = calculateAgeFromBirthdate(birthdate);
+
+  if (!nickname || !birthdate || !location || !bio || age < 18) {
+    redirect('/register/details?error=required');
+  }
+
+  if (USE_MOCK_DATA) {
+    const me = await getCurrentUser();
+    if (!me) redirect('/register');
+    if (me.role !== 'user') redirect('/register');
+    const profileImage1 = await uploadDocument(formData.get('profileImage') as File, me.id, 'profile');
+    const profileImage2 = await uploadDocument(formData.get('profileImage2') as File, me.id, 'profile');
+    const profileImage3 = await uploadDocument(formData.get('profileImage3') as File, me.id, 'profile');
+    const currentImages = listProfileImages(me.id);
+    const uploadedImages = [profileImage1, profileImage2, profileImage3].filter(Boolean) as string[];
+    const hasAtLeastOneImage = uploadedImages.length > 0 || currentImages.length > 0;
+    if (!hasAtLeastOneImage) {
+      redirect('/register/details?error=profile-image-required');
+    }
+    if (gender === 'male' && !hasAtLeastOneImage) {
+      redirect('/register/details?error=male-face-required');
+    }
+
+    if (uploadedImages.length > 0) {
+      await saveProfileImages(me.id, uploadedImages);
+    }
+
+    await saveProfile(me.id, {
+      nickname,
+      location,
+      bio,
+      desiredGender,
+      workplaceType: String(formData.get('workplaceType') ?? 'other'),
+      hasNightShift: String(formData.get('hasNightShift') ?? 'off'),
+      job: String(formData.get('job') ?? ''),
+      income: String(formData.get('income') ?? ''),
+      maritalStatus: String(formData.get('maritalStatus') ?? 'single'),
+      height: String(formData.get('height') ?? '170'),
+      smoking: String(formData.get('smoking') ?? ''),
+      drinking: String(formData.get('drinking') ?? ''),
+      nightShiftUnderstanding: formData.get('nightShiftUnderstanding') ? 'on' : 'off',
+      shiftWorkUnderstanding: formData.get('shiftWorkUnderstanding') ? 'on' : 'off',
+      profileImageUrl: uploadedImages[0] ?? me.profileImageUrl,
+    });
+
+    updateUser(me.id, {
+      gender,
+      birthdate,
+      age,
+      onboardingStatus: 'profile_completed',
+      verificationStatus: 'pending',
+    });
+
+    redirect('/verification');
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const adminSupabase = createAdminSupabaseClient();
+  if (!supabase || !adminSupabase) redirect('/register');
+
+  const { data: authData } = await supabase.auth.getUser();
+  const authUser = authData.user;
+  if (!authUser) redirect('/register');
+
+  const userId = authUser.id;
+  const profileImage1 = await uploadDocument(formData.get('profileImage') as File, userId, 'profile');
+  const profileImage2 = await uploadDocument(formData.get('profileImage2') as File, userId, 'profile');
+  const profileImage3 = await uploadDocument(formData.get('profileImage3') as File, userId, 'profile');
+  const uploadedImages = [profileImage1, profileImage2, profileImage3].filter(Boolean) as string[];
+  const { data: existingImages } = await adminSupabase.from('profile_images').select('id').eq('user_id', userId).limit(1);
+  const hasAtLeastOneImage = uploadedImages.length > 0 || Boolean(existingImages && existingImages.length > 0);
+  if (!hasAtLeastOneImage) {
+    redirect('/register/details?error=profile-image-required');
+  }
+  if (gender === 'male' && !hasAtLeastOneImage) {
+    redirect('/register/details?error=male-face-required');
+  }
+
+  const { data: existingUser } = await adminSupabase.from('users').select('*').eq('id', userId).maybeSingle();
+  if (existingUser && existingUser.role !== 'user') {
+    redirect('/register');
+  }
+
+  const primaryImage = uploadedImages[0] ?? existingUser?.profile_image_url ?? '';
+  const { error: userUpsertError } = await adminSupabase.from('users').upsert(
+    {
+      id: userId,
+      email: normalizeEmail(authUser.email ?? existingUser?.email ?? ''),
+      phone: authUser.phone ? normalizePhone(authUser.phone) : (existingUser?.phone ?? null),
+      role: 'user',
+      gender,
+      nickname,
+      birthdate,
+      age,
+      location,
+      bio,
+      profile_image_url: primaryImage,
+      desired_gender: desiredGender,
+      onboarding_status: 'profile_completed',
+      risk_check_status: existingUser?.risk_check_status ?? 'not_checked',
+      verification_status: existingUser?.verification_status ?? 'pending',
+      identity_document_url: existingUser?.identity_document_url ?? null,
+      rejected_reason: existingUser?.rejected_reason ?? null,
+      moderation_action: existingUser?.moderation_action ?? 'none',
+      is_suspended: existingUser?.is_suspended ?? false,
+      is_test_user: existingUser?.is_test_user ?? false,
+    },
+    { onConflict: 'id' },
+  );
+  if (userUpsertError) redirect('/register/details?error=save-failed');
+
+  if (uploadedImages.length > 0) {
+    await saveProfileImages(userId, uploadedImages);
+  }
+
+  const workplaceTypeRaw = String(formData.get('workplaceType') ?? 'other');
+  const workplaceType =
+    workplaceTypeRaw === 'hospital' ||
+    workplaceTypeRaw === 'clinic' ||
+    workplaceTypeRaw === 'beauty' ||
+    workplaceTypeRaw === 'nightshift' ||
+    workplaceTypeRaw === 'care_facility' ||
+    workplaceTypeRaw === 'home_visit' ||
+    workplaceTypeRaw === 'other'
+      ? workplaceTypeRaw
+      : 'other';
+
+  if (gender === 'female') {
+    const { data: existingFemale } = await adminSupabase
+      .from('female_profiles')
+      .select('nurse_verification_status,nurse_document_url')
+      .eq('user_id', userId)
+      .maybeSingle();
+    const nurseStatus = existingFemale?.nurse_verification_status ?? 'pending';
+    await adminSupabase.from('female_profiles').upsert(
+      {
+        user_id: userId,
+        nurse_document_url: existingFemale?.nurse_document_url ?? '',
+        nurse_verification_status: nurseStatus,
+        workplace_type: workplaceType,
+        has_night_shift: String(formData.get('hasNightShift') ?? 'off') === 'on',
+      },
+      { onConflict: 'user_id' },
+    );
+    redirect(nurseStatus === 'approved' ? '/preview' : '/verification');
+  }
+
+  const { data: existingMale } = await adminSupabase
+    .from('male_profiles')
+    .select('male_review_status,income_verified,face_photo_verified,has_children')
+    .eq('user_id', userId)
+    .maybeSingle();
+  const maleStatus = existingMale?.male_review_status ?? 'pending';
+  await adminSupabase.from('male_profiles').upsert(
+    {
+      user_id: userId,
+      job: String(formData.get('job') ?? ''),
+      income: String(formData.get('income') ?? ''),
+      marital_status: String(formData.get('maritalStatus') ?? 'single'),
+      has_children: existingMale?.has_children ?? false,
+      male_review_status: maleStatus,
+      income_verified: existingMale?.income_verified ?? false,
+      face_photo_verified: existingMale?.face_photo_verified ?? false,
+      internal_memo: null,
+      height: Number(formData.get('height') ?? 170),
+      body_type: '',
+      holiday: '',
+      smoking: String(formData.get('smoking') ?? ''),
+      drinking: String(formData.get('drinking') ?? ''),
+      night_shift_understanding: formData.get('nightShiftUnderstanding') ? true : false,
+      shift_work_understanding: formData.get('shiftWorkUnderstanding') ? true : false,
+      late_night_contact_ok: false,
+      first_date_cost: '',
+      personality_tags: [],
+    },
+    { onConflict: 'user_id' },
+  );
+  redirect(maleStatus === 'approved' ? '/preview' : '/verification');
 }
 
 export async function swipeAction(formData: FormData) {
