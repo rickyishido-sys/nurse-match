@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { headers } from 'next/headers';
 import { logoutAction, setDemoUserAction } from '@/lib/actions';
 import { BottomNav } from '@/components/bottom-nav';
 import { USE_MOCK_DATA } from '@/lib/config';
@@ -11,10 +12,14 @@ type AppShellProps = {
   children: React.ReactNode;
 };
 
-export function AppShell({ user, children }: AppShellProps) {
+export async function AppShell({ user, children }: AppShellProps) {
   const showBottomNav = user !== null;
   const isAdmin = user?.role === 'female_admin' || user?.role === 'male_admin' || user?.role === 'super_admin';
   const adminHref = user?.role === 'female_admin' ? '/admin/female' : user?.role === 'male_admin' ? '/admin/male' : '/admin';
+  const headerStore = await headers();
+  const host = (headerStore.get('x-forwarded-host') ?? headerStore.get('host') ?? '').toLowerCase();
+  const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1') || host.includes('::1');
+  const showDemoSwitcher = USE_MOCK_DATA && process.env.NODE_ENV === 'development' && isLocalhost;
 
   return (
     <div className='safe-area-padding mx-auto flex min-h-screen w-full max-w-[390px] flex-col border-x border-slate-100/80 bg-white/90 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)] backdrop-blur'>
@@ -55,7 +60,7 @@ export function AppShell({ user, children }: AppShellProps) {
           </div>
         </div>
 
-        {USE_MOCK_DATA ? (
+        {showDemoSwitcher ? (
           <form action={setDemoUserAction} className='flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2'>
             <label htmlFor='demo-user' className='text-xs font-medium text-slate-600'>
               デモユーザー
