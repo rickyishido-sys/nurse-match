@@ -15,6 +15,7 @@ export type Database = {
           bio: string;
           profile_image_url: string;
           desired_gender: 'male' | 'female' | 'both';
+          seeking_gender: 'male' | 'female' | 'both';
           onboarding_status: 'provisional' | 'profile_completed' | 'verified';
           risk_check_status: 'not_checked' | 'checking' | 'clear' | 'review_required' | 'rejected';
           verification_status: 'pending' | 'approved' | 'rejected';
@@ -311,6 +312,7 @@ export type Database = {
           bio: string;
           profile_image_url: string;
           desired_gender: 'male' | 'female' | 'both';
+          seeking_gender: 'male' | 'female' | 'both';
           verification_status: 'pending' | 'approved' | 'rejected';
           is_suspended: boolean;
         };

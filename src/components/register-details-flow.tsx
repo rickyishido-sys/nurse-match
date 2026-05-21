@@ -134,13 +134,14 @@ export function RegisterDetailsFlow({ defaults, error }: RegisterDetailsFlowProp
                 </select>
               </label>
               <label className='grid gap-1 text-sm'>
-                希望する相手
+                出会いたい相手
                 <select name='desiredGender' defaultValue={defaults.desiredGender} className='h-11 rounded-xl border border-slate-200 px-3'>
                   <option value='male'>男性</option>
                   <option value='female'>女性</option>
                   <option value='both'>どちらも</option>
                 </select>
               </label>
+              <p className='text-xs text-slate-500'>あとからプロフィール編集で変更できます。</p>
             </article>
 
             <article className={activeStep === 'male' ? 'space-y-3' : 'hidden'}>

@@ -64,6 +64,7 @@ import type {
 import type { Database } from '@/lib/types/database';
 
 function mapUser(row: Database['public']['Tables']['users']['Row']): AppUser {
+  const seeking = row.seeking_gender ?? row.desired_gender;
   return {
     id: row.id,
     email: row.email,
@@ -76,7 +77,7 @@ function mapUser(row: Database['public']['Tables']['users']['Row']): AppUser {
     location: row.location,
     bio: row.bio,
     profileImageUrl: row.profile_image_url,
-    desiredGender: row.desired_gender,
+    desiredGender: seeking,
     onboardingStatus: row.onboarding_status,
     riskCheckStatus: row.risk_check_status,
     verificationStatus: row.verification_status,
@@ -134,6 +135,7 @@ function mapMale(row: Database['public']['Tables']['male_profiles']['Row']): Mal
 }
 
 function mapPublicUserCard(row: Database['public']['Views']['public_user_cards']['Row']): AppUser {
+  const seeking = row.seeking_gender ?? row.desired_gender;
   return {
     id: row.id,
     email: '',
@@ -146,7 +148,7 @@ function mapPublicUserCard(row: Database['public']['Views']['public_user_cards']
     location: row.location,
     bio: row.bio,
     profileImageUrl: row.profile_image_url,
-    desiredGender: row.desired_gender,
+    desiredGender: seeking,
     onboardingStatus: 'verified',
     riskCheckStatus: 'clear',
     verificationStatus: row.verification_status,
@@ -250,6 +252,10 @@ function normalizeFemaleFilterCookie(value?: string | null): Partial<Record<keyo
   }
 }
 
+function canSeek(user: Pick<AppUser, 'desiredGender'>, targetGender: 'male' | 'female') {
+  return user.desiredGender === 'both' || user.desiredGender === targetGender;
+}
+
 async function getFemalePreferenceFiltersForUser() {
   const cookieStore = await cookies();
   const raw = cookieStore.get('female_search_filters')?.value;
@@ -286,7 +292,7 @@ function matchesFemalePreference(input: {
   const { femaleUser, femaleProfile, maleUser, maleProfile, filters } = input;
   if (!maleProfile) return false;
   if (maleUser.gender !== 'male') return false;
-  if (femaleUser.desiredGender === 'female') return false;
+  if (!canSeek(femaleUser, 'male')) return false;
   if (maleUser.age < filters.ageMin || maleUser.age > filters.ageMax) return false;
   if (filters.location && !maleUser.location.includes(filters.location)) return false;
   if (filters.job && !maleProfile.job.includes(filters.job)) return false;
@@ -771,6 +777,7 @@ export async function generateDailyRecommendations(userId: string, recommendatio
       .filter((candidate) => !hasAnyRelationshipModeInMock(candidate.id))
       .filter((candidate) => {
         if (candidate.gender === 'male') {
+          if (!canSeek(user, 'male')) return false;
           const mp = getMaleProfile(candidate.id);
           if (!mp || mp.maleReviewStatus !== 'approved') return false;
           return matchesFemalePreference({
@@ -781,7 +788,8 @@ export async function generateDailyRecommendations(userId: string, recommendatio
             filters,
           });
         }
-        if (user.desiredGender === 'male') return false;
+        if (!canSeek(user, 'female')) return false;
+        if (!canSeek(candidate, 'female')) return false;
         const fp = getFemaleProfile(candidate.id);
         return Boolean(fp && fp.nurseVerificationStatus === 'approved');
       })
@@ -860,6 +868,7 @@ export async function generateDailyRecommendations(userId: string, recommendatio
     .filter((candidate) => !swiped.has(candidate.id))
     .filter((candidate) => {
       if (candidate.gender === 'male') {
+          if (!canSeek(user, 'male')) return false;
         const mpRow = maleMap.get(candidate.id);
         if (!mpRow || mpRow.male_review_status !== 'approved') return false;
         const maleProfile: MaleProfile = {
@@ -891,7 +900,8 @@ export async function generateDailyRecommendations(userId: string, recommendatio
           filters,
         });
       }
-      if (user.desiredGender === 'male') return false;
+        if (!canSeek(user, 'female')) return false;
+        if (!canSeek(candidate, 'female')) return false;
       const fp = femaleMap.get(candidate.id);
       return Boolean(fp && fp.nurse_verification_status === 'approved');
     });
@@ -1134,6 +1144,7 @@ export async function getMaleDailyCandidateCards(user: AppUser) {
     const signaledSet = new Set(signaledToday.map((s) => s.targetUserId));
     return listUsers()
       .filter((candidate) => candidate.id !== user.id && candidate.gender === 'female')
+      .filter((candidate) => canSeek(candidate, 'male'))
       .filter((candidate) => candidate.verificationStatus === 'approved' && !candidate.isSuspended)
       .filter((candidate) => !blocked.has(candidate.id) && !isBlockedBetween(user.id, candidate.id))
       .filter((candidate) => !hasAnyRelationshipModeInMock(candidate.id))
@@ -1191,6 +1202,7 @@ export async function getMaleDailyCandidateCards(user: AppUser) {
   }> = [];
   for (const row of femaleUsers ?? []) {
     const mapped = mapPublicUserCard(row);
+    if (!canSeek(mapped, 'male')) continue;
     if (blockedSet.has(mapped.id)) continue;
     if (await hasAnyRelationshipMode(mapped.id)) continue;
     const profileImages = await getProfileImagesByUserId(mapped.id);
@@ -1224,6 +1236,7 @@ export async function createInterestSignal(input: { userId: string; targetUserId
     }
     if (!maleProfile || maleProfile.maleReviewStatus !== 'approved') throw new Error('男性審査通過後に利用できます');
     if (target.verificationStatus !== 'approved' || target.isSuspended) throw new Error('対象ユーザーに送信できません');
+    if (!canSeek(target, 'male')) throw new Error('対象ユーザーの希望条件により送信できません');
 
     const todaySignals = listInterestSignalsByUser(user.id).filter((item) => isSameJstDate(item.createdAt, today));
     const alreadyToday = todaySignals.some((item) => item.targetUserId === target.id);
@@ -1273,6 +1286,7 @@ export async function createInterestSignal(input: { userId: string; targetUserId
   }
   if (!maleProfile || maleProfile.maleReviewStatus !== 'approved') throw new Error('男性審査通過後に利用できます');
   if (target.verificationStatus !== 'approved' || target.isSuspended) throw new Error('対象ユーザーに送信できません');
+  if (!canSeek(target, 'male')) throw new Error('対象ユーザーの希望条件により送信できません');
   const { data: todaySignals } = await admin
     .from('interest_signals')
     .select('*')
@@ -2453,7 +2467,7 @@ export async function saveProfile(userId: string, form: Record<string, string>) 
       nickname: form.nickname,
       location: form.location,
       bio: form.bio,
-      desiredGender: (form.desiredGender as AppUser['desiredGender']) ?? user.desiredGender,
+      desiredGender: user.gender === 'male' ? 'female' : ((form.desiredGender as AppUser['desiredGender']) ?? user.desiredGender),
       profileImageUrl: form.profileImageUrl || user.profileImageUrl,
     });
 
@@ -2513,7 +2527,7 @@ export async function saveProfile(userId: string, form: Record<string, string>) 
 
   const { data: userRow } = await supabase
     .from('users')
-    .select('gender, desired_gender, verification_status, profile_image_url')
+    .select('gender, desired_gender, seeking_gender, verification_status, profile_image_url')
     .eq('id', userId)
     .single();
   if (!userRow) return;
@@ -2525,7 +2539,8 @@ export async function saveProfile(userId: string, form: Record<string, string>) 
       nickname: form.nickname,
       location: form.location,
       bio: form.bio,
-      desired_gender: (form.desiredGender as AppUser['desiredGender']) ?? userRow.desired_gender,
+      desired_gender: userRow.gender === 'male' ? 'female' : ((form.desiredGender as AppUser['desiredGender']) ?? userRow.desired_gender),
+      seeking_gender: userRow.gender === 'male' ? 'female' : ((form.desiredGender as AppUser['desiredGender']) ?? userRow.seeking_gender),
       ...(form.profileImageUrl ? { profile_image_url: form.profileImageUrl } : {}),
     })
     .eq('id', userId);

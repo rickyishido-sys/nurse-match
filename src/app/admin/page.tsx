@@ -14,7 +14,7 @@ import {
 } from '@/lib/actions';
 import { getAdminMetrics } from '@/lib/admin-metrics';
 import { getAdminData, getCurrentUser } from '@/lib/data';
-import { maritalStatusLabel } from '@/lib/labels';
+import { maritalStatusLabel, seekingGenderLabel } from '@/lib/labels';
 
 export const metadata = {
   robots: { index: false, follow: false },
@@ -180,6 +180,7 @@ export default async function AdminPage() {
                 </div>
 
                 <p>{u.email}</p>
+                <p className='text-slate-600'>seeking_gender: {seekingGenderLabel(u.desiredGender)}</p>
                 <div className='mt-2 flex flex-wrap gap-2'>
                   {u.identityDocumentUrl ? (
                     <a href={u.identityDocumentUrl} target='_blank' rel='noreferrer' className='rounded-lg border border-slate-200 bg-white px-2 py-1'>

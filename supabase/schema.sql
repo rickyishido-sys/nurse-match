@@ -14,6 +14,7 @@ create table if not exists users (
   bio text not null default '',
   profile_image_url text not null default '',
   desired_gender text not null default 'both' check (desired_gender in ('male', 'female', 'both')),
+  seeking_gender text not null default 'both' check (seeking_gender in ('male', 'female', 'both')),
   onboarding_status text not null default 'provisional' check (onboarding_status in ('provisional', 'profile_completed', 'verified')),
   risk_check_status text not null default 'not_checked' check (risk_check_status in ('not_checked', 'checking', 'clear', 'review_required', 'rejected')),
   verification_status text not null default 'pending' check (verification_status in ('pending', 'approved', 'rejected')),
@@ -235,6 +236,7 @@ select
   u.bio,
   u.profile_image_url,
   u.desired_gender,
+  u.seeking_gender,
   u.verification_status,
   u.is_suspended
 from users u;

@@ -76,7 +76,7 @@ export default async function RegisterDetailsPage({ searchParams }: RegisterDeta
         birthdate: userRow?.birthdate ?? '',
         location: userRow?.location ?? '',
         bio: userRow?.bio ?? '',
-        desiredGender: (userRow?.desired_gender ?? 'both') as 'male' | 'female' | 'both',
+        desiredGender: ((userRow?.seeking_gender ?? userRow?.desired_gender ?? 'both') as 'male' | 'female' | 'both'),
         workplaceType:
           (femaleRow?.workplace_type as 'hospital' | 'clinic' | 'beauty' | 'nightshift' | 'care_facility' | 'home_visit' | 'other') ?? 'hospital',
         hasNightShift: femaleRow?.has_night_shift ?? false,

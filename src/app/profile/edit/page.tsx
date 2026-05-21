@@ -125,11 +125,21 @@ export default async function EditProfilePage() {
           ) : (
             <article className='rounded-3xl border border-pink-100 bg-pink-50/60 p-4 text-sm shadow-sm'>
               <h2 className='mb-2 text-sm font-bold text-pink-700'>看護師プロフィール情報</h2>
+              <label className='mb-2 grid gap-1'>
+                出会いたい相手
+                <select name='desiredGender' defaultValue={user.desiredGender} className='h-11 w-full rounded-xl border border-slate-200 bg-white px-3'>
+                  <option value='male'>男性</option>
+                  <option value='female'>女性</option>
+                  <option value='both'>どちらも</option>
+                </select>
+              </label>
               <select name='workplaceType' defaultValue={femaleProfile?.workplaceType} className='h-11 w-full rounded-xl border border-slate-200 bg-white px-3'>
                 <option value='hospital'>病院</option>
                 <option value='clinic'>クリニック</option>
                 <option value='beauty'>美容</option>
                 <option value='nightshift'>夜勤あり</option>
+                <option value='care_facility'>介護施設</option>
+                <option value='home_visit'>訪問看護</option>
                 <option value='other'>その他</option>
               </select>
               <label className='mt-2 flex items-center gap-2'>

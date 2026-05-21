@@ -4,6 +4,7 @@ import { Badge } from '@/components/badges';
 import { adminNurseAction, adminReportAction, adminRiskCheckUpdateAction, adminRunRiskCheckAction, adminSuspendAction } from '@/lib/actions';
 import { getAdminMetrics } from '@/lib/admin-metrics';
 import { getAdminData, getCurrentUser } from '@/lib/data';
+import { seekingGenderLabel } from '@/lib/labels';
 
 export const metadata = {
   robots: { index: false, follow: false },
@@ -87,6 +88,7 @@ export default async function FemaleAdminPage() {
                 <p className='font-semibold text-slate-900'>{u.nickname}</p>
                 {u.isTestUser ? <Badge tone='pink'>TEST</Badge> : null}
                 <p className='text-slate-600'>看護師確認: {fp?.nurseVerificationStatus ?? 'pending'}</p>
+                <p className='text-slate-600'>seeking_gender: {seekingGenderLabel(u.desiredGender)}</p>
                 <p className='text-slate-600'>リスクチェック: {u.riskCheckStatus}</p>
                 <div className='mt-2 flex flex-wrap gap-2'>
                   <form action={adminNurseAction} className='flex gap-2'>

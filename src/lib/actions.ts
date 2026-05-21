@@ -246,6 +246,7 @@ export async function registerAction(formData: FormData) {
   if (!payload.nickname || !payload.email || !payload.password) {
     throw new Error('必須項目が不足しています');
   }
+  const seekingGender = gender === 'male' ? 'female' : payload.desiredGender;
 
   if (USE_MOCK_DATA) {
     if (getUserByEmail(payload.email)) {
@@ -263,7 +264,7 @@ export async function registerAction(formData: FormData) {
       gender,
       location: payload.location,
       bio: payload.bio,
-      desiredGender: payload.desiredGender,
+      desiredGender: seekingGender,
       onboardingStatus: 'provisional',
       riskCheckStatus: 'not_checked',
       verificationStatus: 'pending',
@@ -275,7 +276,7 @@ export async function registerAction(formData: FormData) {
       nickname: payload.nickname,
       location: payload.location,
       bio: payload.bio,
-      desiredGender: payload.desiredGender,
+      desiredGender: seekingGender,
       workplaceType: String(formData.get('workplaceType') ?? 'other'),
       hasNightShift: formData.get('hasNightShift') ? 'on' : 'off',
       nurseDocumentUrl: (await uploadDocument(formData.get('nurseDocument') as File, userId, 'nurse')) ?? '',
@@ -336,6 +337,7 @@ export async function registerAction(formData: FormData) {
     bio: payload.bio,
     profile_image_url: profileImageUrl ?? '',
     desired_gender: payload.desiredGender,
+    seeking_gender: seekingGender,
     onboarding_status: 'provisional',
     risk_check_status: 'not_checked',
     verification_status: 'pending',
@@ -365,6 +367,8 @@ export async function registerAction(formData: FormData) {
         | 'clinic'
         | 'beauty'
         | 'nightshift'
+        | 'care_facility'
+        | 'home_visit'
         | 'other',
       has_night_shift: Boolean(formData.get('hasNightShift')),
     };
@@ -407,6 +411,7 @@ export async function registerDetailsAction(formData: FormData) {
   const location = String(formData.get('location') ?? '').trim();
   const bio = String(formData.get('bio') ?? '').trim();
   const desiredGender = String(formData.get('desiredGender') ?? 'both') as 'male' | 'female' | 'both';
+  const seekingGender = gender === 'male' ? 'female' : desiredGender;
   const age = calculateAgeFromBirthdate(birthdate);
 
   if (!nickname || !birthdate || !location || !bio || age < 18) {
@@ -438,7 +443,7 @@ export async function registerDetailsAction(formData: FormData) {
       nickname,
       location,
       bio,
-      desiredGender,
+      desiredGender: seekingGender,
       workplaceType: String(formData.get('workplaceType') ?? 'other'),
       hasNightShift: String(formData.get('hasNightShift') ?? 'off'),
       job: String(formData.get('job') ?? ''),
@@ -505,6 +510,7 @@ export async function registerDetailsAction(formData: FormData) {
       bio,
       profile_image_url: primaryImage,
       desired_gender: desiredGender,
+      seeking_gender: seekingGender,
       onboarding_status: 'profile_completed',
       risk_check_status: existingUser?.risk_check_status ?? 'not_checked',
       verification_status: existingUser?.verification_status ?? 'pending',
