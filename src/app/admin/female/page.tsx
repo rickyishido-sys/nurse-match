@@ -85,6 +85,7 @@ export default async function FemaleAdminPage() {
             return (
               <div key={u.id} className='rounded-2xl border border-slate-100 bg-slate-50 p-3 text-xs'>
                 <p className='font-semibold text-slate-900'>{u.nickname}</p>
+                {u.isTestUser ? <Badge tone='pink'>TEST</Badge> : null}
                 <p className='text-slate-600'>看護師確認: {fp?.nurseVerificationStatus ?? 'pending'}</p>
                 <p className='text-slate-600'>リスクチェック: {u.riskCheckStatus}</p>
                 <div className='mt-2 flex flex-wrap gap-2'>

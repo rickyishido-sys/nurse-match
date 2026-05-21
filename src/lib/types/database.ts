@@ -21,6 +21,7 @@ export type Database = {
           rejected_reason: string | null;
           moderation_action: 'none' | 'warning' | 'suspend' | 'permanent_ban';
           is_suspended: boolean;
+          is_test_user: boolean;
           created_at: string;
           updated_at: string;
         };

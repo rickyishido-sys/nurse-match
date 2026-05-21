@@ -89,3 +89,23 @@ where id = (
 補足:
 - 対象ユーザーが `public.users` に未作成の場合は、先に該当ユーザー行を作成してから `role` を更新してください。
 - `female_admin` / `male_admin` を作る場合は同様に `role` をそれぞれ変更します。
+
+## テスト人格アカウント（男性/女性）
+- 目的: 本番機能のE2E確認（お気に入り / 興味あり / Like / Match / Chat）
+- 対象:
+  - 女性: `test-female@nursematch.app`
+  - 男性: `test-male@nursematch.app`
+- 両者とも `is_test_user=true` で管理画面に `TEST` バッジ表示されます。
+
+### 重要
+- Supabase Auth 側のユーザー作成が先に必要です。
+- `public.users` だけ追加してもログインできません。
+
+### Supabase 手順
+1. Authentication > Users で上記2メールのユーザーを作成。
+2. `auth.users.id` を確認。
+3. `supabase/seed.sql` のテストユーザーUUIDを `auth.users.id` に置換して実行。
+4. `public.users`, `public.female_profiles`, `public.male_profiles` が upsert されます。
+
+### mock 手順
+- `NEXT_PUBLIC_USE_MOCK=true` の場合、同名メールのユーザーが `src/lib/mock-data.ts` に含まれているため、そのままログイン検証できます。

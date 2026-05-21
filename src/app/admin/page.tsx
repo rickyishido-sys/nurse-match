@@ -172,6 +172,7 @@ export default async function AdminPage() {
               <article key={u.id} className='rounded-2xl border border-slate-100 bg-slate-50/60 p-3 text-xs'>
                 <div className='mb-2 flex flex-wrap items-center gap-2'>
                   <p className='font-semibold text-slate-900'>{u.nickname} ({u.gender}/{u.role})</p>
+                  {u.isTestUser ? <Badge tone='pink'>TEST</Badge> : null}
                   <Badge tone={statusTone(u.verificationStatus)}>本人 {u.verificationStatus}</Badge>
                   <Badge tone={riskTone(u.riskCheckStatus)}>リスク {u.riskCheckStatus}</Badge>
                   {male ? <Badge tone={statusTone(male.maleReviewStatus)}>男性審査 {male.maleReviewStatus}</Badge> : null}

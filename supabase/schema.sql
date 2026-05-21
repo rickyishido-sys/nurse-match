@@ -20,6 +20,7 @@ create table if not exists users (
   rejected_reason text,
   moderation_action text not null default 'none' check (moderation_action in ('none', 'warning', 'suspend', 'permanent_ban')),
   is_suspended boolean not null default false,
+  is_test_user boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

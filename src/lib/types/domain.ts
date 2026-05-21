@@ -46,6 +46,7 @@ export type AppUser = {
   rejectedReason: string | null;
   moderationAction: ModerationAction;
   isSuspended: boolean;
+  isTestUser?: boolean;
 };
 
 export type ProfileImageRecord = {

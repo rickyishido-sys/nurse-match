@@ -83,6 +83,7 @@ function mapUser(row: Database['public']['Tables']['users']['Row']): AppUser {
     rejectedReason: row.rejected_reason,
     moderationAction: row.moderation_action,
     isSuspended: row.is_suspended,
+    isTestUser: row.is_test_user,
   };
 }
 
@@ -151,6 +152,7 @@ function mapPublicUserCard(row: Database['public']['Views']['public_user_cards']
     rejectedReason: null,
     moderationAction: 'none',
     isSuspended: row.is_suspended,
+    isTestUser: false,
   };
 }
 
