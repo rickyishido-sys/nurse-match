@@ -88,7 +88,7 @@ export default async function FemaleHomePage({ searchParams }: { searchParams: P
         <article className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
           <div>
             <h1 className='text-lg font-bold text-slate-900'>本日の厳選メンバー</h1>
-            <p className='text-sm text-slate-500'>あなたに合う5名を厳選しました</p>
+            <p className='text-sm text-slate-500'>あなたの希望条件や価値観をもとに、本日は5名を厳選しました。</p>
           </div>
           {featuredRecommendations.length === 0 ? (
             <p className='text-sm text-slate-500'>本日のおすすめ候補は準備中です。</p>

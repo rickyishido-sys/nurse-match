@@ -61,6 +61,9 @@ export function FemaleCardDeck({ userId, cards, filters }: FemaleCardDeckProps) 
   const [index, setIndex] = useState(0);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [cardMotion, setCardMotion] = useState<'idle' | 'like' | 'skip'>('idle');
+  const [showLikeHeart, setShowLikeHeart] = useState(false);
+  const [actionLocked, setActionLocked] = useState(false);
   const [isPending, startTransition] = useTransition();
   const current = cards[index] ?? null;
   const remaining = Math.max(cards.length - index, 0);
@@ -71,20 +74,29 @@ export function FemaleCardDeck({ userId, cards, filters }: FemaleCardDeckProps) 
   }, [current]);
 
   function submitSwipe(action: 'like' | 'skip') {
-    if (!current || isPending) return;
+    if (!current || isPending || actionLocked) return;
     const formData = new FormData();
     formData.set('fromUserId', userId);
     formData.set('toUserId', current.user.id);
     formData.set('action', action);
+    setActionLocked(true);
+    setCardMotion(action);
+    if (action === 'like') {
+      setShowLikeHeart(true);
+    }
     startTransition(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 220));
       await swipeAction(formData);
       setIndex((prev) => prev + 1);
       setIsDetailOpen(false);
+      setCardMotion('idle');
+      setShowLikeHeart(false);
+      setActionLocked(false);
     });
   }
 
   return (
-    <section className='space-y-4'>
+    <section className='space-y-4 pb-28'>
       <article className='flex items-center justify-between rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
         <div>
           <h2 className='text-base font-bold text-slate-900'>候補カード</h2>
@@ -100,9 +112,23 @@ export function FemaleCardDeck({ userId, cards, filters }: FemaleCardDeckProps) 
       </article>
 
       {current ? (
-        <article className='overflow-hidden rounded-[32px] border border-slate-100 bg-white shadow-[0_24px_60px_-36px_rgba(15,23,42,0.55)]'>
-          <div className='relative h-[54vh] min-h-[360px] w-full'>
+        <article
+          className={`overflow-hidden rounded-[32px] border border-slate-100 bg-white shadow-[0_24px_60px_-36px_rgba(15,23,42,0.55)] transition-all duration-300 ${
+            cardMotion === 'skip' ? '-translate-x-6 opacity-0' : ''
+          } ${cardMotion === 'like' ? 'translate-x-6 opacity-0' : ''}`}
+        >
+          <div className='relative aspect-[3/4] w-full max-h-[70vh] min-h-[380px]'>
             <Image src={getMainImage(current)} alt={current.user.nickname} fill className='object-cover' />
+            {showLikeHeart ? (
+              <div className='pointer-events-none absolute inset-0 flex items-center justify-center'>
+                <div className='rounded-full bg-white/85 px-5 py-4 text-5xl text-pink-500 shadow-xl'>♡</div>
+              </div>
+            ) : null}
+            <div className='absolute right-4 top-4 flex flex-col gap-2'>
+              <Badge tone='green'>本人確認済み</Badge>
+              {current.user.gender === 'female' && current.femaleProfile?.nurseVerificationStatus === 'approved' ? <Badge tone='pink'>看護師確認済み</Badge> : null}
+              {current.user.gender === 'male' && current.maleProfile?.maleReviewStatus === 'approved' ? <Badge tone='navy'>男性審査通過</Badge> : null}
+            </div>
             <div className='absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/85 via-slate-900/40 to-transparent p-5'>
               <p className='text-3xl font-bold tracking-tight text-white'>{cardTitle}</p>
               <p className='mt-1 text-sm text-slate-200'>{current.user.location}</p>
@@ -110,39 +136,16 @@ export function FemaleCardDeck({ userId, cards, filters }: FemaleCardDeckProps) 
             </div>
           </div>
           <div className='space-y-4 p-5'>
-            <div className='flex flex-wrap gap-2'>
-              <Badge tone='green'>本人確認済み</Badge>
-              {current.user.gender === 'male' && current.maleProfile?.maleReviewStatus === 'approved' ? <Badge tone='navy'>審査通過</Badge> : null}
-              {current.user.gender === 'female' && current.femaleProfile?.nurseVerificationStatus === 'approved' ? <Badge tone='pink'>看護師確認済み</Badge> : null}
-            </div>
             <p className='rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700'>
               {current.user.bio.length > 50 ? `${current.user.bio.slice(0, 50)}...` : current.user.bio}
             </p>
             <button
               type='button'
               onClick={() => setIsDetailOpen(true)}
-              className='h-11 w-full rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700'
+              className='h-12 w-full rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700'
             >
               詳細を見る
             </button>
-            <div className='grid grid-cols-2 gap-3'>
-              <button
-                type='button'
-                disabled={isPending}
-                onClick={() => submitSwipe('skip')}
-                className='h-12 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 disabled:opacity-50'
-              >
-                Skip
-              </button>
-              <button
-                type='button'
-                disabled={isPending}
-                onClick={() => submitSwipe('like')}
-                className='h-12 rounded-2xl bg-slate-900 text-sm font-bold text-white shadow-lg shadow-slate-900/20 disabled:opacity-50'
-              >
-                ♡ Like
-              </button>
-            </div>
             <p className='text-center text-xs text-slate-500'>残り {remaining} 名</p>
           </div>
         </article>
@@ -195,14 +198,16 @@ export function FemaleCardDeck({ userId, cards, filters }: FemaleCardDeckProps) 
       ) : null}
 
       {isDetailOpen && current ? (
-        <div className='fixed inset-0 z-50 bg-slate-950/45 p-4' role='dialog' aria-modal='true'>
-          <div className='mx-auto mt-10 w-full max-w-[430px] rounded-3xl border border-slate-100 bg-white p-5 shadow-2xl'>
+        <div className='fixed inset-0 z-50 bg-slate-950/45' role='dialog' aria-modal='true'>
+          <button type='button' className='absolute inset-0 w-full' aria-label='閉じる' onClick={() => setIsDetailOpen(false)} />
+          <div className='absolute inset-x-0 bottom-0 mx-auto w-full max-w-[430px] rounded-t-[28px] border border-slate-100 bg-white p-5 shadow-2xl'>
             <div className='mb-3 flex items-center justify-between'>
-              <h3 className='text-base font-bold text-slate-900'>{current.user.nickname}さんの詳細</h3>
+              <div className='h-1.5 w-10 rounded-full bg-slate-200' />
               <button type='button' onClick={() => setIsDetailOpen(false)} className='rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-600'>
                 閉じる
               </button>
             </div>
+            <h3 className='mb-3 text-base font-bold text-slate-900'>{current.user.nickname}さんの詳細</h3>
             <div className='space-y-3 text-sm text-slate-700'>
               {current.user.gender === 'male' && current.maleProfile ? (
                 <>
@@ -224,6 +229,27 @@ export function FemaleCardDeck({ userId, cards, filters }: FemaleCardDeckProps) 
           </div>
         </div>
       ) : null}
+
+      <div className='fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[430px] bg-gradient-to-t from-white via-white/95 to-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3'>
+        <div className='grid grid-cols-2 gap-3'>
+          <button
+            type='button'
+            disabled={!current || isPending || actionLocked}
+            onClick={() => submitSwipe('skip')}
+            className='h-14 rounded-2xl border border-slate-200 bg-white text-base font-semibold text-slate-600 shadow-sm disabled:opacity-50'
+          >
+            Skip
+          </button>
+          <button
+            type='button'
+            disabled={!current || isPending || actionLocked}
+            onClick={() => submitSwipe('like')}
+            className='h-14 rounded-2xl bg-slate-900 text-base font-bold text-white shadow-lg shadow-slate-900/20 disabled:opacity-50'
+          >
+            ♡ Like
+          </button>
+        </div>
+      </div>
     </section>
   );
 }
