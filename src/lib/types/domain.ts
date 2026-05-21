@@ -112,6 +112,19 @@ export type DailyRecommendationRecord = {
   createdAt: string;
 };
 
+export type InterestSignalType = 'interested' | 'skipped';
+
+export type InterestSignalRecord = {
+  id: string;
+  userId: string;
+  targetUserId: string;
+  signalType: InterestSignalType;
+  matchedPreference: boolean;
+  reason: string | null;
+  createdAt: string;
+  expiresAt: string;
+};
+
 export type RiskCheckRecord = {
   id: string;
   userId: string;

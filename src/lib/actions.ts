@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import {
   blockUser,
   createReport,
+  createInterestSignal,
   getCurrentUser,
   markMatchAsRelationshipMode,
   saveProfile,
@@ -296,6 +297,16 @@ export async function favoriteLikeAction(formData: FormData) {
   revalidatePath('/favorites');
   revalidatePath('/home/female');
   revalidatePath('/matches');
+}
+
+export async function maleInterestSignalAction(formData: FormData) {
+  const userId = String(formData.get('userId'));
+  const targetUserId = String(formData.get('targetUserId'));
+  const signalType = String(formData.get('signalType')) as 'interested' | 'skipped';
+  await createInterestSignal({ userId, targetUserId, signalType });
+  revalidatePath('/home/male');
+  revalidatePath('/home/female');
+  revalidatePath('/preview');
 }
 
 export async function sendMessageAction(formData: FormData) {

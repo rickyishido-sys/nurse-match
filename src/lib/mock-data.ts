@@ -6,6 +6,8 @@ import type {
   DailyRecommendationRecord,
   FavoriteRecord,
   FemaleProfile,
+  InterestSignalRecord,
+  InterestSignalType,
   LikeRecord,
   MaleProfile,
   MatchRecord,
@@ -338,6 +340,8 @@ const dailyRecommendations: DailyRecommendationRecord[] = [
   },
 ];
 
+const interestSignals: InterestSignalRecord[] = [];
+
 function uuid(prefix: string) {
   return `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
 }
@@ -467,6 +471,48 @@ export function replaceDailyRecommendations(userId: string, recommendationDate: 
     }
   }
   dailyRecommendations.push(...rows);
+}
+
+export function listInterestSignalsForTarget(targetUserId: string) {
+  return interestSignals.filter((item) => item.targetUserId === targetUserId);
+}
+
+export function listInterestSignalsByUser(userId: string) {
+  return interestSignals.filter((item) => item.userId === userId);
+}
+
+export function upsertInterestSignal(input: {
+  userId: string;
+  targetUserId: string;
+  signalType: InterestSignalType;
+  matchedPreference: boolean;
+  reason: string | null;
+  expiresAt: string;
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const existingIdx = interestSignals.findIndex(
+    (item) =>
+      item.userId === input.userId &&
+      item.targetUserId === input.targetUserId &&
+      item.signalType === input.signalType &&
+      item.createdAt.slice(0, 10) === today,
+  );
+  const next: InterestSignalRecord = {
+    id: existingIdx >= 0 ? interestSignals[existingIdx].id : uuid('interest'),
+    userId: input.userId,
+    targetUserId: input.targetUserId,
+    signalType: input.signalType,
+    matchedPreference: input.matchedPreference,
+    reason: input.reason,
+    createdAt: new Date().toISOString(),
+    expiresAt: input.expiresAt,
+  };
+  if (existingIdx >= 0) {
+    interestSignals[existingIdx] = next;
+  } else {
+    interestSignals.push(next);
+  }
+  return next;
 }
 
 export function toggleFavorite(userId: string, targetUserId: string) {

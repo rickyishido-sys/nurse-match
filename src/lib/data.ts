@@ -8,6 +8,8 @@ import {
   addReport,
   getRiskCheck,
   listDailyRecommendations,
+  listInterestSignalsByUser,
+  listInterestSignalsForTarget,
   ensureMatch,
   getFemaleProfile,
   getMaleProfile,
@@ -25,6 +27,7 @@ import {
   listUsers,
   replaceProfileImages,
   replaceDailyRecommendations,
+  upsertInterestSignal,
   toggleFavorite,
   setMaleReviewStatus,
   setNurseVerificationStatus,
@@ -44,6 +47,7 @@ import type {
   AppUser,
   DailyRecommendationRecord,
   FemaleProfile,
+  InterestSignalType,
   MaleProfile,
   MaritalStatus,
   ModerationAction,
@@ -229,8 +233,75 @@ export const DEFAULT_FEMALE_FILTERS: FemaleSearchFilters = {
   facePhotoOnly: false,
 };
 
+function normalizeFemaleFilterCookie(value?: string | null): Partial<Record<keyof FemaleSearchFilters, string | boolean>> {
+  if (!value) return {};
+  try {
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    return parsed && typeof parsed === 'object' ? (parsed as Partial<Record<keyof FemaleSearchFilters, string | boolean>>) : {};
+  } catch {
+    return {};
+  }
+}
+
+async function getFemalePreferenceFiltersForUser() {
+  const cookieStore = await cookies();
+  const raw = cookieStore.get('female_search_filters')?.value;
+  const parsed = normalizeFemaleFilterCookie(raw);
+  return {
+    maritalFilter: (parsed.maritalFilter as FemaleSearchFilters['maritalFilter']) ?? DEFAULT_FEMALE_FILTERS.maritalFilter,
+    ageMin: Number(parsed.ageMin ?? DEFAULT_FEMALE_FILTERS.ageMin),
+    ageMax: Number(parsed.ageMax ?? DEFAULT_FEMALE_FILTERS.ageMax),
+    location: String(parsed.location ?? DEFAULT_FEMALE_FILTERS.location),
+    job: String(parsed.job ?? DEFAULT_FEMALE_FILTERS.job),
+    incomeMin: String(parsed.incomeMin ?? DEFAULT_FEMALE_FILTERS.incomeMin),
+    smoking: String(parsed.smoking ?? DEFAULT_FEMALE_FILTERS.smoking),
+    drinking: String(parsed.drinking ?? DEFAULT_FEMALE_FILTERS.drinking),
+    heightMin: Number(parsed.heightMin ?? DEFAULT_FEMALE_FILTERS.heightMin),
+    verifiedOnly: parsed.verifiedOnly === true || parsed.verifiedOnly === 'on' ? true : DEFAULT_FEMALE_FILTERS.verifiedOnly,
+    maleReviewedOnly:
+      parsed.maleReviewedOnly === true || parsed.maleReviewedOnly === 'on' ? true : DEFAULT_FEMALE_FILTERS.maleReviewedOnly,
+    incomeVerifiedOnly:
+      parsed.incomeVerifiedOnly === true || parsed.incomeVerifiedOnly === 'on'
+        ? true
+        : DEFAULT_FEMALE_FILTERS.incomeVerifiedOnly,
+    facePhotoOnly:
+      parsed.facePhotoOnly === true || parsed.facePhotoOnly === 'on' ? true : DEFAULT_FEMALE_FILTERS.facePhotoOnly,
+  } satisfies FemaleSearchFilters;
+}
+
+function matchesFemalePreference(input: {
+  femaleUser: AppUser;
+  femaleProfile: FemaleProfile | null;
+  maleUser: AppUser;
+  maleProfile: MaleProfile | null;
+  filters: FemaleSearchFilters;
+}) {
+  const { femaleUser, femaleProfile, maleUser, maleProfile, filters } = input;
+  if (!maleProfile) return false;
+  if (maleUser.gender !== 'male') return false;
+  if (femaleUser.desiredGender === 'female') return false;
+  if (maleUser.age < filters.ageMin || maleUser.age > filters.ageMax) return false;
+  if (filters.location && !maleUser.location.includes(filters.location)) return false;
+  if (filters.job && !maleProfile.job.includes(filters.job)) return false;
+  if (filters.incomeMin && maleProfile.income < filters.incomeMin) return false;
+  if (filters.smoking && maleProfile.smoking !== filters.smoking) return false;
+  if (filters.drinking && maleProfile.drinking !== filters.drinking) return false;
+  if (filters.heightMin > 0 && maleProfile.height < filters.heightMin) return false;
+  if (filters.maritalFilter === 'single_only' && maleProfile.maritalStatus !== 'single') return false;
+  if (filters.maritalFilter === 'include_married' && maleProfile.maritalStatus === 'partner') return false;
+  if (filters.incomeVerifiedOnly && !maleProfile.incomeVerified) return false;
+  if (filters.facePhotoOnly && !maleProfile.facePhotoVerified) return false;
+  if (filters.maleReviewedOnly && maleProfile.maleReviewStatus !== 'approved') return false;
+  if (femaleProfile?.hasNightShift && (!maleProfile.nightShiftUnderstanding || !maleProfile.shiftWorkUnderstanding)) return false;
+  return true;
+}
+
 function getJstDateString(date = new Date()) {
   return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Tokyo' });
+}
+
+function isSameJstDate(iso: string, date: string) {
+  return getJstDateString(new Date(iso)) === date;
 }
 
 function recommendationReason(rank: number) {
@@ -369,6 +440,11 @@ export async function getCandidateCards(user: AppUser, filters: FemaleSearchFilt
         .map((like) => like.toUserId),
     );
     const blocked = new Set(listBlocksForUser(user.id).map((b) => b.blockedUserId));
+    const signalTargetSet = new Set(
+      listInterestSignalsForTarget(user.id)
+        .filter((signal) => signal.signalType === 'interested' && signal.matchedPreference && signal.expiresAt > new Date().toISOString())
+        .map((signal) => signal.userId),
+    );
 
     return allUsers
       .filter((candidate) => candidate.id !== user.id)
@@ -405,6 +481,12 @@ export async function getCandidateCards(user: AppUser, filters: FemaleSearchFilt
         if (filters.maleReviewedOnly && mp.maleReviewStatus !== 'approved') return false;
         return true;
       })
+      .sort((a, b) => {
+        const aSignal = signalTargetSet.has(a.id) ? 1 : 0;
+        const bSignal = signalTargetSet.has(b.id) ? 1 : 0;
+        if (aSignal !== bSignal) return bSignal - aSignal;
+        return sortByRecommendationPriority(user, a, b);
+      })
       .map((candidate) => ({
         user: {
           ...candidate,
@@ -418,6 +500,7 @@ export async function getCandidateCards(user: AppUser, filters: FemaleSearchFilt
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return [];
+  const admin = createAdminSupabaseClient();
 
   const blockedSet = await getBlockedRelationSetForUser(user.id);
 
@@ -431,8 +514,20 @@ export async function getCandidateCards(user: AppUser, filters: FemaleSearchFilt
   const { data: likesData } = await supabase.from('likes').select('to_user_id').eq('from_user_id', user.id);
   const swipedIds = new Set((likesData ?? []).map((row) => row.to_user_id));
 
-  const { data: females } = await supabase.from('female_profile_public').select('*');
-  const { data: males } = await supabase.from('male_profile_public').select('*');
+  const [{ data: females }, { data: males }, { data: signalRows }] = await Promise.all([
+    supabase.from('female_profile_public').select('*'),
+    supabase.from('male_profile_public').select('*'),
+    admin
+      ? admin
+          .from('interest_signals')
+          .select('user_id')
+          .eq('target_user_id', user.id)
+          .eq('signal_type', 'interested')
+          .eq('matched_preference', true)
+          .gte('expires_at', new Date().toISOString())
+      : Promise.resolve({ data: [] as Array<{ user_id: string }> }),
+  ]);
+  const signalTargetSet = new Set((signalRows ?? []).map((row) => row.user_id));
 
   const femaleMap = new Map(
     (females ?? []).map((f) => [
@@ -498,6 +593,12 @@ export async function getCandidateCards(user: AppUser, filters: FemaleSearchFilt
       const fp = femaleMap.get(candidate.id);
       if (filters.verifiedOnly && candidate.verificationStatus !== 'approved') return false;
       return fp?.nurseVerificationStatus === 'approved';
+    })
+    .sort((a, b) => {
+      const aSignal = signalTargetSet.has(a.id) ? 1 : 0;
+      const bSignal = signalTargetSet.has(b.id) ? 1 : 0;
+      if (aSignal !== bSignal) return bSignal - aSignal;
+      return sortByRecommendationPriority(user, a, b);
     });
 
   const relationshipFiltered: AppUser[] = [];
@@ -538,12 +639,35 @@ function sortByRecommendationPriority(baseUser: AppUser, a: AppUser, b: AppUser)
   return ageDiffA - ageDiffB;
 }
 
+function maleProfileCompleteness(profile: MaleProfile | null) {
+  if (!profile) return 0;
+  const points = [
+    profile.job,
+    profile.income,
+    profile.maritalStatus,
+    profile.height > 0 ? '1' : '',
+    profile.bodyType,
+    profile.smoking,
+    profile.drinking,
+    profile.holiday,
+    profile.personalityTags.length > 0 ? '1' : '',
+  ].filter(Boolean).length;
+  return points;
+}
+
 export async function generateDailyRecommendations(userId: string, recommendationDate = getJstDateString()) {
   if (USE_MOCK_DATA) {
     const user = getUserById(userId);
     if (!user || user.gender !== 'female') return [] as DailyRecommendationRecord[];
+    const femaleProfile = getFemaleProfile(user.id);
+    const filters = await getFemalePreferenceFiltersForUser();
     const blocked = new Set(listBlocksForUser(user.id).map((item) => item.blockedUserId));
     const swiped = new Set(listLikes().filter((item) => item.fromUserId === user.id).map((item) => item.toUserId));
+    const activeSignals = listInterestSignalsForTarget(user.id).filter(
+      (signal) => signal.signalType === 'interested' && signal.matchedPreference && signal.expiresAt > new Date().toISOString(),
+    );
+    const signalTargetSet = new Set(activeSignals.map((signal) => signal.userId));
+
     const candidates = listUsers()
       .filter((candidate) => candidate.id !== user.id)
       .filter((candidate) => candidate.verificationStatus === 'approved' && !candidate.isSuspended)
@@ -553,13 +677,28 @@ export async function generateDailyRecommendations(userId: string, recommendatio
       .filter((candidate) => {
         if (candidate.gender === 'male') {
           const mp = getMaleProfile(candidate.id);
-          return Boolean(mp && mp.maleReviewStatus === 'approved');
+          if (!mp || mp.maleReviewStatus !== 'approved') return false;
+          return matchesFemalePreference({
+            femaleUser: user,
+            femaleProfile,
+            maleUser: candidate,
+            maleProfile: mp,
+            filters,
+          });
         }
         if (user.desiredGender === 'male') return false;
         const fp = getFemaleProfile(candidate.id);
         return Boolean(fp && fp.nurseVerificationStatus === 'approved');
       })
-      .sort((a, b) => sortByRecommendationPriority(user, a, b))
+      .sort((a, b) => {
+        const aSignaled = signalTargetSet.has(a.id) ? 1 : 0;
+        const bSignaled = signalTargetSet.has(b.id) ? 1 : 0;
+        if (aSignaled !== bSignaled) return bSignaled - aSignaled;
+        const aScore = maleProfileCompleteness(getMaleProfile(a.id));
+        const bScore = maleProfileCompleteness(getMaleProfile(b.id));
+        if (aScore !== bScore) return bScore - aScore;
+        return sortByRecommendationPriority(user, a, b);
+      })
       .slice(0, 10);
 
     const rows: DailyRecommendationRecord[] = candidates.map((candidate, idx) => ({
@@ -568,7 +707,7 @@ export async function generateDailyRecommendations(userId: string, recommendatio
       targetUserId: candidate.id,
       recommendationDate,
       rank: idx + 1,
-      reason: recommendationReason(idx + 1),
+      reason: signalTargetSet.has(candidate.id) ? 'あなたの希望条件に合う候補です' : recommendationReason(idx + 1),
       createdAt: new Date().toISOString(),
     }));
     replaceDailyRecommendations(user.id, recommendationDate, rows);
@@ -584,11 +723,12 @@ export async function generateDailyRecommendations(userId: string, recommendatio
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return [] as DailyRecommendationRecord[];
+  const filters = await getFemalePreferenceFiltersForUser();
   const blockedSet = await getBlockedRelationSetForUser(userId);
   const { data: likedRows } = await supabase.from('likes').select('to_user_id').eq('from_user_id', userId);
   const swiped = new Set((likedRows ?? []).map((row) => row.to_user_id));
 
-  const [{ data: usersRows }, { data: maleRows }, { data: femaleRows }] = await Promise.all([
+  const [{ data: usersRows }, { data: maleRows }, { data: femaleRows }, { data: signalRows }] = await Promise.all([
     supabase
       .from('public_user_cards')
       .select('*')
@@ -597,9 +737,27 @@ export async function generateDailyRecommendations(userId: string, recommendatio
       .neq('id', userId),
     supabase.from('male_profile_public').select('*'),
     supabase.from('female_profile_public').select('*'),
+    admin
+      .from('interest_signals')
+      .select('user_id,target_user_id,matched_preference,signal_type,expires_at')
+      .eq('target_user_id', userId)
+      .eq('signal_type', 'interested')
+      .eq('matched_preference', true)
+      .gte('expires_at', new Date().toISOString()),
   ]);
+  const femaleSelfProfileRow = (femaleRows ?? []).find((row) => row.user_id === userId);
+  const femaleSelfProfile: FemaleProfile | null = femaleSelfProfileRow
+    ? {
+        userId: femaleSelfProfileRow.user_id,
+        nurseDocumentUrl: '',
+        nurseVerificationStatus: femaleSelfProfileRow.nurse_verification_status,
+        workplaceType: femaleSelfProfileRow.workplace_type,
+        hasNightShift: femaleSelfProfileRow.has_night_shift,
+      }
+    : null;
   const maleMap = new Map((maleRows ?? []).map((row) => [row.user_id, row]));
   const femaleMap = new Map((femaleRows ?? []).map((row) => [row.user_id, row]));
+  const signalTargetSet = new Set((signalRows ?? []).map((row) => row.user_id));
 
   const filtered = (usersRows ?? [])
     .map((row) => mapPublicUserCard(row))
@@ -607,8 +765,36 @@ export async function generateDailyRecommendations(userId: string, recommendatio
     .filter((candidate) => !swiped.has(candidate.id))
     .filter((candidate) => {
       if (candidate.gender === 'male') {
-        const mp = maleMap.get(candidate.id);
-        return Boolean(mp && mp.male_review_status === 'approved');
+        const mpRow = maleMap.get(candidate.id);
+        if (!mpRow || mpRow.male_review_status !== 'approved') return false;
+        const maleProfile: MaleProfile = {
+          userId: mpRow.user_id,
+          job: mpRow.job,
+          income: mpRow.income,
+          maritalStatus: mpRow.marital_status,
+          hasChildren: mpRow.has_children,
+          maleReviewStatus: mpRow.male_review_status,
+          incomeVerified: mpRow.income_verified,
+          facePhotoVerified: mpRow.face_photo_verified,
+          internalMemo: null,
+          height: mpRow.height ?? 170,
+          bodyType: mpRow.body_type ?? '',
+          holiday: mpRow.holiday ?? '',
+          smoking: mpRow.smoking ?? '',
+          drinking: mpRow.drinking ?? '',
+          nightShiftUnderstanding: mpRow.night_shift_understanding,
+          shiftWorkUnderstanding: mpRow.shift_work_understanding,
+          lateNightContactOk: mpRow.late_night_contact_ok,
+          firstDateCost: mpRow.first_date_cost ?? '',
+          personalityTags: mpRow.personality_tags ?? [],
+        };
+        return matchesFemalePreference({
+          femaleUser: user,
+          femaleProfile: femaleSelfProfile,
+          maleUser: candidate,
+          maleProfile,
+          filters,
+        });
       }
       if (user.desiredGender === 'male') return false;
       const fp = femaleMap.get(candidate.id);
@@ -616,7 +802,65 @@ export async function generateDailyRecommendations(userId: string, recommendatio
     });
 
   const picked: AppUser[] = [];
-  for (const candidate of filtered.sort((a, b) => sortByRecommendationPriority(user, a, b))) {
+  for (
+    const candidate of filtered.sort((a, b) => {
+      const aSignaled = signalTargetSet.has(a.id) ? 1 : 0;
+      const bSignaled = signalTargetSet.has(b.id) ? 1 : 0;
+      if (aSignaled !== bSignaled) return bSignaled - aSignaled;
+      const aScore = maleProfileCompleteness(
+        a.gender === 'male' && maleMap.get(a.id)
+          ? {
+              userId: a.id,
+              job: maleMap.get(a.id)?.job ?? '',
+              income: maleMap.get(a.id)?.income ?? '',
+              maritalStatus: maleMap.get(a.id)?.marital_status ?? 'single',
+              hasChildren: maleMap.get(a.id)?.has_children ?? false,
+              maleReviewStatus: maleMap.get(a.id)?.male_review_status ?? 'pending',
+              incomeVerified: maleMap.get(a.id)?.income_verified ?? false,
+              facePhotoVerified: maleMap.get(a.id)?.face_photo_verified ?? false,
+              internalMemo: null,
+              height: maleMap.get(a.id)?.height ?? 170,
+              bodyType: maleMap.get(a.id)?.body_type ?? '',
+              holiday: maleMap.get(a.id)?.holiday ?? '',
+              smoking: maleMap.get(a.id)?.smoking ?? '',
+              drinking: maleMap.get(a.id)?.drinking ?? '',
+              nightShiftUnderstanding: maleMap.get(a.id)?.night_shift_understanding ?? false,
+              shiftWorkUnderstanding: maleMap.get(a.id)?.shift_work_understanding ?? false,
+              lateNightContactOk: maleMap.get(a.id)?.late_night_contact_ok ?? false,
+              firstDateCost: maleMap.get(a.id)?.first_date_cost ?? '',
+              personalityTags: maleMap.get(a.id)?.personality_tags ?? [],
+            }
+          : null,
+      );
+      const bScore = maleProfileCompleteness(
+        b.gender === 'male' && maleMap.get(b.id)
+          ? {
+              userId: b.id,
+              job: maleMap.get(b.id)?.job ?? '',
+              income: maleMap.get(b.id)?.income ?? '',
+              maritalStatus: maleMap.get(b.id)?.marital_status ?? 'single',
+              hasChildren: maleMap.get(b.id)?.has_children ?? false,
+              maleReviewStatus: maleMap.get(b.id)?.male_review_status ?? 'pending',
+              incomeVerified: maleMap.get(b.id)?.income_verified ?? false,
+              facePhotoVerified: maleMap.get(b.id)?.face_photo_verified ?? false,
+              internalMemo: null,
+              height: maleMap.get(b.id)?.height ?? 170,
+              bodyType: maleMap.get(b.id)?.body_type ?? '',
+              holiday: maleMap.get(b.id)?.holiday ?? '',
+              smoking: maleMap.get(b.id)?.smoking ?? '',
+              drinking: maleMap.get(b.id)?.drinking ?? '',
+              nightShiftUnderstanding: maleMap.get(b.id)?.night_shift_understanding ?? false,
+              shiftWorkUnderstanding: maleMap.get(b.id)?.shift_work_understanding ?? false,
+              lateNightContactOk: maleMap.get(b.id)?.late_night_contact_ok ?? false,
+              firstDateCost: maleMap.get(b.id)?.first_date_cost ?? '',
+              personalityTags: maleMap.get(b.id)?.personality_tags ?? [],
+            }
+          : null,
+      );
+      if (aScore !== bScore) return bScore - aScore;
+      return sortByRecommendationPriority(user, a, b);
+    })
+  ) {
     if (picked.length >= 10) break;
     if (await hasAnyRelationshipMode(candidate.id)) continue;
     picked.push(candidate);
@@ -629,7 +873,7 @@ export async function generateDailyRecommendations(userId: string, recommendatio
     target_user_id: candidate.id,
     recommendation_date: recommendationDate,
     rank: idx + 1,
-    reason: recommendationReason(idx + 1),
+    reason: signalTargetSet.has(candidate.id) ? 'あなたの希望条件に合う候補です' : recommendationReason(idx + 1),
   }));
   await admin.from('daily_recommendations').insert(insertRows);
   const { data: savedRows } = await admin
@@ -783,6 +1027,187 @@ export async function getDailyRecommendationCards(user: AppUser, recommendationD
       };
     })
     .filter((row): row is NonNullable<typeof row> => Boolean(row));
+}
+
+export async function getMaleDailyCandidateCards(user: AppUser) {
+  if (user.gender !== 'male') return [];
+  const today = getJstDateString();
+
+  if (USE_MOCK_DATA) {
+    const blocked = new Set(listBlocksForUser(user.id).map((b) => b.blockedUserId));
+    const signaledToday = listInterestSignalsByUser(user.id).filter((s) => isSameJstDate(s.createdAt, today));
+    const signaledSet = new Set(signaledToday.map((s) => s.targetUserId));
+    return listUsers()
+      .filter((candidate) => candidate.id !== user.id && candidate.gender === 'female')
+      .filter((candidate) => candidate.verificationStatus === 'approved' && !candidate.isSuspended)
+      .filter((candidate) => !blocked.has(candidate.id) && !isBlockedBetween(user.id, candidate.id))
+      .filter((candidate) => !hasAnyRelationshipModeInMock(candidate.id))
+      .map((candidate) => ({
+        user: {
+          ...candidate,
+          profileImageUrl: listProfileImages(candidate.id).find((img) => img.isMain)?.imageUrl ?? candidate.profileImageUrl,
+        },
+        femaleProfile: getFemaleProfile(candidate.id),
+        profileImages: listProfileImages(candidate.id),
+        signaledToday: signaledSet.has(candidate.id),
+      }))
+      .slice(0, 10);
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const admin = createAdminSupabaseClient();
+  if (!supabase || !admin) return [];
+  const blockedSet = await getBlockedRelationSetForUser(user.id);
+  const [{ data: femaleUsers }, { data: femaleProfiles }, { data: signalRows }] = await Promise.all([
+    supabase
+      .from('public_user_cards')
+      .select('*')
+      .eq('gender', 'female')
+      .eq('verification_status', 'approved')
+      .eq('is_suspended', false)
+      .neq('id', user.id),
+    supabase.from('female_profile_public').select('*'),
+    admin
+      .from('interest_signals')
+      .select('target_user_id,created_at')
+      .eq('user_id', user.id)
+      .gte('created_at', `${today}T00:00:00+09:00`)
+      .lte('created_at', `${today}T23:59:59+09:00`),
+  ]);
+  const signaledSet = new Set((signalRows ?? []).map((row) => row.target_user_id));
+  const femaleMap = new Map(
+    (femaleProfiles ?? []).map((f) => [
+      f.user_id,
+      {
+        userId: f.user_id,
+        nurseDocumentUrl: '',
+        nurseVerificationStatus: f.nurse_verification_status,
+        workplaceType: f.workplace_type,
+        hasNightShift: f.has_night_shift,
+      } satisfies FemaleProfile,
+    ]),
+  );
+
+  const result: Array<{
+    user: AppUser;
+    femaleProfile: FemaleProfile | null;
+    profileImages: ProfileImageRecord[];
+    signaledToday: boolean;
+  }> = [];
+  for (const row of femaleUsers ?? []) {
+    const mapped = mapPublicUserCard(row);
+    if (blockedSet.has(mapped.id)) continue;
+    if (await hasAnyRelationshipMode(mapped.id)) continue;
+    const profileImages = await getProfileImagesByUserId(mapped.id);
+    result.push({
+      user: await resolveProfileImage({
+        ...mapped,
+        profileImageUrl: profileImages.find((img) => img.isMain)?.imageUrl ?? mapped.profileImageUrl,
+      }),
+      femaleProfile: femaleMap.get(mapped.id) ?? null,
+      profileImages,
+      signaledToday: signaledSet.has(mapped.id),
+    });
+    if (result.length >= 10) break;
+  }
+  return result;
+}
+
+export async function createInterestSignal(input: { userId: string; targetUserId: string; signalType: InterestSignalType }) {
+  const now = new Date();
+  const today = getJstDateString(now);
+  const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  if (USE_MOCK_DATA) {
+    const user = getUserById(input.userId);
+    const target = getUserById(input.targetUserId);
+    const maleProfile = user ? getMaleProfile(user.id) : null;
+    const femaleProfile = target ? getFemaleProfile(target.id) : null;
+    if (!user || !target || user.gender !== 'male' || target.gender !== 'female') throw new Error('対象ユーザーが不正です');
+    if (user.isSuspended || user.verificationStatus !== 'approved' || user.onboardingStatus !== 'verified') {
+      throw new Error('本人確認済みユーザーのみ利用できます');
+    }
+    if (!maleProfile || maleProfile.maleReviewStatus !== 'approved') throw new Error('男性審査通過後に利用できます');
+    if (target.verificationStatus !== 'approved' || target.isSuspended) throw new Error('対象ユーザーに送信できません');
+
+    const todaySignals = listInterestSignalsByUser(user.id).filter((item) => isSameJstDate(item.createdAt, today));
+    const alreadyToday = todaySignals.some((item) => item.targetUserId === target.id);
+    if (alreadyToday) throw new Error('同じ相手には1日1回までです');
+    if (input.signalType === 'interested' && todaySignals.filter((item) => item.signalType === 'interested').length >= 3) {
+      throw new Error('1日の興味ありは最大3人までです');
+    }
+
+    const filters = DEFAULT_FEMALE_FILTERS;
+    const matchedPreference = matchesFemalePreference({
+      femaleUser: target,
+      femaleProfile,
+      maleUser: user,
+      maleProfile,
+      filters,
+    });
+    const reason = matchedPreference ? '希望条件に合う候補' : '条件不一致';
+    return upsertInterestSignal({
+      userId: user.id,
+      targetUserId: target.id,
+      signalType: input.signalType,
+      matchedPreference,
+      reason,
+      expiresAt,
+    });
+  }
+
+  const admin = createAdminSupabaseClient();
+  if (!admin) throw new Error('SUPABASE_SERVICE_ROLE_KEY が未設定です');
+  const [{ data: userRow }, { data: targetRow }] = await Promise.all([
+    admin.from('users').select('*').eq('id', input.userId).single(),
+    admin.from('users').select('*').eq('id', input.targetUserId).single(),
+  ]);
+  if (!userRow || !targetRow || userRow.gender !== 'male' || targetRow.gender !== 'female') {
+    throw new Error('対象ユーザーが不正です');
+  }
+  const user = mapUser(userRow);
+  const target = mapUser(targetRow);
+  const [{ data: maleRow }, { data: femaleRow }] = await Promise.all([
+    admin.from('male_profiles').select('*').eq('user_id', user.id).maybeSingle(),
+    admin.from('female_profiles').select('*').eq('user_id', target.id).maybeSingle(),
+  ]);
+  const maleProfile = maleRow ? mapMale(maleRow) : null;
+  const femaleProfile = femaleRow ? mapFemale(femaleRow) : null;
+  if (user.isSuspended || user.verificationStatus !== 'approved' || user.onboardingStatus !== 'verified') {
+    throw new Error('本人確認済みユーザーのみ利用できます');
+  }
+  if (!maleProfile || maleProfile.maleReviewStatus !== 'approved') throw new Error('男性審査通過後に利用できます');
+  if (target.verificationStatus !== 'approved' || target.isSuspended) throw new Error('対象ユーザーに送信できません');
+  const { data: todaySignals } = await admin
+    .from('interest_signals')
+    .select('*')
+    .eq('user_id', user.id)
+    .gte('created_at', `${today}T00:00:00+09:00`)
+    .lte('created_at', `${today}T23:59:59+09:00`);
+  if ((todaySignals ?? []).some((row) => row.target_user_id === target.id)) {
+    throw new Error('同じ相手には1日1回までです');
+  }
+  if (input.signalType === 'interested' && (todaySignals ?? []).filter((row) => row.signal_type === 'interested').length >= 3) {
+    throw new Error('1日の興味ありは最大3人までです');
+  }
+
+  const filters = DEFAULT_FEMALE_FILTERS;
+  const matchedPreference = matchesFemalePreference({
+    femaleUser: target,
+    femaleProfile,
+    maleUser: user,
+    maleProfile,
+    filters,
+  });
+  const reason = matchedPreference ? '希望条件に合う候補' : '条件不一致';
+  await admin.from('interest_signals').insert({
+    user_id: user.id,
+    target_user_id: target.id,
+    signal_type: input.signalType,
+    matched_preference: matchedPreference,
+    reason,
+    expires_at: expiresAt,
+  });
 }
 
 export async function swipe(fromUserId: string, toUserId: string, action: 'like' | 'skip') {

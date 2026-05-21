@@ -142,6 +142,23 @@ export type Database = {
         };
         Update: Partial<Database['public']['Tables']['daily_recommendations']['Row']>;
       };
+      interest_signals: {
+        Row: {
+          id: string;
+          user_id: string;
+          target_user_id: string;
+          signal_type: 'interested' | 'skipped';
+          matched_preference: boolean;
+          reason: string | null;
+          created_at: string;
+          expires_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['interest_signals']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['interest_signals']['Row']>;
+      };
       matches: {
         Row: {
           id: string;

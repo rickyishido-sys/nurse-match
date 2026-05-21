@@ -103,6 +103,18 @@ create table if not exists daily_recommendations (
   constraint daily_recommendations_unique_target unique (user_id, recommendation_date, target_user_id)
 );
 
+create table if not exists interest_signals (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  target_user_id uuid not null references users(id) on delete cascade,
+  signal_type text not null check (signal_type in ('interested', 'skipped')),
+  matched_preference boolean not null default false,
+  reason text,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  constraint interest_signals_not_self check (user_id <> target_user_id)
+);
+
 create table if not exists matches (
   id uuid primary key default gen_random_uuid(),
   user_a_id uuid not null references users(id) on delete cascade,
@@ -249,6 +261,7 @@ alter table profile_images enable row level security;
 alter table likes enable row level security;
 alter table favorites enable row level security;
 alter table daily_recommendations enable row level security;
+alter table interest_signals enable row level security;
 alter table matches enable row level security;
 alter table messages enable row level security;
 alter table reports enable row level security;
@@ -366,6 +379,18 @@ for insert with check (auth.uid() = user_id or is_admin(auth.uid()));
 
 drop policy if exists daily_recommendations_delete_owner_or_admin on daily_recommendations;
 create policy daily_recommendations_delete_owner_or_admin on daily_recommendations
+for delete using (auth.uid() = user_id or is_admin(auth.uid()));
+
+drop policy if exists interest_signals_select_owner_or_admin on interest_signals;
+create policy interest_signals_select_owner_or_admin on interest_signals
+for select using (auth.uid() = user_id or is_admin(auth.uid()));
+
+drop policy if exists interest_signals_insert_owner on interest_signals;
+create policy interest_signals_insert_owner on interest_signals
+for insert with check (auth.uid() = user_id);
+
+drop policy if exists interest_signals_delete_owner_or_admin on interest_signals;
+create policy interest_signals_delete_owner_or_admin on interest_signals
 for delete using (auth.uid() = user_id or is_admin(auth.uid()));
 
 -- matches policies
