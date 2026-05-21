@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { Badge } from '@/components/badges';
 import { getCurrentUser, getMaleProfileByUserId, getMatches } from '@/lib/data';
-import { getAccessState } from '@/lib/guard';
+import { getAccessState, isAdminRole } from '@/lib/guard';
 import { maritalStatusLabel } from '@/lib/labels';
 
 function getProfileCompletionScore(
@@ -19,6 +19,11 @@ function getProfileCompletionScore(
 export default async function MaleHomePage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
+  if (isAdminRole(user.role)) {
+    if (user.role === 'female_admin') redirect('/admin/female');
+    if (user.role === 'male_admin') redirect('/admin/male');
+    redirect('/admin');
+  }
   if (user.gender !== 'male') redirect('/home/female');
 
   const state = await getAccessState(user);

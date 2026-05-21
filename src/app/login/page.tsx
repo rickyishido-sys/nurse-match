@@ -1,10 +1,18 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { loginAction } from '@/lib/actions';
 import { getCurrentUser } from '@/lib/data';
+import { isAdminRole } from '@/lib/guard';
 
 export default async function LoginPage() {
   const user = await getCurrentUser();
+  if (user && isAdminRole(user.role)) {
+    if (user.role === 'female_admin') redirect('/admin/female');
+    if (user.role === 'male_admin') redirect('/admin/male');
+    redirect('/admin');
+  }
+  if (user) redirect('/home');
 
   return (
     <AppShell user={user}>

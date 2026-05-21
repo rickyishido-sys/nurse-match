@@ -1,10 +1,17 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { Badge } from '@/components/badges';
 import { getCurrentUser, getFemaleProfileByUserId, getMaleProfileByUserId } from '@/lib/data';
+import { isAdminRole } from '@/lib/guard';
 
 export default async function PendingReviewPage() {
   const user = await getCurrentUser();
+  if (user && isAdminRole(user.role)) {
+    if (user.role === 'female_admin') redirect('/admin/female');
+    if (user.role === 'male_admin') redirect('/admin/male');
+    redirect('/admin');
+  }
   const femaleProfile = user?.gender === 'female' ? await getFemaleProfileByUserId(user.id) : null;
   const maleProfile = user?.gender === 'male' ? await getMaleProfileByUserId(user.id) : null;
 

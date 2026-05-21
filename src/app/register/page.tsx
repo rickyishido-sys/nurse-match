@@ -1,9 +1,16 @@
 import { AppShell } from '@/components/app-shell';
 import { registerAction } from '@/lib/actions';
 import { getCurrentUser } from '@/lib/data';
+import { redirect } from 'next/navigation';
+import { isAdminRole } from '@/lib/guard';
 
 export default async function RegisterPage() {
   const user = await getCurrentUser();
+  if (user && isAdminRole(user.role)) {
+    if (user.role === 'female_admin') redirect('/admin/female');
+    if (user.role === 'male_admin') redirect('/admin/male');
+    redirect('/admin');
+  }
 
   return (
     <AppShell user={user}>

@@ -7,7 +7,7 @@ import { AppShell } from '@/components/app-shell';
 import { SwipeCard } from '@/components/swipe-card';
 import { setFemaleSearchPreferenceAction, swipeAction, toggleFavoriteAction } from '@/lib/actions';
 import { DEFAULT_FEMALE_FILTERS, generateDailyRecommendations, getCandidateCards, getCurrentUser, getDailyRecommendationCards } from '@/lib/data';
-import { getAccessState } from '@/lib/guard';
+import { getAccessState, isAdminRole } from '@/lib/guard';
 import { maritalStatusLabel } from '@/lib/labels';
 
 type SearchQuery = {
@@ -54,6 +54,11 @@ function normalizeCookie(value?: string): Partial<SearchQuery> {
 export default async function FemaleHomePage({ searchParams }: { searchParams: Promise<SearchQuery> }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
+  if (isAdminRole(user.role)) {
+    if (user.role === 'female_admin') redirect('/admin/female');
+    if (user.role === 'male_admin') redirect('/admin/male');
+    redirect('/admin');
+  }
   if (user.gender !== 'female') redirect('/home/male');
 
   const state = await getAccessState(user);

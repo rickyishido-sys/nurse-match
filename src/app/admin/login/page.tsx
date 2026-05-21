@@ -12,6 +12,7 @@ export default async function AdminLoginPage() {
   if (user?.role === 'female_admin') redirect('/admin/female');
   if (user?.role === 'male_admin') redirect('/admin/male');
   if (user?.role === 'super_admin') redirect('/admin');
+  if (user) redirect('/home');
 
   return (
     <AppShell user={user}>

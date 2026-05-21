@@ -3,6 +3,17 @@ import { createServerClient } from '@supabase/ssr';
 import { getUserById } from '@/lib/mock-data';
 
 const PUBLIC_PATHS = ['/', '/login', '/register', '/terms', '/privacy', '/community-guidelines', '/preview', '/admin/login'];
+const ADMIN_BYPASS_PATHS = ['/register', '/preview', '/pending-review'];
+
+function isAdminRole(role: string | undefined) {
+  return role === 'female_admin' || role === 'male_admin' || role === 'super_admin';
+}
+
+function adminLandingPath(role: string | undefined) {
+  if (role === 'female_admin') return '/admin/female';
+  if (role === 'male_admin') return '/admin/male';
+  return '/admin';
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -26,11 +37,14 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(isAdminPath ? '/admin/login' : '/login', request.url));
     }
     const demoUser = getUserById(demo.value);
-    const isAdminRole = demoUser?.role === 'female_admin' || demoUser?.role === 'male_admin' || demoUser?.role === 'super_admin';
-    if (isAdminPath && !isAdminLogin && !isAdminRole) return NextResponse.redirect(new URL('/home', request.url));
+    const hasAdminRole = isAdminRole(demoUser?.role);
+    if (hasAdminRole && ADMIN_BYPASS_PATHS.includes(pathname)) {
+      return NextResponse.redirect(new URL(adminLandingPath(demoUser?.role), request.url));
+    }
+    if (isAdminPath && !isAdminLogin && !hasAdminRole) return NextResponse.redirect(new URL('/home', request.url));
     if (pathname === '/admin' && demoUser?.role === 'female_admin') return NextResponse.redirect(new URL('/admin/female', request.url));
     if (pathname === '/admin' && demoUser?.role === 'male_admin') return NextResponse.redirect(new URL('/admin/male', request.url));
-    if (isAdminLogin && isAdminRole) {
+    if (isAdminLogin && hasAdminRole) {
       if (demoUser?.role === 'female_admin') return NextResponse.redirect(new URL('/admin/female', request.url));
       if (demoUser?.role === 'male_admin') return NextResponse.redirect(new URL('/admin/male', request.url));
       return NextResponse.redirect(new URL('/admin', request.url));
@@ -69,16 +83,24 @@ export async function middleware(request: NextRequest) {
   if (isAdminPath) {
     const { data: roleData } = await supabase.from('users').select('role').eq('id', data.user.id).single();
     const role = roleData?.role;
-    const isAdminRole = role === 'female_admin' || role === 'male_admin' || role === 'super_admin';
-    if (!isAdminRole && !isAdminLogin) {
+    const hasAdminRole = isAdminRole(role);
+    if (!hasAdminRole && !isAdminLogin) {
       return NextResponse.redirect(new URL('/home', request.url));
     }
     if (pathname === '/admin' && role === 'female_admin') return NextResponse.redirect(new URL('/admin/female', request.url));
     if (pathname === '/admin' && role === 'male_admin') return NextResponse.redirect(new URL('/admin/male', request.url));
-    if (isAdminLogin && isAdminRole) {
+    if (isAdminLogin && hasAdminRole) {
       if (role === 'female_admin') return NextResponse.redirect(new URL('/admin/female', request.url));
       if (role === 'male_admin') return NextResponse.redirect(new URL('/admin/male', request.url));
       return NextResponse.redirect(new URL('/admin', request.url));
+    }
+  }
+
+  if (ADMIN_BYPASS_PATHS.includes(pathname)) {
+    const { data: roleData } = await supabase.from('users').select('role').eq('id', data.user.id).single();
+    const role = roleData?.role;
+    if (isAdminRole(role)) {
+      return NextResponse.redirect(new URL(adminLandingPath(role), request.url));
     }
   }
 
