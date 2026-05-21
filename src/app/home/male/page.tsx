@@ -4,7 +4,14 @@ import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { Badge } from '@/components/badges';
 import { maleInterestSignalAction, toggleFavoriteAction } from '@/lib/actions';
-import { getCurrentUser, getFavoriteTargetIds, getMaleDailyCandidateCards, getMaleProfileByUserId, getMatches } from '@/lib/data';
+import {
+  getCurrentUser,
+  getFavoriteTargetIds,
+  getMaleDailyCandidateCards,
+  getMaleProfileByUserId,
+  getMatches,
+  getUserCreditBalance,
+} from '@/lib/data';
 import { getAccessState, isAdminRole } from '@/lib/guard';
 import { maritalStatusLabel } from '@/lib/labels';
 
@@ -38,6 +45,7 @@ export default async function MaleHomePage() {
   const maleProfile = await getMaleProfileByUserId(user.id);
   const dailyCandidates = await getMaleDailyCandidateCards(user);
   const favoriteIds = await getFavoriteTargetIds(user.id);
+  const creditBalance = await getUserCreditBalance(user.id);
   const completion = getProfileCompletionScore(maleProfile, user.bio);
 
   return (
@@ -52,6 +60,7 @@ export default async function MaleHomePage() {
             <Badge tone='green'>本人確認: {user.verificationStatus}</Badge>
             <Badge tone='navy'>男性審査: {maleProfile?.maleReviewStatus ?? 'pending'}</Badge>
             <Badge tone='gray'>婚姻状態: {maleProfile ? maritalStatusLabel(maleProfile.maritalStatus) : '-'}</Badge>
+            <Badge tone='amber'>クレジット残高: {creditBalance}</Badge>
           </div>
 
           <div className='mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-3'>
@@ -77,7 +86,7 @@ export default async function MaleHomePage() {
 
         <article className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
           <h2 className='font-semibold text-slate-900'>本日の紹介候補</h2>
-          <p className='text-xs text-slate-500'>1日最大3人まで「興味あり」を送信できます。女性には通知されず、条件一致時のみおすすめへ反映されます。</p>
+          <p className='text-xs text-slate-500'>1日最大3人まで。女性には通知されず、条件一致時のみおすすめへ反映されます。候補表示は厳選3人です。</p>
           {dailyCandidates.length === 0 ? (
             <p className='text-sm text-slate-500'>候補は準備中です。</p>
           ) : (

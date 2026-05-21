@@ -153,13 +153,13 @@ export default async function AdminPage() {
         <article className='space-y-2 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
           <h2 className='font-semibold text-slate-900'>6. 入金・課金</h2>
           <div className='grid grid-cols-2 gap-2 md:grid-cols-5'>
-            <KpiCard label='月間売上' value='-' />
-            <KpiCard label='有料男性会員数' value='-' />
-            <KpiCard label='解約数' value='-' />
-            <KpiCard label='ARPU' value='-' />
-            <KpiCard label='MRR' value='-' />
+            <KpiCard label='interest_signals数' value={metrics.economy.interestSignals} />
+            <KpiCard label='favorites数' value={metrics.economy.favorites} />
+            <KpiCard label='課金数(purchase)' value={metrics.economy.paymentCount} />
+            <KpiCard label='クレジット消費量' value={metrics.economy.creditConsumption} />
+            <KpiCard label='累計マッチ数' value={metrics.matching.totalMatches} />
           </div>
-          <p className='text-xs text-slate-500'>決済機能追加後に自動集計されます</p>
+          <p className='text-xs text-slate-500'>クレジット制KPIを反映中。決済連携後に売上指標を拡張します。</p>
         </article>
 
         <div className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>

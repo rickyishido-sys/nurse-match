@@ -3,6 +3,9 @@ import {
   getFemaleProfile,
   getMaleProfile,
   listBlocksForUser,
+  listCreditTransactions,
+  listFavorites,
+  listInterestSignalsForTarget,
   listMessages,
   listMatchesForUser,
   listProfileImages,
@@ -67,6 +70,12 @@ export type AdminMetrics = {
     reportResolved: number;
     blockCount: number;
     permanentBanCount: number;
+  };
+  economy: {
+    interestSignals: number;
+    favorites: number;
+    paymentCount: number;
+    creditConsumption: number;
   };
 };
 
@@ -199,6 +208,16 @@ export async function getAdminMetrics(scope: Scope): Promise<AdminMetrics> {
         blockCount,
         permanentBanCount: users.filter((u) => u.moderationAction === 'permanent_ban').length,
       },
+      economy: {
+        interestSignals: users.reduce((acc, u) => acc + listInterestSignalsForTarget(u.id).length, 0),
+        favorites: users.reduce((acc, u) => acc + listFavorites(u.id).length, 0),
+        paymentCount: listCreditTransactions().filter((tx) => tx.type === 'purchase').length,
+        creditConsumption: Math.abs(
+          listCreditTransactions()
+            .filter((tx) => tx.type === 'consume')
+            .reduce((sum, tx) => sum + tx.amount, 0),
+        ),
+      },
     };
   }
 
@@ -225,10 +244,23 @@ export async function getAdminMetrics(scope: Scope): Promise<AdminMetrics> {
         riskCheck: [],
       },
       safety: { reportOpen: 0, reportReviewing: 0, reportResolved: 0, blockCount: 0, permanentBanCount: 0 },
+      economy: { interestSignals: 0, favorites: 0, paymentCount: 0, creditConsumption: 0 },
     };
   }
 
-  const [{ data: usersRows }, { data: femaleRows }, { data: maleRows }, { data: profileImages }, { data: reports }, { data: blocks }, { data: matches }, { data: messages }] =
+  const [
+    { data: usersRows },
+    { data: femaleRows },
+    { data: maleRows },
+    { data: profileImages },
+    { data: reports },
+    { data: blocks },
+    { data: matches },
+    { data: messages },
+    { data: interestSignals },
+    { data: favorites },
+    { data: creditTransactions },
+  ] =
     await Promise.all([
       admin.from('users').select('id,role,gender,age,location,onboarding_status,verification_status,is_suspended,moderation_action,risk_check_status'),
       admin.from('female_profiles').select('user_id,nurse_verification_status,workplace_type,has_night_shift'),
@@ -238,6 +270,9 @@ export async function getAdminMetrics(scope: Scope): Promise<AdminMetrics> {
       admin.from('blocks').select('id,blocker_user_id,blocked_user_id'),
       admin.from('matches').select('id,user_a_id,user_b_id,relationship_status,created_at'),
       admin.from('messages').select('id,match_id,created_at'),
+      admin.from('interest_signals').select('user_id,target_user_id'),
+      admin.from('favorites').select('user_id,target_user_id'),
+      admin.from('credit_transactions').select('user_id,type,amount'),
     ]);
 
   const users = filterScopeUsers(
@@ -275,6 +310,9 @@ export async function getAdminMetrics(scope: Scope): Promise<AdminMetrics> {
   );
   const scopedMatchIds = new Set(scopedMatches.map((m) => m.id));
   const scopedMessages = (messages ?? []).filter((msg) => scopedMatchIds.has(msg.match_id));
+  const scopedInterestSignals = (interestSignals ?? []).filter((row) => userIds.has(row.user_id) || userIds.has(row.target_user_id));
+  const scopedFavorites = (favorites ?? []).filter((row) => userIds.has(row.user_id) || userIds.has(row.target_user_id));
+  const scopedCreditTx = (creditTransactions ?? []).filter((row) => userIds.has(row.user_id));
 
   const today = startOfDay();
   const seven = sevenDaysAgo();
@@ -321,6 +359,12 @@ export async function getAdminMetrics(scope: Scope): Promise<AdminMetrics> {
       reportResolved: scopedReports.filter((r) => r.status === 'resolved').length,
       blockCount: scopedBlocks.length,
       permanentBanCount: users.filter((u) => u.moderationAction === 'permanent_ban').length,
+    },
+    economy: {
+      interestSignals: scopedInterestSignals.length,
+      favorites: scopedFavorites.length,
+      paymentCount: scopedCreditTx.filter((tx) => tx.type === 'purchase').length,
+      creditConsumption: Math.abs(scopedCreditTx.filter((tx) => tx.type === 'consume').reduce((sum, tx) => sum + tx.amount, 0)),
     },
   };
 }

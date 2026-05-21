@@ -3,10 +3,12 @@ import { USE_MOCK_DATA } from '@/lib/config';
 import {
   addAdminAction,
   addBlock,
+  addCreditTransaction,
   addLike,
   addMessage,
   addReport,
   getRiskCheck,
+  getCreditByUser,
   listDailyRecommendations,
   listInterestSignalsByUser,
   listInterestSignalsForTarget,
@@ -27,6 +29,7 @@ import {
   listUsers,
   replaceProfileImages,
   replaceDailyRecommendations,
+  upsertCredit,
   upsertInterestSignal,
   toggleFavorite,
   setMaleReviewStatus,
@@ -308,6 +311,94 @@ function recommendationReason(rank: number) {
   if (rank <= 3) return '希望条件との一致度が高い候補です';
   if (rank <= 6) return '価値観と生活リズムの相性が良い候補です';
   return '今日の新着候補としておすすめです';
+}
+
+async function ensureUserCreditWallet(userId: string) {
+  if (USE_MOCK_DATA) {
+    const user = getUserById(userId);
+    if (!user) return null;
+    const current = getCreditByUser(userId);
+    if (current) return current;
+    const initial = user.gender === 'male' ? 10 : 0;
+    return upsertCredit(userId, initial);
+  }
+  const admin = createAdminSupabaseClient();
+  if (!admin) return null;
+  const { data: user } = await admin.from('users').select('id,gender').eq('id', userId).maybeSingle();
+  if (!user) return null;
+  const { data: existing } = await admin.from('credits').select('*').eq('user_id', userId).maybeSingle();
+  if (existing) return existing;
+  const initial = user.gender === 'male' ? 10 : 0;
+  await admin.from('credits').insert({ user_id: userId, balance: initial });
+  const { data: created } = await admin.from('credits').select('*').eq('user_id', userId).maybeSingle();
+  return created ?? null;
+}
+
+async function consumeCredit(input: { userId: string; amount: number; reason: string; relatedMatchId?: string | null }) {
+  if (input.amount <= 0) return;
+  if (USE_MOCK_DATA) {
+    const wallet = await ensureUserCreditWallet(input.userId);
+    if (!wallet) return;
+    const next = Math.max(0, wallet.balance - input.amount);
+    upsertCredit(input.userId, next);
+    addCreditTransaction({
+      userId: input.userId,
+      type: 'consume',
+      amount: -Math.abs(input.amount),
+      reason: input.reason,
+      relatedMatchId: input.relatedMatchId,
+    });
+    return;
+  }
+  const admin = createAdminSupabaseClient();
+  if (!admin) return;
+  const wallet = await ensureUserCreditWallet(input.userId);
+  if (!wallet) return;
+  const balance = typeof wallet.balance === 'number' ? wallet.balance : 0;
+  const next = Math.max(0, balance - input.amount);
+  await admin.from('credits').update({ balance: next }).eq('user_id', input.userId);
+  await admin.from('credit_transactions').insert({
+    user_id: input.userId,
+    type: 'consume',
+    amount: -Math.abs(input.amount),
+    reason: input.reason,
+    related_match_id: input.relatedMatchId ?? null,
+  });
+}
+
+export async function getUserCreditBalance(userId: string) {
+  const wallet = await ensureUserCreditWallet(userId);
+  if (!wallet) return 0;
+  return typeof wallet.balance === 'number' ? wallet.balance : 0;
+}
+
+async function canUseChatByUser(userId: string) {
+  if (USE_MOCK_DATA) {
+    const user = getUserById(userId);
+    if (!user) return false;
+    if (user.isSuspended || user.verificationStatus === 'rejected' || user.verificationStatus !== 'approved') return false;
+    if (user.gender === 'female') {
+      const fp = getFemaleProfile(user.id);
+      return Boolean(fp && fp.nurseVerificationStatus === 'approved');
+    }
+    const mp = getMaleProfile(user.id);
+    return Boolean(mp && mp.maleReviewStatus === 'approved');
+  }
+  const admin = createAdminSupabaseClient();
+  if (!admin) return false;
+  const { data: user } = await admin.from('users').select('id,gender,is_suspended,verification_status').eq('id', userId).maybeSingle();
+  if (!user) return false;
+  if (user.is_suspended || user.verification_status !== 'approved') return false;
+  if (user.gender === 'female') {
+    const { data: fp } = await admin
+      .from('female_profiles')
+      .select('nurse_verification_status')
+      .eq('user_id', userId)
+      .maybeSingle();
+    return Boolean(fp && fp.nurse_verification_status === 'approved');
+  }
+  const { data: mp } = await admin.from('male_profiles').select('male_review_status').eq('user_id', userId).maybeSingle();
+  return Boolean(mp && mp.male_review_status === 'approved');
 }
 
 const RELATIONSHIP_DELETE_AFTER_DAYS = 60;
@@ -1051,7 +1142,7 @@ export async function getMaleDailyCandidateCards(user: AppUser) {
         profileImages: listProfileImages(candidate.id),
         signaledToday: signaledSet.has(candidate.id),
       }))
-      .slice(0, 10);
+      .slice(0, 3);
   }
 
   const supabase = await createServerSupabaseClient();
@@ -1108,7 +1199,7 @@ export async function getMaleDailyCandidateCards(user: AppUser) {
       profileImages,
       signaledToday: signaledSet.has(mapped.id),
     });
-    if (result.length >= 10) break;
+    if (result.length >= 3) break;
   }
   return result;
 }
@@ -1222,7 +1313,22 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
 
     if (action !== 'like') return;
     if (to.gender === 'male') {
-      ensureMatch(fromUserId, toUserId);
+      const match = ensureMatch(fromUserId, toUserId);
+      const signal = listInterestSignalsByUser(toUserId).find(
+        (item) =>
+          item.targetUserId === fromUserId &&
+          item.signalType === 'interested' &&
+          item.matchedPreference &&
+          item.expiresAt > new Date().toISOString(),
+      );
+      if (signal && match) {
+        await consumeCredit({
+          userId: toUserId,
+          amount: 1,
+          reason: '興味あり成立',
+          relatedMatchId: match.id,
+        });
+      }
       return;
     }
 
@@ -1269,10 +1375,39 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
       .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
       .maybeSingle();
 
+    let matchId: string | null = existing?.id ?? null;
     if (!existing) {
       await supabase
         .from('matches')
         .insert({ user_a_id: fromUserId, user_b_id: toUserId, relationship_status: 'active', hold_deletion: false });
+      const { data: created } = await supabase
+        .from('matches')
+        .select('id')
+        .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
+        .maybeSingle();
+      matchId = created?.id ?? null;
+    }
+    const admin = createAdminSupabaseClient();
+    if (admin) {
+      const { data: signal } = await admin
+        .from('interest_signals')
+        .select('id')
+        .eq('user_id', toUserId)
+        .eq('target_user_id', fromUserId)
+        .eq('signal_type', 'interested')
+        .eq('matched_preference', true)
+        .gte('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (signal) {
+        await consumeCredit({
+          userId: toUserId,
+          amount: 1,
+          reason: '興味あり成立',
+          relatedMatchId: matchId,
+        });
+      }
     }
     return;
   }
@@ -1641,8 +1776,13 @@ export async function getChat(matchId: string) {
     if (match && isBlockedBetween(match.userAId, match.userBId)) {
       return { match: null, messages: [] };
     }
-    if (match?.relationshipStatus === 'deleted') {
+    if (match?.relationshipStatus === 'deleted' || match?.relationshipStatus === 'relationship_mode') {
       return { match: null, messages: [] };
+    }
+    if (match) {
+      const canA = await canUseChatByUser(match.userAId);
+      const canB = await canUseChatByUser(match.userBId);
+      if (!canA || !canB) return { match: null, messages: [] };
     }
 
     return {
@@ -1658,6 +1798,10 @@ export async function getChat(matchId: string) {
   if (match) {
     const blocked = await isBlockedBetweenUsers(match.user_a_id, match.user_b_id);
     if (blocked) return { match: null, messages: [] };
+    if (match.relationship_status !== 'active') return { match: null, messages: [] };
+    const canA = await canUseChatByUser(match.user_a_id);
+    const canB = await canUseChatByUser(match.user_b_id);
+    if (!canA || !canB) return { match: null, messages: [] };
   }
 
   const { data: messages } = await supabase.from('messages').select('*').eq('match_id', matchId).order('created_at');
@@ -1691,6 +1835,11 @@ export async function sendMessage(matchId: string, senderId: string, body: strin
     if (!match || isBlockedBetween(match.userAId, match.userBId)) return;
     const sender = getUserById(senderId);
     if (!sender || sender.onboardingStatus !== 'verified') return;
+    const canA = await canUseChatByUser(match.userAId);
+    const canB = await canUseChatByUser(match.userBId);
+    if (!canA || !canB) {
+      throw new Error('審査条件を満たすユーザーのみチャット利用できます');
+    }
     if (match.relationshipStatus !== 'active') {
       throw new Error('成立済みマッチはチャット送信できません');
     }
@@ -1713,6 +1862,11 @@ export async function sendMessage(matchId: string, senderId: string, body: strin
   }
   if (!isMatchActive(match)) {
     throw new Error('成立済みマッチはチャット送信できません');
+  }
+  const canA = await canUseChatByUser(match.user_a_id);
+  const canB = await canUseChatByUser(match.user_b_id);
+  if (!canA || !canB) {
+    throw new Error('審査条件を満たすユーザーのみチャット利用できます');
   }
 
   const blocked = await isBlockedBetweenUsers(match.user_a_id, match.user_b_id);

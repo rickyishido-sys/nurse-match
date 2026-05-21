@@ -115,6 +115,24 @@ create table if not exists interest_signals (
   constraint interest_signals_not_self check (user_id <> target_user_id)
 );
 
+create table if not exists credits (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references users(id) on delete cascade,
+  balance int not null default 0 check (balance >= 0),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists credit_transactions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  type text not null check (type in ('purchase', 'consume', 'adjust')),
+  amount int not null,
+  reason text not null default '',
+  related_match_id uuid,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists matches (
   id uuid primary key default gen_random_uuid(),
   user_a_id uuid not null references users(id) on delete cascade,
@@ -262,6 +280,8 @@ alter table likes enable row level security;
 alter table favorites enable row level security;
 alter table daily_recommendations enable row level security;
 alter table interest_signals enable row level security;
+alter table credits enable row level security;
+alter table credit_transactions enable row level security;
 alter table matches enable row level security;
 alter table messages enable row level security;
 alter table reports enable row level security;
@@ -392,6 +412,27 @@ for insert with check (auth.uid() = user_id);
 drop policy if exists interest_signals_delete_owner_or_admin on interest_signals;
 create policy interest_signals_delete_owner_or_admin on interest_signals
 for delete using (auth.uid() = user_id or is_admin(auth.uid()));
+
+drop policy if exists credits_select_owner_or_admin on credits;
+create policy credits_select_owner_or_admin on credits
+for select using (auth.uid() = user_id or is_admin(auth.uid()));
+
+drop policy if exists credits_insert_owner_or_admin on credits;
+create policy credits_insert_owner_or_admin on credits
+for insert with check (auth.uid() = user_id or is_admin(auth.uid()));
+
+drop policy if exists credits_update_owner_or_admin on credits;
+create policy credits_update_owner_or_admin on credits
+for update using (auth.uid() = user_id or is_admin(auth.uid()))
+with check (auth.uid() = user_id or is_admin(auth.uid()));
+
+drop policy if exists credit_transactions_select_owner_or_admin on credit_transactions;
+create policy credit_transactions_select_owner_or_admin on credit_transactions
+for select using (auth.uid() = user_id or is_admin(auth.uid()));
+
+drop policy if exists credit_transactions_insert_owner_or_admin on credit_transactions;
+create policy credit_transactions_insert_owner_or_admin on credit_transactions
+for insert with check (auth.uid() = user_id or is_admin(auth.uid()));
 
 -- matches policies
 drop policy if exists matches_select_member_or_admin on matches;

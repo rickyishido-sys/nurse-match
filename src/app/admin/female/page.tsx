@@ -66,6 +66,10 @@ export default async function FemaleAdminPage() {
             <KpiCard label='女性通報 reviewing' value={metrics.safety.reportReviewing} />
             <KpiCard label='女性通報 resolved' value={metrics.safety.reportResolved} />
             <KpiCard label='女性写真審査 pending' value={metrics.reviews.photo.pending} />
+            <KpiCard label='interest_signals数' value={metrics.economy.interestSignals} />
+            <KpiCard label='favorites数' value={metrics.economy.favorites} />
+            <KpiCard label='課金数(purchase)' value={metrics.economy.paymentCount} />
+            <KpiCard label='クレジット消費量' value={metrics.economy.creditConsumption} />
           </div>
           <div className='grid gap-3 md:grid-cols-3'>
             <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>女性の勤務形態</p><DistList items={metrics.attributes.femaleWorkplaceType} /></div>

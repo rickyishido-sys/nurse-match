@@ -66,6 +66,9 @@ export default async function ChatPage({ params }: { params: Promise<{ matchId: 
               ガイド
             </Link>
           </div>
+          <div className='rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-[11px] text-slate-600'>
+            外部連絡先への移行は双方合意後に行ってください（将来: 既読/移行ログ機能を追加予定）。
+          </div>
 
           <MatchRelationshipActions matchId={matchId} actorUserId={user.id} disabled={isRelationshipMode} />
           <p className='text-[11px] leading-5 text-slate-500'>

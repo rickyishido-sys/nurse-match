@@ -125,6 +125,26 @@ export type InterestSignalRecord = {
   expiresAt: string;
 };
 
+export type CreditTransactionType = 'purchase' | 'consume' | 'adjust';
+
+export type CreditRecord = {
+  id: string;
+  userId: string;
+  balance: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreditTransactionRecord = {
+  id: string;
+  userId: string;
+  type: CreditTransactionType;
+  amount: number;
+  reason: string;
+  relatedMatchId: string | null;
+  createdAt: string;
+};
+
 export type RiskCheckRecord = {
   id: string;
   userId: string;

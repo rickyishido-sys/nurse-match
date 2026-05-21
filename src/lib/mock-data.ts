@@ -3,6 +3,9 @@ import type {
   AdminActionType,
   AppUser,
   BlockRecord,
+  CreditRecord,
+  CreditTransactionRecord,
+  CreditTransactionType,
   DailyRecommendationRecord,
   FavoriteRecord,
   FemaleProfile,
@@ -341,6 +344,16 @@ const dailyRecommendations: DailyRecommendationRecord[] = [
 ];
 
 const interestSignals: InterestSignalRecord[] = [];
+const credits: CreditRecord[] = [
+  {
+    id: 'credit_u_m_1',
+    userId: 'u_m_1',
+    balance: 10,
+    createdAt: now,
+    updatedAt: now,
+  },
+];
+const creditTransactions: CreditTransactionRecord[] = [];
 
 function uuid(prefix: string) {
   return `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
@@ -513,6 +526,56 @@ export function upsertInterestSignal(input: {
     interestSignals.push(next);
   }
   return next;
+}
+
+export function getCreditByUser(userId: string) {
+  return credits.find((item) => item.userId === userId) ?? null;
+}
+
+export function upsertCredit(userId: string, balance: number) {
+  const existing = credits.find((item) => item.userId === userId);
+  if (existing) {
+    existing.balance = balance;
+    existing.updatedAt = new Date().toISOString();
+    return existing;
+  }
+  const row: CreditRecord = {
+    id: uuid('credit'),
+    userId,
+    balance,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  credits.push(row);
+  return row;
+}
+
+export function addCreditTransaction(input: {
+  userId: string;
+  type: CreditTransactionType;
+  amount: number;
+  reason: string;
+  relatedMatchId?: string | null;
+}) {
+  const row: CreditTransactionRecord = {
+    id: uuid('credit_tx'),
+    userId: input.userId,
+    type: input.type,
+    amount: input.amount,
+    reason: input.reason,
+    relatedMatchId: input.relatedMatchId ?? null,
+    createdAt: new Date().toISOString(),
+  };
+  creditTransactions.unshift(row);
+  return row;
+}
+
+export function listCreditTransactionsByUser(userId: string) {
+  return creditTransactions.filter((item) => item.userId === userId);
+}
+
+export function listCreditTransactions() {
+  return creditTransactions;
 }
 
 export function toggleFavorite(userId: string, targetUserId: string) {

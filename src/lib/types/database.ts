@@ -159,6 +159,37 @@ export type Database = {
         };
         Update: Partial<Database['public']['Tables']['interest_signals']['Row']>;
       };
+      credits: {
+        Row: {
+          id: string;
+          user_id: string;
+          balance: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['credits']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['credits']['Row']>;
+      };
+      credit_transactions: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: 'purchase' | 'consume' | 'adjust';
+          amount: number;
+          reason: string;
+          related_match_id: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['credit_transactions']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['credit_transactions']['Row']>;
+      };
       matches: {
         Row: {
           id: string;
