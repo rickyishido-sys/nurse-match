@@ -21,8 +21,8 @@ export function AppShell({ user, children }: AppShellProps) {
       <header className='sticky top-0 z-20 border-b border-slate-100/90 bg-white/95 px-4 py-3 backdrop-blur'>
         <div className='mb-2 flex items-center justify-between'>
           <Link href='/' className='flex items-center gap-2 text-lg font-bold tracking-tight text-slate-900'>
-            <span className='relative h-8 w-8 overflow-hidden rounded-full border border-slate-200 bg-slate-900'>
-              <Image src='/logo/nurse-match-logo.png' alt='ナースマッチ ロゴ' fill className='object-cover' />
+            <span className='relative h-[28px] w-[28px] overflow-hidden'>
+              <Image src='/logo/nurse-match-mark.png' alt='ナースマッチ ロゴマーク' fill className='object-contain' />
             </span>
             <span>ナースマッチ</span>
           </Link>

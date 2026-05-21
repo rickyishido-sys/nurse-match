@@ -18,11 +18,8 @@ export default async function AdminLoginPage() {
   return (
     <AppShell user={user}>
       <section className='rounded-3xl border border-slate-100 bg-white p-5 shadow-sm'>
-        <div className='mb-3 flex items-center gap-2'>
-          <div className='relative h-8 w-8 overflow-hidden rounded-full border border-slate-200'>
-            <Image src='/logo/nurse-match-logo.png' alt='ナースマッチ ロゴ' fill className='object-cover' />
-          </div>
-          <p className='text-sm font-semibold text-slate-700'>ナースマッチ 管理</p>
+        <div className='mb-3'>
+          <Image src='/logo/nurse-match-logo.png' alt='ナースマッチ ロゴ' width={224} height={224} className='h-auto w-44 object-contain' />
         </div>
         <h1 className='text-xl font-bold text-slate-900'>管理者ログイン</h1>
         <p className='mt-1 text-xs text-slate-500'>female_admin / male_admin / super_admin 専用</p>

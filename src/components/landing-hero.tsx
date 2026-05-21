@@ -51,8 +51,8 @@ export function LandingHero() {
 
       <div className='relative z-20 flex min-h-[84svh] flex-col justify-end px-6 pb-8 pt-10 text-white'>
         <div className='mb-1 flex items-center gap-2 opacity-90'>
-          <div className='relative h-6 w-6 overflow-hidden rounded-full border border-white/30'>
-            <Image src='/logo/nurse-match-logo.png' alt='ナースマッチ ロゴ' fill className='object-cover' />
+          <div className='relative h-6 w-6 overflow-hidden'>
+            <Image src='/logo/nurse-match-mark.png' alt='ナースマッチ ロゴマーク' fill className='object-contain' />
           </div>
           <p className='text-[10px] font-semibold tracking-[0.2em] text-slate-200'>ナースマッチ</p>
         </div>
