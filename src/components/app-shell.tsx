@@ -20,11 +20,22 @@ export function AppShell({ user, children }: AppShellProps) {
     <div className='safe-area-padding mx-auto flex min-h-screen w-full max-w-[390px] flex-col border-x border-slate-100/80 bg-white/90 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)] backdrop-blur'>
       <header className='sticky top-0 z-20 border-b border-slate-100/90 bg-white/95 px-4 py-3 backdrop-blur'>
         <div className='mb-2 flex items-center justify-between'>
-          <Link href='/' className='flex items-center gap-2 text-lg font-bold tracking-tight text-slate-900'>
-            <span className='relative h-[28px] w-[28px] overflow-hidden'>
-              <Image src='/logo/nurse-match-mark.png' alt='ナースマッチ ロゴマーク' fill className='object-contain' />
+          <Link href='/' className='text-lg font-bold tracking-tight text-slate-900'>
+            <span className='hidden sm:block'>
+              <Image
+                src='/logo/nurse-match-logo-horizontal.png'
+                alt='ナースマッチ ロゴ'
+                width={320}
+                height={100}
+                className='h-10 w-auto object-contain'
+              />
             </span>
-            <span>ナースマッチ</span>
+            <span className='flex items-center gap-2 sm:hidden'>
+              <span className='relative h-[28px] w-[28px] overflow-hidden'>
+                <Image src='/logo/nurse-match-mark.png' alt='ナースマッチ ロゴマーク' fill className='object-contain' />
+              </span>
+              <span>ナースマッチ</span>
+            </span>
           </Link>
           <div className='flex items-center gap-2'>
             {isAdmin ? (
@@ -69,6 +80,15 @@ export function AppShell({ user, children }: AppShellProps) {
       <main className={`flex-1 px-4 py-4 ${showBottomNav ? 'pb-24' : ''}`}>{children}</main>
 
       <footer className={`border-t border-slate-100 px-4 py-3 text-center text-xs text-slate-500 ${showBottomNav ? 'mb-16' : ''}`}>
+        <div className='mb-2 flex justify-center'>
+          <Image
+            src='/logo/nurse-match-logo-horizontal.png'
+            alt='ナースマッチ ロゴ'
+            width={220}
+            height={69}
+            className='h-7 w-auto object-contain opacity-90'
+          />
+        </div>
         <div className='flex flex-wrap items-center justify-center gap-3'>
           <Link href='/terms' className='underline'>利用規約</Link>
           <Link href='/privacy' className='underline'>プライバシー</Link>
