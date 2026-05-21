@@ -65,6 +65,7 @@ import type { Database } from '@/lib/types/database';
 
 function mapUser(row: Database['public']['Tables']['users']['Row']): AppUser {
   const seeking = row.seeking_gender ?? row.desired_gender;
+  const isTestUser = row.is_test_user;
   return {
     id: row.id,
     email: row.email,
@@ -78,14 +79,14 @@ function mapUser(row: Database['public']['Tables']['users']['Row']): AppUser {
     bio: row.bio,
     profileImageUrl: row.profile_image_url,
     desiredGender: seeking,
-    onboardingStatus: row.onboarding_status,
+    onboardingStatus: isTestUser ? 'verified' : row.onboarding_status,
     riskCheckStatus: row.risk_check_status,
-    verificationStatus: row.verification_status,
+    verificationStatus: isTestUser ? 'approved' : row.verification_status,
     identityDocumentUrl: row.identity_document_url,
     rejectedReason: row.rejected_reason,
     moderationAction: row.moderation_action,
     isSuspended: row.is_suspended,
-    isTestUser: row.is_test_user,
+    isTestUser,
   };
 }
 
@@ -386,6 +387,7 @@ async function canUseChatByUser(userId: string) {
   if (USE_MOCK_DATA) {
     const user = getUserById(userId);
     if (!user) return false;
+    if (user.isTestUser) return !user.isSuspended;
     if (user.isSuspended || user.verificationStatus === 'rejected' || user.verificationStatus !== 'approved') return false;
     if (user.gender === 'female') {
       const fp = getFemaleProfile(user.id);
@@ -396,8 +398,13 @@ async function canUseChatByUser(userId: string) {
   }
   const admin = createAdminSupabaseClient();
   if (!admin) return false;
-  const { data: user } = await admin.from('users').select('id,gender,is_suspended,verification_status').eq('id', userId).maybeSingle();
+  const { data: user } = await admin
+    .from('users')
+    .select('id,gender,is_suspended,verification_status,is_test_user')
+    .eq('id', userId)
+    .maybeSingle();
   if (!user) return false;
+  if (user.is_test_user) return !user.is_suspended;
   if (user.is_suspended || user.verification_status !== 'approved') return false;
   if (user.gender === 'female') {
     const { data: fp } = await admin

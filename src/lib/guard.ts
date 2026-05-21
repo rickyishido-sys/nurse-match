@@ -14,6 +14,7 @@ export async function requireUser() {
 
 export async function getAccessState(user: AppUser): Promise<AppAccessState> {
   if (user.isSuspended) return 'suspended';
+  if (user.isTestUser) return 'approved';
   if (isAdminRole(user.role)) return 'approved';
   if (user.verificationStatus === 'rejected') return 'rejected';
   if (user.onboardingStatus !== 'verified') return 'pending';

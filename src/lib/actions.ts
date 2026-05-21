@@ -25,7 +25,14 @@ import {
   updateVerification,
 } from '@/lib/data';
 import { USE_MOCK_DATA } from '@/lib/config';
-import { getUserByEmail, getUserByPhone, listProfileImages, updateUser } from '@/lib/mock-data';
+import {
+  getUserByEmail,
+  getUserByPhone,
+  listProfileImages,
+  setMaleReviewStatus,
+  setNurseVerificationStatus,
+  updateUser,
+} from '@/lib/mock-data';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { uploadDocument } from '@/lib/upload';
@@ -422,16 +429,17 @@ export async function registerDetailsAction(formData: FormData) {
     const me = await getCurrentUser();
     if (!me) redirect('/register');
     if (me.role !== 'user') redirect('/register');
+    const isTestUser = me.isTestUser === true;
     const profileImage1 = await uploadDocument(formData.get('profileImage') as File, me.id, 'profile');
     const profileImage2 = await uploadDocument(formData.get('profileImage2') as File, me.id, 'profile');
     const profileImage3 = await uploadDocument(formData.get('profileImage3') as File, me.id, 'profile');
     const currentImages = listProfileImages(me.id);
     const uploadedImages = [profileImage1, profileImage2, profileImage3].filter(Boolean) as string[];
     const hasAtLeastOneImage = uploadedImages.length > 0 || currentImages.length > 0;
-    if (!hasAtLeastOneImage) {
+    if (!isTestUser && !hasAtLeastOneImage) {
       redirect('/register/details?error=profile-image-required');
     }
-    if (gender === 'male' && !hasAtLeastOneImage) {
+    if (!isTestUser && gender === 'male' && !hasAtLeastOneImage) {
       redirect('/register/details?error=male-face-required');
     }
 
@@ -456,15 +464,22 @@ export async function registerDetailsAction(formData: FormData) {
       shiftWorkUnderstanding: formData.get('shiftWorkUnderstanding') ? 'on' : 'off',
       profileImageUrl: uploadedImages[0] ?? me.profileImageUrl,
     });
+    if (isTestUser) {
+      if (gender === 'female') setNurseVerificationStatus(me.id, 'approved');
+      if (gender === 'male') setMaleReviewStatus(me.id, 'approved');
+    }
 
     updateUser(me.id, {
       gender,
       birthdate,
       age,
-      onboardingStatus: 'profile_completed',
-      verificationStatus: 'pending',
+      onboardingStatus: isTestUser ? 'verified' : 'profile_completed',
+      verificationStatus: isTestUser ? 'approved' : 'pending',
     });
 
+    if (isTestUser) {
+      redirect(gender === 'female' ? '/home/female' : '/home/male');
+    }
     redirect('/verification');
   }
 
@@ -481,18 +496,19 @@ export async function registerDetailsAction(formData: FormData) {
   const profileImage2 = await uploadDocument(formData.get('profileImage2') as File, userId, 'profile');
   const profileImage3 = await uploadDocument(formData.get('profileImage3') as File, userId, 'profile');
   const uploadedImages = [profileImage1, profileImage2, profileImage3].filter(Boolean) as string[];
-  const { data: existingImages } = await adminSupabase.from('profile_images').select('id').eq('user_id', userId).limit(1);
-  const hasAtLeastOneImage = uploadedImages.length > 0 || Boolean(existingImages && existingImages.length > 0);
-  if (!hasAtLeastOneImage) {
-    redirect('/register/details?error=profile-image-required');
-  }
-  if (gender === 'male' && !hasAtLeastOneImage) {
-    redirect('/register/details?error=male-face-required');
-  }
 
   const { data: existingUser } = await adminSupabase.from('users').select('*').eq('id', userId).maybeSingle();
   if (existingUser && existingUser.role !== 'user') {
     redirect('/register');
+  }
+  const isTestUser = existingUser?.is_test_user === true;
+  const { data: existingImages } = await adminSupabase.from('profile_images').select('id').eq('user_id', userId).limit(1);
+  const hasAtLeastOneImage = uploadedImages.length > 0 || Boolean(existingImages && existingImages.length > 0);
+  if (!isTestUser && !hasAtLeastOneImage) {
+    redirect('/register/details?error=profile-image-required');
+  }
+  if (!isTestUser && gender === 'male' && !hasAtLeastOneImage) {
+    redirect('/register/details?error=male-face-required');
   }
 
   const primaryImage = uploadedImages[0] ?? existingUser?.profile_image_url ?? '';
@@ -511,9 +527,9 @@ export async function registerDetailsAction(formData: FormData) {
       profile_image_url: primaryImage,
       desired_gender: desiredGender,
       seeking_gender: seekingGender,
-      onboarding_status: 'profile_completed',
+      onboarding_status: isTestUser ? 'verified' : 'profile_completed',
       risk_check_status: existingUser?.risk_check_status ?? 'not_checked',
-      verification_status: existingUser?.verification_status ?? 'pending',
+      verification_status: isTestUser ? 'approved' : (existingUser?.verification_status ?? 'pending'),
       identity_document_url: existingUser?.identity_document_url ?? null,
       rejected_reason: existingUser?.rejected_reason ?? null,
       moderation_action: existingUser?.moderation_action ?? 'none',
@@ -546,7 +562,7 @@ export async function registerDetailsAction(formData: FormData) {
       .select('nurse_verification_status,nurse_document_url')
       .eq('user_id', userId)
       .maybeSingle();
-    const nurseStatus = existingFemale?.nurse_verification_status ?? 'pending';
+    const nurseStatus = isTestUser ? 'approved' : (existingFemale?.nurse_verification_status ?? 'pending');
     await adminSupabase.from('female_profiles').upsert(
       {
         user_id: userId,
@@ -557,6 +573,9 @@ export async function registerDetailsAction(formData: FormData) {
       },
       { onConflict: 'user_id' },
     );
+    if (isTestUser) {
+      redirect('/home/female');
+    }
     redirect(nurseStatus === 'approved' ? '/preview' : '/verification');
   }
 
@@ -565,7 +584,7 @@ export async function registerDetailsAction(formData: FormData) {
     .select('male_review_status,income_verified,face_photo_verified,has_children')
     .eq('user_id', userId)
     .maybeSingle();
-  const maleStatus = existingMale?.male_review_status ?? 'pending';
+  const maleStatus = isTestUser ? 'approved' : (existingMale?.male_review_status ?? 'pending');
   await adminSupabase.from('male_profiles').upsert(
     {
       user_id: userId,
@@ -590,6 +609,9 @@ export async function registerDetailsAction(formData: FormData) {
     },
     { onConflict: 'user_id' },
   );
+  if (isTestUser) {
+    redirect('/home/male');
+  }
   redirect(maleStatus === 'approved' ? '/preview' : '/verification');
 }
 
