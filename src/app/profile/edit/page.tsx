@@ -1,12 +1,19 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
+import { PhotoUploadGuide } from '@/components/photo-upload-guide';
 import { saveProfileAction } from '@/lib/actions';
 import { getCurrentUser, getFemaleProfileByUserId, getMaleProfileByUserId, getProfileImagesByUserId } from '@/lib/data';
 import { maritalStatusLabel } from '@/lib/labels';
 import { MALE_JOB_OPTIONS } from '@/lib/male-job-options';
 
 const VALUE_TAGS = ['落ち着いている', '誠実', '清潔感重視', 'よく笑う', '聞き上手', '優しい', 'アウトドア', 'インドア'] as const;
+
+function profileImageStatusLabel(status: 'pending' | 'approved' | 'rejected') {
+  if (status === 'approved') return '写真確認済み';
+  if (status === 'rejected') return '写真を変更してください';
+  return '写真確認中';
+}
 
 export default async function EditProfilePage() {
   const user = await getCurrentUser();
@@ -30,6 +37,7 @@ export default async function EditProfilePage() {
           <article className='rounded-3xl border border-slate-100 bg-white p-4 text-sm shadow-sm'>
             <h2 className='mb-3 text-sm font-bold text-slate-900'>基本情報</h2>
             <div className='grid gap-2'>
+              <PhotoUploadGuide audience={user.gender === 'male' ? 'male' : 'female'} />
               <label className='grid gap-1'>
                 <span className='text-xs font-semibold text-slate-500'>プロフィール写真 (メイン)</span>
                 <input type='file' name='profileImage' className='rounded-xl border border-slate-200 px-3 py-2' />
@@ -47,7 +55,7 @@ export default async function EditProfilePage() {
                 <div className='grid gap-1 text-[11px] text-slate-600'>
                   {profileImages.map((img) => (
                     <p key={img.id}>
-                      画像{img.sortOrder}: {img.approvedStatus === 'approved' ? '写真確認済み' : '写真確認中'}
+                      画像{img.sortOrder}: {profileImageStatusLabel(img.approvedStatus)}
                     </p>
                   ))}
                 </div>

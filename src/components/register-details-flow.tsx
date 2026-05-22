@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { registerDetailsAction } from '@/lib/actions';
 import { MALE_JOB_OPTIONS } from '@/lib/male-job-options';
+import { PhotoUploadGuide } from '@/components/photo-upload-guide';
 
 type RegisterDetailsDefaults = {
   gender: 'female' | 'male';
@@ -193,6 +194,7 @@ export function RegisterDetailsFlow({ defaults, error }: RegisterDetailsFlowProp
             </article>
 
             <article className={activeStep === 'photo' ? 'space-y-3' : 'hidden'}>
+              <PhotoUploadGuide />
               <p className='rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600'>
                 プロフィール画像は最大3枚まで。男性は顔写真1枚以上、女性はプロフィール画像1枚以上が必須です。
               </p>
