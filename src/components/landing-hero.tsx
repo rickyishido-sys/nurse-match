@@ -72,7 +72,7 @@ export function LandingHero() {
 
         <div className='mt-8 grid grid-cols-2 gap-2'>
           <Link
-            href='/register'
+            href='/onboarding'
             className='flex h-12 w-full items-center justify-center rounded-2xl bg-white text-base font-bold text-slate-900 shadow-[0_12px_24px_-12px_rgba(255,255,255,0.95)]'
           >
             はじめる
