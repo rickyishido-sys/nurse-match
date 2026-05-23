@@ -1,7 +1,7 @@
 import { getPlatformLabel, isAppPlatform } from '@/lib/platform';
 
 export const APP_NAME = 'Nurse Match';
-export const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK !== 'false';
+export const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
 export const STORAGE_BUCKETS = {
   profile: 'profile-images',

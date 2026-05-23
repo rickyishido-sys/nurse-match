@@ -117,6 +117,16 @@ function resolveRequestOrigin(hostname: string | null, proto: string | null) {
   return `${scheme}://${hostname}`;
 }
 
+function resolvePublicSiteUrl() {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (!raw) return null;
+  const normalized = raw.replace(/\/+$/, '');
+  if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+    return normalized;
+  }
+  return `https://${normalized}`;
+}
+
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
 }
@@ -151,6 +161,11 @@ export async function requestRegisterVerificationAction(formData: FormData) {
   const method = String(formData.get('method') ?? 'email');
   const email = normalizeEmail(String(formData.get('email') ?? ''));
   const phone = normalizePhone(String(formData.get('phone') ?? ''));
+  console.log('REGISTER_START', {
+    email,
+    phone,
+    useMock: USE_MOCK_DATA,
+  });
 
   if (!email && !phone) {
     redirect('/register?error=contact-required');
@@ -161,6 +176,11 @@ export async function requestRegisterVerificationAction(formData: FormData) {
   }
 
   if (USE_MOCK_DATA) {
+    console.warn('[requestRegisterVerificationAction] USE_MOCK_DATA=true, OTP send is skipped', {
+      email,
+      method,
+      useMock: USE_MOCK_DATA,
+    });
     if (email && getUserByEmail(email)) {
       redirectDuplicateError('email');
     }
@@ -173,6 +193,10 @@ export async function requestRegisterVerificationAction(formData: FormData) {
     redirect(`/register?status=sent-email&email=${encodeURIComponent(email)}`);
   }
 
+  console.log('SUPABASE_ENV', {
+    hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasAnon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  });
   const supabase = await createServerSupabaseClient();
   const adminSupabase = createAdminSupabaseClient();
   if (!supabase || !adminSupabase) {
@@ -198,22 +222,57 @@ export async function requestRegisterVerificationAction(formData: FormData) {
   }
 
   const headerStore = await headers();
-  const requestOrigin = resolveRequestOrigin(headerStore.get('x-forwarded-host') ?? headerStore.get('host'), headerStore.get('x-forwarded-proto'));
-  const emailRedirectTo = requestOrigin ? `${requestOrigin}/register/details` : undefined;
+  const requestOrigin = resolveRequestOrigin(
+    headerStore.get('x-forwarded-host') ?? headerStore.get('host'),
+    headerStore.get('x-forwarded-proto'),
+  );
+  const siteUrl = resolvePublicSiteUrl();
+  const redirectBase = siteUrl ?? requestOrigin;
+  const emailRedirectTo = redirectBase ? `${redirectBase}/register/details` : undefined;
 
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      ...(emailRedirectTo ? { emailRedirectTo } : {}),
-      shouldCreateUser: true,
-    },
-  });
+  if (!siteUrl) {
+    console.warn('[requestRegisterVerificationAction] NEXT_PUBLIC_SITE_URL is not set. Falling back to request origin.', {
+      requestOrigin,
+      vercelEnv: process.env.VERCEL_ENV ?? null,
+    });
+  }
 
-  if (error) {
-    if (isSupabaseDuplicateError(error.message)) {
-      redirectDuplicateError('email');
+  try {
+    console.log('OTP_REQUEST', {
+      email,
+      redirectTo: emailRedirectTo,
+    });
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        ...(emailRedirectTo ? { emailRedirectTo } : {}),
+        shouldCreateUser: true,
+      },
+    });
+
+    console.log('OTP_RESPONSE', {
+      email,
+      data,
+      error,
+    });
+
+    if (error) {
+      if (isSupabaseDuplicateError(error.message)) {
+        redirectDuplicateError('email');
+      }
+      const detail = encodeURIComponent(error.message ?? 'unknown_error');
+      redirect(`/register?error=supabase&detail=${detail}`);
     }
-    redirect('/register?error=send-failed');
+  } catch (err) {
+    console.error('OTP_EXCEPTION', err);
+    console.error('[requestRegisterVerificationAction] signInWithOtp threw an exception', {
+      email,
+      redirectTo: emailRedirectTo ?? null,
+      error: err,
+      useMock: USE_MOCK_DATA,
+    });
+    const detail = encodeURIComponent(err instanceof Error ? err.message : 'unexpected_error');
+    redirect(`/register?error=supabase&detail=${detail}`);
   }
 
   redirect(`/register?status=sent-email&email=${encodeURIComponent(email)}`);

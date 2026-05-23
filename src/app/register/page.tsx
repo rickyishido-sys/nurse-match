@@ -11,11 +11,21 @@ function pickFirst(value: string | string[] | undefined) {
   return value ?? '';
 }
 
+function safeDecode(value: string) {
+  if (!value) return '';
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const params = searchParams ? await searchParams : {};
   const status = pickFirst(params.status);
   const error = pickFirst(params.error);
   const email = pickFirst(params.email);
+  const detail = safeDecode(pickFirst(params.detail));
 
   return (
     <main className='min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff_0%,_#fdf2f8_45%,_#ffffff_100%)] px-4 py-8'>
@@ -71,10 +81,11 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
               現在はメール認証を優先提供しています。メールアドレスを入力してください。
             </p>
           ) : null}
-          {error === 'send-failed' || error === 'config' ? (
-            <p className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
-              認証リンク送信に失敗しました。時間をおいて再度お試しください。
-            </p>
+          {error === 'send-failed' || error === 'config' || error === 'supabase' ? (
+            <div className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
+              <p>認証リンク送信に失敗しました。時間をおいて再度お試しください。</p>
+              {detail ? <p className='mt-1 break-all text-[11px]'>Supabase: {detail}</p> : null}
+            </div>
           ) : null}
 
           <form action={requestRegisterVerificationAction} className='space-y-4'>
