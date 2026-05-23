@@ -22,9 +22,9 @@ function safeDecode(value: string) {
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const params = searchParams ? await searchParams : {};
+  const sent = pickFirst(params.sent);
   const status = pickFirst(params.status);
   const error = pickFirst(params.error);
-  const email = pickFirst(params.email);
   const detail = safeDecode(pickFirst(params.detail));
 
   return (
@@ -45,9 +45,9 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
           <h1 className='mb-1 text-center text-2xl font-bold tracking-tight text-slate-900'>はじめる</h1>
           <p className='mb-6 text-center text-sm text-slate-600'>まずは連絡先確認から始めます</p>
 
-          {status === 'sent-email' ? (
+          {sent === '1' || status === 'sent-email' ? (
             <p className='mb-4 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs leading-5 text-sky-700'>
-              {email ? `${email} 宛に認証リンクを送信しました。` : '認証リンクを送信しました。'} メール内のリンクを開いて登録を続けてください。
+              認証リンクを送信しました。メールをご確認ください。
             </p>
           ) : null}
           {status === 'sms-preparing' ? (

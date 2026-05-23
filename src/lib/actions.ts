@@ -192,7 +192,7 @@ export async function requestRegisterVerificationAction(formData: FormData) {
     if (method === 'sms') {
       redirect('/register?status=sms-preparing');
     }
-    redirect(`/register?status=sent-email&email=${encodeURIComponent(email)}`);
+    redirect('/register?sent=1');
   }
 
   console.log('SUPABASE_ENV', {
@@ -268,6 +268,7 @@ export async function requestRegisterVerificationAction(formData: FormData) {
     });
   }
 
+  let redirectPath = '/register?sent=1';
   try {
     console.log('OTP_REQUEST', {
       email,
@@ -292,9 +293,12 @@ export async function requestRegisterVerificationAction(formData: FormData) {
         redirectDuplicateError('email');
       }
       const detail = encodeURIComponent(error.message ?? 'unknown_error');
-      redirect(`/register?error=supabase&detail=${detail}`);
+      redirectPath = `/register?error=supabase&detail=${detail}`;
     }
   } catch (err) {
+    if (String(err).includes('NEXT_REDIRECT')) {
+      throw err;
+    }
     console.error('OTP_EXCEPTION', err);
     console.error('[requestRegisterVerificationAction] signInWithOtp threw an exception', {
       email,
@@ -302,11 +306,11 @@ export async function requestRegisterVerificationAction(formData: FormData) {
       error: err,
       useMock,
     });
-    const detail = encodeURIComponent(err instanceof Error ? err.message : 'unexpected_error');
-    redirect(`/register?error=supabase&detail=${detail}`);
+    const detail = encodeURIComponent(err instanceof Error ? err.message : String(err));
+    redirectPath = `/register?error=supabase&detail=${detail}`;
   }
 
-  redirect(`/register?status=sent-email&email=${encodeURIComponent(email)}`);
+  redirect(redirectPath);
 }
 
 export async function logoutAction() {
