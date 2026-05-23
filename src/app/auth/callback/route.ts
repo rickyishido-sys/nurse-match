@@ -6,6 +6,7 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get('code');
   const nextRaw = requestUrl.searchParams.get('next') || '/register/details';
   const nextPath = nextRaw.startsWith('/') ? nextRaw : '/register/details';
+  console.log('AUTH_CALLBACK_START', { hasCode: Boolean(code), next: nextPath });
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -43,9 +44,11 @@ export async function GET(request: Request) {
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
+    console.error('AUTH_CALLBACK_ERROR', error);
     const detail = encodeURIComponent(error.message ?? 'exchange_failed');
     return NextResponse.redirect(new URL(`/login?error=auth-callback&detail=${detail}`, requestUrl.origin));
   }
 
+  console.log('AUTH_CALLBACK_SUCCESS', { next: nextPath });
   return response;
 }

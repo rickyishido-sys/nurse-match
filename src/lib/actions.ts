@@ -505,6 +505,8 @@ export async function registerAction(formData: FormData) {
 
 export async function registerDetailsAction(formData: FormData) {
   const gender = String(formData.get('gender') ?? 'female') as 'female' | 'male';
+  const password = String(formData.get('password') ?? '').trim();
+  const passwordConfirm = String(formData.get('passwordConfirm') ?? '').trim();
   const nickname = String(formData.get('nickname') ?? '').trim();
   const birthdate = String(formData.get('birthdate') ?? '').trim();
   const location = String(formData.get('location') ?? '').trim();
@@ -515,6 +517,15 @@ export async function registerDetailsAction(formData: FormData) {
 
   if (!nickname || !birthdate || !location || !bio || age < 18) {
     redirect('/register/details?error=required');
+  }
+  if (!password) {
+    redirect('/register/details?error=password-required');
+  }
+  if (password.length < 8) {
+    redirect('/register/details?error=password-length');
+  }
+  if (password !== passwordConfirm) {
+    redirect('/register/details?error=password-mismatch');
   }
 
   if (USE_MOCK_DATA) {
@@ -582,6 +593,13 @@ export async function registerDetailsAction(formData: FormData) {
   const { data: authData } = await supabase.auth.getUser();
   const authUser = authData.user;
   if (!authUser) redirect('/register');
+  if (password) {
+    const { error: passwordError } = await supabase.auth.updateUser({ password });
+    if (passwordError) {
+      console.error('REGISTER_DETAILS_PASSWORD_UPDATE_ERROR', passwordError);
+      redirect('/register/details?error=password-update-failed');
+    }
+  }
 
   const userId = authUser.id;
   const profileImage1 = await uploadDocument(formData.get('profileImage') as File, userId, 'profile');

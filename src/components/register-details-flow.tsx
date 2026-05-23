@@ -63,9 +63,24 @@ export function RegisterDetailsFlow({ defaults, error }: RegisterDetailsFlowProp
           </div>
           <h1 className='text-center text-2xl font-bold text-slate-900'>プロフィール登録</h1>
           <p className='mt-1 text-center text-xs font-medium text-slate-500'>{stepLabel}</p>
+          <p className='mt-3 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs leading-6 text-sky-800'>
+            メール認証が完了しました。続けてログイン用パスワードとプロフィールを設定してください。
+          </p>
 
           {error === 'required' ? (
             <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>必須項目を入力してください（18歳未満は登録不可）。</p>
+          ) : null}
+          {error === 'password-required' ? (
+            <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>ログイン用パスワードを入力してください。</p>
+          ) : null}
+          {error === 'password-length' ? (
+            <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>パスワードは8文字以上で入力してください。</p>
+          ) : null}
+          {error === 'password-mismatch' ? (
+            <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>確認用パスワードが一致しません。</p>
+          ) : null}
+          {error === 'password-update-failed' ? (
+            <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>パスワード設定に失敗しました。時間をおいて再度お試しください。</p>
           ) : null}
           {error === 'profile-image-required' ? (
             <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
@@ -83,6 +98,14 @@ export function RegisterDetailsFlow({ defaults, error }: RegisterDetailsFlowProp
 
           <form action={registerDetailsAction} className='mt-5 space-y-4'>
             <article className={activeStep === 'common' ? 'space-y-3' : 'hidden'}>
+              <label className='grid gap-1 text-sm'>
+                パスワード
+                <input type='password' name='password' required minLength={8} className='h-11 rounded-xl border border-slate-200 px-3' />
+              </label>
+              <label className='grid gap-1 text-sm'>
+                パスワード（確認）
+                <input type='password' name='passwordConfirm' required minLength={8} className='h-11 rounded-xl border border-slate-200 px-3' />
+              </label>
               <label className='grid gap-1 text-sm'>
                 性別
                 <select

@@ -114,3 +114,8 @@ where id = (
 
 ### mock 手順
 - `NEXT_PUBLIC_USE_MOCK=true` の場合、同名メールのユーザーが `src/lib/mock-data.ts` に含まれているため、そのままログイン検証できます。
+
+## 認証メール文言（Supabase）
+- 認証メール本文のボタン文言（例: `Sign in`）は Supabase 側テンプレートで変更できます。
+- 変更箇所: **Supabase Dashboard > Authentication > Emails > Magic Link or OTP**
+- 現在はアプリ側で `/auth/callback?next=/register/details` を利用して登録導線を制御しています。
