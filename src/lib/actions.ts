@@ -3,6 +3,7 @@
 import { cookies, headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { createServerClient } from '@supabase/ssr';
 import {
   blockUser,
   unblockUser,
@@ -161,10 +162,11 @@ export async function requestRegisterVerificationAction(formData: FormData) {
   const method = String(formData.get('method') ?? 'email');
   const email = normalizeEmail(String(formData.get('email') ?? ''));
   const phone = normalizePhone(String(formData.get('phone') ?? ''));
+  const useMock = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
   console.log('REGISTER_START', {
     email,
     phone,
-    useMock: USE_MOCK_DATA,
+    useMock,
   });
 
   if (!email && !phone) {
@@ -175,11 +177,11 @@ export async function requestRegisterVerificationAction(formData: FormData) {
     redirect('/register?error=email-required');
   }
 
-  if (USE_MOCK_DATA) {
+  if (useMock) {
     console.warn('[requestRegisterVerificationAction] USE_MOCK_DATA=true, OTP send is skipped', {
       email,
       method,
-      useMock: USE_MOCK_DATA,
+      useMock,
     });
     if (email && getUserByEmail(email)) {
       redirectDuplicateError('email');
@@ -197,20 +199,49 @@ export async function requestRegisterVerificationAction(formData: FormData) {
     hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
     hasAnon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   });
-  const supabase = await createServerSupabaseClient();
-  const adminSupabase = createAdminSupabaseClient();
-  if (!supabase || !adminSupabase) {
-    redirect('/register?error=config');
+  console.log('REGISTER_CONFIG_CHECK', {
+    hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasAnon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    useMock: process.env.NEXT_PUBLIC_USE_MOCK,
+  });
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl) {
+    redirect('/register?error=config&detail=missing_url');
+  }
+  if (!supabaseAnonKey) {
+    redirect('/register?error=config&detail=missing_anon_key');
   }
 
-  if (email) {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          cookieStore.set(name, value, options);
+        });
+      },
+    },
+  });
+
+  const adminSupabase = createAdminSupabaseClient();
+  if (!adminSupabase) {
+    console.warn('[requestRegisterVerificationAction] admin client unavailable. duplicate checks are skipped.', {
+      hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    });
+  }
+
+  if (email && adminSupabase) {
     const { data: existingEmail } = await adminSupabase.from('users').select('id').ilike('email', email).limit(1).maybeSingle();
     if (existingEmail) {
       redirectDuplicateError('email');
     }
   }
 
-  if (phone) {
+  if (phone && adminSupabase) {
     const { data: existingPhone } = await adminSupabase.from('users').select('id').eq('phone', phone).limit(1).maybeSingle();
     if (existingPhone) {
       redirectDuplicateError('phone');
@@ -269,7 +300,7 @@ export async function requestRegisterVerificationAction(formData: FormData) {
       email,
       redirectTo: emailRedirectTo ?? null,
       error: err,
-      useMock: USE_MOCK_DATA,
+      useMock,
     });
     const detail = encodeURIComponent(err instanceof Error ? err.message : 'unexpected_error');
     redirect(`/register?error=supabase&detail=${detail}`);
