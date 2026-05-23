@@ -48,6 +48,7 @@ export type AppUser = {
   moderationAction: ModerationAction;
   isSuspended: boolean;
   isTestUser?: boolean;
+  deletedAt?: string | null;
 };
 
 export type ProfileImageRecord = {
@@ -177,6 +178,12 @@ export type MessageRecord = {
   senderId: string;
   body: string;
   createdAt: string;
+};
+
+export type MessageReadRecord = {
+  userId: string;
+  matchId: string;
+  lastReadAt: string;
 };
 
 export type ReportRecord = {

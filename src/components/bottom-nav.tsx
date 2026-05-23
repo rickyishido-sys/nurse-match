@@ -16,6 +16,7 @@ export function BottomNav({ role = 'user' }: BottomNavProps) {
   const userItems: NavItem[] = [
     { href: '/home', label: 'ホーム' },
     { href: '/favorites', label: 'お気に入り' },
+    { href: '/activity', label: '興味あり' },
     { href: '/matches', label: 'マッチ' },
     { href: '/profile/edit', label: 'プロフィール' },
   ];
@@ -31,7 +32,7 @@ export function BottomNav({ role = 'user' }: BottomNavProps) {
 
   return (
     <nav className='fixed bottom-0 left-1/2 z-30 w-full max-w-[390px] -translate-x-1/2 border-t border-slate-200 bg-white/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur'>
-      <ul className={`grid gap-2 ${isAdmin ? 'grid-cols-3' : 'grid-cols-4'}`}>
+      <ul className={`grid gap-2 ${isAdmin ? 'grid-cols-3' : 'grid-cols-5'}`}>
         {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (

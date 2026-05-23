@@ -122,6 +122,10 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
               ログイン
             </Link>
           </div>
+          <div className='mt-3 flex items-center justify-center gap-3 text-[11px] text-slate-500'>
+            <Link href='/terms' className='underline underline-offset-2'>利用規約</Link>
+            <Link href='/privacy' className='underline underline-offset-2'>プライバシー</Link>
+          </div>
         </section>
       </div>
     </main>

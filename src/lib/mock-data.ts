@@ -13,6 +13,7 @@ import type {
   InterestSignalType,
   LikeRecord,
   MaleProfile,
+  MessageReadRecord,
   MatchRecord,
   MessageRecord,
   ModerationAction,
@@ -463,6 +464,7 @@ const credits: CreditRecord[] = [
   },
 ];
 const creditTransactions: CreditTransactionRecord[] = [];
+const messageReads: MessageReadRecord[] = [];
 
 function uuid(prefix: string) {
   return `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
@@ -745,6 +747,21 @@ export function getMatchById(matchId: string) {
 
 export function listMessages(matchId: string) {
   return messages.filter((message) => message.matchId === matchId);
+}
+
+export function listMessageReadsByUser(userId: string) {
+  return messageReads.filter((row) => row.userId === userId);
+}
+
+export function upsertMessageRead(userId: string, matchId: string, lastReadAt: string) {
+  const existing = messageReads.find((row) => row.userId === userId && row.matchId === matchId);
+  if (existing) {
+    existing.lastReadAt = lastReadAt;
+    return existing;
+  }
+  const row: MessageReadRecord = { userId, matchId, lastReadAt };
+  messageReads.push(row);
+  return row;
 }
 
 export function addMessage(matchId: string, senderId: string, body: string) {

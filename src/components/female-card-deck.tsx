@@ -1,9 +1,10 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
 import { Badge } from '@/components/badges';
-import { setFemaleSearchPreferenceAction, swipeAction } from '@/lib/actions';
+import { blockUserAction, createReportAction, setFemaleSearchPreferenceAction, swipeAction } from '@/lib/actions';
 import { maritalStatusLabel } from '@/lib/labels';
 import type { AppUser, FemaleProfile, MaleProfile, ProfileImageRecord } from '@/lib/types/domain';
 
@@ -32,6 +33,7 @@ type FemaleFilters = {
 
 type FemaleCardDeckProps = {
   userId: string;
+  selfProfileImageUrl: string;
   cards: CandidateCard[];
   filters: FemaleFilters;
 };
@@ -57,13 +59,14 @@ function getJobLabel(card: CandidateCard) {
             : 'その他';
 }
 
-export function FemaleCardDeck({ userId, cards, filters }: FemaleCardDeckProps) {
+export function FemaleCardDeck({ userId, selfProfileImageUrl, cards, filters }: FemaleCardDeckProps) {
   const [index, setIndex] = useState(0);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [cardMotion, setCardMotion] = useState<'idle' | 'like' | 'skip'>('idle');
   const [showLikeHeart, setShowLikeHeart] = useState(false);
   const [actionLocked, setActionLocked] = useState(false);
+  const [matchedState, setMatchedState] = useState<{ matchId: string; target: CandidateCard } | null>(null);
   const [isPending, startTransition] = useTransition();
   const current = cards[index] ?? null;
   const remaining = Math.max(cards.length - index, 0);
@@ -86,7 +89,10 @@ export function FemaleCardDeck({ userId, cards, filters }: FemaleCardDeckProps) 
     }
     startTransition(async () => {
       await new Promise((resolve) => setTimeout(resolve, 220));
-      await swipeAction(formData);
+      const result = await swipeAction(formData);
+      if (action === 'like' && result?.matched && result.matchId) {
+        setMatchedState({ matchId: result.matchId, target: current });
+      }
       setIndex((prev) => prev + 1);
       setIsDetailOpen(false);
       setCardMotion('idle');
@@ -225,6 +231,51 @@ export function FemaleCardDeck({ userId, cards, filters }: FemaleCardDeckProps) 
                 </>
               ) : null}
               <p className='rounded-2xl border border-slate-100 bg-slate-50 p-3 leading-6'>{current.user.bio}</p>
+              <form action={createReportAction} className='grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs'>
+                <input type='hidden' name='reporterId' value={userId} />
+                <input type='hidden' name='targetUserId' value={current.user.id} />
+                <select name='reasonType' defaultValue='harassment' className='h-9 rounded-lg border border-slate-300 bg-white px-2'>
+                  <option value='harassment'>不適切な発言</option>
+                  <option value='spam'>勧誘</option>
+                  <option value='fake_profile'>なりすまし</option>
+                  <option value='dangerous'>不快行為</option>
+                  <option value='other'>その他</option>
+                </select>
+                <input name='reason' defaultValue='プロフィールから通報' className='h-9 rounded-lg border border-slate-300 bg-white px-2' />
+                <input name='detail' placeholder='詳細（任意）' className='col-span-2 h-9 rounded-lg border border-slate-300 bg-white px-2' />
+                <button className='col-span-2 rounded-lg border border-slate-300 bg-white py-2'>通報する</button>
+              </form>
+              <form action={blockUserAction}>
+                <input type='hidden' name='blockerUserId' value={userId} />
+                <input type='hidden' name='blockedUserId' value={current.user.id} />
+                <button className='w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700'>
+                  このユーザーをブロック
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {matchedState ? (
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-4' role='dialog' aria-modal='true'>
+          <div className='w-full max-w-[360px] rounded-3xl border border-slate-100 bg-white p-5 text-center shadow-2xl'>
+            <p className='text-5xl text-pink-500'>♡</p>
+            <p className='mt-2 text-xl font-bold text-slate-900'>マッチしました</p>
+            <p className='mt-1 text-xs text-slate-500'>安心して会話を始めましょう</p>
+            <div className='mt-4 flex items-center justify-center gap-3'>
+              <Image src={matchedState.target.user.profileImageUrl} alt={matchedState.target.user.nickname} width={68} height={68} className='h-17 w-17 rounded-2xl object-cover' />
+              <span className='text-xl text-slate-300'>×</span>
+              <Image src={selfProfileImageUrl} alt='あなた' width={68} height={68} className='h-17 w-17 rounded-2xl object-cover' />
+            </div>
+            <p className='mt-2 text-sm text-slate-700'>{matchedState.target.user.nickname} さん</p>
+            <div className='mt-5 grid grid-cols-2 gap-2'>
+              <button onClick={() => setMatchedState(null)} className='h-11 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600'>
+                あとで
+              </button>
+              <Link href={`/chat/${matchedState.matchId}`} className='flex h-11 items-center justify-center rounded-xl bg-slate-900 text-sm font-semibold text-white'>
+                メッセージを送る
+              </Link>
             </div>
           </div>
         </div>

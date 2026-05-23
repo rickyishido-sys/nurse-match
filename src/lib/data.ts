@@ -23,6 +23,7 @@ import {
   listBlocksForUser,
   listLikes,
   listMatchesForUser,
+  listMessageReadsByUser,
   listMessages,
   listFavorites,
   listReports,
@@ -41,6 +42,7 @@ import {
   updateUserModeration,
   upsertRiskCheck,
   upsertFemaleProfile,
+  upsertMessageRead,
   upsertMaleProfile,
 } from '@/lib/mock-data';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
@@ -52,6 +54,7 @@ import type {
   DailyRecommendationRecord,
   FemaleProfile,
   InterestSignalType,
+  MatchRecord,
   MaleProfile,
   MaritalStatus,
   ModerationAction,
@@ -61,6 +64,7 @@ import type {
   ReportStatus,
   RiskCheckRecord,
   RiskCheckStatus,
+  MessageRecord,
 } from '@/lib/types/domain';
 import type { Database } from '@/lib/types/database';
 
@@ -88,6 +92,7 @@ function mapUser(row: Database['public']['Tables']['users']['Row']): AppUser {
     moderationAction: row.moderation_action,
     isSuspended: row.is_suspended,
     isTestUser,
+    deletedAt: row.deleted_at,
   };
 }
 
@@ -505,7 +510,9 @@ export async function getCurrentUser() {
   if (USE_MOCK_DATA) {
     const cookieStore = await cookies();
     const userId = cookieStore.get('demo_user_id')?.value ?? 'u_f_1';
-    return getUserById(userId);
+    const user = getUserById(userId);
+    if (!user || user.deletedAt) return null;
+    return user;
   }
 
   const supabase = await createServerSupabaseClient();
@@ -516,6 +523,7 @@ export async function getCurrentUser() {
 
   const { data, error } = await supabase.from('users').select('*').eq('id', authData.user.id).single();
   if (error || !data) return null;
+  if (data.deleted_at) return null;
 
   return resolveProfileImage(mapUser(data));
 }
@@ -1327,18 +1335,27 @@ export async function createInterestSignal(input: { userId: string; targetUserId
   });
 }
 
-export async function swipe(fromUserId: string, toUserId: string, action: 'like' | 'skip') {
+export type SwipeResult = {
+  matched: boolean;
+  matchId?: string;
+};
+
+export async function swipe(fromUserId: string, toUserId: string, action: 'like' | 'skip'): Promise<SwipeResult> {
   if (USE_MOCK_DATA) {
     const from = getUserById(fromUserId);
     const to = getUserById(toUserId);
-    if (!from || !to || from.gender === 'male' || isBlockedBetween(fromUserId, toUserId)) return;
-    if (from.onboardingStatus !== 'verified' || to.onboardingStatus !== 'verified') return;
-    if (hasAnyRelationshipModeInMock(fromUserId) || hasAnyRelationshipModeInMock(toUserId)) return;
+    if (!from || !to || from.gender === 'male' || isBlockedBetween(fromUserId, toUserId)) return { matched: false };
+    if (from.onboardingStatus !== 'verified' || to.onboardingStatus !== 'verified') return { matched: false };
+    if (hasAnyRelationshipModeInMock(fromUserId) || hasAnyRelationshipModeInMock(toUserId)) return { matched: false };
 
     addLike(fromUserId, toUserId, action);
 
-    if (action !== 'like') return;
+    if (action !== 'like') return { matched: false };
     if (to.gender === 'male') {
+      const existing = listMatchesForUser(fromUserId).find(
+        (item) =>
+          (item.userAId === fromUserId && item.userBId === toUserId) || (item.userAId === toUserId && item.userBId === fromUserId),
+      );
       const match = ensureMatch(fromUserId, toUserId);
       const signal = listInterestSignalsByUser(toUserId).find(
         (item) =>
@@ -1355,7 +1372,7 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
           relatedMatchId: match.id,
         });
       }
-      return;
+      return { matched: !existing, matchId: match.id };
     }
 
     const hasReverseLike = listLikes().some(
@@ -1363,9 +1380,14 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
     );
 
     if (hasReverseLike) {
-      ensureMatch(fromUserId, toUserId);
+      const existing = listMatchesForUser(fromUserId).find(
+        (item) =>
+          (item.userAId === fromUserId && item.userBId === toUserId) || (item.userAId === toUserId && item.userBId === fromUserId),
+      );
+      const match = ensureMatch(fromUserId, toUserId);
+      return { matched: !existing, matchId: match.id };
     }
-    return;
+    return { matched: false };
   }
 
   if (await isBlockedBetweenUsers(fromUserId, toUserId)) {
@@ -1376,7 +1398,7 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
   }
 
   const supabase = await createServerSupabaseClient();
-  if (!supabase) return;
+  if (!supabase) return { matched: false };
 
   const { data: fromUserRow } = await supabase
     .from('users')
@@ -1388,11 +1410,11 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
   }
 
   await supabase.from('likes').upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action });
-  if (action !== 'like') return;
+  if (action !== 'like') return { matched: false };
 
   const { data: toUserRow } = await supabase.from('users').select('gender,onboarding_status').eq('id', toUserId).single();
-  if (!toUserRow) return;
-  if (toUserRow.onboarding_status !== 'verified') return;
+  if (!toUserRow) return { matched: false };
+  if (toUserRow.onboarding_status !== 'verified') return { matched: false };
 
   if (toUserRow.gender === 'male') {
     const { data: existing } = await supabase
@@ -1402,6 +1424,7 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
       .maybeSingle();
 
     let matchId: string | null = existing?.id ?? null;
+    const created = !existing;
     if (!existing) {
       await supabase
         .from('matches')
@@ -1435,7 +1458,7 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
         });
       }
     }
-    return;
+    return { matched: created, matchId: matchId ?? undefined };
   }
 
   const { data: reverseLike } = await supabase
@@ -1457,8 +1480,15 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
       await supabase
         .from('matches')
         .insert({ user_a_id: fromUserId, user_b_id: toUserId, relationship_status: 'active', hold_deletion: false });
+      const { data: createdMatch } = await supabase
+        .from('matches')
+        .select('id')
+        .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
+        .maybeSingle();
+      return { matched: true, matchId: createdMatch?.id };
     }
   }
+  return { matched: false };
 }
 
 export async function getFavoriteTargetIds(userId: string) {
@@ -1796,6 +1826,320 @@ export async function getMatches(userId: string) {
     .filter((entry) => entry.partner !== null);
 }
 
+export type ChatThread = {
+  match: MatchRecord;
+  partner: AppUser | null;
+  latestMessage: MessageRecord | null;
+  unreadCount: number;
+};
+
+function toTime(value: string | null | undefined) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+export async function markMatchAsRead(matchId: string, userId: string) {
+  const now = new Date().toISOString();
+  if (USE_MOCK_DATA) {
+    upsertMessageRead(userId, matchId, now);
+    return;
+  }
+  const admin = createAdminSupabaseClient();
+  if (!admin) return;
+  await admin.from('message_reads').upsert(
+    {
+      user_id: userId,
+      match_id: matchId,
+      last_read_at: now,
+      updated_at: now,
+    },
+    { onConflict: 'user_id,match_id' },
+  );
+}
+
+export async function getChatThreads(userId: string): Promise<ChatThread[]> {
+  const base = await getMatches(userId);
+  if (base.length === 0) return [];
+
+  if (USE_MOCK_DATA) {
+    const readMap = new Map(listMessageReadsByUser(userId).map((row) => [row.matchId, row.lastReadAt]));
+    return base
+      .map(({ match, partner }) => {
+        const messages = listMessages(match.id);
+        const latestMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+        const lastReadAt = readMap.get(match.id);
+        const unreadCount = messages.filter((message) => message.senderId !== userId && toTime(message.createdAt) > toTime(lastReadAt)).length;
+        return { match, partner, latestMessage, unreadCount };
+      })
+      .sort((a, b) => Math.max(toTime(b.latestMessage?.createdAt), toTime(b.match.createdAt)) - Math.max(toTime(a.latestMessage?.createdAt), toTime(a.match.createdAt)));
+  }
+
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return [];
+  const matchIds = base.map((row) => row.match.id);
+  const [{ data: messageRows }, { data: readRows }] = await Promise.all([
+    supabase.from('messages').select('*').in('match_id', matchIds).order('created_at', { ascending: true }),
+    supabase.from('message_reads').select('*').eq('user_id', userId).in('match_id', matchIds),
+  ]);
+
+  const groupedMessages = new Map<string, MessageRecord[]>();
+  for (const row of messageRows ?? []) {
+    const mapped: MessageRecord = {
+      id: row.id,
+      matchId: row.match_id,
+      senderId: row.sender_id,
+      body: row.body,
+      createdAt: row.created_at,
+    };
+    const existing = groupedMessages.get(row.match_id) ?? [];
+    existing.push(mapped);
+    groupedMessages.set(row.match_id, existing);
+  }
+  const readMap = new Map((readRows ?? []).map((row) => [row.match_id, row.last_read_at]));
+
+  return base
+    .map(({ match, partner }) => {
+      const messages = groupedMessages.get(match.id) ?? [];
+      const latestMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+      const lastReadAt = readMap.get(match.id);
+      const unreadCount = messages.filter((message) => message.senderId !== userId && toTime(message.createdAt) > toTime(lastReadAt)).length;
+      return { match, partner, latestMessage, unreadCount };
+    })
+    .sort((a, b) => Math.max(toTime(b.latestMessage?.createdAt), toTime(b.match.createdAt)) - Math.max(toTime(a.latestMessage?.createdAt), toTime(a.match.createdAt)));
+}
+
+type ActivityBaseCard = {
+  user: AppUser;
+  maleProfile: MaleProfile | null;
+  femaleProfile: FemaleProfile | null;
+};
+
+export type ActivityIncomingCard = ActivityBaseCard & {
+  sentAt: string;
+};
+
+export type ActivityOutgoingCard = ActivityBaseCard & {
+  sentAt: string;
+  status: 'checking' | 'waiting' | 'matched';
+  matchId: string | null;
+};
+
+export type ActivityMatchCard = ActivityBaseCard & {
+  matchId: string;
+  matchedAt: string;
+};
+
+export async function getActivityFeed(userId: string): Promise<{
+  incoming: ActivityIncomingCard[];
+  outgoing: ActivityOutgoingCard[];
+  matches: ActivityMatchCard[];
+}> {
+  const matchedRows = await getMatches(userId);
+  const matchIdByPartner = new Map<string, string>();
+  for (const row of matchedRows) {
+    if (row.partner) matchIdByPartner.set(row.partner.id, row.match.id);
+  }
+
+  if (USE_MOCK_DATA) {
+    const blockedSet = new Set(listBlocksForUser(userId).map((b) => b.blockedUserId));
+    const incomingSignals = listInterestSignalsForTarget(userId)
+      .filter((row) => row.signalType === 'interested')
+      .map((row) => ({ fromUserId: row.userId, sentAt: row.createdAt }));
+    const incomingLikes = listLikes()
+      .filter((row) => row.toUserId === userId && row.status === 'like')
+      .map((row) => ({ fromUserId: row.fromUserId, sentAt: row.createdAt }));
+    const outgoingSignals = listInterestSignalsByUser(userId)
+      .filter((row) => row.signalType === 'interested')
+      .map((row) => ({ targetUserId: row.targetUserId, sentAt: row.createdAt }));
+    const outgoingLikes = listLikes()
+      .filter((row) => row.fromUserId === userId && row.status === 'like')
+      .map((row) => ({ targetUserId: row.toUserId, sentAt: row.createdAt }));
+
+    const incomingMap = new Map<string, string>();
+    for (const row of [...incomingSignals, ...incomingLikes]) {
+      if (blockedSet.has(row.fromUserId) || isBlockedBetween(userId, row.fromUserId) || matchIdByPartner.has(row.fromUserId)) continue;
+      const prev = incomingMap.get(row.fromUserId);
+      if (!prev || toTime(prev) < toTime(row.sentAt)) incomingMap.set(row.fromUserId, row.sentAt);
+    }
+
+    const outgoingMap = new Map<string, string>();
+    for (const row of [...outgoingSignals, ...outgoingLikes]) {
+      if (blockedSet.has(row.targetUserId) || isBlockedBetween(userId, row.targetUserId)) continue;
+      const prev = outgoingMap.get(row.targetUserId);
+      if (!prev || toTime(prev) < toTime(row.sentAt)) outgoingMap.set(row.targetUserId, row.sentAt);
+    }
+
+    const incoming = [...incomingMap.entries()]
+      .map(([targetId, sentAt]) => {
+        const user = getUserById(targetId);
+        if (!user) return null;
+        return {
+          user,
+          maleProfile: getMaleProfile(targetId),
+          femaleProfile: getFemaleProfile(targetId),
+          sentAt,
+        } satisfies ActivityIncomingCard;
+      })
+      .filter((row): row is ActivityIncomingCard => Boolean(row))
+      .sort((a, b) => toTime(b.sentAt) - toTime(a.sentAt));
+
+    const outgoing = [...outgoingMap.entries()]
+      .map(([targetId, sentAt]) => {
+        const user = getUserById(targetId);
+        if (!user) return null;
+        const hasIncoming = incomingMap.has(targetId);
+        return {
+          user,
+          maleProfile: getMaleProfile(targetId),
+          femaleProfile: getFemaleProfile(targetId),
+          sentAt,
+          status: matchIdByPartner.has(targetId) ? 'matched' : hasIncoming ? 'checking' : 'waiting',
+          matchId: matchIdByPartner.get(targetId) ?? null,
+        } satisfies ActivityOutgoingCard;
+      })
+      .filter((row): row is ActivityOutgoingCard => Boolean(row))
+      .sort((a, b) => toTime(b.sentAt) - toTime(a.sentAt));
+
+    const matches = matchedRows
+      .filter((row) => Boolean(row.partner))
+      .map((row) => ({
+        matchId: row.match.id,
+        matchedAt: row.match.createdAt,
+        user: row.partner as AppUser,
+        maleProfile: getMaleProfile((row.partner as AppUser).id),
+        femaleProfile: getFemaleProfile((row.partner as AppUser).id),
+      }))
+      .sort((a, b) => toTime(b.matchedAt) - toTime(a.matchedAt));
+
+    return { incoming, outgoing, matches };
+  }
+
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return { incoming: [], outgoing: [], matches: [] };
+  const blockedSet = await getBlockedRelationSetForUser(userId);
+  const [incomingSignalsRes, incomingLikesRes, outgoingSignalsRes, outgoingLikesRes] = await Promise.all([
+    supabase.from('interest_signals').select('user_id,created_at,signal_type').eq('target_user_id', userId).eq('signal_type', 'interested'),
+    supabase.from('likes').select('from_user_id,created_at,status').eq('to_user_id', userId).eq('status', 'like'),
+    supabase.from('interest_signals').select('target_user_id,created_at,signal_type').eq('user_id', userId).eq('signal_type', 'interested'),
+    supabase.from('likes').select('to_user_id,created_at,status').eq('from_user_id', userId).eq('status', 'like'),
+  ]);
+
+  const incomingMap = new Map<string, string>();
+  for (const row of [
+    ...(incomingSignalsRes.data ?? []).map((r) => ({ partnerId: r.user_id, sentAt: r.created_at })),
+    ...(incomingLikesRes.data ?? []).map((r) => ({ partnerId: r.from_user_id, sentAt: r.created_at })),
+  ]) {
+    if (blockedSet.has(row.partnerId) || matchIdByPartner.has(row.partnerId)) continue;
+    const prev = incomingMap.get(row.partnerId);
+    if (!prev || toTime(prev) < toTime(row.sentAt)) incomingMap.set(row.partnerId, row.sentAt);
+  }
+
+  const outgoingMap = new Map<string, string>();
+  for (const row of [
+    ...(outgoingSignalsRes.data ?? []).map((r) => ({ partnerId: r.target_user_id, sentAt: r.created_at })),
+    ...(outgoingLikesRes.data ?? []).map((r) => ({ partnerId: r.to_user_id, sentAt: r.created_at })),
+  ]) {
+    if (blockedSet.has(row.partnerId)) continue;
+    const prev = outgoingMap.get(row.partnerId);
+    if (!prev || toTime(prev) < toTime(row.sentAt)) outgoingMap.set(row.partnerId, row.sentAt);
+  }
+
+  const allPartnerIds = [...new Set([...incomingMap.keys(), ...outgoingMap.keys(), ...matchIdByPartner.keys()])];
+  if (allPartnerIds.length === 0) return { incoming: [], outgoing: [], matches: [] };
+
+  const [{ data: usersRows }, { data: maleRows }, { data: femaleRows }] = await Promise.all([
+    supabase.from('public_user_cards').select('*').in('id', allPartnerIds),
+    supabase.from('male_profile_public').select('*').in('user_id', allPartnerIds),
+    supabase.from('female_profile_public').select('*').in('user_id', allPartnerIds),
+  ]);
+
+  const userMap = new Map(
+    await Promise.all(
+      (usersRows ?? []).map(async (row) => {
+        const mapped = mapPublicUserCard(row);
+        return [mapped.id, await resolveProfileImage(mapped)] as const;
+      }),
+    ),
+  );
+  const maleMap = new Map(
+    (maleRows ?? []).map((m) => [
+      m.user_id,
+      {
+        userId: m.user_id,
+        job: m.job,
+        income: m.income,
+        maritalStatus: m.marital_status,
+        hasChildren: m.has_children,
+        maleReviewStatus: m.male_review_status,
+        incomeVerified: m.income_verified,
+        facePhotoVerified: m.face_photo_verified,
+        internalMemo: null,
+        height: m.height ?? 170,
+        bodyType: m.body_type ?? '',
+        holiday: m.holiday ?? '',
+        smoking: m.smoking ?? '',
+        drinking: m.drinking ?? '',
+        nightShiftUnderstanding: m.night_shift_understanding,
+        shiftWorkUnderstanding: m.shift_work_understanding,
+        lateNightContactOk: m.late_night_contact_ok,
+        firstDateCost: m.first_date_cost ?? '',
+        personalityTags: m.personality_tags ?? [],
+      } satisfies MaleProfile,
+    ]),
+  );
+  const femaleMap = new Map(
+    (femaleRows ?? []).map((f) => [
+      f.user_id,
+      {
+        userId: f.user_id,
+        nurseDocumentUrl: '',
+        nurseVerificationStatus: f.nurse_verification_status,
+        workplaceType: f.workplace_type,
+        hasNightShift: f.has_night_shift,
+      } satisfies FemaleProfile,
+    ]),
+  );
+
+  const incoming = [...incomingMap.entries()]
+    .map(([partnerId, sentAt]) => {
+      const user = userMap.get(partnerId);
+      if (!user) return null;
+      return { user, maleProfile: maleMap.get(partnerId) ?? null, femaleProfile: femaleMap.get(partnerId) ?? null, sentAt } satisfies ActivityIncomingCard;
+    })
+    .filter(Boolean) as ActivityIncomingCard[];
+  incoming.sort((a, b) => toTime(b.sentAt) - toTime(a.sentAt));
+
+  const outgoing = [...outgoingMap.entries()]
+    .map(([partnerId, sentAt]) => {
+      const user = userMap.get(partnerId);
+      if (!user) return null;
+      return {
+        user,
+        maleProfile: maleMap.get(partnerId) ?? null,
+        femaleProfile: femaleMap.get(partnerId) ?? null,
+        sentAt,
+        status: matchIdByPartner.has(partnerId) ? 'matched' : incomingMap.has(partnerId) ? 'checking' : 'waiting',
+        matchId: matchIdByPartner.get(partnerId) ?? null,
+      } satisfies ActivityOutgoingCard;
+    })
+    .filter(Boolean) as ActivityOutgoingCard[];
+  outgoing.sort((a, b) => toTime(b.sentAt) - toTime(a.sentAt));
+
+  const matches = matchedRows
+    .filter((row) => Boolean(row.partner))
+    .map((row) => ({
+      matchId: row.match.id,
+      matchedAt: row.match.createdAt,
+      user: row.partner as AppUser,
+      maleProfile: maleMap.get((row.partner as AppUser).id) ?? null,
+      femaleProfile: femaleMap.get((row.partner as AppUser).id) ?? null,
+    }))
+    .sort((a, b) => toTime(b.matchedAt) - toTime(a.matchedAt));
+
+  return { incoming, outgoing, matches };
+}
+
 export async function getChat(matchId: string) {
   if (USE_MOCK_DATA) {
     const match = getMatchById(matchId);
@@ -1870,6 +2214,7 @@ export async function sendMessage(matchId: string, senderId: string, body: strin
       throw new Error('成立済みマッチはチャット送信できません');
     }
     addMessage(matchId, senderId, body);
+    upsertMessageRead(senderId, matchId, new Date().toISOString());
     return;
   }
 
@@ -1901,6 +2246,7 @@ export async function sendMessage(matchId: string, senderId: string, body: strin
   }
 
   await supabase.from('messages').insert({ match_id: matchId, sender_id: senderId, body });
+  await markMatchAsRead(matchId, senderId);
 }
 
 export async function getBlockedUsers(userId: string) {

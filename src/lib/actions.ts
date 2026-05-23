@@ -621,9 +621,10 @@ export async function swipeAction(formData: FormData) {
   const toUserId = String(formData.get('toUserId'));
   const action = String(formData.get('action')) as 'like' | 'skip';
 
-  await swipe(fromUserId, toUserId, action);
+  const result = await swipe(fromUserId, toUserId, action);
   revalidatePath('/home/female');
   revalidatePath('/matches');
+  return result;
 }
 
 export async function toggleFavoriteAction(formData: FormData) {
@@ -661,6 +662,7 @@ export async function sendMessageAction(formData: FormData) {
 
   await sendMessage(matchId, senderId, body.trim());
   revalidatePath(`/chat/${matchId}`);
+  revalidatePath('/matches');
 }
 
 export async function blockUserAction(formData: FormData) {
@@ -844,4 +846,37 @@ export async function createReportAction(formData: FormData) {
   await createReport({ reporterId, targetUserId, reason, reasonType, detail });
   revalidatePath('/admin');
   revalidatePath('/chat');
+  revalidatePath('/home/female');
+}
+
+export async function deleteAccountAction() {
+  const me = await getCurrentUser();
+  if (!me) redirect('/login');
+
+  if (USE_MOCK_DATA) {
+    updateUser(me.id, {
+      isSuspended: true,
+      moderationAction: 'permanent_ban',
+      deletedAt: new Date().toISOString(),
+    });
+    const cookieStore = await cookies();
+    cookieStore.delete('demo_user_id');
+    redirect('/login?deleted=1');
+  }
+
+  const admin = createAdminSupabaseClient();
+  const supabase = await createServerSupabaseClient();
+  if (!admin || !supabase) redirect('/delete-account');
+
+  await admin
+    .from('users')
+    .update({
+      deleted_at: new Date().toISOString(),
+      is_suspended: true,
+      moderation_action: 'permanent_ban',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', me.id);
+  await supabase.auth.signOut();
+  redirect('/login?deleted=1');
 }

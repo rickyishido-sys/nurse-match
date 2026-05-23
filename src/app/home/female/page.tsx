@@ -129,7 +129,7 @@ export default async function FemaleHomePage({ searchParams }: { searchParams: P
           )}
         </article>
 
-        <FemaleCardDeck userId={user.id} cards={cards} filters={filters} />
+        <FemaleCardDeck userId={user.id} selfProfileImageUrl={user.profileImageUrl} cards={cards} filters={filters} />
       </section>
     </AppShell>
   );

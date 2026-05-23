@@ -24,6 +24,7 @@ export type Database = {
           moderation_action: 'none' | 'warning' | 'suspend' | 'permanent_ban';
           is_suspended: boolean;
           is_test_user: boolean;
+          deleted_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -217,6 +218,20 @@ export type Database = {
         };
         Insert: Omit<Database['public']['Tables']['messages']['Row'], 'id' | 'created_at'> & { id?: string; created_at?: string };
         Update: Partial<Database['public']['Tables']['messages']['Row']>;
+      };
+      message_reads: {
+        Row: {
+          user_id: string;
+          match_id: string;
+          last_read_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['message_reads']['Row'], 'created_at' | 'updated_at'> & {
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['message_reads']['Row']>;
       };
       reports: {
         Row: {
