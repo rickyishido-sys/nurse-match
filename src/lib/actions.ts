@@ -259,7 +259,7 @@ export async function requestRegisterVerificationAction(formData: FormData) {
   );
   const siteUrl = resolvePublicSiteUrl();
   const redirectBase = siteUrl ?? requestOrigin;
-  const emailRedirectTo = redirectBase ? `${redirectBase}/register/details` : undefined;
+  const emailRedirectTo = redirectBase ? `${redirectBase}/auth/callback?next=${encodeURIComponent('/register/details')}` : undefined;
 
   if (!siteUrl) {
     console.warn('[requestRegisterVerificationAction] NEXT_PUBLIC_SITE_URL is not set. Falling back to request origin.', {

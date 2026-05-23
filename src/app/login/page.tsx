@@ -2,7 +2,29 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { loginAction } from '@/lib/actions';
 
-export default async function LoginPage() {
+type LoginPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function pickFirst(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0] ?? '';
+  return value ?? '';
+}
+
+function safeDecode(value: string) {
+  if (!value) return '';
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = searchParams ? await searchParams : {};
+  const error = pickFirst(params.error);
+  const detail = safeDecode(pickFirst(params.detail));
+
   return (
     <main className='min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff_0%,_#fdf2f8_45%,_#ffffff_100%)] px-4 py-8'>
       <div className='mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[420px] items-center'>
@@ -20,6 +42,12 @@ export default async function LoginPage() {
 
           <h1 className='mb-1 text-center text-2xl font-bold tracking-tight text-slate-900'>おかえりなさい</h1>
           <p className='mb-6 text-center text-sm text-slate-600'>登録済みの方はこちらからログイン</p>
+          {error === 'auth-callback' ? (
+            <div className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
+              <p>認証コールバックに失敗しました。もう一度認証リンクを開いてください。</p>
+              {detail ? <p className='mt-1 break-all text-[11px]'>detail: {detail}</p> : null}
+            </div>
+          ) : null}
 
           <form action={loginAction} className='space-y-4'>
             <label className='block'>
