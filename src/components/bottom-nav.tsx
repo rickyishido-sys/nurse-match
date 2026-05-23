@@ -17,7 +17,7 @@ export function BottomNav({ role = 'user' }: BottomNavProps) {
     { href: '/home', label: 'ホーム' },
     { href: '/favorites', label: 'お気に入り' },
     { href: '/activity', label: '興味あり' },
-    { href: '/matches', label: 'マッチ' },
+    { href: '/chats', label: 'マッチ' },
     { href: '/profile/edit', label: 'プロフィール' },
   ];
 

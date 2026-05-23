@@ -1929,6 +1929,9 @@ export type ActivityOutgoingCard = ActivityBaseCard & {
 export type ActivityMatchCard = ActivityBaseCard & {
   matchId: string;
   matchedAt: string;
+  unreadCount: number;
+  latestMessage: string | null;
+  latestMessageAt: string | null;
 };
 
 export async function getActivityFeed(userId: string): Promise<{
@@ -1937,6 +1940,8 @@ export async function getActivityFeed(userId: string): Promise<{
   matches: ActivityMatchCard[];
 }> {
   const matchedRows = await getMatches(userId);
+  const threads = await getChatThreads(userId);
+  const threadMap = new Map(threads.map((row) => [row.match.id, row]));
   const matchIdByPartner = new Map<string, string>();
   for (const row of matchedRows) {
     if (row.partner) matchIdByPartner.set(row.partner.id, row.match.id);
@@ -2013,6 +2018,9 @@ export async function getActivityFeed(userId: string): Promise<{
         maleProfile: getMaleProfile((row.partner as AppUser).id),
         femaleProfile: getFemaleProfile((row.partner as AppUser).id),
         profileImages: listProfileImages((row.partner as AppUser).id),
+        unreadCount: threadMap.get(row.match.id)?.unreadCount ?? 0,
+        latestMessage: threadMap.get(row.match.id)?.latestMessage?.body ?? null,
+        latestMessageAt: threadMap.get(row.match.id)?.latestMessage?.createdAt ?? null,
       }))
       .sort((a, b) => toTime(b.matchedAt) - toTime(a.matchedAt));
 
@@ -2151,10 +2159,36 @@ export async function getActivityFeed(userId: string): Promise<{
       maleProfile: maleMap.get((row.partner as AppUser).id) ?? null,
       femaleProfile: femaleMap.get((row.partner as AppUser).id) ?? null,
       profileImages: imagesMap.get((row.partner as AppUser).id) ?? [],
+      unreadCount: threadMap.get(row.match.id)?.unreadCount ?? 0,
+      latestMessage: threadMap.get(row.match.id)?.latestMessage?.body ?? null,
+      latestMessageAt: threadMap.get(row.match.id)?.latestMessage?.createdAt ?? null,
     }))
     .sort((a, b) => toTime(b.matchedAt) - toTime(a.matchedAt));
 
   return { incoming, outgoing, matches };
+}
+
+export async function getMatchReadMap(matchId: string): Promise<Record<string, string>> {
+  if (USE_MOCK_DATA) {
+    const match = getMatchById(matchId);
+    if (!match) return {};
+    const users = [match.userAId, match.userBId];
+    const result: Record<string, string> = {};
+    for (const userId of users) {
+      const row = listMessageReadsByUser(userId).find((entry) => entry.matchId === matchId);
+      if (row?.lastReadAt) result[userId] = row.lastReadAt;
+    }
+    return result;
+  }
+
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return {};
+  const { data } = await supabase.from('message_reads').select('user_id,last_read_at').eq('match_id', matchId);
+  const result: Record<string, string> = {};
+  for (const row of data ?? []) {
+    result[row.user_id] = row.last_read_at;
+  }
+  return result;
 }
 
 export async function getChat(matchId: string) {

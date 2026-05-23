@@ -73,7 +73,7 @@ export default async function MaleHomePage() {
             <Link href='/profile/edit' className='h-11 rounded-xl border border-slate-200 px-3 text-center text-sm font-semibold leading-[44px]'>
               プロフィール編集
             </Link>
-            <Link href='/matches' className='h-11 rounded-xl bg-slate-900 px-3 text-center text-sm font-semibold leading-[44px] text-white'>
+            <Link href='/chats' className='h-11 rounded-xl bg-slate-900 px-3 text-center text-sm font-semibold leading-[44px] text-white'>
               マッチを見る
             </Link>
           </div>
@@ -98,7 +98,7 @@ export default async function MaleHomePage() {
               {matches.map(({ match, partner }) =>
                 partner ? (
                   <li key={match.id}>
-                    <Link href={`/chat/${match.id}`} className='block rounded-xl border border-slate-200 bg-slate-50 px-3 py-3'>
+                    <Link href={`/chats/${match.id}`} className='block rounded-xl border border-slate-200 bg-slate-50 px-3 py-3'>
                       {partner.nickname} さんとのチャット
                     </Link>
                   </li>

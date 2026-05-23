@@ -11,6 +11,7 @@ import { ProfileDetailModal } from '@/components/profile-detail-modal';
 
 type ActivityTabsProps = {
   userId: string;
+  selfProfileImageUrl: string;
   incoming: ActivityIncomingCard[];
   outgoing: ActivityOutgoingCard[];
   matches: ActivityMatchCard[];
@@ -24,7 +25,7 @@ function statusLabel(status: ActivityOutgoingCard['status']) {
   return '相手待ち';
 }
 
-export function ActivityTabs({ userId, incoming, outgoing, matches }: ActivityTabsProps) {
+export function ActivityTabs({ userId, selfProfileImageUrl, incoming, outgoing, matches }: ActivityTabsProps) {
   const [tab, setTab] = useState<TabKey>('incoming');
   const [isPending, startTransition] = useTransition();
   const [matched, setMatched] = useState<ActivityMatchCard | null>(null);
@@ -54,6 +55,9 @@ export function ActivityTabs({ userId, incoming, outgoing, matches }: ActivityTa
           maleProfile: target.maleProfile,
           femaleProfile: target.femaleProfile,
           profileImages: target.profileImages,
+          unreadCount: 0,
+          latestMessage: null,
+          latestMessageAt: null,
         });
       }
       router.refresh();
@@ -91,7 +95,7 @@ export function ActivityTabs({ userId, incoming, outgoing, matches }: ActivityTa
             ? 'まだ興味ありは届いていません'
             : tab === 'outgoing'
               ? '気になる相手に興味ありを送ってみましょう'
-              : 'マッチするとここに表示されます'}
+            : 'マッチするとここに会話が表示されます'}
         </article>
       ) : null}
 
@@ -178,15 +182,19 @@ export function ActivityTabs({ userId, incoming, outgoing, matches }: ActivityTa
         ? matches.map((row) => (
             <article key={row.matchId} className='rounded-3xl border border-pink-100 bg-white p-4 shadow-[0_20px_45px_-32px_rgba(236,72,153,0.45)]'>
               <div className='flex items-center gap-3'>
-                <Image src={row.user.profileImageUrl} alt={row.user.nickname} width={70} height={70} className='h-[70px] w-[70px] rounded-2xl object-cover' />
+                <Image src={row.user.profileImageUrl} alt={row.user.nickname} width={78} height={78} className='h-[78px] w-[78px] rounded-2xl object-cover' />
                 <div className='flex-1'>
                   <p className='text-base font-semibold text-slate-900'>{row.user.nickname}・{row.user.age}</p>
                   <p className='text-xs text-slate-500'>{row.user.location}</p>
                   <p className='text-[11px] text-slate-400'>マッチ日時: {new Date(row.matchedAt).toLocaleString('ja-JP')}</p>
+                  <p className='mt-1 line-clamp-1 text-xs text-slate-600'>{row.latestMessage ?? row.user.bio}</p>
                 </div>
-                <Badge tone='pink'>MATCH</Badge>
+                <div className='flex flex-col items-end gap-1'>
+                  <Badge tone='pink'>MATCH</Badge>
+                  {row.unreadCount > 0 ? <Badge tone='pink'>未読 {row.unreadCount}</Badge> : null}
+                </div>
               </div>
-              <Link href={`/chat/${row.matchId}`} className='mt-3 flex h-11 items-center justify-center rounded-xl bg-slate-900 text-sm font-semibold text-white'>
+              <Link href={`/chats/${row.matchId}`} className='mt-3 flex h-11 items-center justify-center rounded-xl bg-slate-900 text-sm font-semibold text-white'>
                 メッセージを開く
               </Link>
               <button
@@ -208,20 +216,31 @@ export function ActivityTabs({ userId, incoming, outgoing, matches }: ActivityTa
         : null}
 
       {matched ? (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4'>
-          <div className='w-full max-w-[340px] rounded-3xl border border-slate-100 bg-white p-5 text-center shadow-2xl'>
-            <p className='text-5xl text-pink-500'>♡</p>
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-slate-950/68 p-4'>
+          <div className='w-full max-w-[360px] rounded-3xl border border-slate-100 bg-white p-5 text-center shadow-2xl'>
+            <p className='animate-[heartPulse_420ms_ease] text-5xl text-pink-500'>♡</p>
             <p className='mt-2 text-xl font-bold text-slate-900'>マッチしました</p>
             <p className='text-xs text-slate-500'>お互いの温度感がつながりました</p>
-            <div className='mt-4 grid grid-cols-2 gap-2'>
+            <div className='mt-4 flex items-center justify-center gap-3'>
+              <Image src={matched.user.profileImageUrl} alt={matched.user.nickname} width={68} height={68} className='h-17 w-17 rounded-2xl object-cover' />
+              <span className='text-xl text-slate-300'>×</span>
+              <Image src={selfProfileImageUrl} alt='あなた' width={68} height={68} className='h-17 w-17 rounded-2xl object-cover' />
+            </div>
+            <div className='mt-5 grid grid-cols-2 gap-2'>
               <button onClick={() => setMatched(null)} className='h-10 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600'>
                 あとで
               </button>
-              <Link href={`/chat/${matched.matchId}`} className='flex h-10 items-center justify-center rounded-xl bg-slate-900 text-sm font-semibold text-white'>
+              <Link href={`/chats/${matched.matchId}`} className='flex h-10 items-center justify-center rounded-xl bg-slate-900 text-sm font-semibold text-white'>
                 メッセージを送る
               </Link>
             </div>
           </div>
+          <style jsx>{`
+            @keyframes heartPulse {
+              0% { transform: scale(0.8); opacity: 0.6; }
+              100% { transform: scale(1); opacity: 1; }
+            }
+          `}</style>
         </div>
       ) : null}
 
@@ -250,6 +269,9 @@ export function ActivityTabs({ userId, incoming, outgoing, matches }: ActivityTa
                     maleProfile: selected.maleProfile,
                     femaleProfile: selected.femaleProfile,
                     profileImages: selected.profileImages,
+                    unreadCount: 0,
+                    latestMessage: null,
+                    latestMessageAt: null,
                   });
                 }
                 setSelected(null);

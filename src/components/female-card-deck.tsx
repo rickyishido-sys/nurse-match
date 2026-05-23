@@ -238,7 +238,7 @@ export function FemaleCardDeck({ userId, selfProfileImageUrl, cards, filters }: 
               <button onClick={() => setMatchedState(null)} className='h-11 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600'>
                 あとで
               </button>
-              <Link href={`/chat/${matchedState.matchId}`} className='flex h-11 items-center justify-center rounded-xl bg-slate-900 text-sm font-semibold text-white'>
+              <Link href={`/chats/${matchedState.matchId}`} className='flex h-11 items-center justify-center rounded-xl bg-slate-900 text-sm font-semibold text-white'>
                 メッセージを送る
               </Link>
             </div>

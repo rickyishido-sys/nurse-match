@@ -20,7 +20,7 @@ export default async function ActivityPage() {
 
   return (
     <AppShell user={user}>
-      <ActivityTabs userId={user.id} incoming={feed.incoming} outgoing={feed.outgoing} matches={feed.matches} />
+      <ActivityTabs userId={user.id} selfProfileImageUrl={user.profileImageUrl} incoming={feed.incoming} outgoing={feed.outgoing} matches={feed.matches} />
     </AppShell>
   );
 }

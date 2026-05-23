@@ -624,6 +624,8 @@ export async function swipeAction(formData: FormData) {
   const result = await swipe(fromUserId, toUserId, action);
   revalidatePath('/home/female');
   revalidatePath('/matches');
+  revalidatePath('/activity');
+  revalidatePath('/chats');
   return result;
 }
 
@@ -662,7 +664,10 @@ export async function sendMessageAction(formData: FormData) {
 
   await sendMessage(matchId, senderId, body.trim());
   revalidatePath(`/chat/${matchId}`);
+  revalidatePath(`/chats/${matchId}`);
   revalidatePath('/matches');
+  revalidatePath('/chats');
+  revalidatePath('/activity');
 }
 
 export async function blockUserAction(formData: FormData) {
@@ -673,7 +678,9 @@ export async function blockUserAction(formData: FormData) {
   revalidatePath('/blocked-users');
   revalidatePath('/home/female');
   revalidatePath('/matches');
+  revalidatePath('/chats');
   revalidatePath('/chat');
+  revalidatePath('/activity');
 }
 
 export async function markRelationshipModeAction(formData: FormData) {
@@ -683,7 +690,10 @@ export async function markRelationshipModeAction(formData: FormData) {
   await markMatchAsRelationshipMode(matchId, actorUserId);
   revalidatePath('/matches');
   revalidatePath(`/chat/${matchId}`);
+  revalidatePath('/chats');
+  revalidatePath(`/chats/${matchId}`);
   revalidatePath('/home/female');
+  revalidatePath('/activity');
 }
 
 export async function saveProfileAction(formData: FormData) {
