@@ -1,9 +1,8 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { Badge } from '@/components/badges';
-import { maleInterestSignalAction, toggleFavoriteAction } from '@/lib/actions';
+import { MaleDailyCandidates } from '@/components/male-daily-candidates';
 import {
   getCurrentUser,
   getFavoriteTargetIds,
@@ -44,7 +43,7 @@ export default async function MaleHomePage() {
   const matches = await getMatches(user.id);
   const maleProfile = await getMaleProfileByUserId(user.id);
   const dailyCandidates = await getMaleDailyCandidateCards(user);
-  const favoriteIds = await getFavoriteTargetIds(user.id);
+  const favoriteIds = [...(await getFavoriteTargetIds(user.id))];
   const creditBalance = await getUserCreditBalance(user.id);
   const completion = getProfileCompletionScore(maleProfile, user.bio);
 
@@ -87,58 +86,7 @@ export default async function MaleHomePage() {
         <article className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
           <h2 className='font-semibold text-slate-900'>本日の紹介候補</h2>
           <p className='text-xs text-slate-500'>1日最大3人まで。女性には通知されず、条件一致時のみおすすめへ反映されます。候補表示は厳選3人です。</p>
-          {dailyCandidates.length === 0 ? (
-            <p className='text-sm text-slate-500'>候補は準備中です。</p>
-          ) : (
-            dailyCandidates.map((candidate) => (
-              <article key={candidate.user.id} className='rounded-2xl border border-slate-100 bg-slate-50 p-3'>
-                <div className='flex items-center gap-3'>
-                  <div className='relative h-16 w-16 overflow-hidden rounded-xl border border-slate-200'>
-                    <Image src={candidate.user.profileImageUrl} alt={candidate.user.nickname} fill className='object-cover' />
-                  </div>
-                  <div>
-                    <p className='text-sm font-semibold text-slate-900'>{candidate.user.nickname}・{candidate.user.age}</p>
-                    <p className='text-xs text-slate-600'>{candidate.user.location}</p>
-                    <p className='text-xs text-slate-500'>
-                      {candidate.femaleProfile?.workplaceType ? `勤務: ${candidate.femaleProfile.workplaceType}` : '勤務情報: 未設定'}
-                    </p>
-                    {candidate.signaledToday ? <Badge tone='amber'>送信済み</Badge> : null}
-                  </div>
-                </div>
-                <div className='mt-2 grid grid-cols-3 gap-2 text-xs'>
-                  <form action={maleInterestSignalAction}>
-                    <input type='hidden' name='userId' value={user.id} />
-                    <input type='hidden' name='targetUserId' value={candidate.user.id} />
-                    <input type='hidden' name='signalType' value='interested' />
-                    <button
-                      disabled={candidate.signaledToday}
-                      className='h-9 w-full rounded-xl bg-slate-900 font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300'
-                    >
-                      興味あり
-                    </button>
-                  </form>
-                  <form action={maleInterestSignalAction}>
-                    <input type='hidden' name='userId' value={user.id} />
-                    <input type='hidden' name='targetUserId' value={candidate.user.id} />
-                    <input type='hidden' name='signalType' value='skipped' />
-                    <button
-                      disabled={candidate.signaledToday}
-                      className='h-9 w-full rounded-xl border border-slate-200 bg-white font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50'
-                    >
-                      スキップ
-                    </button>
-                  </form>
-                  <form action={toggleFavoriteAction}>
-                    <input type='hidden' name='userId' value={user.id} />
-                    <input type='hidden' name='targetUserId' value={candidate.user.id} />
-                    <button className='h-9 w-full rounded-xl border border-slate-200 bg-white font-semibold text-slate-700'>
-                      {favoriteIds.has(candidate.user.id) ? '保存済み' : 'お気に入り'}
-                    </button>
-                  </form>
-                </div>
-              </article>
-            ))
-          )}
+          <MaleDailyCandidates userId={user.id} candidates={dailyCandidates} favoriteIds={favoriteIds} />
         </article>
 
         <article className='rounded-3xl border border-slate-100 bg-white p-5 shadow-sm'>

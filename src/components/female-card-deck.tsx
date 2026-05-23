@@ -4,8 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
 import { Badge } from '@/components/badges';
-import { blockUserAction, createReportAction, setFemaleSearchPreferenceAction, swipeAction } from '@/lib/actions';
-import { maritalStatusLabel } from '@/lib/labels';
+import { setFemaleSearchPreferenceAction, swipeAction } from '@/lib/actions';
+import { ProfileDetailModal } from '@/components/profile-detail-modal';
 import type { AppUser, FemaleProfile, MaleProfile, ProfileImageRecord } from '@/lib/types/domain';
 
 type CandidateCard = {
@@ -203,59 +203,24 @@ export function FemaleCardDeck({ userId, selfProfileImageUrl, cards, filters }: 
         </div>
       ) : null}
 
-      {isDetailOpen && current ? (
-        <div className='fixed inset-0 z-50 bg-slate-950/45' role='dialog' aria-modal='true'>
-          <button type='button' className='absolute inset-0 w-full' aria-label='閉じる' onClick={() => setIsDetailOpen(false)} />
-          <div className='absolute inset-x-0 bottom-0 mx-auto w-full max-w-[430px] rounded-t-[28px] border border-slate-100 bg-white p-5 shadow-2xl'>
-            <div className='mb-3 flex items-center justify-between'>
-              <div className='h-1.5 w-10 rounded-full bg-slate-200' />
-              <button type='button' onClick={() => setIsDetailOpen(false)} className='rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-600'>
-                閉じる
-              </button>
-            </div>
-            <h3 className='mb-3 text-base font-bold text-slate-900'>{current.user.nickname}さんの詳細</h3>
-            <div className='space-y-3 text-sm text-slate-700'>
-              {current.user.gender === 'male' && current.maleProfile ? (
-                <>
-                  <p>年収: {current.maleProfile.income || '未設定'}</p>
-                  <p>身長: {current.maleProfile.height ? `${current.maleProfile.height}cm` : '未設定'}</p>
-                  <p>休日: {current.maleProfile.holiday || '未設定'}</p>
-                  <p>飲酒: {current.maleProfile.drinking || '未設定'}</p>
-                  <p>婚姻: {maritalStatusLabel(current.maleProfile.maritalStatus)}</p>
-                </>
-              ) : null}
-              {current.user.gender === 'female' && current.femaleProfile ? (
-                <>
-                  <p>勤務形態: {getJobLabel(current)}</p>
-                  <p>夜勤: {current.femaleProfile.hasNightShift ? 'あり' : 'なし'}</p>
-                </>
-              ) : null}
-              <p className='rounded-2xl border border-slate-100 bg-slate-50 p-3 leading-6'>{current.user.bio}</p>
-              <form action={createReportAction} className='grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs'>
-                <input type='hidden' name='reporterId' value={userId} />
-                <input type='hidden' name='targetUserId' value={current.user.id} />
-                <select name='reasonType' defaultValue='harassment' className='h-9 rounded-lg border border-slate-300 bg-white px-2'>
-                  <option value='harassment'>不適切な発言</option>
-                  <option value='spam'>勧誘</option>
-                  <option value='fake_profile'>なりすまし</option>
-                  <option value='dangerous'>不快行為</option>
-                  <option value='other'>その他</option>
-                </select>
-                <input name='reason' defaultValue='プロフィールから通報' className='h-9 rounded-lg border border-slate-300 bg-white px-2' />
-                <input name='detail' placeholder='詳細（任意）' className='col-span-2 h-9 rounded-lg border border-slate-300 bg-white px-2' />
-                <button className='col-span-2 rounded-lg border border-slate-300 bg-white py-2'>通報する</button>
-              </form>
-              <form action={blockUserAction}>
-                <input type='hidden' name='blockerUserId' value={userId} />
-                <input type='hidden' name='blockedUserId' value={current.user.id} />
-                <button className='w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700'>
-                  このユーザーをブロック
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ProfileDetailModal
+        isOpen={isDetailOpen && Boolean(current)}
+        onClose={() => setIsDetailOpen(false)}
+        user={current?.user ?? null}
+        maleProfile={current?.maleProfile ?? null}
+        femaleProfile={current?.femaleProfile ?? null}
+        profileImages={current?.profileImages ?? []}
+        onSkip={async () => {
+          setIsDetailOpen(false);
+          submitSwipe('skip');
+        }}
+        onLike={async () => {
+          setIsDetailOpen(false);
+          submitSwipe('like');
+        }}
+        skipDisabled={!current || isPending || actionLocked}
+        likeDisabled={!current || isPending || actionLocked}
+      />
 
       {matchedState ? (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-4' role='dialog' aria-modal='true'>

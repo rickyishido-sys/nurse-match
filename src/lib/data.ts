@@ -1913,6 +1913,7 @@ type ActivityBaseCard = {
   user: AppUser;
   maleProfile: MaleProfile | null;
   femaleProfile: FemaleProfile | null;
+  profileImages: ProfileImageRecord[];
 };
 
 export type ActivityIncomingCard = ActivityBaseCard & {
@@ -1978,6 +1979,7 @@ export async function getActivityFeed(userId: string): Promise<{
           user,
           maleProfile: getMaleProfile(targetId),
           femaleProfile: getFemaleProfile(targetId),
+          profileImages: listProfileImages(targetId),
           sentAt,
         } satisfies ActivityIncomingCard;
       })
@@ -1993,6 +1995,7 @@ export async function getActivityFeed(userId: string): Promise<{
           user,
           maleProfile: getMaleProfile(targetId),
           femaleProfile: getFemaleProfile(targetId),
+          profileImages: listProfileImages(targetId),
           sentAt,
           status: matchIdByPartner.has(targetId) ? 'matched' : hasIncoming ? 'checking' : 'waiting',
           matchId: matchIdByPartner.get(targetId) ?? null,
@@ -2009,6 +2012,7 @@ export async function getActivityFeed(userId: string): Promise<{
         user: row.partner as AppUser,
         maleProfile: getMaleProfile((row.partner as AppUser).id),
         femaleProfile: getFemaleProfile((row.partner as AppUser).id),
+        profileImages: listProfileImages((row.partner as AppUser).id),
       }))
       .sort((a, b) => toTime(b.matchedAt) - toTime(a.matchedAt));
 
@@ -2062,6 +2066,11 @@ export async function getActivityFeed(userId: string): Promise<{
       }),
     ),
   );
+  const imagesMap = new Map(
+    await Promise.all(
+      allPartnerIds.map(async (partnerId) => [partnerId, await getProfileImagesByUserId(partnerId)] as const),
+    ),
+  );
   const maleMap = new Map(
     (maleRows ?? []).map((m) => [
       m.user_id,
@@ -2105,7 +2114,13 @@ export async function getActivityFeed(userId: string): Promise<{
     .map(([partnerId, sentAt]) => {
       const user = userMap.get(partnerId);
       if (!user) return null;
-      return { user, maleProfile: maleMap.get(partnerId) ?? null, femaleProfile: femaleMap.get(partnerId) ?? null, sentAt } satisfies ActivityIncomingCard;
+      return {
+        user,
+        maleProfile: maleMap.get(partnerId) ?? null,
+        femaleProfile: femaleMap.get(partnerId) ?? null,
+        profileImages: imagesMap.get(partnerId) ?? [],
+        sentAt,
+      } satisfies ActivityIncomingCard;
     })
     .filter(Boolean) as ActivityIncomingCard[];
   incoming.sort((a, b) => toTime(b.sentAt) - toTime(a.sentAt));
@@ -2118,6 +2133,7 @@ export async function getActivityFeed(userId: string): Promise<{
         user,
         maleProfile: maleMap.get(partnerId) ?? null,
         femaleProfile: femaleMap.get(partnerId) ?? null,
+        profileImages: imagesMap.get(partnerId) ?? [],
         sentAt,
         status: matchIdByPartner.has(partnerId) ? 'matched' : incomingMap.has(partnerId) ? 'checking' : 'waiting',
         matchId: matchIdByPartner.get(partnerId) ?? null,
@@ -2134,6 +2150,7 @@ export async function getActivityFeed(userId: string): Promise<{
       user: row.partner as AppUser,
       maleProfile: maleMap.get((row.partner as AppUser).id) ?? null,
       femaleProfile: femaleMap.get((row.partner as AppUser).id) ?? null,
+      profileImages: imagesMap.get((row.partner as AppUser).id) ?? [],
     }))
     .sort((a, b) => toTime(b.matchedAt) - toTime(a.matchedAt));
 

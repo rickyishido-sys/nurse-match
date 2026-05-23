@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/badges';
 import { swipeAction } from '@/lib/actions';
 import type { ActivityIncomingCard, ActivityMatchCard, ActivityOutgoingCard } from '@/lib/data';
+import { ProfileDetailModal } from '@/components/profile-detail-modal';
 
 type ActivityTabsProps = {
   userId: string;
@@ -27,6 +28,13 @@ export function ActivityTabs({ userId, incoming, outgoing, matches }: ActivityTa
   const [tab, setTab] = useState<TabKey>('incoming');
   const [isPending, startTransition] = useTransition();
   const [matched, setMatched] = useState<ActivityMatchCard | null>(null);
+  const [selected, setSelected] = useState<{
+    user: ActivityIncomingCard['user'];
+    maleProfile: ActivityIncomingCard['maleProfile'];
+    femaleProfile: ActivityIncomingCard['femaleProfile'];
+    profileImages: ActivityIncomingCard['profileImages'];
+    likeTargetId: string | null;
+  } | null>(null);
   const router = useRouter();
 
   const activeList = useMemo(() => (tab === 'incoming' ? incoming : tab === 'outgoing' ? outgoing : matches), [tab, incoming, outgoing, matches]);
@@ -45,6 +53,7 @@ export function ActivityTabs({ userId, incoming, outgoing, matches }: ActivityTa
           user: target.user,
           maleProfile: target.maleProfile,
           femaleProfile: target.femaleProfile,
+          profileImages: target.profileImages,
         });
       }
       router.refresh();
@@ -112,7 +121,15 @@ export function ActivityTabs({ userId, incoming, outgoing, matches }: ActivityTa
                   ♡ 興味ありを返す
                 </button>
                 <button
-                  onClick={() => window.alert('詳細はカード画面またはチャット画面から確認できます。')}
+                  onClick={() =>
+                    setSelected({
+                      user: row.user,
+                      maleProfile: row.maleProfile,
+                      femaleProfile: row.femaleProfile,
+                      profileImages: row.profileImages,
+                      likeTargetId: row.user.id,
+                    })
+                  }
                   className='h-11 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700'
                 >
                   詳細を見る
@@ -139,6 +156,20 @@ export function ActivityTabs({ userId, incoming, outgoing, matches }: ActivityTa
                 </div>
                 <Badge tone={row.status === 'matched' ? 'pink' : 'gray'}>{statusLabel(row.status)}</Badge>
               </div>
+              <button
+                onClick={() =>
+                  setSelected({
+                    user: row.user,
+                    maleProfile: row.maleProfile,
+                    femaleProfile: row.femaleProfile,
+                    profileImages: row.profileImages,
+                    likeTargetId: null,
+                  })
+                }
+                className='h-10 w-full rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700'
+              >
+                詳細を見る
+              </button>
             </article>
           ))
         : null}
@@ -158,6 +189,20 @@ export function ActivityTabs({ userId, incoming, outgoing, matches }: ActivityTa
               <Link href={`/chat/${row.matchId}`} className='mt-3 flex h-11 items-center justify-center rounded-xl bg-slate-900 text-sm font-semibold text-white'>
                 メッセージを開く
               </Link>
+              <button
+                onClick={() =>
+                  setSelected({
+                    user: row.user,
+                    maleProfile: row.maleProfile,
+                    femaleProfile: row.femaleProfile,
+                    profileImages: row.profileImages,
+                    likeTargetId: null,
+                  })
+                }
+                className='mt-2 h-10 w-full rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700'
+              >
+                詳細を見る
+              </button>
             </article>
           ))
         : null}
@@ -179,6 +224,43 @@ export function ActivityTabs({ userId, incoming, outgoing, matches }: ActivityTa
           </div>
         </div>
       ) : null}
+
+      <ProfileDetailModal
+        isOpen={Boolean(selected)}
+        onClose={() => setSelected(null)}
+        user={selected?.user ?? null}
+        maleProfile={selected?.maleProfile ?? null}
+        femaleProfile={selected?.femaleProfile ?? null}
+        profileImages={selected?.profileImages ?? []}
+        onLike={
+          selected?.likeTargetId
+            ? async () => {
+                const targetId = selected.likeTargetId;
+                if (!targetId) return;
+                const form = new FormData();
+                form.set('fromUserId', userId);
+                form.set('toUserId', targetId);
+                form.set('action', 'like');
+                const result = await swipeAction(form);
+                if (result?.matched && result.matchId && selected) {
+                  setMatched({
+                    matchId: result.matchId,
+                    matchedAt: new Date().toISOString(),
+                    user: selected.user,
+                    maleProfile: selected.maleProfile,
+                    femaleProfile: selected.femaleProfile,
+                    profileImages: selected.profileImages,
+                  });
+                }
+                setSelected(null);
+                router.refresh();
+              }
+            : undefined
+        }
+        onSkip={() => setSelected(null)}
+        likeDisabled={isPending}
+        skipDisabled={isPending}
+      />
     </section>
   );
 }
