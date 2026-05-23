@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import {
   blockUser,
+  unblockUser,
   createReport,
   createInterestSignal,
   getCurrentUser,
@@ -856,17 +857,32 @@ export async function createReportAction(formData: FormData) {
   await createReport({ reporterId, targetUserId, reason, reasonType, detail });
   revalidatePath('/admin');
   revalidatePath('/chat');
+  revalidatePath('/chats');
   revalidatePath('/home/female');
+  revalidatePath('/activity');
 }
 
-export async function deleteAccountAction() {
+export async function unblockUserAction(formData: FormData) {
+  const blockerUserId = String(formData.get('blockerUserId'));
+  const blockedUserId = String(formData.get('blockedUserId'));
+  await unblockUser(blockerUserId, blockedUserId);
+  revalidatePath('/blocked-users');
+  revalidatePath('/home/female');
+  revalidatePath('/activity');
+  revalidatePath('/chats');
+}
+
+export async function deleteAccountAction(formData: FormData) {
   const me = await getCurrentUser();
   if (!me) redirect('/login');
+  const deleteReason = String(formData.get('deleteReason') ?? '').trim();
+  const reasonText = deleteReason ? `退会理由: ${deleteReason}` : null;
 
   if (USE_MOCK_DATA) {
     updateUser(me.id, {
       isSuspended: true,
       moderationAction: 'permanent_ban',
+      rejectedReason: reasonText,
       deletedAt: new Date().toISOString(),
     });
     const cookieStore = await cookies();
@@ -884,6 +900,7 @@ export async function deleteAccountAction() {
       deleted_at: new Date().toISOString(),
       is_suspended: true,
       moderation_action: 'permanent_ban',
+      rejected_reason: reasonText,
       updated_at: new Date().toISOString(),
     })
     .eq('id', me.id);

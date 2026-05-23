@@ -8,6 +8,7 @@ import { Badge } from '@/components/badges';
 import { swipeAction } from '@/lib/actions';
 import type { ActivityIncomingCard, ActivityMatchCard, ActivityOutgoingCard } from '@/lib/data';
 import { ProfileDetailModal } from '@/components/profile-detail-modal';
+import { UserSafetyMenu } from '@/components/user-safety-menu';
 
 type ActivityTabsProps = {
   userId: string;
@@ -174,6 +175,9 @@ export function ActivityTabs({ userId, selfProfileImageUrl, incoming, outgoing, 
               >
                 詳細を見る
               </button>
+              <div className='mt-2 flex justify-end'>
+                <UserSafetyMenu reporterId={userId} targetUserId={row.user.id} compact />
+              </div>
             </article>
           ))
         : null}
@@ -211,6 +215,9 @@ export function ActivityTabs({ userId, selfProfileImageUrl, incoming, outgoing, 
               >
                 詳細を見る
               </button>
+              <div className='mt-2 flex justify-end'>
+                <UserSafetyMenu reporterId={userId} targetUserId={row.user.id} compact />
+              </div>
             </article>
           ))
         : null}
@@ -251,6 +258,7 @@ export function ActivityTabs({ userId, selfProfileImageUrl, incoming, outgoing, 
         maleProfile={selected?.maleProfile ?? null}
         femaleProfile={selected?.femaleProfile ?? null}
         profileImages={selected?.profileImages ?? []}
+        viewerUserId={userId}
         onLike={
           selected?.likeTargetId
             ? async () => {

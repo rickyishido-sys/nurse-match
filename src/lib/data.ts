@@ -21,6 +21,7 @@ import {
   isBlockedBetween,
   listAdminActions,
   listBlocksForUser,
+  removeBlock,
   listLikes,
   listMatchesForUser,
   listMessageReadsByUser,
@@ -2343,6 +2344,17 @@ export async function blockUser(blockerUserId: string, blockedUserId: string) {
   if (!supabase) return;
 
   await supabase.from('blocks').upsert({ blocker_user_id: blockerUserId, blocked_user_id: blockedUserId });
+}
+
+export async function unblockUser(blockerUserId: string, blockedUserId: string) {
+  if (USE_MOCK_DATA) {
+    removeBlock(blockerUserId, blockedUserId);
+    return;
+  }
+
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return;
+  await supabase.from('blocks').delete().eq('blocker_user_id', blockerUserId).eq('blocked_user_id', blockedUserId);
 }
 
 export async function getAdminData(adminUserId?: string) {

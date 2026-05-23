@@ -123,6 +123,7 @@ export function MaleDailyCandidates({ userId, candidates, favoriteIds }: MaleDai
         maleProfile={null}
         femaleProfile={selected?.femaleProfile ?? null}
         profileImages={selected?.profileImages ?? []}
+        viewerUserId={userId}
         onSkip={async () => {
           if (!selected) return;
           await signal(selected.user.id, 'skipped');

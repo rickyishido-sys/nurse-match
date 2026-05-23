@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
+import { UnblockUserButton } from '@/components/unblock-user-button';
 import { getBlockedUsers, getCurrentUser } from '@/lib/data';
 
 export default async function BlockedUsersPage() {
@@ -37,6 +38,7 @@ export default async function BlockedUsersPage() {
                     <p className='text-sm font-semibold text-slate-900'>{blockedUser.nickname}</p>
                     <p className='text-xs text-slate-500'>ブロック日時: {new Date(block.createdAt).toLocaleString('ja-JP')}</p>
                   </div>
+                  <UnblockUserButton blockerUserId={user.id} blockedUserId={blockedUser.id} />
                 </li>
               ) : null,
             )}

@@ -834,6 +834,13 @@ export function addBlock(blockerUserId: string, blockedUserId: string) {
   return row;
 }
 
+export function removeBlock(blockerUserId: string, blockedUserId: string) {
+  const idx = blocks.findIndex((b) => b.blockerUserId === blockerUserId && b.blockedUserId === blockedUserId);
+  if (idx < 0) return false;
+  blocks.splice(idx, 1);
+  return true;
+}
+
 export function listAdminActions() {
   return adminActions;
 }

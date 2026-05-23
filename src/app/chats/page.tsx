@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Badge } from '@/components/badges';
 import { AppShell } from '@/components/app-shell';
+import { UserSafetyMenu } from '@/components/user-safety-menu';
 import { getChatThreads, getCurrentUser } from '@/lib/data';
 import { getAccessState, isAdminRole } from '@/lib/guard';
 
@@ -39,17 +40,20 @@ export default async function ChatsPage() {
         ) : (
           threads.map(({ match, partner, latestMessage, unreadCount }) =>
             partner ? (
-              <Link key={match.id} href={`/chats/${match.id}`} className='flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm'>
-                <Image src={partner.profileImageUrl} alt={partner.nickname} width={64} height={64} className='h-16 w-16 rounded-2xl object-cover' />
-                <div className='min-w-0 flex-1'>
-                  <div className='flex items-center gap-2'>
-                    <p className='truncate font-semibold text-slate-900'>{partner.nickname}</p>
-                    {unreadCount > 0 ? <Badge tone='pink'>未読 {unreadCount}</Badge> : null}
-                  </div>
-                  <p className='line-clamp-1 text-xs text-slate-600'>{latestMessage?.body ?? '会話をはじめましょう。'}</p>
-                  <p className='text-[11px] text-slate-400'>{displayDate(latestMessage?.createdAt ?? match.createdAt)}</p>
+              <article key={match.id} className='rounded-2xl border border-slate-100 bg-white p-3 shadow-sm'>
+                <div className='flex items-center gap-3'>
+                  <Image src={partner.profileImageUrl} alt={partner.nickname} width={64} height={64} className='h-16 w-16 rounded-2xl object-cover' />
+                  <Link href={`/chats/${match.id}`} className='min-w-0 flex-1'>
+                    <div className='flex items-center gap-2'>
+                      <p className='truncate font-semibold text-slate-900'>{partner.nickname}</p>
+                      {unreadCount > 0 ? <Badge tone='pink'>未読 {unreadCount}</Badge> : null}
+                    </div>
+                    <p className='line-clamp-1 text-xs text-slate-600'>{latestMessage?.body ?? '会話をはじめましょう。'}</p>
+                    <p className='text-[11px] text-slate-400'>{displayDate(latestMessage?.createdAt ?? match.createdAt)}</p>
+                  </Link>
+                  <UserSafetyMenu reporterId={user.id} targetUserId={partner.id} compact />
                 </div>
-              </Link>
+              </article>
             ) : null,
           )
         )}

@@ -210,6 +210,7 @@ export function FemaleCardDeck({ userId, selfProfileImageUrl, cards, filters }: 
         maleProfile={current?.maleProfile ?? null}
         femaleProfile={current?.femaleProfile ?? null}
         profileImages={current?.profileImages ?? []}
+        viewerUserId={userId}
         onSkip={async () => {
           setIsDetailOpen(false);
           submitSwipe('skip');

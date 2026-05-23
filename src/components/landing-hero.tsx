@@ -90,6 +90,10 @@ export function LandingHero() {
           <span className='rounded-full border border-white/30 bg-white/10 px-3 py-1'>看護師確認</span>
           <span className='rounded-full border border-white/30 bg-white/10 px-3 py-1'>審査制</span>
         </div>
+        <div className='mt-3 flex gap-3 text-[11px] text-slate-200'>
+          <Link href='/terms' className='underline underline-offset-2'>利用規約</Link>
+          <Link href='/privacy' className='underline underline-offset-2'>プライバシー</Link>
+        </div>
       </div>
     </article>
   );

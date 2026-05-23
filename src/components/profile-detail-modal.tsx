@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useMemo, useRef, useState, useTransition, type TouchEvent } from 'react';
 import { Badge } from '@/components/badges';
+import { UserSafetyMenu } from '@/components/user-safety-menu';
 import { maritalStatusLabel } from '@/lib/labels';
 import type { AppUser, FemaleProfile, MaleProfile, ProfileImageRecord } from '@/lib/types/domain';
 
@@ -13,6 +14,7 @@ type ProfileDetailModalProps = {
   maleProfile: MaleProfile | null;
   femaleProfile: FemaleProfile | null;
   profileImages?: ProfileImageRecord[];
+  viewerUserId?: string;
   onLike?: () => Promise<void> | void;
   onSkip?: () => Promise<void> | void;
   likeLabel?: string;
@@ -63,6 +65,7 @@ export function ProfileDetailModal({
   maleProfile,
   femaleProfile,
   profileImages = [],
+  viewerUserId,
   onLike,
   onSkip,
   likeLabel = '♡ 興味あり',
@@ -236,6 +239,12 @@ export function ProfileDetailModal({
                   <p className='mt-1'>好きなこと: {maleProfile?.personalityTags.length ? maleProfile.personalityTags.join(' / ') : '未設定'}</p>
                 </div>
               </div>
+
+              {viewerUserId ? (
+                <div className='flex justify-end'>
+                  <UserSafetyMenu reporterId={viewerUserId} targetUserId={user.id} />
+                </div>
+              ) : null}
             </section>
           </div>
 
