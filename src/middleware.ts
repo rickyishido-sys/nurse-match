@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { getUserById } from '@/lib/mock-data';
 
-const PUBLIC_PATHS = ['/', '/login', '/register', '/terms', '/privacy', '/community-guidelines', '/preview', '/admin/login'];
+const PUBLIC_PATHS = ['/', '/login', '/register', '/terms', '/privacy', '/community-guidelines', '/preview', '/admin/login', '/debug', '/debug/env'];
 const ADMIN_BYPASS_PATHS = ['/register', '/preview', '/pending-review'];
 
 function isAdminRole(role: string | undefined) {
@@ -23,6 +23,7 @@ export async function middleware(request: NextRequest) {
   if (
     PUBLIC_PATHS.some((path) => pathname === path) ||
     pathname.startsWith('/register/') ||
+    pathname.startsWith('/debug') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
     pathname.startsWith('/icons') ||
