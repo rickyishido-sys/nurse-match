@@ -76,6 +76,12 @@ export default async function AdminPage() {
             <Badge tone='gray'>通報件数 {data.reports.length}</Badge>
             <Badge tone='navy'>監査ログ {data.adminActions.length}</Badge>
           </div>
+          <a href='/admin/reviews' className='mt-3 inline-flex rounded-xl border border-slate-300 px-4 py-2 text-xs text-slate-700'>
+            審査待ち一覧へ
+          </a>
+          <a href='/admin/datefi-interests' className='mt-3 ml-2 inline-flex rounded-xl border border-slate-300 px-4 py-2 text-xs text-slate-700'>
+            DateFi関心登録一覧へ
+          </a>
         </article>
 
         <article className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>

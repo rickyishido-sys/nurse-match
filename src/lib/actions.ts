@@ -3,13 +3,15 @@
 import { cookies, headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import {
   blockUser,
   unblockUser,
   createReport,
   createInterestSignal,
   getCurrentUser,
+  getFemaleProfileByUserId,
+  getMaleProfileByUserId,
   markMatchAsRelationshipMode,
   saveProfile,
   saveProfileImages,
@@ -29,7 +31,6 @@ import {
 import { USE_MOCK_DATA } from '@/lib/config';
 import {
   getUserByEmail,
-  getUserByPhone,
   listProfileImages,
   setMaleReviewStatus,
   setNurseVerificationStatus,
@@ -41,6 +42,7 @@ import { uploadDocument } from '@/lib/upload';
 import { normalizeMaleJob } from '@/lib/male-job-options';
 import type { MaritalStatus, ModerationAction, ReportReasonType, ReportStatus } from '@/lib/types/domain';
 import type { Database } from '@/lib/types/database';
+import { sendReviewApprovedEmail, sendReviewRejectedEmail } from '@/lib/review-email';
 
 function resolvePostLoginPath(user: {
   role: 'user' | 'female_admin' | 'male_admin' | 'super_admin';
@@ -52,6 +54,20 @@ function resolvePostLoginPath(user: {
   if (user.onboardingStatus === 'provisional') return '/preview';
   if (user.onboardingStatus === 'profile_completed') return '/pending-review';
   return '/home';
+}
+
+function parseAdminEmails() {
+  return (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function isReviewAdminEmail(email: string | undefined) {
+  if (!email) return false;
+  const allowList = parseAdminEmails();
+  if (allowList.length === 0) return false;
+  return allowList.includes(email.toLowerCase());
 }
 
 export async function setDemoUserAction(formData: FormData) {
@@ -108,7 +124,25 @@ export async function loginAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   const me = await getCurrentUser();
-  if (me) redirect(resolvePostLoginPath(me));
+  if (me) {
+    if (me.role === 'user') {
+      if (me.verificationStatus === 'rejected') redirect('/review-rejected');
+      if (me.verificationStatus !== 'approved' || me.onboardingStatus !== 'verified') redirect('/pending-review');
+
+      if (me.gender === 'female') {
+        const femaleProfile = await getFemaleProfileByUserId(me.id);
+        if (!femaleProfile || femaleProfile.nurseVerificationStatus === 'rejected') redirect('/review-rejected');
+        if (femaleProfile.nurseVerificationStatus !== 'approved') redirect('/pending-review');
+      }
+      if (me.gender === 'male') {
+        const maleProfile = await getMaleProfileByUserId(me.id);
+        if (!maleProfile || maleProfile.maleReviewStatus === 'rejected') redirect('/review-rejected');
+        if (maleProfile.maleReviewStatus !== 'approved') redirect('/pending-review');
+      }
+    }
+
+    redirect(resolvePostLoginPath(me));
+  }
   redirect('/login');
 }
 
@@ -132,13 +166,22 @@ function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
 }
 
+function createBurstAliasEmail(email: string) {
+  const normalized = normalizeEmail(email);
+  const [localPart, domainPart] = normalized.split('@');
+  if (!localPart || !domainPart) return normalized;
+  if (localPart.includes('+')) return normalized;
+  if (domainPart !== 'gmail.com' && domainPart !== 'googlemail.com') return normalized;
+  const suffix = `nm${Date.now()}`;
+  return `${localPart}+${suffix}@${domainPart}`;
+}
+
 function normalizePhone(value: string) {
   return value.trim().replace(/[^\d+]/g, '');
 }
 
-function redirectDuplicateError(type: 'email' | 'phone') {
-  if (type === 'email') redirect('/register?error=duplicate-email');
-  redirect('/register?error=duplicate-phone');
+function redirectDuplicateError() {
+  redirect('/register?error=duplicate-email');
 }
 
 function isSupabaseDuplicateError(message: string | undefined | null) {
@@ -159,40 +202,30 @@ function calculateAgeFromBirthdate(birthdate: string) {
 }
 
 export async function requestRegisterVerificationAction(formData: FormData) {
-  const method = String(formData.get('method') ?? 'email');
   const email = normalizeEmail(String(formData.get('email') ?? ''));
-  const phone = normalizePhone(String(formData.get('phone') ?? ''));
+  const allowBurst = String(formData.get('allowBurst') ?? '') === '1';
+  const sendEmail = allowBurst ? createBurstAliasEmail(email) : email;
   const useMock = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
   console.log('REGISTER_START', {
     email,
-    phone,
+    sendEmail,
+    allowBurst,
     useMock,
   });
 
-  if (!email && !phone) {
-    redirect('/register?error=contact-required');
-  }
-
-  if (method === 'email' && !email) {
+  if (!email) {
     redirect('/register?error=email-required');
   }
 
   if (useMock) {
     console.warn('[requestRegisterVerificationAction] USE_MOCK_DATA=true, OTP send is skipped', {
       email,
-      method,
       useMock,
     });
     if (email && getUserByEmail(email)) {
-      redirectDuplicateError('email');
+      redirectDuplicateError();
     }
-    if (phone && getUserByPhone(phone)) {
-      redirectDuplicateError('phone');
-    }
-    if (method === 'sms') {
-      redirect('/register?status=sms-preparing');
-    }
-    redirect('/register?sent=1');
+    redirect(`/register?sent=1${allowBurst ? '&burst=1' : ''}${sendEmail ? `&sentEmail=${encodeURIComponent(sendEmail)}` : ''}`);
   }
 
   console.log('SUPABASE_ENV', {
@@ -213,17 +246,13 @@ export async function requestRegisterVerificationAction(formData: FormData) {
     redirect('/register?error=config&detail=missing_anon_key');
   }
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options);
-        });
-      },
+  // Use a stateless client for OTP request to avoid PKCE cookie verifier mismatch
+  // when users open email links in different browser contexts.
+  const otpClient = createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
     },
   });
 
@@ -237,19 +266,8 @@ export async function requestRegisterVerificationAction(formData: FormData) {
   if (email && adminSupabase) {
     const { data: existingEmail } = await adminSupabase.from('users').select('id').ilike('email', email).limit(1).maybeSingle();
     if (existingEmail) {
-      redirectDuplicateError('email');
+      redirectDuplicateError();
     }
-  }
-
-  if (phone && adminSupabase) {
-    const { data: existingPhone } = await adminSupabase.from('users').select('id').eq('phone', phone).limit(1).maybeSingle();
-    if (existingPhone) {
-      redirectDuplicateError('phone');
-    }
-  }
-
-  if (method === 'sms') {
-    redirect('/register?status=sms-preparing');
   }
 
   const headerStore = await headers();
@@ -259,7 +277,7 @@ export async function requestRegisterVerificationAction(formData: FormData) {
   );
   const siteUrl = resolvePublicSiteUrl();
   const redirectBase = siteUrl ?? requestOrigin;
-  const emailRedirectTo = redirectBase ? `${redirectBase}/auth/callback?next=${encodeURIComponent('/register/details')}` : undefined;
+  const emailRedirectTo = redirectBase ? `${redirectBase}/auth/callback?next=/register/details` : undefined;
 
   if (!siteUrl) {
     console.warn('[requestRegisterVerificationAction] NEXT_PUBLIC_SITE_URL is not set. Falling back to request origin.', {
@@ -271,11 +289,11 @@ export async function requestRegisterVerificationAction(formData: FormData) {
   let redirectPath = '/register?sent=1';
   try {
     console.log('OTP_REQUEST', {
-      email,
+      email: sendEmail,
       redirectTo: emailRedirectTo,
     });
-    const { data, error } = await supabase.auth.signInWithOtp({
-      email,
+    const { data, error } = await otpClient.auth.signInWithOtp({
+      email: sendEmail,
       options: {
         ...(emailRedirectTo ? { emailRedirectTo } : {}),
         shouldCreateUser: true,
@@ -283,31 +301,23 @@ export async function requestRegisterVerificationAction(formData: FormData) {
     });
 
     console.log('OTP_RESPONSE', {
-      email,
+      email: sendEmail,
       data,
       error,
     });
 
     if (error) {
-      if (isSupabaseDuplicateError(error.message)) {
-        redirectDuplicateError('email');
-      }
       const detail = encodeURIComponent(error.message ?? 'unknown_error');
-      redirectPath = `/register?error=supabase&detail=${detail}`;
+      redirectPath = `/register?error=supabase&detail=${detail}${allowBurst ? '&burst=1' : ''}`;
+    } else {
+      redirectPath = `/register?sent=1${allowBurst ? '&burst=1' : ''}${sendEmail ? `&sentEmail=${encodeURIComponent(sendEmail)}` : ''}`;
     }
   } catch (err) {
     if (String(err).includes('NEXT_REDIRECT')) {
       throw err;
     }
     console.error('OTP_EXCEPTION', err);
-    console.error('[requestRegisterVerificationAction] signInWithOtp threw an exception', {
-      email,
-      redirectTo: emailRedirectTo ?? null,
-      error: err,
-      useMock,
-    });
-    const detail = encodeURIComponent(err instanceof Error ? err.message : String(err));
-    redirectPath = `/register?error=supabase&detail=${detail}`;
+    redirectPath = '/register?error=supabase&detail=unexpected';
   }
 
   redirect(redirectPath);
@@ -353,7 +363,7 @@ export async function registerAction(formData: FormData) {
 
   if (USE_MOCK_DATA) {
     if (getUserByEmail(payload.email)) {
-      redirectDuplicateError('email');
+      redirectDuplicateError();
     }
     const userId = String(formData.get('userId') ?? 'u_f_1');
     const identityFile = formData.get('identityDocument') as File | null;
@@ -404,7 +414,7 @@ export async function registerAction(formData: FormData) {
 
   const { data: existingEmail } = await adminSupabase.from('users').select('id').ilike('email', payload.email).limit(1).maybeSingle();
   if (existingEmail) {
-    redirectDuplicateError('email');
+    redirectDuplicateError();
   }
 
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -413,7 +423,7 @@ export async function registerAction(formData: FormData) {
   });
   if (signUpError) {
     if (isSupabaseDuplicateError(signUpError.message)) {
-      redirectDuplicateError('email');
+      redirectDuplicateError();
     }
     throw new Error(signUpError.message);
   }
@@ -514,12 +524,17 @@ export async function registerDetailsAction(formData: FormData) {
   const nickname = String(formData.get('nickname') ?? '').trim();
   const birthdate = String(formData.get('birthdate') ?? '').trim();
   const location = String(formData.get('location') ?? '').trim();
-  const bio = String(formData.get('bio') ?? '').trim();
-  const desiredGender = String(formData.get('desiredGender') ?? 'both') as 'male' | 'female' | 'both';
-  const seekingGender = gender === 'male' ? 'female' : desiredGender;
+  const requestedDesiredGender = String(formData.get('desiredGender') ?? 'both') as 'male' | 'female' | 'both';
+  const desiredGender = gender === 'male' ? 'female' : requestedDesiredGender;
+  const seekingGender = desiredGender;
   const age = calculateAgeFromBirthdate(birthdate);
+  const agreeTerms = Boolean(formData.get('agreeTerms'));
+  const agreePrivacy = Boolean(formData.get('agreePrivacy'));
+  const profileImageFile = formData.get('profileImage') as File | null;
+  const identityFile = formData.get('identityDocument') as File | null;
+  const nurseFile = formData.get('nurseDocument') as File | null;
 
-  if (!nickname || !birthdate || !location || !bio || age < 18) {
+  if (!nickname || !birthdate || !location || age < 18) {
     redirect('/register/details?error=required');
   }
   if (!password) {
@@ -531,23 +546,32 @@ export async function registerDetailsAction(formData: FormData) {
   if (password !== passwordConfirm) {
     redirect('/register/details?error=password-mismatch');
   }
+  if (!agreeTerms || !agreePrivacy) {
+    redirect('/register/details?error=terms-required');
+  }
+  if (!profileImageFile || profileImageFile.size <= 0) {
+    redirect('/register/details?error=profile-image-required');
+  }
+  if (!identityFile || identityFile.size <= 0) {
+    redirect('/register/details?error=identity-required');
+  }
+  if (gender === 'female' && (!nurseFile || nurseFile.size <= 0)) {
+    redirect('/register/details?error=nurse-document-required');
+  }
 
   if (USE_MOCK_DATA) {
     const me = await getCurrentUser();
     if (!me) redirect('/register');
     if (me.role !== 'user') redirect('/register');
     const isTestUser = me.isTestUser === true;
-    const profileImage1 = await uploadDocument(formData.get('profileImage') as File, me.id, 'profile');
-    const profileImage2 = await uploadDocument(formData.get('profileImage2') as File, me.id, 'profile');
-    const profileImage3 = await uploadDocument(formData.get('profileImage3') as File, me.id, 'profile');
+    const profileImage = await uploadDocument(profileImageFile, me.id, 'profile');
+    const identityUrl = await uploadDocument(identityFile, me.id, 'identity');
+    const nurseUrl = nurseFile && nurseFile.size > 0 ? await uploadDocument(nurseFile, me.id, 'nurse') : null;
     const currentImages = listProfileImages(me.id);
-    const uploadedImages = [profileImage1, profileImage2, profileImage3].filter(Boolean) as string[];
+    const uploadedImages = [profileImage].filter(Boolean) as string[];
     const hasAtLeastOneImage = uploadedImages.length > 0 || currentImages.length > 0;
     if (!isTestUser && !hasAtLeastOneImage) {
       redirect('/register/details?error=profile-image-required');
-    }
-    if (!isTestUser && gender === 'male' && !hasAtLeastOneImage) {
-      redirect('/register/details?error=male-face-required');
     }
 
     if (uploadedImages.length > 0) {
@@ -557,19 +581,20 @@ export async function registerDetailsAction(formData: FormData) {
     await saveProfile(me.id, {
       nickname,
       location,
-      bio,
+      bio: '',
       desiredGender: seekingGender,
-      workplaceType: String(formData.get('workplaceType') ?? 'other'),
-      hasNightShift: String(formData.get('hasNightShift') ?? 'off'),
-      job: normalizeMaleJob(String(formData.get('job') ?? '')),
-      income: String(formData.get('income') ?? ''),
-      maritalStatus: String(formData.get('maritalStatus') ?? 'single'),
-      height: String(formData.get('height') ?? '170'),
-      smoking: String(formData.get('smoking') ?? ''),
-      drinking: String(formData.get('drinking') ?? ''),
-      nightShiftUnderstanding: formData.get('nightShiftUnderstanding') ? 'on' : 'off',
-      shiftWorkUnderstanding: formData.get('shiftWorkUnderstanding') ? 'on' : 'off',
+      workplaceType: 'hospital',
+      hasNightShift: 'off',
+      job: '',
+      income: '',
+      maritalStatus: 'single',
+      height: '170',
+      smoking: '',
+      drinking: '',
+      nightShiftUnderstanding: 'off',
+      shiftWorkUnderstanding: 'off',
       profileImageUrl: uploadedImages[0] ?? me.profileImageUrl,
+      nurseDocumentUrl: nurseUrl ?? '',
     });
     if (isTestUser) {
       if (gender === 'female') setNurseVerificationStatus(me.id, 'approved');
@@ -582,12 +607,13 @@ export async function registerDetailsAction(formData: FormData) {
       age,
       onboardingStatus: isTestUser ? 'verified' : 'profile_completed',
       verificationStatus: isTestUser ? 'approved' : 'pending',
+      identityDocumentUrl: identityUrl ?? null,
     });
 
     if (isTestUser) {
       redirect(gender === 'female' ? '/home/female' : '/home/male');
     }
-    redirect('/verification');
+    redirect('/pending-review');
   }
 
   const supabase = await createServerSupabaseClient();
@@ -606,24 +632,16 @@ export async function registerDetailsAction(formData: FormData) {
   }
 
   const userId = authUser.id;
-  const profileImage1 = await uploadDocument(formData.get('profileImage') as File, userId, 'profile');
-  const profileImage2 = await uploadDocument(formData.get('profileImage2') as File, userId, 'profile');
-  const profileImage3 = await uploadDocument(formData.get('profileImage3') as File, userId, 'profile');
-  const uploadedImages = [profileImage1, profileImage2, profileImage3].filter(Boolean) as string[];
+  const profileImage = await uploadDocument(profileImageFile, userId, 'profile');
+  const identityUrl = await uploadDocument(identityFile, userId, 'identity');
+  const nurseUrl = nurseFile && nurseFile.size > 0 ? await uploadDocument(nurseFile, userId, 'nurse') : null;
+  const uploadedImages = [profileImage].filter(Boolean) as string[];
 
   const { data: existingUser } = await adminSupabase.from('users').select('*').eq('id', userId).maybeSingle();
   if (existingUser && existingUser.role !== 'user') {
     redirect('/register');
   }
   const isTestUser = existingUser?.is_test_user === true;
-  const { data: existingImages } = await adminSupabase.from('profile_images').select('id').eq('user_id', userId).limit(1);
-  const hasAtLeastOneImage = uploadedImages.length > 0 || Boolean(existingImages && existingImages.length > 0);
-  if (!isTestUser && !hasAtLeastOneImage) {
-    redirect('/register/details?error=profile-image-required');
-  }
-  if (!isTestUser && gender === 'male' && !hasAtLeastOneImage) {
-    redirect('/register/details?error=male-face-required');
-  }
 
   const primaryImage = uploadedImages[0] ?? existingUser?.profile_image_url ?? '';
   const { error: userUpsertError } = await adminSupabase.from('users').upsert(
@@ -637,14 +655,14 @@ export async function registerDetailsAction(formData: FormData) {
       birthdate,
       age,
       location,
-      bio,
+      bio: '',
       profile_image_url: primaryImage,
       desired_gender: desiredGender,
       seeking_gender: seekingGender,
       onboarding_status: isTestUser ? 'verified' : 'profile_completed',
       risk_check_status: existingUser?.risk_check_status ?? 'not_checked',
       verification_status: isTestUser ? 'approved' : (existingUser?.verification_status ?? 'pending'),
-      identity_document_url: existingUser?.identity_document_url ?? null,
+      identity_document_url: identityUrl ?? existingUser?.identity_document_url ?? null,
       rejected_reason: existingUser?.rejected_reason ?? null,
       moderation_action: existingUser?.moderation_action ?? 'none',
       is_suspended: existingUser?.is_suspended ?? false,
@@ -658,75 +676,79 @@ export async function registerDetailsAction(formData: FormData) {
     await saveProfileImages(userId, uploadedImages);
   }
 
-  const workplaceTypeRaw = String(formData.get('workplaceType') ?? 'other');
-  const workplaceType =
-    workplaceTypeRaw === 'hospital' ||
-    workplaceTypeRaw === 'clinic' ||
-    workplaceTypeRaw === 'beauty' ||
-    workplaceTypeRaw === 'nightshift' ||
-    workplaceTypeRaw === 'care_facility' ||
-    workplaceTypeRaw === 'home_visit' ||
-    workplaceTypeRaw === 'other'
-      ? workplaceTypeRaw
-      : 'other';
-
   if (gender === 'female') {
-    const { data: existingFemale } = await adminSupabase
-      .from('female_profiles')
-      .select('nurse_verification_status,nurse_document_url')
-      .eq('user_id', userId)
-      .maybeSingle();
-    const nurseStatus = isTestUser ? 'approved' : (existingFemale?.nurse_verification_status ?? 'pending');
+    const nurseStatus = isTestUser ? 'approved' : 'pending';
     await adminSupabase.from('female_profiles').upsert(
       {
         user_id: userId,
-        nurse_document_url: existingFemale?.nurse_document_url ?? '',
+        nurse_document_url: nurseUrl ?? '',
         nurse_verification_status: nurseStatus,
-        workplace_type: workplaceType,
-        has_night_shift: String(formData.get('hasNightShift') ?? 'off') === 'on',
+        workplace_type: 'hospital',
+        has_night_shift: false,
       },
       { onConflict: 'user_id' },
     );
+    const { data: existingIdentity } = await adminSupabase.from('identity_documents').select('id').eq('user_id', userId).maybeSingle();
+    if (existingIdentity?.id) {
+      await adminSupabase
+        .from('identity_documents')
+        .update({ document_url: identityUrl ?? '', status: isTestUser ? 'approved' : 'pending' })
+        .eq('id', existingIdentity.id);
+    } else {
+      await adminSupabase.from('identity_documents').insert({
+        user_id: userId,
+        document_url: identityUrl ?? '',
+        status: isTestUser ? 'approved' : 'pending',
+      });
+    }
     if (isTestUser) {
       redirect('/home/female');
     }
-    redirect(nurseStatus === 'approved' ? '/preview' : '/verification');
+    redirect('/pending-review');
   }
 
-  const { data: existingMale } = await adminSupabase
-    .from('male_profiles')
-    .select('male_review_status,income_verified,face_photo_verified,has_children')
-    .eq('user_id', userId)
-    .maybeSingle();
-  const maleStatus = isTestUser ? 'approved' : (existingMale?.male_review_status ?? 'pending');
+  const maleStatus = isTestUser ? 'approved' : 'pending';
   await adminSupabase.from('male_profiles').upsert(
     {
       user_id: userId,
-      job: normalizeMaleJob(String(formData.get('job') ?? '')),
-      income: String(formData.get('income') ?? ''),
-      marital_status: String(formData.get('maritalStatus') ?? 'single'),
-      has_children: existingMale?.has_children ?? false,
+      job: '',
+      income: '',
+      marital_status: 'single',
+      has_children: false,
       male_review_status: maleStatus,
-      income_verified: existingMale?.income_verified ?? false,
-      face_photo_verified: existingMale?.face_photo_verified ?? false,
+      income_verified: false,
+      face_photo_verified: false,
       internal_memo: null,
-      height: Number(formData.get('height') ?? 170),
+      height: 170,
       body_type: '',
       holiday: '',
-      smoking: String(formData.get('smoking') ?? ''),
-      drinking: String(formData.get('drinking') ?? ''),
-      night_shift_understanding: formData.get('nightShiftUnderstanding') ? true : false,
-      shift_work_understanding: formData.get('shiftWorkUnderstanding') ? true : false,
+      smoking: '',
+      drinking: '',
+      night_shift_understanding: false,
+      shift_work_understanding: false,
       late_night_contact_ok: false,
       first_date_cost: '',
       personality_tags: [],
     },
     { onConflict: 'user_id' },
   );
+  const { data: existingIdentity } = await adminSupabase.from('identity_documents').select('id').eq('user_id', userId).maybeSingle();
+  if (existingIdentity?.id) {
+    await adminSupabase
+      .from('identity_documents')
+      .update({ document_url: identityUrl ?? '', status: isTestUser ? 'approved' : 'pending' })
+      .eq('id', existingIdentity.id);
+  } else {
+    await adminSupabase.from('identity_documents').insert({
+      user_id: userId,
+      document_url: identityUrl ?? '',
+      status: isTestUser ? 'approved' : 'pending',
+    });
+  }
   if (isTestUser) {
     redirect('/home/male');
   }
-  redirect(maleStatus === 'approved' ? '/preview' : '/verification');
+  redirect('/pending-review');
 }
 
 export async function swipeAction(formData: FormData) {
@@ -957,6 +979,143 @@ export async function adminRiskCheckUpdateAction(formData: FormData) {
   revalidatePath('/admin');
   revalidatePath('/admin/female');
   revalidatePath('/admin/male');
+}
+
+export async function adminApproveReviewAction(formData: FormData) {
+  const userId = String(formData.get('userId') ?? '');
+  if (!userId) return;
+
+  const adminUser = await getCurrentUser();
+  if (!adminUser || !isReviewAdminEmail(adminUser.email)) return;
+
+  const adminSupabase = createAdminSupabaseClient();
+  if (!adminSupabase) throw new Error('Supabase admin client unavailable');
+
+  const { data: target } = await adminSupabase
+    .from('users')
+    .select('id,email,gender')
+    .eq('id', userId)
+    .maybeSingle();
+  if (!target) return;
+
+  await adminSupabase
+    .from('users')
+    .update({
+      verification_status: 'approved',
+      onboarding_status: 'verified',
+      rejected_reason: null,
+    })
+    .eq('id', userId);
+
+  await adminSupabase
+    .from('identity_documents')
+    .update({ status: 'approved' })
+    .eq('user_id', userId);
+
+  if (target.gender === 'female') {
+    await adminSupabase
+      .from('female_profiles')
+      .update({ nurse_verification_status: 'approved' })
+      .eq('user_id', userId);
+  } else {
+    await adminSupabase
+      .from('male_profiles')
+      .update({ male_review_status: 'approved' })
+      .eq('user_id', userId);
+  }
+
+  await sendReviewApprovedEmail(target.email);
+
+  revalidatePath('/admin/reviews');
+  revalidatePath('/admin');
+  revalidatePath('/pending-review');
+}
+
+export async function adminRejectReviewAction(formData: FormData) {
+  const userId = String(formData.get('userId') ?? '');
+  const reason = String(formData.get('reason') ?? '').trim();
+  if (!userId || !reason) return;
+
+  const adminUser = await getCurrentUser();
+  if (!adminUser || !isReviewAdminEmail(adminUser.email)) return;
+
+  const adminSupabase = createAdminSupabaseClient();
+  if (!adminSupabase) throw new Error('Supabase admin client unavailable');
+
+  const { data: target } = await adminSupabase
+    .from('users')
+    .select('id,email,gender')
+    .eq('id', userId)
+    .maybeSingle();
+  if (!target) return;
+
+  await adminSupabase
+    .from('users')
+    .update({
+      verification_status: 'rejected',
+      onboarding_status: 'profile_completed',
+      rejected_reason: reason,
+    })
+    .eq('id', userId);
+
+  await adminSupabase
+    .from('identity_documents')
+    .update({ status: 'rejected' })
+    .eq('user_id', userId);
+
+  if (target.gender === 'female') {
+    await adminSupabase
+      .from('female_profiles')
+      .update({ nurse_verification_status: 'rejected' })
+      .eq('user_id', userId);
+  } else {
+    await adminSupabase
+      .from('male_profiles')
+      .update({ male_review_status: 'rejected' })
+      .eq('user_id', userId);
+  }
+
+  await sendReviewRejectedEmail(target.email, reason);
+
+  revalidatePath('/admin/reviews');
+  revalidatePath('/admin');
+  revalidatePath('/review-rejected');
+}
+
+export async function registerDatefiInterestAction() {
+  const me = await getCurrentUser();
+  if (!me) redirect('/login');
+  if (me.gender !== 'male') redirect('/mypage');
+  if (me.verificationStatus !== 'approved' || me.onboardingStatus !== 'verified') redirect('/pending-review');
+
+  const adminSupabase = createAdminSupabaseClient();
+  if (adminSupabase) {
+    await adminSupabase
+      .from('datefi_interests')
+      .upsert(
+        {
+          user_id: me.id,
+          email: me.email,
+          status: 'interested',
+        },
+        { onConflict: 'user_id' },
+      );
+  } else {
+    const supabase = await createServerSupabaseClient();
+    if (!supabase) throw new Error('Supabase設定が不足しています');
+    await supabase
+      .from('datefi_interests')
+      .upsert(
+        {
+          user_id: me.id,
+          email: me.email,
+          status: 'interested',
+        },
+        { onConflict: 'user_id' },
+      );
+  }
+
+  redirect('/datefi?registered=1');
 }
 
 export async function createReportAction(formData: FormData) {

@@ -109,6 +109,20 @@ export type Database = {
         };
         Update: Partial<Database['public']['Tables']['identity_documents']['Row']>;
       };
+      datefi_interests: {
+        Row: {
+          id: string;
+          user_id: string;
+          email: string;
+          status: 'interested';
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['datefi_interests']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['datefi_interests']['Row']>;
+      };
       likes: {
         Row: {
           id: string;
