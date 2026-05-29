@@ -134,6 +134,17 @@ export type Database = {
         Insert: Omit<Database['public']['Tables']['likes']['Row'], 'id' | 'created_at'> & { id?: string; created_at?: string };
         Update: Partial<Database['public']['Tables']['likes']['Row']>;
       };
+      swipes: {
+        Row: {
+          id: string;
+          from_user_id: string;
+          to_user_id: string;
+          action: 'like' | 'skip';
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['swipes']['Row'], 'id' | 'created_at'> & { id?: string; created_at?: string };
+        Update: Partial<Database['public']['Tables']['swipes']['Row']>;
+      };
       favorites: {
         Row: {
           id: string;

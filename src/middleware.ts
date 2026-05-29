@@ -2,8 +2,24 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { getUserById } from '@/lib/mock-data';
 
-const PUBLIC_PATHS = ['/', '/login', '/register', '/terms', '/privacy', '/community-guidelines', '/preview', '/admin/login', '/debug', '/debug/env', '/auth', '/auth/callback'];
+const PUBLIC_PATHS = [
+  '/',
+  '/login',
+  '/register',
+  '/terms',
+  '/privacy',
+  '/community-guidelines',
+  '/preview',
+  '/onboarding',
+  '/onboarding-test',
+  '/admin/login',
+  '/debug',
+  '/debug/env',
+  '/auth',
+  '/auth/callback',
+];
 const ADMIN_BYPASS_PATHS = ['/register', '/preview', '/pending-review'];
+const MEMBER_ONLY_PATH_PREFIXES = ['/app', '/cards', '/mypage', '/messages', '/discover', '/likes', '/matches'];
 
 function isAdminRole(role: string | undefined) {
   return role === 'female_admin' || role === 'male_admin' || role === 'super_admin';
@@ -19,12 +35,14 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAdminPath = pathname.startsWith('/admin');
   const isAdminLogin = pathname === '/admin/login';
+  const isMemberOnlyPath = MEMBER_ONLY_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 
   if (
     PUBLIC_PATHS.some((path) => pathname === path) ||
     pathname.startsWith('/register/') ||
     pathname.startsWith('/debug') ||
     pathname.startsWith('/auth') ||
+    pathname.startsWith('/onboarding/') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
     pathname.startsWith('/icons') ||
@@ -82,6 +100,20 @@ export async function middleware(request: NextRequest) {
   const { data } = await supabase.auth.getUser();
   if (!data.user) {
     return NextResponse.redirect(new URL(isAdminPath ? '/admin/login' : '/login', request.url));
+  }
+
+  if (isMemberOnlyPath) {
+    const { data: statusRow } = await supabase
+      .from('users')
+      .select('verification_status,onboarding_status')
+      .eq('id', data.user.id)
+      .maybeSingle();
+    if (statusRow?.verification_status === 'rejected') {
+      return NextResponse.redirect(new URL('/review-rejected', request.url));
+    }
+    if (!statusRow || statusRow.verification_status !== 'approved' || statusRow.onboarding_status !== 'verified') {
+      return NextResponse.redirect(new URL('/pending-review', request.url));
+    }
   }
 
   if (isAdminPath) {

@@ -35,7 +35,7 @@ export default async function MaleHomePage() {
   if (user.gender !== 'male') redirect('/home/female');
 
   const state = await getAccessState(user);
-  if (state === 'rejected') redirect('/rejected');
+  if (state === 'rejected') redirect('/review-rejected');
   if (state === 'suspended') redirect('/suspended');
   if (user.onboardingStatus !== 'verified') redirect('/preview');
   if (state === 'pending') redirect('/pending-review');
@@ -73,8 +73,16 @@ export default async function MaleHomePage() {
             <Link href='/profile/edit' className='h-11 rounded-xl border border-slate-200 px-3 text-center text-sm font-semibold leading-[44px]'>
               プロフィール編集
             </Link>
-            <Link href='/chats' className='h-11 rounded-xl bg-slate-900 px-3 text-center text-sm font-semibold leading-[44px] text-white'>
-              マッチを見る
+            <Link href='/likes' className='h-11 rounded-xl bg-slate-900 px-3 text-center text-sm font-semibold leading-[44px] text-white'>
+              興味を持たれました
+            </Link>
+          </div>
+          <div className='mt-2 grid grid-cols-2 gap-2'>
+            <Link href='/matches' className='h-11 rounded-xl border border-slate-200 px-3 text-center text-sm font-semibold leading-[44px]'>
+              マッチ一覧
+            </Link>
+            <Link href='/chats' className='h-11 rounded-xl border border-slate-200 px-3 text-center text-sm font-semibold leading-[44px]'>
+              メッセージ
             </Link>
           </div>
         </article>

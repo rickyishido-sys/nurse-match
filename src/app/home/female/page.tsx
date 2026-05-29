@@ -51,7 +51,7 @@ export default async function FemaleHomePage({ searchParams }: { searchParams: P
   if (user.gender !== 'female') redirect('/home/male');
 
   const state = await getAccessState(user);
-  if (state === 'rejected') redirect('/rejected');
+  if (state === 'rejected') redirect('/review-rejected');
   if (state === 'suspended') redirect('/suspended');
   if (user.onboardingStatus !== 'verified') redirect('/preview');
   if (state === 'pending') redirect('/pending-review');
@@ -90,6 +90,9 @@ export default async function FemaleHomePage({ searchParams }: { searchParams: P
             <h1 className='text-lg font-bold text-slate-900'>本日の厳選メンバー</h1>
             <p className='text-sm text-slate-500'>あなたの希望条件や価値観をもとに、本日は5名を厳選しました。</p>
           </div>
+          <Link href='/discover' className='inline-flex rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700'>
+            /discover で10名を見る
+          </Link>
           {featuredRecommendations.length === 0 ? (
             <p className='text-sm text-slate-500'>本日のおすすめ候補は準備中です。</p>
           ) : (

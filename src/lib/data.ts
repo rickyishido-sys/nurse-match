@@ -629,8 +629,14 @@ export async function getCandidateCards(user: AppUser, filters: FemaleSearchFilt
     .eq('is_suspended', false)
     .neq('id', user.id);
 
-  const { data: likesData } = await supabase.from('likes').select('to_user_id').eq('from_user_id', user.id);
-  const swipedIds = new Set((likesData ?? []).map((row) => row.to_user_id));
+  let swipedIds = new Set<string>();
+  const swipeRes = await supabase.from('swipes').select('to_user_id').eq('from_user_id', user.id);
+  if (!swipeRes.error) {
+    swipedIds = new Set((swipeRes.data ?? []).map((row) => row.to_user_id));
+  } else {
+    const { data: likesData } = await supabase.from('likes').select('to_user_id').eq('from_user_id', user.id);
+    swipedIds = new Set((likesData ?? []).map((row) => row.to_user_id));
+  }
 
   const [{ data: females }, { data: males }, { data: signalRows }] = await Promise.all([
     supabase.from('female_profile_public').select('*'),
@@ -845,8 +851,14 @@ export async function generateDailyRecommendations(userId: string, recommendatio
   if (!supabase) return [] as DailyRecommendationRecord[];
   const filters = await getFemalePreferenceFiltersForUser();
   const blockedSet = await getBlockedRelationSetForUser(userId);
-  const { data: likedRows } = await supabase.from('likes').select('to_user_id').eq('from_user_id', userId);
-  const swiped = new Set((likedRows ?? []).map((row) => row.to_user_id));
+  let swiped = new Set<string>();
+  const swipeRes = await supabase.from('swipes').select('to_user_id').eq('from_user_id', userId);
+  if (!swipeRes.error) {
+    swiped = new Set((swipeRes.data ?? []).map((row) => row.to_user_id));
+  } else {
+    const { data: likedRows } = await supabase.from('likes').select('to_user_id').eq('from_user_id', userId);
+    swiped = new Set((likedRows ?? []).map((row) => row.to_user_id));
+  }
 
   const [{ data: usersRows }, { data: maleRows }, { data: femaleRows }, { data: signalRows }] = await Promise.all([
     supabase
@@ -1411,6 +1423,12 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
   }
 
   await supabase.from('likes').upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action });
+  const swipeWrite = await supabase
+    .from('swipes')
+    .upsert({ from_user_id: fromUserId, to_user_id: toUserId, action }, { onConflict: 'from_user_id,to_user_id' });
+  if (swipeWrite.error) {
+    console.warn('[swipe] swipes table write skipped:', swipeWrite.error.message);
+  }
   if (action !== 'like') return { matched: false };
 
   const { data: toUserRow } = await supabase.from('users').select('gender,onboarding_status').eq('id', toUserId).single();
@@ -1490,6 +1508,68 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
     }
   }
   return { matched: false };
+}
+
+export async function respondToIncomingLike(fromUserId: string, toUserId: string, action: 'like' | 'skip'): Promise<SwipeResult> {
+  if (USE_MOCK_DATA) {
+    addLike(fromUserId, toUserId, action);
+    if (action !== 'like') return { matched: false };
+    const hasReverse = listLikes().some((row) => row.fromUserId === toUserId && row.toUserId === fromUserId && row.status === 'like');
+    if (!hasReverse) return { matched: false };
+    const existing = listMatchesForUser(fromUserId).find(
+      (item) => (item.userAId === fromUserId && item.userBId === toUserId) || (item.userAId === toUserId && item.userBId === fromUserId),
+    );
+    const match = ensureMatch(fromUserId, toUserId);
+    return { matched: !existing, matchId: match.id };
+  }
+
+  if (await isBlockedBetweenUsers(fromUserId, toUserId)) {
+    throw new Error('ブロック関係のユーザーには操作できません');
+  }
+
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return { matched: false };
+
+  const { data: fromRow } = await supabase.from('users').select('gender,onboarding_status').eq('id', fromUserId).single();
+  const { data: toRow } = await supabase.from('users').select('gender,onboarding_status').eq('id', toUserId).single();
+  if (!fromRow || !toRow) return { matched: false };
+  if (fromRow.onboarding_status !== 'verified' || toRow.onboarding_status !== 'verified') return { matched: false };
+  if (fromRow.gender !== 'male' || toRow.gender !== 'female') return { matched: false };
+
+  await supabase.from('likes').upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action });
+  const swipeWrite = await supabase
+    .from('swipes')
+    .upsert({ from_user_id: fromUserId, to_user_id: toUserId, action }, { onConflict: 'from_user_id,to_user_id' });
+  if (swipeWrite.error) {
+    console.warn('[respondToIncomingLike] swipes table write skipped:', swipeWrite.error.message);
+  }
+  if (action !== 'like') return { matched: false };
+
+  const { data: reverseLike } = await supabase
+    .from('likes')
+    .select('id')
+    .eq('from_user_id', toUserId)
+    .eq('to_user_id', fromUserId)
+    .eq('status', 'like')
+    .maybeSingle();
+  if (!reverseLike) return { matched: false };
+
+  const { data: existing } = await supabase
+    .from('matches')
+    .select('id')
+    .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
+    .maybeSingle();
+  if (existing?.id) return { matched: false, matchId: existing.id };
+
+  await supabase
+    .from('matches')
+    .insert({ user_a_id: fromUserId, user_b_id: toUserId, relationship_status: 'active', hold_deletion: false });
+  const { data: created } = await supabase
+    .from('matches')
+    .select('id')
+    .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
+    .maybeSingle();
+  return { matched: true, matchId: created?.id };
 }
 
 export async function getFavoriteTargetIds(userId: string) {

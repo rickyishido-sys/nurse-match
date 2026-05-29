@@ -12,6 +12,7 @@ import {
   getCurrentUser,
   getFemaleProfileByUserId,
   getMaleProfileByUserId,
+  respondToIncomingLike,
   markMatchAsRelationshipMode,
   saveProfile,
   saveProfileImages,
@@ -758,10 +759,32 @@ export async function swipeAction(formData: FormData) {
 
   const result = await swipe(fromUserId, toUserId, action);
   revalidatePath('/home/female');
+  revalidatePath('/discover');
+  revalidatePath('/likes');
   revalidatePath('/matches');
   revalidatePath('/activity');
   revalidatePath('/chats');
   return result;
+}
+
+export async function swipeSubmitAction(formData: FormData) {
+  await swipeAction(formData);
+}
+
+export async function respondToIncomingLikeAction(formData: FormData) {
+  const fromUserId = String(formData.get('fromUserId'));
+  const toUserId = String(formData.get('toUserId'));
+  const action = String(formData.get('action')) as 'like' | 'skip';
+  const result = await respondToIncomingLike(fromUserId, toUserId, action);
+  revalidatePath('/likes');
+  revalidatePath('/matches');
+  revalidatePath('/chats');
+  revalidatePath('/activity');
+  return result;
+}
+
+export async function respondToIncomingLikeSubmitAction(formData: FormData) {
+  await respondToIncomingLikeAction(formData);
 }
 
 export async function toggleFavoriteAction(formData: FormData) {
@@ -800,6 +823,7 @@ export async function sendMessageAction(formData: FormData) {
   await sendMessage(matchId, senderId, body.trim());
   revalidatePath(`/chat/${matchId}`);
   revalidatePath(`/chats/${matchId}`);
+  revalidatePath(`/messages/${matchId}`);
   revalidatePath('/matches');
   revalidatePath('/chats');
   revalidatePath('/activity');
