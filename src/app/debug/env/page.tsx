@@ -1,6 +1,8 @@
 export default function DebugEnvPage() {
   const hasSupabaseUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
   const hasSupabaseAnon = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const hasServiceRole = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const hasAdminEmails = !!process.env.ADMIN_EMAILS;
   const mockValue = process.env.NEXT_PUBLIC_USE_MOCK ?? '(unset)';
   const hasSiteUrl = !!process.env.NEXT_PUBLIC_SITE_URL;
 
@@ -18,6 +20,14 @@ export default function DebugEnvPage() {
           <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
             <dt>NEXT_PUBLIC_SUPABASE_ANON_KEY</dt>
             <dd className='font-semibold'>{String(hasSupabaseAnon)}</dd>
+          </div>
+          <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+            <dt>SUPABASE_SERVICE_ROLE_KEY</dt>
+            <dd className='font-semibold'>{String(hasServiceRole)}</dd>
+          </div>
+          <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+            <dt>ADMIN_EMAILS</dt>
+            <dd className='font-semibold'>{String(hasAdminEmails)}</dd>
           </div>
           <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
             <dt>NEXT_PUBLIC_USE_MOCK</dt>

@@ -14,9 +14,15 @@ export async function createServerSupabaseClient() {
         return cookieStore.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options);
-        });
+        // In Server Actions / Route Handlers this persists auth cookies.
+        // In Server Components cookie mutation can fail, so ignore safely.
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        } catch {
+          // no-op for read-only cookie contexts
+        }
       },
     },
   });
