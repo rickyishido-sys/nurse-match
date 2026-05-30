@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function DebugEnvPage() {
   const envKeys = Object.keys(process.env)
     .filter((key) => key.includes('SUPABASE') || key.includes('ADMIN'))
