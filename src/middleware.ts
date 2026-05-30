@@ -36,6 +36,19 @@ export async function middleware(request: NextRequest) {
   const isAdminPath = pathname.startsWith('/admin');
   const isAdminLogin = pathname === '/admin/login';
   const isMemberOnlyPath = MEMBER_ONLY_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  const sbCookieNames = request.cookies
+    .getAll()
+    .map((cookie) => cookie.name)
+    .filter((name) => name.includes('sb-'));
+
+  console.log('MIDDLEWARE_AUTH_CHECK', {
+    pathname,
+    isAdminPath,
+    isMemberOnlyPath,
+    useMock: process.env.NEXT_PUBLIC_USE_MOCK !== 'false',
+    hasSbCookie: sbCookieNames.length > 0,
+    sbCookieNames,
+  });
 
   if (
     PUBLIC_PATHS.some((path) => pathname === path) ||
@@ -56,6 +69,7 @@ export async function middleware(request: NextRequest) {
   if (process.env.NEXT_PUBLIC_USE_MOCK !== 'false') {
     const demo = request.cookies.get('demo_user_id');
     if (!demo) {
+      console.log('MIDDLEWARE_REDIRECT_LOGIN', { pathname, redirectReason: 'mock-no-demo-cookie' });
       return NextResponse.redirect(new URL(isAdminPath ? '/admin/login' : '/login', request.url));
     }
     const demoUser = getUserById(demo.value);
@@ -71,12 +85,14 @@ export async function middleware(request: NextRequest) {
       if (demoUser?.role === 'male_admin') return NextResponse.redirect(new URL('/admin/male', request.url));
       return NextResponse.redirect(new URL('/admin', request.url));
     }
+    console.log('MIDDLEWARE_ALLOW', { pathname, mode: 'mock' });
     return NextResponse.next();
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnon) {
+    console.log('MIDDLEWARE_REDIRECT_LOGIN', { pathname, redirectReason: 'missing-supabase-env' });
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
@@ -99,8 +115,16 @@ export async function middleware(request: NextRequest) {
 
   const { data } = await supabase.auth.getUser();
   if (!data.user) {
+    console.log('MIDDLEWARE_REDIRECT_LOGIN', { pathname, redirectReason: 'no-auth-user' });
     return NextResponse.redirect(new URL(isAdminPath ? '/admin/login' : '/login', request.url));
   }
+
+  console.log('MIDDLEWARE_AUTH_USER', {
+    pathname,
+    hasUser: Boolean(data.user),
+    userId: data.user.id,
+    email: data.user.email ?? null,
+  });
 
   if (isMemberOnlyPath) {
     const { data: statusRow } = await supabase
@@ -109,9 +133,16 @@ export async function middleware(request: NextRequest) {
       .eq('id', data.user.id)
       .maybeSingle();
     if (statusRow?.verification_status === 'rejected') {
+      console.log('MIDDLEWARE_REDIRECT_LOGIN', { pathname, redirectReason: 'member-rejected' });
       return NextResponse.redirect(new URL('/review-rejected', request.url));
     }
     if (!statusRow || statusRow.verification_status !== 'approved' || statusRow.onboarding_status !== 'verified') {
+      console.log('MIDDLEWARE_REDIRECT_LOGIN', {
+        pathname,
+        redirectReason: 'member-not-approved',
+        verificationStatus: statusRow?.verification_status ?? null,
+        onboardingStatus: statusRow?.onboarding_status ?? null,
+      });
       return NextResponse.redirect(new URL('/pending-review', request.url));
     }
   }
@@ -121,6 +152,7 @@ export async function middleware(request: NextRequest) {
     const role = roleData?.role;
     const hasAdminRole = isAdminRole(role);
     if (!hasAdminRole && !isAdminLogin) {
+      console.log('MIDDLEWARE_REDIRECT_LOGIN', { pathname, redirectReason: 'admin-role-required' });
       return NextResponse.redirect(new URL('/home', request.url));
     }
     if (pathname === '/admin' && role === 'female_admin') return NextResponse.redirect(new URL('/admin/female', request.url));
@@ -140,6 +172,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  console.log('MIDDLEWARE_ALLOW', { pathname, mode: 'supabase', userId: data.user.id });
   return response;
 }
 

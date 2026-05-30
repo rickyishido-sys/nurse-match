@@ -14,19 +14,19 @@ export default function DebugEnvPage() {
 
         <dl className='mt-4 space-y-2 text-sm'>
           <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
-            <dt>NEXT_PUBLIC_SUPABASE_URL</dt>
+            <dt>hasSupabaseUrl</dt>
             <dd className='font-semibold'>{String(hasSupabaseUrl)}</dd>
           </div>
           <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
-            <dt>NEXT_PUBLIC_SUPABASE_ANON_KEY</dt>
+            <dt>hasAnonKey</dt>
             <dd className='font-semibold'>{String(hasSupabaseAnon)}</dd>
           </div>
           <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
-            <dt>SUPABASE_SERVICE_ROLE_KEY</dt>
+            <dt>hasServiceRoleKey</dt>
             <dd className='font-semibold'>{String(hasServiceRole)}</dd>
           </div>
           <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
-            <dt>ADMIN_EMAILS</dt>
+            <dt>hasAdminEmails</dt>
             <dd className='font-semibold'>{String(hasAdminEmails)}</dd>
           </div>
           <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>

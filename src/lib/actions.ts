@@ -10,8 +10,6 @@ import {
   createReport,
   createInterestSignal,
   getCurrentUser,
-  getFemaleProfileByUserId,
-  getMaleProfileByUserId,
   respondToIncomingLike,
   markMatchAsRelationshipMode,
   saveProfile,
@@ -121,30 +119,71 @@ export async function loginAction(formData: FormData) {
   const supabase = await createServerSupabaseClient();
   if (!supabase) throw new Error('Supabase設定が不足しています');
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw new Error(error.message);
 
-  const me = await getCurrentUser();
-  if (me) {
-    if (me.role === 'user') {
-      if (me.verificationStatus === 'rejected') redirect('/review-rejected');
-      if (me.verificationStatus !== 'approved' || me.onboardingStatus !== 'verified') redirect('/pending-review');
+  console.log('LOGIN_SIGNIN_RESULT', {
+    email,
+    hasSession: Boolean(signInData.session),
+    hasUser: Boolean(signInData.user),
+  });
 
-      if (me.gender === 'female') {
-        const femaleProfile = await getFemaleProfileByUserId(me.id);
-        if (!femaleProfile || femaleProfile.nurseVerificationStatus === 'rejected') redirect('/review-rejected');
-        if (femaleProfile.nurseVerificationStatus !== 'approved') redirect('/pending-review');
-      }
-      if (me.gender === 'male') {
-        const maleProfile = await getMaleProfileByUserId(me.id);
-        if (!maleProfile || maleProfile.maleReviewStatus === 'rejected') redirect('/review-rejected');
-        if (maleProfile.maleReviewStatus !== 'approved') redirect('/pending-review');
-      }
-    }
-
-    redirect(resolvePostLoginPath(me));
+  const authUser =
+    signInData.user ??
+    (await supabase.auth.getUser()).data.user ??
+    null;
+  if (!authUser) {
+    console.log('LOGIN_AUTH_USER_MISSING', { email });
+    redirect('/login?error=session-missing');
   }
-  redirect('/login');
+
+  const { data: meRow, error: meError } = await supabase
+    .from('users')
+    .select('id,role,gender,onboarding_status,verification_status')
+    .eq('id', authUser.id)
+    .maybeSingle();
+  if (meError || !meRow) {
+    console.log('LOGIN_USER_ROW_MISSING', {
+      email,
+      userId: authUser.id,
+      error: meError?.message ?? null,
+    });
+    redirect('/login?error=user-row-missing');
+  }
+
+  const me = {
+    id: meRow.id,
+    role: meRow.role,
+    gender: meRow.gender,
+    onboardingStatus: meRow.onboarding_status,
+    verificationStatus: meRow.verification_status,
+  };
+
+  if (me.role === 'user') {
+    if (me.verificationStatus === 'rejected') redirect('/review-rejected');
+    if (me.verificationStatus !== 'approved' || me.onboardingStatus !== 'verified') redirect('/pending-review');
+
+    if (me.gender === 'female') {
+      const { data: femaleProfile } = await supabase
+        .from('female_profiles')
+        .select('nurse_verification_status')
+        .eq('user_id', me.id)
+        .maybeSingle();
+      if (!femaleProfile || femaleProfile.nurse_verification_status === 'rejected') redirect('/review-rejected');
+      if (femaleProfile.nurse_verification_status !== 'approved') redirect('/pending-review');
+    }
+    if (me.gender === 'male') {
+      const { data: maleProfile } = await supabase
+        .from('male_profiles')
+        .select('male_review_status')
+        .eq('user_id', me.id)
+        .maybeSingle();
+      if (!maleProfile || maleProfile.male_review_status === 'rejected') redirect('/review-rejected');
+      if (maleProfile.male_review_status !== 'approved') redirect('/pending-review');
+    }
+  }
+
+  redirect(resolvePostLoginPath(me));
 }
 
 function resolveRequestOrigin(hostname: string | null, proto: string | null) {
