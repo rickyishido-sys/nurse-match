@@ -1,4 +1,9 @@
 export default function DebugEnvPage() {
+  const envKeys = Object.keys(process.env)
+    .filter((key) => key.includes('SUPABASE') || key.includes('ADMIN'))
+    .sort();
+  const serviceRoleKeyNameDetected = envKeys.includes('SUPABASE_SERVICE_ROLE_KEY');
+  const adminEmailsNameDetected = envKeys.includes('ADMIN_EMAILS');
   const hasSupabaseUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
   const hasSupabaseAnon = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const hasServiceRole = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -30,12 +35,24 @@ export default function DebugEnvPage() {
             <dd className='font-semibold'>{String(hasAdminEmails)}</dd>
           </div>
           <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+            <dt>serviceRoleKeyNameDetected</dt>
+            <dd className='font-semibold'>{String(serviceRoleKeyNameDetected)}</dd>
+          </div>
+          <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+            <dt>adminEmailsNameDetected</dt>
+            <dd className='font-semibold'>{String(adminEmailsNameDetected)}</dd>
+          </div>
+          <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
             <dt>NEXT_PUBLIC_USE_MOCK</dt>
             <dd className='font-semibold'>{mockValue}</dd>
           </div>
           <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
             <dt>NEXT_PUBLIC_SITE_URL</dt>
             <dd className='font-semibold'>{String(hasSiteUrl)}</dd>
+          </div>
+          <div className='rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+            <dt>envKeys</dt>
+            <dd className='mt-1 break-all font-semibold'>{JSON.stringify(envKeys)}</dd>
           </div>
         </dl>
       </section>
