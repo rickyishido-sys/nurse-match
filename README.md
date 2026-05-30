@@ -65,6 +65,8 @@ git push origin main
 ## 管理者ログイン（本番）
 - 本番の管理者ログインURLは `https://nurse.kranz.design/admin/login` です（パスは `/admin/login`）。
 - `src/middleware.ts` の `PUBLIC_PATHS` に `/admin/login` が含まれているため、本番でも未ログイン状態でアクセス可能です。
+- 一般ユーザーは `/login`、管理者は `/admin/login` を利用します（導線を完全分離）。
+- `/admin/*` は `public.users.role` が `female_admin` / `male_admin` / `super_admin` の場合のみアクセス可能です。
 - ログイン後のリダイレクト先:
   - `super_admin` → `/admin`
   - `female_admin` → `/admin/female`

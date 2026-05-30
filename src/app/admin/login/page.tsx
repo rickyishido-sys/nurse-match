@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import Image from 'next/image';
 import { AppShell } from '@/components/app-shell';
-import { loginAction } from '@/lib/actions';
+import { adminLoginAction } from '@/lib/actions';
 import { getCurrentUser } from '@/lib/data';
 
 export const metadata = {
@@ -17,7 +17,7 @@ export default async function AdminLoginPage() {
 
   return (
     <AppShell user={user}>
-      <section className='rounded-3xl border border-slate-100 bg-white p-5 shadow-sm'>
+      <section className='rounded-3xl border border-slate-200 bg-white p-6 shadow-sm'>
         <div className='mb-3'>
           <Image
             src='/logo/nurse-match-logo-horizontal.png'
@@ -27,12 +27,12 @@ export default async function AdminLoginPage() {
             className='h-10 w-auto object-contain'
           />
         </div>
-        <h1 className='text-xl font-bold text-slate-900'>管理者ログイン</h1>
-        <p className='mt-1 text-xs text-slate-500'>female_admin / male_admin / super_admin 専用</p>
-        <form action={loginAction} className='mt-4 space-y-3'>
-          <input type='email' name='email' required placeholder='admin email' className='h-11 w-full rounded-xl border border-slate-200 px-3 text-sm' />
-          <input type='password' name='password' required placeholder='password' className='h-11 w-full rounded-xl border border-slate-200 px-3 text-sm' />
-          <button className='h-11 w-full rounded-xl bg-slate-900 text-sm font-semibold text-white'>ログイン</button>
+        <h1 className='text-xl font-bold text-slate-900'>管理者専用ログイン</h1>
+        <p className='mt-1 text-xs text-slate-500'>一般ユーザー導線とは分離されています</p>
+        <form action={adminLoginAction} className='mt-5 space-y-3'>
+          <input type='email' name='email' required placeholder='admin@nursematch.app' className='h-11 w-full rounded-xl border border-slate-300 px-3 text-sm' />
+          <input type='password' name='password' required placeholder='password' className='h-11 w-full rounded-xl border border-slate-300 px-3 text-sm' />
+          <button className='h-11 w-full rounded-xl bg-slate-900 text-sm font-semibold text-white'>管理画面へログイン</button>
         </form>
       </section>
     </AppShell>

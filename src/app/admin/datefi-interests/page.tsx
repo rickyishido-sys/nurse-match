@@ -16,20 +16,14 @@ type DatefiInterestRow = {
   } | null;
 };
 
-function isAllowedAdminEmail(email: string | undefined) {
-  if (!email) return false;
-  const allowList = (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-  if (allowList.length === 0) return false;
-  return allowList.includes(email.toLowerCase());
+function isAdminRole(role: string | undefined) {
+  return role === 'female_admin' || role === 'male_admin' || role === 'super_admin';
 }
 
 export default async function AdminDatefiInterestsPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
-  if (!isAllowedAdminEmail(user.email)) redirect('/home');
+  if (!isAdminRole(user.role)) redirect('/home');
 
   const adminSupabase = createAdminSupabaseClient();
   if (!adminSupabase) {

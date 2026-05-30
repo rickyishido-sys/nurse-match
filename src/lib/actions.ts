@@ -55,18 +55,8 @@ function resolvePostLoginPath(user: {
   return '/home';
 }
 
-function parseAdminEmails() {
-  return (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function isReviewAdminEmail(email: string | undefined) {
-  if (!email) return false;
-  const allowList = parseAdminEmails();
-  if (allowList.length === 0) return false;
-  return allowList.includes(email.toLowerCase());
+function isAdminRole(role: string | undefined) {
+  return role === 'female_admin' || role === 'male_admin' || role === 'super_admin';
 }
 
 export async function setDemoUserAction(formData: FormData) {
@@ -159,6 +149,11 @@ export async function loginAction(formData: FormData) {
     verificationStatus: meRow.verification_status,
   };
 
+  if (isAdminRole(me.role)) {
+    await supabase.auth.signOut();
+    redirect('/admin/login?error=use-admin-login');
+  }
+
   if (me.role === 'user') {
     if (me.verificationStatus === 'rejected') redirect('/review-rejected');
     if (me.verificationStatus !== 'approved' || me.onboardingStatus !== 'verified') redirect('/pending-review');
@@ -184,6 +179,44 @@ export async function loginAction(formData: FormData) {
   }
 
   redirect(resolvePostLoginPath(me));
+}
+
+export async function adminLoginAction(formData: FormData) {
+  const email = String(formData.get('email') ?? '').trim();
+  const password = String(formData.get('password') ?? '').trim();
+
+  if (USE_MOCK_DATA) {
+    const user = getUserByEmail(email);
+    if (!user || !isAdminRole(user.role)) throw new Error('管理者アカウントが見つかりません');
+    const cookieStore = await cookies();
+    cookieStore.set('demo_user_id', user.id);
+    redirect('/admin');
+  }
+
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) throw new Error('Supabase設定が不足しています');
+
+  const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw new Error(error.message);
+
+  const authUser = signInData.user ?? (await supabase.auth.getUser()).data.user ?? null;
+  if (!authUser) redirect('/admin/login?error=session-missing');
+
+  const { data: meRow, error: meError } = await supabase
+    .from('users')
+    .select('id,role')
+    .eq('id', authUser.id)
+    .maybeSingle();
+  if (meError || !meRow) {
+    await supabase.auth.signOut();
+    redirect('/admin/login?error=user-row-missing');
+  }
+  if (!isAdminRole(meRow.role)) {
+    await supabase.auth.signOut();
+    redirect('/admin/login?error=forbidden');
+  }
+
+  redirect('/admin');
 }
 
 function resolveRequestOrigin(hostname: string | null, proto: string | null) {
@@ -1049,7 +1082,7 @@ export async function adminApproveReviewAction(formData: FormData) {
   if (!userId) return;
 
   const adminUser = await getCurrentUser();
-  if (!adminUser || !isReviewAdminEmail(adminUser.email)) return;
+  if (!adminUser || !isAdminRole(adminUser.role)) return;
 
   const adminSupabase = createAdminSupabaseClient();
   if (!adminSupabase) throw new Error('Supabase admin client unavailable');
@@ -1100,7 +1133,7 @@ export async function adminRejectReviewAction(formData: FormData) {
   if (!userId || !reason) return;
 
   const adminUser = await getCurrentUser();
-  if (!adminUser || !isReviewAdminEmail(adminUser.email)) return;
+  if (!adminUser || !isAdminRole(adminUser.role)) return;
 
   const adminSupabase = createAdminSupabaseClient();
   if (!adminSupabase) throw new Error('Supabase admin client unavailable');
