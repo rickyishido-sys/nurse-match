@@ -62,6 +62,14 @@ function isAdminRole(role: string | undefined) {
 const E2E_TEST_FEMALE_EMAIL = 'test-female@nursematch.app';
 const E2E_TEST_MALE_EMAIL = 'test-male@nursematch.app';
 
+function getJstDateString(date = new Date()) {
+  const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  const y = jst.getUTCFullYear();
+  const m = String(jst.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(jst.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function parseAdminEmails() {
   return (process.env.ADMIN_EMAILS ?? '')
     .split(',')
@@ -139,6 +147,34 @@ async function bootstrapTestUserIfNeeded(
       { onConflict: 'user_id' },
     );
   }
+
+  // Keep the E2E pair in a deterministic state so discover/likes flow can run.
+  const admin = createAdminSupabaseClient();
+  if (!admin) return;
+  const { data: testRows } = await admin
+    .from('users')
+    .select('id,email')
+    .in('email', [E2E_TEST_FEMALE_EMAIL, E2E_TEST_MALE_EMAIL]);
+  const femaleId = (testRows ?? []).find((row) => row.email?.toLowerCase() === E2E_TEST_FEMALE_EMAIL)?.id;
+  const maleId = (testRows ?? []).find((row) => row.email?.toLowerCase() === E2E_TEST_MALE_EMAIL)?.id;
+  if (!femaleId || !maleId) return;
+
+  await admin.from('likes').delete().eq('from_user_id', femaleId).eq('to_user_id', maleId);
+  await admin.from('likes').delete().eq('from_user_id', maleId).eq('to_user_id', femaleId);
+  await admin.from('swipes').delete().eq('from_user_id', femaleId).eq('to_user_id', maleId);
+  await admin.from('swipes').delete().eq('from_user_id', maleId).eq('to_user_id', femaleId);
+  await admin.from('matches').delete().eq('user_a_id', femaleId).eq('user_b_id', maleId);
+  await admin.from('matches').delete().eq('user_a_id', maleId).eq('user_b_id', femaleId);
+
+  const recommendationDate = getJstDateString();
+  await admin.from('daily_recommendations').delete().eq('user_id', femaleId).eq('recommendation_date', recommendationDate);
+  await admin.from('daily_recommendations').insert({
+    user_id: femaleId,
+    target_user_id: maleId,
+    recommendation_date: recommendationDate,
+    rank: 1,
+    reason: 'E2Eテスト候補',
+  });
 }
 
 async function bootstrapAdminUserIfNeeded(
