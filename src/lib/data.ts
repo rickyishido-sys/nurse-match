@@ -1793,16 +1793,9 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
   const supabase = await createServerSupabaseClient();
   if (!supabase) return { matched: false };
 
-  const { data: fromUserRow } = await supabase
-    .from('users')
-    .select('gender,onboarding_status')
-    .eq('id', fromUserId)
-    .single();
-  if (!fromUserRow || fromUserRow.gender !== 'female' || !isMatchEligibleOnboardingStatus(fromUserRow.onboarding_status)) {
-    throw new Error('男性ユーザーはスワイプできません');
-  }
-
-  const likeWrite = await supabase.from('likes').upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action });
+  const likeWrite = await supabase
+    .from('likes')
+    .upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action }, { onConflict: 'from_user_id,to_user_id' });
   if (likeWrite.error) {
     console.warn('[swipe] likes write failed:', likeWrite.error.message);
   }
@@ -1814,11 +1807,8 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
   }
   if (action !== 'like') return { matched: false };
 
-  const { data: toUserRow } = await supabase.from('users').select('gender,onboarding_status').eq('id', toUserId).single();
-  if (!toUserRow) return { matched: false };
-  if (!isMatchEligibleOnboardingStatus(toUserRow.onboarding_status)) return { matched: false };
-
-  if (toUserRow.gender === 'male') {
+  const { data: targetCard } = await supabase.from('public_user_cards').select('gender').eq('id', toUserId).maybeSingle();
+  if (targetCard?.gender === 'male') {
     const { data: existing } = await supabase
       .from('matches')
       .select('id')
@@ -1918,13 +1908,9 @@ export async function respondToIncomingLike(fromUserId: string, toUserId: string
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return { matched: false };
-  const { data: fromRow } = await supabase.from('users').select('gender,onboarding_status').eq('id', fromUserId).single();
-  const { data: toRow } = await supabase.from('users').select('gender,onboarding_status').eq('id', toUserId).single();
-  if (!fromRow || !toRow) return { matched: false };
-  if (!isMatchEligibleOnboardingStatus(fromRow.onboarding_status) || !isMatchEligibleOnboardingStatus(toRow.onboarding_status)) return { matched: false };
-  if (fromRow.gender !== 'male' || toRow.gender !== 'female') return { matched: false };
-
-  const likeWrite = await supabase.from('likes').upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action });
+  const likeWrite = await supabase
+    .from('likes')
+    .upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action }, { onConflict: 'from_user_id,to_user_id' });
   if (likeWrite.error) {
     console.warn('[respondToIncomingLike] likes write failed:', likeWrite.error.message);
   }
