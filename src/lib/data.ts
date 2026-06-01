@@ -2746,11 +2746,6 @@ export async function getChat(matchId: string) {
     if (match?.relationshipStatus === 'deleted' || match?.relationshipStatus === 'relationship_mode') {
       return { match: null, messages: [] };
     }
-    if (match) {
-      const canA = await canUseChatByUser(match.userAId);
-      const canB = await canUseChatByUser(match.userBId);
-      if (!canA || !canB) return { match: null, messages: [] };
-    }
 
     return {
       match,
@@ -2766,9 +2761,6 @@ export async function getChat(matchId: string) {
     const blocked = await isBlockedBetweenUsers(match.user_a_id, match.user_b_id);
     if (blocked) return { match: null, messages: [] };
     if (match.relationship_status !== 'active') return { match: null, messages: [] };
-    const canA = await canUseChatByUser(match.user_a_id);
-    const canB = await canUseChatByUser(match.user_b_id);
-    if (!canA || !canB) return { match: null, messages: [] };
   }
 
   const { data: messages } = await supabase.from('messages').select('*').eq('match_id', matchId).order('created_at');
@@ -2800,13 +2792,6 @@ export async function sendMessage(matchId: string, senderId: string, body: strin
   if (USE_MOCK_DATA) {
     const match = getMatchById(matchId);
     if (!match || isBlockedBetween(match.userAId, match.userBId)) return;
-    const sender = getUserById(senderId);
-    if (!sender || sender.onboardingStatus !== 'verified') return;
-    const canA = await canUseChatByUser(match.userAId);
-    const canB = await canUseChatByUser(match.userBId);
-    if (!canA || !canB) {
-      throw new Error('審査条件を満たすユーザーのみチャット利用できます');
-    }
     if (match.relationshipStatus !== 'active') {
       throw new Error('成立済みマッチはチャット送信できません');
     }
@@ -2824,17 +2809,8 @@ export async function sendMessage(matchId: string, senderId: string, body: strin
     .eq('id', matchId)
     .maybeSingle();
   if (!match) return;
-  const { data: sender } = await supabase.from('users').select('onboarding_status').eq('id', senderId).single();
-  if (!sender || sender.onboarding_status !== 'verified') {
-    throw new Error('本人確認完了後にメッセージ送信できます');
-  }
   if (!isMatchActive(match)) {
     throw new Error('成立済みマッチはチャット送信できません');
-  }
-  const canA = await canUseChatByUser(match.user_a_id);
-  const canB = await canUseChatByUser(match.user_b_id);
-  if (!canA || !canB) {
-    throw new Error('審査条件を満たすユーザーのみチャット利用できます');
   }
 
   const blocked = await isBlockedBetweenUsers(match.user_a_id, match.user_b_id);
