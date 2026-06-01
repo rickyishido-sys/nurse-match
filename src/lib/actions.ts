@@ -96,7 +96,7 @@ async function bootstrapTestUserIfNeeded(
   const gender = isFemaleTest ? 'female' : 'male';
   const nickname = isFemaleTest ? 'テスト女性' : 'テスト男性';
 
-  await supabase.from('users').insert({
+  await supabase.from('users').upsert({
     id: authUser.id,
     email: normalizedEmail,
     role: 'user',
@@ -115,7 +115,7 @@ async function bootstrapTestUserIfNeeded(
     moderation_action: 'none',
     is_suspended: false,
     is_test_user: true,
-  });
+  }, { onConflict: 'id' });
 
   if (isFemaleTest) {
     await supabase.from('female_profiles').upsert(
@@ -278,9 +278,10 @@ export async function loginAction(formData: FormData) {
     .select('id,role,gender,onboarding_status,verification_status')
     .eq('id', authUser.id)
     .maybeSingle();
+  await bootstrapTestUserIfNeeded(supabase, authUser);
+
   let effectiveMeRow = meRow;
   if (!effectiveMeRow) {
-    await bootstrapTestUserIfNeeded(supabase, authUser);
     const { data: retriedMeRow } = await supabase
       .from('users')
       .select('id,role,gender,onboarding_status,verification_status')
