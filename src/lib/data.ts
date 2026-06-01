@@ -449,6 +449,38 @@ async function hasAnyRelationshipMode(userId: string) {
   return Boolean(data && data.length > 0);
 }
 
+function logDiscoverViewer(viewer: AppUser) {
+  console.log('DISCOVER_VIEWER', {
+    userId: viewer.id,
+    gender: viewer.gender,
+    seeking_gender: viewer.desiredGender,
+  });
+}
+
+function logDiscoverExclude(input: {
+  viewer: AppUser;
+  candidateId: string;
+  candidateGender: 'female' | 'male';
+  onboardingStatus: string | null;
+  verificationStatus: string | null;
+  maleReviewStatus: string | null;
+  nurseVerificationStatus: string | null;
+  reason: string;
+}) {
+  console.log('DISCOVER_EXCLUDE', {
+    viewerUserId: input.viewer.id,
+    viewerGender: input.viewer.gender,
+    viewerSeekingGender: input.viewer.desiredGender,
+    candidateUserId: input.candidateId,
+    candidateGender: input.candidateGender,
+    candidateOnboardingStatus: input.onboardingStatus,
+    candidateVerificationStatus: input.verificationStatus,
+    candidateMaleReviewStatus: input.maleReviewStatus,
+    candidateNurseVerificationStatus: input.nurseVerificationStatus,
+    reason: input.reason,
+  });
+}
+
 async function isBlockedBetweenUsers(userAId: string, userBId: string) {
   if (USE_MOCK_DATA) return isBlockedBetween(userAId, userBId);
 
@@ -891,16 +923,93 @@ export async function generateDailyRecommendations(userId: string, recommendatio
   const maleMap = new Map((maleRows ?? []).map((row) => [row.user_id, row]));
   const femaleMap = new Map((femaleRows ?? []).map((row) => [row.user_id, row]));
   const signalTargetSet = new Set((signalRows ?? []).map((row) => row.user_id));
+  const candidateIds = (usersRows ?? []).map((row) => row.id);
+  const { data: candidateStatusRows } = candidateIds.length
+    ? await supabase
+        .from('users')
+        .select('id,onboarding_status,verification_status,gender')
+        .in('id', candidateIds)
+    : { data: [] as Array<{ id: string; onboarding_status: string; verification_status: string; gender: 'female' | 'male' }> };
+  const statusMap = new Map(
+    (candidateStatusRows ?? []).map((row) => [
+      row.id,
+      {
+        onboardingStatus: row.onboarding_status,
+        verificationStatus: row.verification_status,
+        gender: row.gender,
+      },
+    ]),
+  );
+
+  logDiscoverViewer(user);
 
   const filtered = (usersRows ?? [])
     .map((row) => mapPublicUserCard(row))
-    .filter((candidate) => !blockedSet.has(candidate.id))
-    .filter((candidate) => !swiped.has(candidate.id))
+    .filter((candidate) => {
+      if (blockedSet.has(candidate.id)) {
+        const status = statusMap.get(candidate.id);
+        logDiscoverExclude({
+          viewer: user,
+          candidateId: candidate.id,
+          candidateGender: candidate.gender,
+          onboardingStatus: status?.onboardingStatus ?? null,
+          verificationStatus: status?.verificationStatus ?? null,
+          maleReviewStatus: maleMap.get(candidate.id)?.male_review_status ?? null,
+          nurseVerificationStatus: femaleMap.get(candidate.id)?.nurse_verification_status ?? null,
+          reason: 'blocked',
+        });
+        return false;
+      }
+      return true;
+    })
+    .filter((candidate) => {
+      if (swiped.has(candidate.id)) {
+        const status = statusMap.get(candidate.id);
+        logDiscoverExclude({
+          viewer: user,
+          candidateId: candidate.id,
+          candidateGender: candidate.gender,
+          onboardingStatus: status?.onboardingStatus ?? null,
+          verificationStatus: status?.verificationStatus ?? null,
+          maleReviewStatus: maleMap.get(candidate.id)?.male_review_status ?? null,
+          nurseVerificationStatus: femaleMap.get(candidate.id)?.nurse_verification_status ?? null,
+          reason: 'already_swiped',
+        });
+        return false;
+      }
+      return true;
+    })
     .filter((candidate) => {
       if (candidate.gender === 'male') {
-          if (!canSeek(user, 'male')) return false;
+        if (!canSeek(user, 'male')) {
+          const status = statusMap.get(candidate.id);
+          logDiscoverExclude({
+            viewer: user,
+            candidateId: candidate.id,
+            candidateGender: candidate.gender,
+            onboardingStatus: status?.onboardingStatus ?? null,
+            verificationStatus: status?.verificationStatus ?? null,
+            maleReviewStatus: maleMap.get(candidate.id)?.male_review_status ?? null,
+            nurseVerificationStatus: femaleMap.get(candidate.id)?.nurse_verification_status ?? null,
+            reason: 'viewer_seeking_mismatch',
+          });
+          return false;
+        }
         const mpRow = maleMap.get(candidate.id);
-        if (!mpRow || mpRow.male_review_status !== 'approved') return false;
+        if (!mpRow || mpRow.male_review_status !== 'approved') {
+          const status = statusMap.get(candidate.id);
+          logDiscoverExclude({
+            viewer: user,
+            candidateId: candidate.id,
+            candidateGender: candidate.gender,
+            onboardingStatus: status?.onboardingStatus ?? null,
+            verificationStatus: status?.verificationStatus ?? null,
+            maleReviewStatus: mpRow?.male_review_status ?? null,
+            nurseVerificationStatus: femaleMap.get(candidate.id)?.nurse_verification_status ?? null,
+            reason: 'male_review_not_approved',
+          });
+          return false;
+        }
         const maleProfile: MaleProfile = {
           userId: mpRow.user_id,
           job: mpRow.job,
@@ -922,18 +1031,72 @@ export async function generateDailyRecommendations(userId: string, recommendatio
           firstDateCost: mpRow.first_date_cost ?? '',
           personalityTags: mpRow.personality_tags ?? [],
         };
-        return matchesFemalePreference({
+        const matches = matchesFemalePreference({
           femaleUser: user,
           femaleProfile: femaleSelfProfile,
           maleUser: candidate,
           maleProfile,
           filters,
         });
+        if (!matches) {
+          const status = statusMap.get(candidate.id);
+          logDiscoverExclude({
+            viewer: user,
+            candidateId: candidate.id,
+            candidateGender: candidate.gender,
+            onboardingStatus: status?.onboardingStatus ?? null,
+            verificationStatus: status?.verificationStatus ?? null,
+            maleReviewStatus: mpRow.male_review_status,
+            nurseVerificationStatus: null,
+            reason: 'female_preference_filter',
+          });
+        }
+        return matches;
       }
-        if (!canSeek(user, 'female')) return false;
-        if (!canSeek(candidate, 'female')) return false;
+      if (!canSeek(user, 'female')) {
+        const status = statusMap.get(candidate.id);
+        logDiscoverExclude({
+          viewer: user,
+          candidateId: candidate.id,
+          candidateGender: candidate.gender,
+          onboardingStatus: status?.onboardingStatus ?? null,
+          verificationStatus: status?.verificationStatus ?? null,
+          maleReviewStatus: null,
+          nurseVerificationStatus: femaleMap.get(candidate.id)?.nurse_verification_status ?? null,
+          reason: 'viewer_seeking_mismatch',
+        });
+        return false;
+      }
+      if (!canSeek(candidate, 'female')) {
+        const status = statusMap.get(candidate.id);
+        logDiscoverExclude({
+          viewer: user,
+          candidateId: candidate.id,
+          candidateGender: candidate.gender,
+          onboardingStatus: status?.onboardingStatus ?? null,
+          verificationStatus: status?.verificationStatus ?? null,
+          maleReviewStatus: null,
+          nurseVerificationStatus: femaleMap.get(candidate.id)?.nurse_verification_status ?? null,
+          reason: 'candidate_seeking_mismatch',
+        });
+        return false;
+      }
       const fp = femaleMap.get(candidate.id);
-      return Boolean(fp && fp.nurse_verification_status === 'approved');
+      const ok = Boolean(fp && fp.nurse_verification_status === 'approved');
+      if (!ok) {
+        const status = statusMap.get(candidate.id);
+        logDiscoverExclude({
+          viewer: user,
+          candidateId: candidate.id,
+          candidateGender: candidate.gender,
+          onboardingStatus: status?.onboardingStatus ?? null,
+          verificationStatus: status?.verificationStatus ?? null,
+          maleReviewStatus: null,
+          nurseVerificationStatus: fp?.nurse_verification_status ?? null,
+          reason: 'nurse_verification_not_approved',
+        });
+      }
+      return ok;
     });
 
   const picked: AppUser[] = [];
@@ -997,7 +1160,20 @@ export async function generateDailyRecommendations(userId: string, recommendatio
     })
   ) {
     if (picked.length >= 10) break;
-    if (await hasAnyRelationshipMode(candidate.id)) continue;
+    if (await hasAnyRelationshipMode(candidate.id)) {
+      const status = statusMap.get(candidate.id);
+      logDiscoverExclude({
+        viewer: user,
+        candidateId: candidate.id,
+        candidateGender: candidate.gender,
+        onboardingStatus: status?.onboardingStatus ?? null,
+        verificationStatus: status?.verificationStatus ?? null,
+        maleReviewStatus: maleMap.get(candidate.id)?.male_review_status ?? null,
+        nurseVerificationStatus: femaleMap.get(candidate.id)?.nurse_verification_status ?? null,
+        reason: 'relationship_mode',
+      });
+      continue;
+    }
     picked.push(candidate);
   }
 
@@ -1017,6 +1193,10 @@ export async function generateDailyRecommendations(userId: string, recommendatio
     .eq('user_id', userId)
     .eq('recommendation_date', recommendationDate)
     .order('rank', { ascending: true });
+  console.log('DISCOVER_DAILY_RECOMMENDATIONS_COUNT', {
+    viewerUserId: user.id,
+    count: (savedRows ?? []).length,
+  });
   return (savedRows ?? []).map((row) => ({
     id: row.id,
     userId: row.user_id,
@@ -1058,8 +1238,6 @@ export async function getDailyRecommendationCards(user: AppUser, recommendationD
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return [] as DailyRecommendationCard[];
-  const admin = createAdminSupabaseClient();
-  if (!admin) return [] as DailyRecommendationCard[];
 
   const { data: existingRows } = await supabase
     .from('daily_recommendations')
@@ -1077,7 +1255,91 @@ export async function getDailyRecommendationCards(user: AppUser, recommendationD
     .eq('recommendation_date', recommendationDate)
     .order('rank', { ascending: true });
   const targetIds = (rows ?? []).map((row) => row.target_user_id);
-  if (targetIds.length === 0) return [] as DailyRecommendationCard[];
+  if (targetIds.length === 0) {
+    const blockedSet = await getBlockedRelationSetForUser(user.id);
+    let swipedIds = new Set<string>();
+    const swipeRes = await supabase.from('swipes').select('to_user_id').eq('from_user_id', user.id);
+    if (!swipeRes.error) {
+      swipedIds = new Set((swipeRes.data ?? []).map((row) => row.to_user_id));
+    } else {
+      const { data: likesData } = await supabase.from('likes').select('to_user_id').eq('from_user_id', user.id);
+      swipedIds = new Set((likesData ?? []).map((row) => row.to_user_id));
+    }
+
+    const [{ data: fallbackUsers }, { data: fallbackMaleRows }, { data: reportedRows }] = await Promise.all([
+      supabase
+        .from('users')
+        .select('id,gender,nickname,age,location,bio,profile_image_url,seeking_gender,desired_gender,onboarding_status,verification_status,is_suspended')
+        .eq('gender', 'male')
+        .in('onboarding_status', ['verified', 'profile_completed'])
+        .eq('verification_status', 'approved')
+        .eq('is_suspended', false)
+        .neq('id', user.id),
+      supabase.from('male_profiles').select('*').eq('male_review_status', 'approved'),
+      supabase.from('reports').select('target_user_id').eq('reporter_id', user.id),
+    ]);
+
+    const maleMap = new Map((fallbackMaleRows ?? []).map((row) => [row.user_id, mapMale(row)]));
+    const reportedSet = new Set((reportedRows ?? []).map((row) => row.target_user_id));
+    const filteredUsers = (fallbackUsers ?? [])
+      .filter((row) => !blockedSet.has(row.id))
+      .filter((row) => !swipedIds.has(row.id))
+      .filter((row) => !reportedSet.has(row.id))
+      .filter((row) => maleMap.has(row.id))
+      .slice(0, 10);
+
+    if (filteredUsers.length > 0) {
+      console.log('DISCOVER_FALLBACK_USED', { viewerUserId: user.id, count: filteredUsers.length });
+    }
+
+    const fallbackCards = await Promise.all(
+      filteredUsers.map(async (row, index) => {
+        const mappedUser: AppUser = await resolveProfileImage({
+          id: row.id,
+          email: '',
+          phone: null,
+          role: 'user',
+          gender: 'male',
+          nickname: row.nickname,
+          birthdate: '',
+          age: row.age,
+          location: row.location,
+          bio: row.bio,
+          profileImageUrl: row.profile_image_url,
+          desiredGender: row.seeking_gender ?? row.desired_gender,
+          onboardingStatus: row.onboarding_status,
+          riskCheckStatus: 'clear',
+          verificationStatus: row.verification_status,
+          identityDocumentUrl: null,
+          rejectedReason: null,
+          moderationAction: 'none',
+          isSuspended: row.is_suspended,
+          isTestUser: false,
+        });
+        const images = await getProfileImagesByUserId(row.id);
+        return {
+          recommendation: {
+            id: `fallback-${user.id}-${row.id}`,
+            userId: user.id,
+            targetUserId: row.id,
+            recommendationDate,
+            rank: index + 1,
+            reason: 'fallback: approved male candidate',
+            createdAt: new Date().toISOString(),
+          },
+          user: {
+            ...mappedUser,
+            profileImageUrl: images.find((img) => img.isMain)?.imageUrl ?? mappedUser.profileImageUrl,
+          },
+          maleProfile: maleMap.get(row.id) ?? null,
+          femaleProfile: null,
+          profileImages: images,
+        } satisfies DailyRecommendationCard;
+      }),
+    );
+
+    return fallbackCards;
+  }
 
   const [{ data: userRows }, { data: maleRows }, { data: femaleRows }] = await Promise.all([
     supabase.from('public_user_cards').select('*').in('id', targetIds),
