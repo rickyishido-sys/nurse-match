@@ -1863,8 +1863,15 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
     .eq('to_user_id', fromUserId)
     .eq('status', 'like')
     .maybeSingle();
+  const { data: reverseSwipeLike } = await supabase
+    .from('swipes')
+    .select('id')
+    .eq('from_user_id', toUserId)
+    .eq('to_user_id', fromUserId)
+    .eq('action', 'like')
+    .maybeSingle();
 
-  if (reverseLike) {
+  if (reverseLike || reverseSwipeLike) {
     const { data: existing } = await supabase
       .from('matches')
       .select('id')
@@ -1929,7 +1936,14 @@ export async function respondToIncomingLike(fromUserId: string, toUserId: string
     .eq('to_user_id', fromUserId)
     .eq('status', 'like')
     .maybeSingle();
-  if (!reverseLike) return { matched: false };
+  const { data: reverseSwipeLike } = await supabase
+    .from('swipes')
+    .select('id')
+    .eq('from_user_id', toUserId)
+    .eq('to_user_id', fromUserId)
+    .eq('action', 'like')
+    .maybeSingle();
+  if (!reverseLike && !reverseSwipeLike) return { matched: false };
 
   const { data: existing } = await supabase
     .from('matches')
@@ -2491,17 +2505,20 @@ export async function getActivityFeed(userId: string): Promise<{
   const supabase = await createServerSupabaseClient();
   if (!supabase) return { incoming: [], outgoing: [], matches: [] };
   const blockedSet = await getBlockedRelationSetForUser(userId);
-  const [incomingSignalsRes, incomingLikesRes, outgoingSignalsRes, outgoingLikesRes] = await Promise.all([
+  const [incomingSignalsRes, incomingLikesRes, incomingSwipesRes, outgoingSignalsRes, outgoingLikesRes, outgoingSwipesRes] = await Promise.all([
     supabase.from('interest_signals').select('user_id,created_at,signal_type').eq('target_user_id', userId).eq('signal_type', 'interested'),
     supabase.from('likes').select('from_user_id,created_at,status').eq('to_user_id', userId).eq('status', 'like'),
+    supabase.from('swipes').select('from_user_id,created_at,action').eq('to_user_id', userId).eq('action', 'like'),
     supabase.from('interest_signals').select('target_user_id,created_at,signal_type').eq('user_id', userId).eq('signal_type', 'interested'),
     supabase.from('likes').select('to_user_id,created_at,status').eq('from_user_id', userId).eq('status', 'like'),
+    supabase.from('swipes').select('to_user_id,created_at,action').eq('from_user_id', userId).eq('action', 'like'),
   ]);
 
   const incomingMap = new Map<string, string>();
   for (const row of [
     ...(incomingSignalsRes.data ?? []).map((r) => ({ partnerId: r.user_id, sentAt: r.created_at })),
     ...(incomingLikesRes.data ?? []).map((r) => ({ partnerId: r.from_user_id, sentAt: r.created_at })),
+    ...(incomingSwipesRes.data ?? []).map((r) => ({ partnerId: r.from_user_id, sentAt: r.created_at })),
   ]) {
     if (blockedSet.has(row.partnerId) || matchIdByPartner.has(row.partnerId)) continue;
     const prev = incomingMap.get(row.partnerId);
@@ -2512,6 +2529,7 @@ export async function getActivityFeed(userId: string): Promise<{
   for (const row of [
     ...(outgoingSignalsRes.data ?? []).map((r) => ({ partnerId: r.target_user_id, sentAt: r.created_at })),
     ...(outgoingLikesRes.data ?? []).map((r) => ({ partnerId: r.to_user_id, sentAt: r.created_at })),
+    ...(outgoingSwipesRes.data ?? []).map((r) => ({ partnerId: r.to_user_id, sentAt: r.created_at })),
   ]) {
     if (blockedSet.has(row.partnerId)) continue;
     const prev = outgoingMap.get(row.partnerId);
