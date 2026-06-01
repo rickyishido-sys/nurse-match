@@ -1792,7 +1792,6 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return { matched: false };
-  const writeClient = createAdminSupabaseClient() ?? supabase;
 
   const { data: fromUserRow } = await supabase
     .from('users')
@@ -1803,11 +1802,11 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
     throw new Error('男性ユーザーはスワイプできません');
   }
 
-  const likeWrite = await writeClient.from('likes').upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action });
+  const likeWrite = await supabase.from('likes').upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action });
   if (likeWrite.error) {
     console.warn('[swipe] likes write failed:', likeWrite.error.message);
   }
-  const swipeWrite = await writeClient
+  const swipeWrite = await supabase
     .from('swipes')
     .upsert({ from_user_id: fromUserId, to_user_id: toUserId, action }, { onConflict: 'from_user_id,to_user_id' });
   if (swipeWrite.error) {
@@ -1820,7 +1819,7 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
   if (!isMatchEligibleOnboardingStatus(toUserRow.onboarding_status)) return { matched: false };
 
   if (toUserRow.gender === 'male') {
-    const { data: existing } = await writeClient
+    const { data: existing } = await supabase
       .from('matches')
       .select('id')
       .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
@@ -1829,13 +1828,13 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
     let matchId: string | null = existing?.id ?? null;
     const created = !existing;
     if (!existing) {
-      const inserted = await writeClient
+      const inserted = await supabase
         .from('matches')
         .insert({ user_a_id: fromUserId, user_b_id: toUserId, relationship_status: 'active', hold_deletion: false });
       if (inserted.error) {
         console.warn('[swipe] match insert failed:', inserted.error.message);
       }
-      const { data: created } = await writeClient
+      const { data: created } = await supabase
         .from('matches')
         .select('id')
         .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
@@ -1867,7 +1866,7 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
     return { matched: created, matchId: matchId ?? undefined };
   }
 
-  const { data: reverseLike } = await writeClient
+  const { data: reverseLike } = await supabase
     .from('likes')
     .select('id')
     .eq('from_user_id', toUserId)
@@ -1876,20 +1875,20 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
     .maybeSingle();
 
   if (reverseLike) {
-    const { data: existing } = await writeClient
+    const { data: existing } = await supabase
       .from('matches')
       .select('id')
       .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
       .maybeSingle();
 
     if (!existing) {
-      const inserted = await writeClient
+      const inserted = await supabase
         .from('matches')
         .insert({ user_a_id: fromUserId, user_b_id: toUserId, relationship_status: 'active', hold_deletion: false });
       if (inserted.error) {
         console.warn('[swipe] reverse match insert failed:', inserted.error.message);
       }
-      const { data: createdMatch } = await writeClient
+      const { data: createdMatch } = await supabase
         .from('matches')
         .select('id')
         .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
@@ -1919,19 +1918,17 @@ export async function respondToIncomingLike(fromUserId: string, toUserId: string
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return { matched: false };
-  const writeClient = createAdminSupabaseClient() ?? supabase;
-
-  const { data: fromRow } = await writeClient.from('users').select('gender,onboarding_status').eq('id', fromUserId).single();
-  const { data: toRow } = await writeClient.from('users').select('gender,onboarding_status').eq('id', toUserId).single();
+  const { data: fromRow } = await supabase.from('users').select('gender,onboarding_status').eq('id', fromUserId).single();
+  const { data: toRow } = await supabase.from('users').select('gender,onboarding_status').eq('id', toUserId).single();
   if (!fromRow || !toRow) return { matched: false };
   if (!isMatchEligibleOnboardingStatus(fromRow.onboarding_status) || !isMatchEligibleOnboardingStatus(toRow.onboarding_status)) return { matched: false };
   if (fromRow.gender !== 'male' || toRow.gender !== 'female') return { matched: false };
 
-  const likeWrite = await writeClient.from('likes').upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action });
+  const likeWrite = await supabase.from('likes').upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action });
   if (likeWrite.error) {
     console.warn('[respondToIncomingLike] likes write failed:', likeWrite.error.message);
   }
-  const swipeWrite = await writeClient
+  const swipeWrite = await supabase
     .from('swipes')
     .upsert({ from_user_id: fromUserId, to_user_id: toUserId, action }, { onConflict: 'from_user_id,to_user_id' });
   if (swipeWrite.error) {
@@ -1939,7 +1936,7 @@ export async function respondToIncomingLike(fromUserId: string, toUserId: string
   }
   if (action !== 'like') return { matched: false };
 
-  const { data: reverseLike } = await writeClient
+  const { data: reverseLike } = await supabase
     .from('likes')
     .select('id')
     .eq('from_user_id', toUserId)
@@ -1948,20 +1945,20 @@ export async function respondToIncomingLike(fromUserId: string, toUserId: string
     .maybeSingle();
   if (!reverseLike) return { matched: false };
 
-  const { data: existing } = await writeClient
+  const { data: existing } = await supabase
     .from('matches')
     .select('id')
     .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
     .maybeSingle();
   if (existing?.id) return { matched: false, matchId: existing.id };
 
-  const inserted = await writeClient
+  const inserted = await supabase
     .from('matches')
     .insert({ user_a_id: fromUserId, user_b_id: toUserId, relationship_status: 'active', hold_deletion: false });
   if (inserted.error) {
     console.warn('[respondToIncomingLike] match insert failed:', inserted.error.message);
   }
-  const { data: created } = await writeClient
+  const { data: created } = await supabase
     .from('matches')
     .select('id')
     .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
