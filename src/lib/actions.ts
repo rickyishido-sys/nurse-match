@@ -59,6 +59,116 @@ function isAdminRole(role: string | undefined) {
   return role === 'female_admin' || role === 'male_admin' || role === 'super_admin';
 }
 
+const E2E_TEST_FEMALE_EMAIL = 'test-female@nursematch.app';
+const E2E_TEST_MALE_EMAIL = 'test-male@nursematch.app';
+
+function parseAdminEmails() {
+  return (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function isConfiguredAdminEmail(email: string | undefined | null) {
+  if (!email) return false;
+  return parseAdminEmails().includes(email.trim().toLowerCase());
+}
+
+async function bootstrapTestUserIfNeeded(
+  supabase: NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>,
+  authUser: { id: string; email?: string | null },
+) {
+  const normalizedEmail = (authUser.email ?? '').trim().toLowerCase();
+  const isFemaleTest = normalizedEmail === E2E_TEST_FEMALE_EMAIL;
+  const isMaleTest = normalizedEmail === E2E_TEST_MALE_EMAIL;
+  if (!isFemaleTest && !isMaleTest) return;
+
+  const birthdate = isFemaleTest ? '1995-05-01' : '1993-07-01';
+  const age = isFemaleTest ? 31 : 33;
+  const gender = isFemaleTest ? 'female' : 'male';
+  const nickname = isFemaleTest ? 'テスト女性' : 'テスト男性';
+
+  await supabase.from('users').insert({
+    id: authUser.id,
+    email: normalizedEmail,
+    role: 'user',
+    gender,
+    nickname,
+    birthdate,
+    age,
+    location: 'Tokyo',
+    bio: '',
+    profile_image_url: '',
+    desired_gender: isFemaleTest ? 'male' : 'female',
+    seeking_gender: isFemaleTest ? 'male' : 'female',
+    onboarding_status: 'verified',
+    risk_check_status: 'clear',
+    verification_status: 'approved',
+    moderation_action: 'none',
+    is_suspended: false,
+    is_test_user: true,
+  });
+
+  if (isFemaleTest) {
+    await supabase.from('female_profiles').upsert(
+      {
+        user_id: authUser.id,
+        nurse_document_url: '',
+        nurse_verification_status: 'approved',
+        workplace_type: 'hospital',
+        has_night_shift: true,
+      },
+      { onConflict: 'user_id' },
+    );
+  } else {
+    await supabase.from('male_profiles').upsert(
+      {
+        user_id: authUser.id,
+        job: '会社員',
+        income: '600-800',
+        marital_status: 'single',
+        has_children: false,
+        male_review_status: 'approved',
+        income_verified: true,
+        face_photo_verified: true,
+        night_shift_understanding: true,
+        shift_work_understanding: true,
+        late_night_contact_ok: true,
+        personality_tags: ['誠実'],
+      },
+      { onConflict: 'user_id' },
+    );
+  }
+}
+
+async function bootstrapAdminUserIfNeeded(
+  supabase: NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>,
+  authUser: { id: string; email?: string | null },
+) {
+  const normalizedEmail = (authUser.email ?? '').trim().toLowerCase();
+  if (!isConfiguredAdminEmail(normalizedEmail)) return;
+
+  await supabase.from('users').insert({
+    id: authUser.id,
+    email: normalizedEmail,
+    role: 'super_admin',
+    gender: 'male',
+    nickname: 'Admin',
+    birthdate: '1990-01-01',
+    age: 35,
+    location: 'Tokyo',
+    bio: '',
+    profile_image_url: '',
+    desired_gender: 'female',
+    seeking_gender: 'female',
+    onboarding_status: 'verified',
+    risk_check_status: 'clear',
+    verification_status: 'approved',
+    moderation_action: 'none',
+    is_suspended: false,
+  });
+}
+
 export async function setDemoUserAction(formData: FormData) {
   if (!USE_MOCK_DATA) return;
 
@@ -132,7 +242,17 @@ export async function loginAction(formData: FormData) {
     .select('id,role,gender,onboarding_status,verification_status')
     .eq('id', authUser.id)
     .maybeSingle();
-  if (meError || !meRow) {
+  let effectiveMeRow = meRow;
+  if (!effectiveMeRow) {
+    await bootstrapTestUserIfNeeded(supabase, authUser);
+    const { data: retriedMeRow } = await supabase
+      .from('users')
+      .select('id,role,gender,onboarding_status,verification_status')
+      .eq('id', authUser.id)
+      .maybeSingle();
+    effectiveMeRow = retriedMeRow ?? null;
+  }
+  if (meError || !effectiveMeRow) {
     console.log('LOGIN_USER_ROW_MISSING', {
       email,
       userId: authUser.id,
@@ -142,11 +262,11 @@ export async function loginAction(formData: FormData) {
   }
 
   const me = {
-    id: meRow.id,
-    role: meRow.role,
-    gender: meRow.gender,
-    onboardingStatus: meRow.onboarding_status,
-    verificationStatus: meRow.verification_status,
+    id: effectiveMeRow.id,
+    role: effectiveMeRow.role,
+    gender: effectiveMeRow.gender,
+    onboardingStatus: effectiveMeRow.onboarding_status,
+    verificationStatus: effectiveMeRow.verification_status,
   };
 
   if (isAdminRole(me.role)) {
@@ -207,11 +327,21 @@ export async function adminLoginAction(formData: FormData) {
     .select('id,role')
     .eq('id', authUser.id)
     .maybeSingle();
-  if (meError || !meRow) {
+  let effectiveMeRow = meRow;
+  if (!effectiveMeRow) {
+    await bootstrapAdminUserIfNeeded(supabase, authUser);
+    const { data: retriedMeRow } = await supabase
+      .from('users')
+      .select('id,role')
+      .eq('id', authUser.id)
+      .maybeSingle();
+    effectiveMeRow = retriedMeRow ?? null;
+  }
+  if (meError || !effectiveMeRow) {
     await supabase.auth.signOut();
     redirect('/admin/login?error=user-row-missing');
   }
-  if (!isAdminRole(meRow.role)) {
+  if (!isAdminRole(effectiveMeRow.role)) {
     await supabase.auth.signOut();
     redirect('/admin/login?error=forbidden');
   }
