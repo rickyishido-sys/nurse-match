@@ -1261,6 +1261,7 @@ export async function getDailyRecommendationCards(user: AppUser, recommendationD
   const targetIds = (rows ?? []).map((row) => row.target_user_id);
   if (targetIds.length === 0) {
     const blockedSet = await getBlockedRelationSetForUser(user.id);
+    const admin = createAdminSupabaseClient();
     let swipedIds = new Set<string>();
     const swipeRes = await supabase.from('swipes').select('to_user_id').eq('from_user_id', user.id);
     if (!swipeRes.error) {
@@ -1270,26 +1271,65 @@ export async function getDailyRecommendationCards(user: AppUser, recommendationD
       swipedIds = new Set((likesData ?? []).map((row) => row.to_user_id));
     }
 
-    const [{ data: fallbackUsers }, { data: fallbackMaleRows }, { data: reportedRows }] = await Promise.all([
+    const [{ data: fallbackUserCards }, { data: fallbackMaleRows }, { data: reportedRows }, { data: onboardingRows }] = await Promise.all([
       supabase
-        .from('users')
-        .select('id,gender,nickname,age,location,bio,profile_image_url,seeking_gender,desired_gender,onboarding_status,verification_status,is_suspended')
+        .from('public_user_cards')
+        .select('*')
         .eq('gender', 'male')
-        .in('onboarding_status', ['verified', 'profile_completed'])
         .eq('verification_status', 'approved')
         .eq('is_suspended', false)
         .neq('id', user.id),
-      supabase.from('male_profiles').select('*').eq('male_review_status', 'approved'),
+      supabase.from('male_profile_public').select('*').eq('male_review_status', 'approved'),
       supabase.from('reports').select('target_user_id').eq('reporter_id', user.id),
+      !admin
+        ? Promise.resolve({
+            data: [] as Array<{
+              id: string;
+              onboarding_status: 'provisional' | 'profile_completed' | 'verified';
+            }>,
+          })
+        : admin.from('users').select('id,onboarding_status').eq('gender', 'male').neq('id', user.id),
     ]);
 
-    const maleMap = new Map((fallbackMaleRows ?? []).map((row) => [row.user_id, mapMale(row)]));
+    const maleMap = new Map(
+      (fallbackMaleRows ?? []).map((row) => [
+        row.user_id,
+        {
+          userId: row.user_id,
+          job: row.job,
+          income: row.income,
+          maritalStatus: row.marital_status,
+          hasChildren: row.has_children,
+          maleReviewStatus: row.male_review_status,
+          incomeVerified: row.income_verified,
+          facePhotoVerified: row.face_photo_verified,
+          internalMemo: null,
+          height: row.height ?? 170,
+          bodyType: row.body_type ?? '',
+          holiday: row.holiday ?? '',
+          smoking: row.smoking ?? '',
+          drinking: row.drinking ?? '',
+          nightShiftUnderstanding: row.night_shift_understanding,
+          shiftWorkUnderstanding: row.shift_work_understanding,
+          lateNightContactOk: row.late_night_contact_ok,
+          firstDateCost: row.first_date_cost ?? '',
+          personalityTags: row.personality_tags ?? [],
+        } satisfies MaleProfile,
+      ]),
+    );
     const reportedSet = new Set((reportedRows ?? []).map((row) => row.target_user_id));
-    const filteredUsers = (fallbackUsers ?? [])
-      .filter((row) => !blockedSet.has(row.id))
-      .filter((row) => !swipedIds.has(row.id))
-      .filter((row) => !reportedSet.has(row.id))
-      .filter((row) => maleMap.has(row.id))
+    const onboardingMap = new Map((onboardingRows ?? []).map((row) => [row.id, row.onboarding_status]));
+    const filteredUsers = (fallbackUserCards ?? [])
+      .map((row) => mapPublicUserCard(row))
+      .filter((candidate) => !blockedSet.has(candidate.id))
+      .filter((candidate) => !swipedIds.has(candidate.id))
+      .filter((candidate) => !reportedSet.has(candidate.id))
+      .filter((candidate) => maleMap.has(candidate.id))
+      .filter((candidate) => {
+        const onboardingStatus = onboardingMap.get(candidate.id);
+        // If admin client is unavailable we gracefully allow the card.
+        return onboardingStatus ? isMatchEligibleOnboardingStatus(onboardingStatus) : true;
+      })
       .slice(0, 10);
 
     if (filteredUsers.length > 0) {
@@ -1297,45 +1337,24 @@ export async function getDailyRecommendationCards(user: AppUser, recommendationD
     }
 
     const fallbackCards = await Promise.all(
-      filteredUsers.map(async (row, index) => {
+      filteredUsers.map(async (candidate, index) => {
+        const images = await getProfileImagesByUserId(candidate.id);
         const mappedUser: AppUser = await resolveProfileImage({
-          id: row.id,
-          email: '',
-          phone: null,
-          role: 'user',
-          gender: 'male',
-          nickname: row.nickname,
-          birthdate: '',
-          age: row.age,
-          location: row.location,
-          bio: row.bio,
-          profileImageUrl: row.profile_image_url,
-          desiredGender: row.seeking_gender ?? row.desired_gender,
-          onboardingStatus: row.onboarding_status,
-          riskCheckStatus: 'clear',
-          verificationStatus: row.verification_status,
-          identityDocumentUrl: null,
-          rejectedReason: null,
-          moderationAction: 'none',
-          isSuspended: row.is_suspended,
-          isTestUser: false,
+          ...candidate,
+          profileImageUrl: images.find((img) => img.isMain)?.imageUrl ?? candidate.profileImageUrl,
         });
-        const images = await getProfileImagesByUserId(row.id);
         return {
           recommendation: {
-            id: `fallback-${user.id}-${row.id}`,
+            id: `fallback-${user.id}-${candidate.id}`,
             userId: user.id,
-            targetUserId: row.id,
+            targetUserId: candidate.id,
             recommendationDate,
             rank: index + 1,
             reason: 'fallback: approved male candidate',
             createdAt: new Date().toISOString(),
           },
-          user: {
-            ...mappedUser,
-            profileImageUrl: images.find((img) => img.isMain)?.imageUrl ?? mappedUser.profileImageUrl,
-          },
-          maleProfile: maleMap.get(row.id) ?? null,
+          user: mappedUser,
+          maleProfile: maleMap.get(candidate.id) ?? null,
           femaleProfile: null,
           profileImages: images,
         } satisfies DailyRecommendationCard;
