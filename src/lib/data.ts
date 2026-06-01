@@ -481,6 +481,10 @@ function logDiscoverExclude(input: {
   });
 }
 
+function isMatchEligibleOnboardingStatus(status: string | null | undefined) {
+  return status === 'verified' || status === 'profile_completed';
+}
+
 async function isBlockedBetweenUsers(userAId: string, userBId: string) {
   if (USE_MOCK_DATA) return isBlockedBetween(userAId, userBId);
 
@@ -1620,8 +1624,8 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
   if (USE_MOCK_DATA) {
     const from = getUserById(fromUserId);
     const to = getUserById(toUserId);
-    if (!from || !to || from.gender === 'male' || isBlockedBetween(fromUserId, toUserId)) return { matched: false };
-    if (from.onboardingStatus !== 'verified' || to.onboardingStatus !== 'verified') return { matched: false };
+  if (!from || !to || from.gender === 'male' || isBlockedBetween(fromUserId, toUserId)) return { matched: false };
+  if (!isMatchEligibleOnboardingStatus(from.onboardingStatus) || !isMatchEligibleOnboardingStatus(to.onboardingStatus)) return { matched: false };
     if (hasAnyRelationshipModeInMock(fromUserId) || hasAnyRelationshipModeInMock(toUserId)) return { matched: false };
 
     addLike(fromUserId, toUserId, action);
@@ -1681,7 +1685,7 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
     .select('gender,onboarding_status')
     .eq('id', fromUserId)
     .single();
-  if (!fromUserRow || fromUserRow.gender !== 'female' || fromUserRow.onboarding_status !== 'verified') {
+  if (!fromUserRow || fromUserRow.gender !== 'female' || !isMatchEligibleOnboardingStatus(fromUserRow.onboarding_status)) {
     throw new Error('男性ユーザーはスワイプできません');
   }
 
@@ -1696,7 +1700,7 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
 
   const { data: toUserRow } = await supabase.from('users').select('gender,onboarding_status').eq('id', toUserId).single();
   if (!toUserRow) return { matched: false };
-  if (toUserRow.onboarding_status !== 'verified') return { matched: false };
+  if (!isMatchEligibleOnboardingStatus(toUserRow.onboarding_status)) return { matched: false };
 
   if (toUserRow.gender === 'male') {
     const { data: existing } = await supabase
@@ -1796,7 +1800,7 @@ export async function respondToIncomingLike(fromUserId: string, toUserId: string
   const { data: fromRow } = await supabase.from('users').select('gender,onboarding_status').eq('id', fromUserId).single();
   const { data: toRow } = await supabase.from('users').select('gender,onboarding_status').eq('id', toUserId).single();
   if (!fromRow || !toRow) return { matched: false };
-  if (fromRow.onboarding_status !== 'verified' || toRow.onboarding_status !== 'verified') return { matched: false };
+  if (!isMatchEligibleOnboardingStatus(fromRow.onboarding_status) || !isMatchEligibleOnboardingStatus(toRow.onboarding_status)) return { matched: false };
   if (fromRow.gender !== 'male' || toRow.gender !== 'female') return { matched: false };
 
   await supabase.from('likes').upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action });

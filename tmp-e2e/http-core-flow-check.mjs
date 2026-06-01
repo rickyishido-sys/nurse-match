@@ -45,6 +45,16 @@ function parseFormActionId(html) {
   return m[1];
 }
 
+function findForms(html) {
+  return [...html.matchAll(/<form[^>]*>[\s\S]*?<\/form>/g)].map((m) => m[0]);
+}
+
+function parseFormActionIdFromForm(formHtml) {
+  const m = formHtml.match(/name=\"(\$ACTION_ID_[^\"]+)\"/);
+  if (!m) throw new Error('server action id not found in form');
+  return m[1];
+}
+
 async function login(email) {
   const jar = new Map();
   const loginPage = await request('/login', jar);
@@ -64,35 +74,40 @@ async function login(email) {
 }
 
 function parseDiscoverLikeForm(html) {
-  const formBlock = matchOne(
-    html,
-    /<form[^>]*>[\s\S]*?name=\"toUserId\" value=\"([^\"]+)\"[\s\S]*?name=\"action\" value=\"like\"[\s\S]*?<button[^>]*>興味あり<\/button>[\s\S]*?<\/form>/,
-    'discover like form',
-  );
-  const actionId = parseFormActionId(html);
-  return { toUserId: formBlock, actionId };
+  const form = findForms(html).find((block) => block.includes('name=\"toUserId\"') && block.includes('name=\"action\" value=\"like\"'));
+  if (!form) throw new Error('discover like form not found');
+  const toUserId = matchOne(form, /name=\"toUserId\" value=\"([^\"]+)\"/, 'discover toUserId');
+  const actionId = parseFormActionIdFromForm(form);
+  return { toUserId, actionId };
 }
 
 function parseLikesReturnForm(html) {
-  const formMatch = html.match(
-    /<form[^>]*>[\s\S]*?name=\"fromUserId\" value=\"([^\"]+)\"[\s\S]*?name=\"toUserId\" value=\"([^\"]+)\"[\s\S]*?name=\"action\" value=\"like\"[\s\S]*?<button[^>]*>興味ありを返す<\/button>[\s\S]*?<\/form>/,
+  const form = findForms(html).find(
+    (block) =>
+      block.includes('name=\"fromUserId\"') &&
+      block.includes('name=\"toUserId\"') &&
+      block.includes('name=\"action\" value=\"like\"'),
   );
-  if (!formMatch) throw new Error('likes return form not found');
-  const [, fromUserId, toUserId] = formMatch;
-  const actionId = parseFormActionId(html);
+  if (!form) throw new Error('likes return form not found');
+  const fromUserId = matchOne(form, /name=\"fromUserId\" value=\"([^\"]+)\"/, 'likes fromUserId');
+  const toUserId = matchOne(form, /name=\"toUserId\" value=\"([^\"]+)\"/, 'likes toUserId');
+  const actionId = parseFormActionIdFromForm(form);
   return { fromUserId, toUserId, actionId };
 }
 
 async function run() {
   const report = [];
 
+  const maleJar = await login(MALE_EMAIL);
+  report.push('A: test-male pre-login bootstrap OK');
+
   const femaleJar = await login(FEMALE_EMAIL);
-  report.push('A: test-female login OK');
+  report.push('B: test-female login OK');
 
   const discoverRes = await request('/discover', femaleJar);
   const discoverHtml = await discoverRes.text();
-  report.push(`B: /discover status=${discoverRes.status}`);
-  report.push(`C: discover header present=${discoverHtml.includes('本日のおすすめ男性')}`);
+  report.push(`C: /discover status=${discoverRes.status}`);
+  report.push(`D: discover header present=${discoverHtml.includes('本日のおすすめ男性')}`);
 
   const discoverLike = parseDiscoverLikeForm(discoverHtml);
   const femaleLikeBody = new FormData();
@@ -102,15 +117,14 @@ async function run() {
   femaleLikeBody.set('toUserId', discoverLike.toUserId);
   femaleLikeBody.set('action', 'like');
   const femaleLikeRes = await request('/discover', femaleJar, { method: 'POST', body: femaleLikeBody });
-  report.push(`D: female like submit status=${femaleLikeRes.status}`);
+  report.push(`E: female like submit status=${femaleLikeRes.status}`);
 
-  const maleJar = await login(MALE_EMAIL);
-  report.push('E: test-male login OK');
+  report.push('F: test-male login already established');
 
   const likesRes = await request('/likes', maleJar);
   const likesHtml = await likesRes.text();
-  report.push(`F: /likes status=${likesRes.status}`);
-  report.push(`G: likes header present=${likesHtml.includes('興味を持たれました')}`);
+  report.push(`G: /likes status=${likesRes.status}`);
+  report.push(`H: likes header present=${likesHtml.includes('興味を持たれました')}`);
 
   const returnLike = parseLikesReturnForm(likesHtml);
   const maleLikeBody = new FormData();
@@ -119,22 +133,22 @@ async function run() {
   maleLikeBody.set('toUserId', returnLike.toUserId);
   maleLikeBody.set('action', 'like');
   const returnRes = await request('/likes', maleJar, { method: 'POST', body: maleLikeBody });
-  report.push(`H: male return-like submit status=${returnRes.status}`);
+  report.push(`I: male return-like submit status=${returnRes.status}`);
 
   const matchesRes = await request('/matches', maleJar);
   const matchesHtml = await matchesRes.text();
-  report.push(`I: /matches status=${matchesRes.status}`);
-  report.push(`I: matches header present=${matchesHtml.includes('マッチ一覧')}`);
+  report.push(`J: /matches status=${matchesRes.status}`);
+  report.push(`J: matches header present=${matchesHtml.includes('マッチ一覧')}`);
   const messagePath = matchesHtml.match(/href=\"(\/messages\/[^\"]+)\"/)?.[1] ?? null;
-  report.push(`I: messages link found=${Boolean(messagePath)} value=${messagePath ?? '-'}`);
+  report.push(`J: messages link found=${Boolean(messagePath)} value=${messagePath ?? '-'}`);
 
   if (messagePath) {
     const msgRes = await request(messagePath, maleJar);
     const msgHtml = await msgRes.text();
-    report.push(`J: /messages/[matchId] status=${msgRes.status}`);
-    report.push(`J: message input present=${msgHtml.includes('メッセージを入力')}`);
+    report.push(`K: /messages/[matchId] status=${msgRes.status}`);
+    report.push(`K: message input present=${msgHtml.includes('メッセージを入力')}`);
     const femaleThread = await request(messagePath, femaleJar);
-    report.push(`K: female opens same thread status=${femaleThread.status}`);
+    report.push(`L: female opens same thread status=${femaleThread.status}`);
   }
 
   const femaleOnLikes = await request('/likes', femaleJar);
