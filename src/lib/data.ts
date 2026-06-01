@@ -2601,10 +2601,9 @@ export async function getActivityFeed(userId: string): Promise<{
 export async function getIncomingLikesBySwipes(userId: string): Promise<ActivityIncomingCard[]> {
   if (USE_MOCK_DATA) {
     const blockedSet = new Set(listBlocksForUser(userId).map((b) => b.blockedUserId));
-    const matchedPartnerIds = new Set(listMatchesForUser(userId).map((m) => (m.userAId === userId ? m.userBId : m.userAId)));
     const incomingMap = new Map<string, string>();
     for (const row of listLikes().filter((row) => row.toUserId === userId && row.status === 'like')) {
-      if (blockedSet.has(row.fromUserId) || matchedPartnerIds.has(row.fromUserId) || isBlockedBetween(userId, row.fromUserId)) continue;
+      if (blockedSet.has(row.fromUserId) || isBlockedBetween(userId, row.fromUserId)) continue;
       const prev = incomingMap.get(row.fromUserId);
       if (!prev || toTime(prev) < toTime(row.createdAt)) incomingMap.set(row.fromUserId, row.createdAt);
     }
@@ -2627,10 +2626,6 @@ export async function getIncomingLikesBySwipes(userId: string): Promise<Activity
   const supabase = await createServerSupabaseClient();
   if (!supabase) return [];
   const blockedSet = await getBlockedRelationSetForUser(userId);
-  const matchedRows = await getMatches(userId);
-  const matchedPartnerIds = new Set(
-    matchedRows.filter((row) => row.partner).map((row) => (row.partner as AppUser).id),
-  );
   const { data: swipeRows } = await supabase
     .from('swipes')
     .select('from_user_id,created_at')
@@ -2639,7 +2634,7 @@ export async function getIncomingLikesBySwipes(userId: string): Promise<Activity
 
   const incomingMap = new Map<string, string>();
   for (const row of swipeRows ?? []) {
-    if (blockedSet.has(row.from_user_id) || matchedPartnerIds.has(row.from_user_id)) continue;
+    if (blockedSet.has(row.from_user_id)) continue;
     const prev = incomingMap.get(row.from_user_id);
     if (!prev || toTime(prev) < toTime(row.created_at)) incomingMap.set(row.from_user_id, row.created_at);
   }
