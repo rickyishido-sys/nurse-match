@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { respondToIncomingLikeSubmitAction } from '@/lib/actions';
-import { getActivityFeed, getCurrentUser } from '@/lib/data';
+import { getCurrentUser, getIncomingLikesBySwipes } from '@/lib/data';
 import { getAccessState } from '@/lib/guard';
 
 export default async function LikesPage() {
@@ -16,8 +16,7 @@ export default async function LikesPage() {
   if (state === 'rejected') redirect('/review-rejected');
   if (state === 'suspended') redirect('/suspended');
 
-  const feed = await getActivityFeed(user.id);
-  const incoming = feed.incoming.filter((row) => row.user.gender === 'female');
+  const incoming = (await getIncomingLikesBySwipes(user.id)).filter((row) => row.user.gender === 'female');
 
   return (
     <AppShell user={user}>

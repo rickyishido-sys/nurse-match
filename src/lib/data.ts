@@ -1733,6 +1733,89 @@ export type SwipeResult = {
   matchId?: string;
 };
 
+async function upsertSwipeAction(
+  supabase: NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>,
+  fromUserId: string,
+  toUserId: string,
+  action: 'like' | 'skip',
+) {
+  const result = await supabase
+    .from('swipes')
+    .upsert({ from_user_id: fromUserId, to_user_id: toUserId, action }, { onConflict: 'from_user_id,to_user_id' });
+  console.log('SWIPE_INSERT', {
+    fromUserId,
+    toUserId,
+    action,
+    ok: !result.error,
+    error: result.error?.message ?? null,
+  });
+  return result;
+}
+
+async function upsertLegacyLikeOptional(
+  supabase: NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>,
+  fromUserId: string,
+  toUserId: string,
+  action: 'like' | 'skip',
+) {
+  const result = await supabase
+    .from('likes')
+    .upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action }, { onConflict: 'from_user_id,to_user_id' });
+  if (result.error) {
+    console.warn('[swipe][legacy-likes-optional] write failed:', result.error.message);
+  }
+}
+
+async function detectMutualSwipeLike(
+  supabase: NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>,
+  fromUserId: string,
+  toUserId: string,
+) {
+  const { data: reverseSwipeLike } = await supabase
+    .from('swipes')
+    .select('id')
+    .eq('from_user_id', toUserId)
+    .eq('to_user_id', fromUserId)
+    .eq('action', 'like')
+    .maybeSingle();
+  const detected = Boolean(reverseSwipeLike);
+  if (detected) {
+    console.log('MUTUAL_LIKE_DETECTED', { userA: fromUserId, userB: toUserId });
+  }
+  return detected;
+}
+
+async function ensureMatchFromMutualSwipe(
+  supabase: NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>,
+  fromUserId: string,
+  toUserId: string,
+): Promise<SwipeResult> {
+  const { data: existing } = await supabase
+    .from('matches')
+    .select('id')
+    .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
+    .maybeSingle();
+  if (existing?.id) {
+    return { matched: false, matchId: existing.id };
+  }
+
+  const inserted = await supabase
+    .from('matches')
+    .insert({ user_a_id: fromUserId, user_b_id: toUserId, relationship_status: 'active', hold_deletion: false });
+  if (inserted.error) {
+    console.warn('[swipe] match insert failed:', inserted.error.message);
+  }
+  const { data: created } = await supabase
+    .from('matches')
+    .select('id')
+    .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
+    .maybeSingle();
+  if (created?.id) {
+    console.log('MATCH_CREATED', { matchId: created.id, userA: fromUserId, userB: toUserId });
+  }
+  return { matched: true, matchId: created?.id };
+}
+
 export async function swipe(fromUserId: string, toUserId: string, action: 'like' | 'skip'): Promise<SwipeResult> {
   if (USE_MOCK_DATA) {
     const from = getUserById(fromUserId);
@@ -1793,107 +1876,15 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
   const supabase = await createServerSupabaseClient();
   if (!supabase) return { matched: false };
 
-  const likeWrite = await supabase
-    .from('likes')
-    .upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action }, { onConflict: 'from_user_id,to_user_id' });
-  if (likeWrite.error) {
-    console.warn('[swipe] likes write failed:', likeWrite.error.message);
-  }
-  const swipeWrite = await supabase
-    .from('swipes')
-    .upsert({ from_user_id: fromUserId, to_user_id: toUserId, action }, { onConflict: 'from_user_id,to_user_id' });
+  await upsertLegacyLikeOptional(supabase, fromUserId, toUserId, action);
+  const swipeWrite = await upsertSwipeAction(supabase, fromUserId, toUserId, action);
   if (swipeWrite.error) {
-    console.warn('[swipe] swipes table write skipped:', swipeWrite.error.message);
+    throw new Error('スワイプ保存に失敗しました');
   }
   if (action !== 'like') return { matched: false };
-
-  const { data: targetCard } = await supabase.from('public_user_cards').select('gender').eq('id', toUserId).maybeSingle();
-  if (targetCard?.gender === 'male') {
-    const { data: existing } = await supabase
-      .from('matches')
-      .select('id')
-      .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
-      .maybeSingle();
-
-    let matchId: string | null = existing?.id ?? null;
-    const created = !existing;
-    if (!existing) {
-      const inserted = await supabase
-        .from('matches')
-        .insert({ user_a_id: fromUserId, user_b_id: toUserId, relationship_status: 'active', hold_deletion: false });
-      if (inserted.error) {
-        console.warn('[swipe] match insert failed:', inserted.error.message);
-      }
-      const { data: created } = await supabase
-        .from('matches')
-        .select('id')
-        .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
-        .maybeSingle();
-      matchId = created?.id ?? null;
-    }
-    const admin = createAdminSupabaseClient();
-    if (admin) {
-      const { data: signal } = await admin
-        .from('interest_signals')
-        .select('id')
-        .eq('user_id', toUserId)
-        .eq('target_user_id', fromUserId)
-        .eq('signal_type', 'interested')
-        .eq('matched_preference', true)
-        .gte('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (signal) {
-        await consumeCredit({
-          userId: toUserId,
-          amount: 1,
-          reason: '興味あり成立',
-          relatedMatchId: matchId,
-        });
-      }
-    }
-    return { matched: created, matchId: matchId ?? undefined };
-  }
-
-  const { data: reverseLike } = await supabase
-    .from('likes')
-    .select('id')
-    .eq('from_user_id', toUserId)
-    .eq('to_user_id', fromUserId)
-    .eq('status', 'like')
-    .maybeSingle();
-  const { data: reverseSwipeLike } = await supabase
-    .from('swipes')
-    .select('id')
-    .eq('from_user_id', toUserId)
-    .eq('to_user_id', fromUserId)
-    .eq('action', 'like')
-    .maybeSingle();
-
-  if (reverseLike || reverseSwipeLike) {
-    const { data: existing } = await supabase
-      .from('matches')
-      .select('id')
-      .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
-      .maybeSingle();
-
-    if (!existing) {
-      const inserted = await supabase
-        .from('matches')
-        .insert({ user_a_id: fromUserId, user_b_id: toUserId, relationship_status: 'active', hold_deletion: false });
-      if (inserted.error) {
-        console.warn('[swipe] reverse match insert failed:', inserted.error.message);
-      }
-      const { data: createdMatch } = await supabase
-        .from('matches')
-        .select('id')
-        .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
-        .maybeSingle();
-      return { matched: true, matchId: createdMatch?.id };
-    }
-  }
-  return { matched: false };
+  const isMutual = await detectMutualSwipeLike(supabase, fromUserId, toUserId);
+  if (!isMutual) return { matched: false };
+  return ensureMatchFromMutualSwipe(supabase, fromUserId, toUserId);
 }
 
 export async function respondToIncomingLike(fromUserId: string, toUserId: string, action: 'like' | 'skip'): Promise<SwipeResult> {
@@ -1915,55 +1906,15 @@ export async function respondToIncomingLike(fromUserId: string, toUserId: string
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return { matched: false };
-  const likeWrite = await supabase
-    .from('likes')
-    .upsert({ from_user_id: fromUserId, to_user_id: toUserId, status: action }, { onConflict: 'from_user_id,to_user_id' });
-  if (likeWrite.error) {
-    console.warn('[respondToIncomingLike] likes write failed:', likeWrite.error.message);
-  }
-  const swipeWrite = await supabase
-    .from('swipes')
-    .upsert({ from_user_id: fromUserId, to_user_id: toUserId, action }, { onConflict: 'from_user_id,to_user_id' });
+  await upsertLegacyLikeOptional(supabase, fromUserId, toUserId, action);
+  const swipeWrite = await upsertSwipeAction(supabase, fromUserId, toUserId, action);
   if (swipeWrite.error) {
-    console.warn('[respondToIncomingLike] swipes table write skipped:', swipeWrite.error.message);
+    throw new Error('スワイプ保存に失敗しました');
   }
   if (action !== 'like') return { matched: false };
-
-  const { data: reverseLike } = await supabase
-    .from('likes')
-    .select('id')
-    .eq('from_user_id', toUserId)
-    .eq('to_user_id', fromUserId)
-    .eq('status', 'like')
-    .maybeSingle();
-  const { data: reverseSwipeLike } = await supabase
-    .from('swipes')
-    .select('id')
-    .eq('from_user_id', toUserId)
-    .eq('to_user_id', fromUserId)
-    .eq('action', 'like')
-    .maybeSingle();
-  if (!reverseLike && !reverseSwipeLike) return { matched: false };
-
-  const { data: existing } = await supabase
-    .from('matches')
-    .select('id')
-    .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
-    .maybeSingle();
-  if (existing?.id) return { matched: false, matchId: existing.id };
-
-  const inserted = await supabase
-    .from('matches')
-    .insert({ user_a_id: fromUserId, user_b_id: toUserId, relationship_status: 'active', hold_deletion: false });
-  if (inserted.error) {
-    console.warn('[respondToIncomingLike] match insert failed:', inserted.error.message);
-  }
-  const { data: created } = await supabase
-    .from('matches')
-    .select('id')
-    .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
-    .maybeSingle();
-  return { matched: true, matchId: created?.id };
+  const isMutual = await detectMutualSwipeLike(supabase, fromUserId, toUserId);
+  if (!isMutual) return { matched: false };
+  return ensureMatchFromMutualSwipe(supabase, fromUserId, toUserId);
 }
 
 export async function getFavoriteTargetIds(userId: string) {
@@ -2647,6 +2598,127 @@ export async function getActivityFeed(userId: string): Promise<{
   return { incoming, outgoing, matches };
 }
 
+export async function getIncomingLikesBySwipes(userId: string): Promise<ActivityIncomingCard[]> {
+  if (USE_MOCK_DATA) {
+    const blockedSet = new Set(listBlocksForUser(userId).map((b) => b.blockedUserId));
+    const matchedPartnerIds = new Set(listMatchesForUser(userId).map((m) => (m.userAId === userId ? m.userBId : m.userAId)));
+    const incomingMap = new Map<string, string>();
+    for (const row of listLikes().filter((row) => row.toUserId === userId && row.status === 'like')) {
+      if (blockedSet.has(row.fromUserId) || matchedPartnerIds.has(row.fromUserId) || isBlockedBetween(userId, row.fromUserId)) continue;
+      const prev = incomingMap.get(row.fromUserId);
+      if (!prev || toTime(prev) < toTime(row.createdAt)) incomingMap.set(row.fromUserId, row.createdAt);
+    }
+    return [...incomingMap.entries()]
+      .map(([partnerId, sentAt]) => {
+        const user = getUserById(partnerId);
+        if (!user) return null;
+        return {
+          user,
+          maleProfile: getMaleProfile(partnerId),
+          femaleProfile: getFemaleProfile(partnerId),
+          profileImages: listProfileImages(partnerId),
+          sentAt,
+        } satisfies ActivityIncomingCard;
+      })
+      .filter((row): row is ActivityIncomingCard => Boolean(row))
+      .sort((a, b) => toTime(b.sentAt) - toTime(a.sentAt));
+  }
+
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return [];
+  const blockedSet = await getBlockedRelationSetForUser(userId);
+  const matchedRows = await getMatches(userId);
+  const matchedPartnerIds = new Set(
+    matchedRows.filter((row) => row.partner).map((row) => (row.partner as AppUser).id),
+  );
+  const { data: swipeRows } = await supabase
+    .from('swipes')
+    .select('from_user_id,created_at')
+    .eq('to_user_id', userId)
+    .eq('action', 'like');
+
+  const incomingMap = new Map<string, string>();
+  for (const row of swipeRows ?? []) {
+    if (blockedSet.has(row.from_user_id) || matchedPartnerIds.has(row.from_user_id)) continue;
+    const prev = incomingMap.get(row.from_user_id);
+    if (!prev || toTime(prev) < toTime(row.created_at)) incomingMap.set(row.from_user_id, row.created_at);
+  }
+  const partnerIds = [...incomingMap.keys()];
+  if (partnerIds.length === 0) return [];
+
+  const [{ data: usersRows }, { data: maleRows }, { data: femaleRows }] = await Promise.all([
+    supabase.from('public_user_cards').select('*').in('id', partnerIds),
+    supabase.from('male_profile_public').select('*').in('user_id', partnerIds),
+    supabase.from('female_profile_public').select('*').in('user_id', partnerIds),
+  ]);
+  const userMap = new Map(
+    await Promise.all(
+      (usersRows ?? []).map(async (row) => {
+        const mapped = mapPublicUserCard(row);
+        return [mapped.id, await resolveProfileImage(mapped)] as const;
+      }),
+    ),
+  );
+  const imagesMap = new Map(
+    await Promise.all(partnerIds.map(async (partnerId) => [partnerId, await getProfileImagesByUserId(partnerId)] as const)),
+  );
+  const maleMap = new Map(
+    (maleRows ?? []).map((m) => [
+      m.user_id,
+      {
+        userId: m.user_id,
+        job: m.job,
+        income: m.income,
+        maritalStatus: m.marital_status,
+        hasChildren: m.has_children,
+        maleReviewStatus: m.male_review_status,
+        incomeVerified: m.income_verified,
+        facePhotoVerified: m.face_photo_verified,
+        internalMemo: null,
+        height: m.height ?? 170,
+        bodyType: m.body_type ?? '',
+        holiday: m.holiday ?? '',
+        smoking: m.smoking ?? '',
+        drinking: m.drinking ?? '',
+        nightShiftUnderstanding: m.night_shift_understanding,
+        shiftWorkUnderstanding: m.shift_work_understanding,
+        lateNightContactOk: m.late_night_contact_ok,
+        firstDateCost: m.first_date_cost ?? '',
+        personalityTags: m.personality_tags ?? [],
+      } satisfies MaleProfile,
+    ]),
+  );
+  const femaleMap = new Map(
+    (femaleRows ?? []).map((f) => [
+      f.user_id,
+      {
+        userId: f.user_id,
+        nurseDocumentUrl: '',
+        nurseVerificationStatus: f.nurse_verification_status,
+        workplaceType: f.workplace_type,
+        hasNightShift: f.has_night_shift,
+      } satisfies FemaleProfile,
+    ]),
+  );
+
+  const incomingRows = [...incomingMap.entries()]
+    .map(([partnerId, sentAt]) => {
+      const user = userMap.get(partnerId);
+      if (!user) return null;
+      return {
+        user,
+        maleProfile: maleMap.get(partnerId) ?? null,
+        femaleProfile: femaleMap.get(partnerId) ?? null,
+        profileImages: imagesMap.get(partnerId) ?? [],
+        sentAt,
+      } as ActivityIncomingCard;
+    });
+
+  const incoming = incomingRows.filter((row): row is ActivityIncomingCard => row !== null);
+  incoming.sort((a, b) => toTime(b.sentAt) - toTime(a.sentAt));
+  return incoming;
+}
+
 export async function getMatchReadMap(matchId: string): Promise<Record<string, string>> {
   if (USE_MOCK_DATA) {
     const match = getMatchById(matchId);
@@ -2776,6 +2848,7 @@ export async function sendMessage(matchId: string, senderId: string, body: strin
   }
 
   await supabase.from('messages').insert({ match_id: matchId, sender_id: senderId, body });
+  console.log('MESSAGE_SENT', { matchId, senderId });
   await markMatchAsRead(matchId, senderId);
 }
 
