@@ -1,7 +1,24 @@
+import { redirect } from 'next/navigation';
+import { getCurrentUser } from '@/lib/data';
+import { isAdminRole } from '@/lib/guard';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default function DebugEnvPage() {
+export default async function DebugEnvPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect('/login');
+  if (!isAdminRole(user.role)) {
+    return (
+      <main className='min-h-screen bg-slate-50 px-4 py-8'>
+        <section className='mx-auto max-w-[480px] rounded-3xl border border-red-100 bg-white p-5 shadow-sm'>
+          <h1 className='text-lg font-bold text-slate-900'>Access denied</h1>
+          <p className='mt-2 text-sm text-slate-600'>このページは管理者のみ閲覧できます。</p>
+        </section>
+      </main>
+    );
+  }
+
   const envKeys = Object.keys(process.env)
     .filter((key) => key.includes('SUPABASE') || key.includes('ADMIN'))
     .sort();

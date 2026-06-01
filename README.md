@@ -51,6 +51,27 @@ npm run lint
 npm run build
 ```
 
+## 最新仕様（like/match）
+- `swipes` が Like/Skip の source of truth です（`action='like' | 'skip'`）。
+- 女性 `/discover` の「興味あり」「スキップ」は `swipes` に保存されます。
+- 男性 `/likes` は `swipes.action='like'`（to_user_id = 自分）を表示元にします。
+- 相互Like判定は `swipes` の相互 `action='like'` のみで行います。
+- `matches` は相互 `swipes` を検知したときに生成されます。
+- `likes` テーブルは互換用途（legacy）としてのみ維持し、主要判定には使いません。
+
+## Debug エンドポイント運用
+- `/debug/env` と `/api/debug/db-check` は本番で **管理者限定** にしています。
+- 未ログインは `401`（API）/`/login` へ誘導（ページ）、一般ユーザーは `403` 相当になります。
+- 本番での常時公開は避け、障害調査時のみ利用してください。
+
+## テストユーザー/テストデータ運用提案
+- `test-female@nursematch.app` / `test-male@nursematch.app` は本番E2E用に **残す運用** を推奨。
+- ただし本番分析ノイズを避けるため、以下を日次またはE2E前にクリーンアップ推奨:
+  - `swipes`（テスト2ユーザー間）
+  - `matches`（テスト2ユーザー間）
+  - `messages`（上記matchに紐づく）
+- 管理画面・CS画面では `is_test_user=true` を明示し、運用データと識別できる状態を維持してください。
+
 ## デプロイ（Vercel Git連携）
 GitHub Actionsは使わず、Vercel標準のGit連携で本番反映します。
 

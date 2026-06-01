@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -22,7 +23,27 @@ type TableCheckResult = {
   error: string | null;
 };
 
+function isAdminRole(role: string | null | undefined) {
+  return role === 'female_admin' || role === 'male_admin' || role === 'super_admin';
+}
+
 export async function GET() {
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) {
+    return NextResponse.json({ ok: false, reason: 'missing_session_client' }, { status: 500 });
+  }
+
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  if (!authUser) {
+    return NextResponse.json({ ok: false, reason: 'unauthorized' }, { status: 401 });
+  }
+  const { data: me } = await supabase.from('users').select('role').eq('id', authUser.id).maybeSingle();
+  if (!me || !isAdminRole(me.role)) {
+    return NextResponse.json({ ok: false, reason: 'forbidden' }, { status: 403 });
+  }
+
   const admin = createAdminSupabaseClient();
   if (!admin) {
     return NextResponse.json(
