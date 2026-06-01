@@ -36,11 +36,12 @@ export async function GET() {
 
   const entries = await Promise.all(
     TABLES.map(async (tableName) => {
-      const { count, error } = await admin.from(tableName).select('*', { count: 'exact', head: true });
+      const { count, error } = await admin.from(tableName).select('id', { count: 'exact', head: true });
+      const exists = error?.code === '42P01' ? false : true;
       const result: TableCheckResult = {
-        exists: !error,
-        count: error ? null : count ?? 0,
-        error: error?.message ?? null,
+        exists,
+        count: count ?? (error ? null : 0),
+        error: error ? (error.message || error.code || 'unknown_error') : null,
       };
       return [tableName, result] as const;
     }),
