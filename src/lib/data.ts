@@ -493,11 +493,11 @@ async function buildApprovedMaleFallbackCards(
   const blockedSet = await getBlockedRelationSetForUser(user.id);
   const admin = createAdminSupabaseClient();
   let swipedIds = new Set<string>();
-  const swipeRes = await supabase.from('swipes').select('to_user_id').eq('from_user_id', user.id);
+  const swipeRes = await supabase.from('swipes').select('to_user_id').eq('from_user_id', user.id).eq('action', 'skip');
   if (!swipeRes.error) {
     swipedIds = new Set((swipeRes.data ?? []).map((row) => row.to_user_id));
   } else {
-    const { data: likesData } = await supabase.from('likes').select('to_user_id').eq('from_user_id', user.id);
+    const { data: likesData } = await supabase.from('likes').select('to_user_id').eq('from_user_id', user.id).eq('status', 'skip');
     swipedIds = new Set((likesData ?? []).map((row) => row.to_user_id));
   }
 
@@ -847,11 +847,11 @@ export async function getCandidateCards(user: AppUser, filters: FemaleSearchFilt
     .neq('id', user.id);
 
   let swipedIds = new Set<string>();
-  const swipeRes = await supabase.from('swipes').select('to_user_id').eq('from_user_id', user.id);
+  const swipeRes = await supabase.from('swipes').select('to_user_id').eq('from_user_id', user.id).eq('action', 'skip');
   if (!swipeRes.error) {
     swipedIds = new Set((swipeRes.data ?? []).map((row) => row.to_user_id));
   } else {
-    const { data: likesData } = await supabase.from('likes').select('to_user_id').eq('from_user_id', user.id);
+    const { data: likesData } = await supabase.from('likes').select('to_user_id').eq('from_user_id', user.id).eq('status', 'skip');
     swipedIds = new Set((likesData ?? []).map((row) => row.to_user_id));
   }
 
@@ -1068,11 +1068,11 @@ export async function generateDailyRecommendations(userId: string, recommendatio
   const filters = await getFemalePreferenceFiltersForUser();
   const blockedSet = await getBlockedRelationSetForUser(userId);
   let swiped = new Set<string>();
-  const swipeRes = await supabase.from('swipes').select('to_user_id').eq('from_user_id', userId);
+  const swipeRes = await supabase.from('swipes').select('to_user_id').eq('from_user_id', userId).eq('action', 'skip');
   if (!swipeRes.error) {
     swiped = new Set((swipeRes.data ?? []).map((row) => row.to_user_id));
   } else {
-    const { data: likedRows } = await supabase.from('likes').select('to_user_id').eq('from_user_id', userId);
+    const { data: likedRows } = await supabase.from('likes').select('to_user_id').eq('from_user_id', userId).eq('status', 'skip');
     swiped = new Set((likedRows ?? []).map((row) => row.to_user_id));
   }
 
