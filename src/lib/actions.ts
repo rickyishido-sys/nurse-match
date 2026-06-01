@@ -163,8 +163,8 @@ async function bootstrapTestUserIfNeeded(
   await admin.from('likes').delete().eq('from_user_id', maleId).eq('to_user_id', femaleId);
   await admin.from('swipes').delete().eq('from_user_id', femaleId).eq('to_user_id', maleId);
   await admin.from('swipes').delete().eq('from_user_id', maleId).eq('to_user_id', femaleId);
-  await admin.from('matches').delete().eq('user_a_id', femaleId).eq('user_b_id', maleId);
-  await admin.from('matches').delete().eq('user_a_id', maleId).eq('user_b_id', femaleId);
+  await admin.from('matches').delete().or(`user_a_id.eq.${femaleId},user_b_id.eq.${femaleId}`);
+  await admin.from('matches').delete().or(`user_a_id.eq.${maleId},user_b_id.eq.${maleId}`);
 
   const recommendationDate = getJstDateString();
   await admin.from('daily_recommendations').delete().eq('user_id', femaleId).eq('recommendation_date', recommendationDate);
