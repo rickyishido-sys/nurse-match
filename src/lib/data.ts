@@ -840,15 +840,14 @@ export async function generateDailyRecommendations(userId: string, recommendatio
     return rows;
   }
 
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return [] as DailyRecommendationRecord[];
   const admin = createAdminSupabaseClient();
-  if (!admin) return [] as DailyRecommendationRecord[];
-  const { data: userRow } = await admin.from('users').select('*').eq('id', userId).single();
+  const { data: userRow } = await supabase.from('users').select('*').eq('id', userId).single();
   if (!userRow) return [] as DailyRecommendationRecord[];
   const user = mapUser(userRow);
   if (user.gender !== 'female') return [] as DailyRecommendationRecord[];
 
-  const supabase = await createServerSupabaseClient();
-  if (!supabase) return [] as DailyRecommendationRecord[];
   const filters = await getFemalePreferenceFiltersForUser();
   const blockedSet = await getBlockedRelationSetForUser(userId);
   let swiped = new Set<string>();
@@ -869,13 +868,15 @@ export async function generateDailyRecommendations(userId: string, recommendatio
       .neq('id', userId),
     supabase.from('male_profile_public').select('*'),
     supabase.from('female_profile_public').select('*'),
-    admin
-      .from('interest_signals')
-      .select('user_id,target_user_id,matched_preference,signal_type,expires_at')
-      .eq('target_user_id', userId)
-      .eq('signal_type', 'interested')
-      .eq('matched_preference', true)
-      .gte('expires_at', new Date().toISOString()),
+    !admin
+      ? Promise.resolve({ data: [] as Array<{ user_id: string; target_user_id: string; matched_preference: boolean; signal_type: string; expires_at: string }> })
+      : admin
+          .from('interest_signals')
+          .select('user_id,target_user_id,matched_preference,signal_type,expires_at')
+          .eq('target_user_id', userId)
+          .eq('signal_type', 'interested')
+          .eq('matched_preference', true)
+          .gte('expires_at', new Date().toISOString()),
   ]);
   const femaleSelfProfileRow = (femaleRows ?? []).find((row) => row.user_id === userId);
   const femaleSelfProfile: FemaleProfile | null = femaleSelfProfileRow
@@ -1000,7 +1001,7 @@ export async function generateDailyRecommendations(userId: string, recommendatio
     picked.push(candidate);
   }
 
-  await admin.from('daily_recommendations').delete().eq('user_id', userId).eq('recommendation_date', recommendationDate);
+  await supabase.from('daily_recommendations').delete().eq('user_id', userId).eq('recommendation_date', recommendationDate);
   if (picked.length === 0) return [] as DailyRecommendationRecord[];
   const insertRows: Database['public']['Tables']['daily_recommendations']['Insert'][] = picked.map((candidate, idx) => ({
     user_id: userId,
@@ -1009,8 +1010,8 @@ export async function generateDailyRecommendations(userId: string, recommendatio
     rank: idx + 1,
     reason: signalTargetSet.has(candidate.id) ? 'あなたの希望条件に合う候補です' : recommendationReason(idx + 1),
   }));
-  await admin.from('daily_recommendations').insert(insertRows);
-  const { data: savedRows } = await admin
+  await supabase.from('daily_recommendations').insert(insertRows);
+  const { data: savedRows } = await supabase
     .from('daily_recommendations')
     .select('*')
     .eq('user_id', userId)
