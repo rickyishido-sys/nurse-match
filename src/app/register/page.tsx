@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { requestRegisterVerificationAction } from '@/lib/actions';
+import { RegisterEmailForm } from '@/components/register-email-form';
 
 type RegisterPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -20,12 +20,43 @@ function safeDecode(value: string) {
   }
 }
 
+function resolveRegisterErrorMessage(error: string, detail: string) {
+  if (error === 'duplicate-email') {
+    return 'このメールアドレスはすでに登録されています。ログインしてください。';
+  }
+  if (error === 'email-required') {
+    return 'メールアドレスを入力してください。';
+  }
+  if (error === 'config') {
+    return '認証設定の読み込みに失敗しました。時間をおいて再度お試しください。';
+  }
+  if (error === 'session_not_found') {
+    return '認証セッションの確認に時間がかかっています。少し時間をおいてもう一度お試しください。';
+  }
+  if (error === 'auth-callback') {
+    if (detail.includes('exchange_failed') || detail.includes('verify_failed')) {
+      return '認証リンクの確認に失敗しました。もう一度メールのリンクをお試しください。';
+    }
+    return '認証リンクの有効期限切れ、またはブラウザ引き継ぎに失敗しました。再度メール認証をお試しください。';
+  }
+  if (error === 'send-failed' || error === 'supabase') {
+    const text = detail.toLowerCase();
+    if (text.includes('rate limit') || text.includes('too many') || text.includes('over_email_send_rate_limit')) {
+      return '短時間に複数回送信されたため、少し時間をおいて再度お試しください。';
+    }
+    return '認証リンク送信に失敗しました。時間をおいて再度お試しください。';
+  }
+  return '';
+}
+
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const params = searchParams ? await searchParams : {};
   const sent = pickFirst(params.sent);
-  const status = pickFirst(params.status);
   const error = pickFirst(params.error);
   const detail = safeDecode(pickFirst(params.detail));
+  const sentEmail = safeDecode(pickFirst(params.sentEmail));
+  const burst = true;
+  const errorMessage = resolveRegisterErrorMessage(error, detail);
 
   return (
     <main className='min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff_0%,_#fdf2f8_45%,_#ffffff_100%)] px-4 py-8'>
@@ -43,89 +74,26 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
           </div>
 
           <h1 className='mb-1 text-center text-2xl font-bold tracking-tight text-slate-900'>はじめる</h1>
-          <p className='mb-6 text-center text-sm text-slate-600'>まずは連絡先確認から始めます</p>
+          <p className='mb-6 text-center text-sm text-slate-600'>まずはメール認証から始めます</p>
 
-          {sent === '1' || status === 'sent-email' ? (
+          {sent === '1' ? (
             <p className='mb-4 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs leading-5 text-sky-700'>
-              認証リンクを送信しました。メールをご確認ください。
+              認証メールを送信しました。メール内の「Sign in」を押してください。
+              {sentEmail ? <span className='mt-1 block break-all text-[11px]'>送信先: {sentEmail}</span> : null}
             </p>
           ) : null}
-          {status === 'sms-preparing' ? (
-            <p className='mb-4 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-700'>
-              SMS認証は現在準備中です。先にメール認証をご利用ください。
-            </p>
-          ) : null}
-          {error === 'contact-required' ? (
-            <p className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
-              メールアドレスまたは携帯番号を入力してください。
-            </p>
-          ) : null}
-          {error === 'duplicate-email' ? (
+          {errorMessage ? (
             <div className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
-              <p>このメールアドレスはすでに登録されています。ログインしてください。</p>
-              <Link href='/login' className='mt-1 inline-block font-semibold underline underline-offset-2'>
-                ログインする
-              </Link>
-            </div>
-          ) : null}
-          {error === 'duplicate-phone' ? (
-            <div className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
-              <p>この電話番号はすでに登録されています。ログインしてください。</p>
-              <Link href='/login' className='mt-1 inline-block font-semibold underline underline-offset-2'>
-                ログインする
-              </Link>
-            </div>
-          ) : null}
-          {error === 'email-required' ? (
-            <p className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
-              現在はメール認証を優先提供しています。メールアドレスを入力してください。
-            </p>
-          ) : null}
-          {error === 'send-failed' || error === 'config' || error === 'supabase' ? (
-            <div className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
-              <p>認証リンク送信に失敗しました。時間をおいて再度お試しください。</p>
-              {detail ? <p className='mt-1 break-all text-[11px]'>Supabase: {detail}</p> : null}
+              <p>{errorMessage}</p>
+              {error === 'duplicate-email' ? (
+                <Link href='/login' className='mt-1 inline-block font-semibold underline underline-offset-2'>
+                  ログインする
+                </Link>
+              ) : null}
             </div>
           ) : null}
 
-          <form action={requestRegisterVerificationAction} className='space-y-4'>
-            <label className='block'>
-              <span className='mb-1.5 block text-xs font-medium text-slate-600'>メールアドレス</span>
-              <input
-                type='email'
-                name='email'
-                placeholder='email@example.com'
-                className='w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100'
-              />
-            </label>
-            <p className='text-center text-xs text-slate-500'>または</p>
-            <label className='block'>
-              <span className='mb-1.5 block text-xs font-medium text-slate-600'>携帯番号</span>
-              <input
-                type='tel'
-                name='phone'
-                placeholder='09012345678'
-                className='w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100'
-              />
-            </label>
-
-            <button
-              type='submit'
-              name='method'
-              value='email'
-              className='w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800'
-            >
-              認証リンクを送る
-            </button>
-            <button
-              type='submit'
-              name='method'
-              value='sms'
-              className='w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500'
-            >
-              SMS認証コードを送る（準備中）
-            </button>
-          </form>
+          <RegisterEmailForm sent={sent === '1'} allowBurst={burst} />
 
           <div className='mt-5 text-center text-xs text-slate-600'>
             登録済みの方はこちら{' '}

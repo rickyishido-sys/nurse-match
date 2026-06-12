@@ -12,7 +12,7 @@ export default async function HomeRouterPage() {
 
   const state = await getAccessState(user);
   if (state === 'suspended') redirect('/suspended');
-  if (state === 'rejected') redirect('/rejected');
+  if (state === 'rejected') redirect('/review-rejected');
   if (user.onboardingStatus === 'provisional') redirect('/preview');
   if (user.onboardingStatus === 'profile_completed') redirect('/pending-review');
   if (state === 'pending') redirect('/pending-review');

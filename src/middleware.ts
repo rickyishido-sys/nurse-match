@@ -19,7 +19,7 @@ const PUBLIC_PATHS = [
   '/auth/callback',
 ];
 const ADMIN_BYPASS_PATHS = ['/register', '/preview', '/pending-review'];
-const MEMBER_ONLY_PATH_PREFIXES = ['/app', '/cards', '/mypage', '/messages', '/discover', '/likes', '/matches'];
+const MEMBER_ONLY_PATH_PREFIXES = ['/app', '/cards', '/mypage', '/messages', '/discover', '/likes', '/matches', '/chat', '/chats'];
 
 function isAdminRole(role: string | undefined) {
   return role === 'female_admin' || role === 'male_admin' || role === 'super_admin';

@@ -739,7 +739,15 @@ export async function getCurrentUser() {
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) return null;
 
-  const { data, error } = await supabase.from('users').select('*').eq('id', authData.user.id).single();
+  const { data, error } = await supabase.from('users').select('*').eq('id', authData.user.id).maybeSingle();
+  if (error) {
+    console.error('GET_CURRENT_USER_QUERY_ERROR', {
+      pathname: '(unknown)',
+      queryName: 'get_current_user',
+      tableName: 'users',
+      message: error.message,
+    });
+  }
   if (error || !data) return null;
   if (data.deleted_at) return null;
 
@@ -1733,6 +1741,42 @@ export type SwipeResult = {
   matchId?: string;
 };
 
+async function areSwipeUsersEligible(
+  supabase: NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>,
+  fromUserId: string,
+  toUserId: string,
+) {
+  const { data, error } = await supabase
+    .from('public_user_cards')
+    .select('id,verification_status,is_suspended')
+    .in('id', [fromUserId, toUserId]);
+  if (error) {
+    console.warn('SWIPE_ELIGIBILITY_QUERY_ERROR', { fromUserId, toUserId, message: error.message });
+    // Do not hard-block on a read failure; RLS-protected writes remain the final guard.
+    return true;
+  }
+  const rows = data ?? [];
+  const fromRow = rows.find((row) => row.id === fromUserId);
+  const toRow = rows.find((row) => row.id === toUserId);
+  const eligible =
+    Boolean(fromRow && toRow) &&
+    fromRow?.verification_status === 'approved' &&
+    !fromRow?.is_suspended &&
+    toRow?.verification_status === 'approved' &&
+    !toRow?.is_suspended;
+  if (!eligible) {
+    console.warn('SWIPE_BLOCKED_NOT_ELIGIBLE', {
+      fromUserId,
+      toUserId,
+      fromStatus: fromRow?.verification_status ?? 'missing',
+      toStatus: toRow?.verification_status ?? 'missing',
+      fromSuspended: fromRow?.is_suspended ?? null,
+      toSuspended: toRow?.is_suspended ?? null,
+    });
+  }
+  return eligible;
+}
+
 async function upsertSwipeAction(
   supabase: NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>,
   fromUserId: string,
@@ -1866,6 +1910,10 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
     return { matched: false };
   }
 
+  if (fromUserId === toUserId) {
+    console.warn('SWIPE_BLOCKED_SELF', { fromUserId });
+    return { matched: false };
+  }
   if (await isBlockedBetweenUsers(fromUserId, toUserId)) {
     throw new Error('ブロック関係のユーザーには操作できません');
   }
@@ -1875,6 +1923,9 @@ export async function swipe(fromUserId: string, toUserId: string, action: 'like'
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return { matched: false };
+  if (!(await areSwipeUsersEligible(supabase, fromUserId, toUserId))) {
+    return { matched: false };
+  }
 
   await upsertLegacyLikeOptional(supabase, fromUserId, toUserId, action);
   const swipeWrite = await upsertSwipeAction(supabase, fromUserId, toUserId, action);
@@ -1900,12 +1951,19 @@ export async function respondToIncomingLike(fromUserId: string, toUserId: string
     return { matched: !existing, matchId: match.id };
   }
 
+  if (fromUserId === toUserId) {
+    console.warn('SWIPE_BLOCKED_SELF', { fromUserId });
+    return { matched: false };
+  }
   if (await isBlockedBetweenUsers(fromUserId, toUserId)) {
     throw new Error('ブロック関係のユーザーには操作できません');
   }
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return { matched: false };
+  if (!(await areSwipeUsersEligible(supabase, fromUserId, toUserId))) {
+    return { matched: false };
+  }
   await upsertLegacyLikeOptional(supabase, fromUserId, toUserId, action);
   const swipeWrite = await upsertSwipeAction(supabase, fromUserId, toUserId, action);
   if (swipeWrite.error) {
@@ -2809,6 +2867,10 @@ export async function sendMessage(matchId: string, senderId: string, body: strin
     .eq('id', matchId)
     .maybeSingle();
   if (!match) return;
+  if (match.user_a_id !== senderId && match.user_b_id !== senderId) {
+    console.warn('MESSAGE_BLOCKED_NOT_MEMBER', { matchId, senderId });
+    return;
+  }
   if (!isMatchActive(match)) {
     throw new Error('成立済みマッチはチャット送信できません');
   }
@@ -2816,6 +2878,16 @@ export async function sendMessage(matchId: string, senderId: string, body: strin
   const blocked = await isBlockedBetweenUsers(match.user_a_id, match.user_b_id);
   if (blocked) {
     throw new Error('ブロック関係のためメッセージ送信できません');
+  }
+
+  const { data: senderRow } = await supabase
+    .from('public_user_cards')
+    .select('id,verification_status,is_suspended')
+    .eq('id', senderId)
+    .maybeSingle();
+  if (senderRow && (senderRow.verification_status !== 'approved' || senderRow.is_suspended)) {
+    console.warn('MESSAGE_BLOCKED_NOT_APPROVED', { matchId, senderId, status: senderRow.verification_status });
+    throw new Error('本人確認済みユーザーのみメッセージを送信できます');
   }
 
   await supabase.from('messages').insert({ match_id: matchId, sender_id: senderId, body });
@@ -2879,7 +2951,12 @@ export async function unblockUser(blockerUserId: string, blockedUserId: string) 
   await supabase.from('blocks').delete().eq('blocker_user_id', blockerUserId).eq('blocked_user_id', blockedUserId);
 }
 
-export async function getAdminData(adminUserId?: string) {
+type AdminTraceContext = {
+  pathname?: string;
+  role?: string;
+};
+
+export async function getAdminData(adminUserId?: string, context?: AdminTraceContext) {
   if (USE_MOCK_DATA) {
     const relationshipMatches = listUsers()
       .flatMap((u) => listMatchesForUser(u.id))
@@ -2902,39 +2979,104 @@ export async function getAdminData(adminUserId?: string) {
 
   const supabase = createAdminSupabaseClient();
   if (!supabase) throw new Error('SUPABASE_SERVICE_ROLE_KEY が未設定です');
+  const tracePathname = context?.pathname ?? '/admin';
+  const traceRole = context?.role ?? '(unknown)';
 
-  const [{ data: usersRows }, { data: reportRows }, { data: femaleRows }, { data: maleRows }, { data: actionRows }, { data: matchRows }, { data: riskRows }] =
-    await Promise.all([
-      supabase.from('users').select('*').order('created_at', { ascending: false }),
-      supabase.from('reports').select('*').order('created_at', { ascending: false }),
-      supabase.from('female_profiles').select('*'),
-      supabase.from('male_profiles').select('*'),
-      supabase.from('admin_actions').select('*').order('created_at', { ascending: false }).limit(50),
-      supabase.from('matches').select('*').in('relationship_status', ['relationship_mode', 'scheduled_delete']),
-      supabase.from('risk_checks').select('*'),
-    ]);
+  const runAdminQuery = async <T>(
+    queryName: string,
+    tableName: string,
+    runner: () => Promise<{ data: T | null; error: { message: string } | null }>,
+    fallback: T,
+  ): Promise<T> => {
+    try {
+      const { data, error } = await runner();
+      if (error) {
+        console.error('ADMIN_QUERY_ERROR', {
+          pathname: tracePathname,
+          role: traceRole,
+          queryName,
+          tableName,
+          message: error.message,
+        });
+        return fallback;
+      }
+      return (data ?? fallback) as T;
+    } catch (error) {
+      console.error('ADMIN_QUERY_EXCEPTION', {
+        pathname: tracePathname,
+        role: traceRole,
+        queryName,
+        tableName,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : null,
+      });
+      return fallback;
+    }
+  };
+
+  const usersRows = await runAdminQuery('admin_users_list', 'users', async () => await supabase.from('users').select('*').order('created_at', { ascending: false }), []);
+  const reportRows = await runAdminQuery('admin_reports_list', 'reports', async () => await supabase.from('reports').select('*').order('created_at', { ascending: false }), []);
+  const femaleRows = await runAdminQuery('admin_female_profiles_list', 'female_profiles', async () => await supabase.from('female_profiles').select('*'), []);
+  const maleRows = await runAdminQuery('admin_male_profiles_list', 'male_profiles', async () => await supabase.from('male_profiles').select('*'), []);
+  const actionRows = await runAdminQuery('admin_actions_list', 'admin_actions', async () => await supabase.from('admin_actions').select('*').order('created_at', { ascending: false }).limit(50), []);
+  const matchRows = await runAdminQuery(
+    'admin_relationship_matches_list',
+    'matches',
+    async () => await supabase.from('matches').select('*').in('relationship_status', ['relationship_mode', 'scheduled_delete']),
+    [],
+  );
+  const riskRows = await runAdminQuery('admin_risk_checks_list', 'risk_checks', async () => await supabase.from('risk_checks').select('*'), []);
 
   const isAdmin = Boolean(adminUserId);
 
   const users = await Promise.all(
     (usersRows ?? []).map(async (row) => {
       const mapped = mapUser(row);
-      return {
-        ...mapped,
-        profileImageUrl: (await getSignedProfileImageUrl(mapped.profileImageUrl)) ?? mapped.profileImageUrl,
-        identityDocumentUrl: await getAdminSignedDocumentUrl(mapped.identityDocumentUrl, isAdmin),
-      };
+      try {
+        return {
+          ...mapped,
+          profileImageUrl: (await getSignedProfileImageUrl(mapped.profileImageUrl)) ?? mapped.profileImageUrl,
+          identityDocumentUrl: await getAdminSignedDocumentUrl(mapped.identityDocumentUrl, isAdmin),
+        };
+      } catch (error) {
+        console.error('ADMIN_QUERY_EXCEPTION', {
+          pathname: tracePathname,
+          role: traceRole,
+          queryName: 'admin_user_signing',
+          tableName: 'users',
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : null,
+        });
+        return mapped;
+      }
     }),
   );
 
   const femaleProfiles = await Promise.all(
-    (femaleRows ?? []).map(async (f) => ({
-      userId: f.user_id,
-      profile: {
-        ...mapFemale(f),
-        nurseDocumentUrl: (await getAdminSignedDocumentUrl(f.nurse_document_url, isAdmin)) ?? '',
-      },
-    })),
+    (femaleRows ?? []).map(async (f) => {
+      try {
+        return {
+          userId: f.user_id,
+          profile: {
+            ...mapFemale(f),
+            nurseDocumentUrl: (await getAdminSignedDocumentUrl(f.nurse_document_url, isAdmin)) ?? '',
+          },
+        };
+      } catch (error) {
+        console.error('ADMIN_QUERY_EXCEPTION', {
+          pathname: tracePathname,
+          role: traceRole,
+          queryName: 'admin_female_document_signing',
+          tableName: 'female_profiles',
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : null,
+        });
+        return {
+          userId: f.user_id,
+          profile: mapFemale(f),
+        };
+      }
+    }),
   );
 
   return {

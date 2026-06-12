@@ -59,6 +59,12 @@ function isAdminRole(role: string | undefined) {
   return role === 'female_admin' || role === 'male_admin' || role === 'super_admin';
 }
 
+function resolveAdminLoginRedirectPath(role: string | undefined) {
+  if (role === 'female_admin') return '/admin/female';
+  if (role === 'male_admin') return '/admin/male';
+  return '/admin';
+}
+
 const E2E_TEST_FEMALE_EMAIL = 'test-female@nursematch.app';
 const E2E_TEST_MALE_EMAIL = 'test-male@nursematch.app';
 
@@ -339,51 +345,108 @@ export async function loginAction(formData: FormData) {
 }
 
 export async function adminLoginAction(formData: FormData) {
+  const safeAdminLoginRedirect = (errorCode: string, context: string, details?: unknown): never => {
+    console.error('ADMIN_LOGIN_ERROR', {
+      pathname: '/admin/login',
+      queryName: context,
+      tableName: null,
+      context,
+      errorCode,
+      details,
+    });
+    const to = `/admin/login?error=${errorCode}`;
+    console.log('ADMIN_LOGIN_REDIRECT_TO', { pathname: '/admin/login', redirectTo: to });
+    redirect(to);
+  };
   const email = String(formData.get('email') ?? '').trim();
   const password = String(formData.get('password') ?? '').trim();
+  console.log('ADMIN_LOGIN_START', { email });
 
-  if (USE_MOCK_DATA) {
-    const user = getUserByEmail(email);
-    if (!user || !isAdminRole(user.role)) throw new Error('管理者アカウントが見つかりません');
-    const cookieStore = await cookies();
-    cookieStore.set('demo_user_id', user.id);
-    redirect('/admin');
-  }
+  try {
+    if (USE_MOCK_DATA) {
+      const user = getUserByEmail(email);
+      if (!user || !isAdminRole(user.role)) {
+        safeAdminLoginRedirect('invalid-credentials', 'mock_admin_not_found');
+      }
+      const checkedUser = user!;
+      const cookieStore = await cookies();
+      cookieStore.set('demo_user_id', checkedUser.id);
+      const redirectTo = resolveAdminLoginRedirectPath(checkedUser.role);
+      console.log('ADMIN_LOGIN_ROLE', { role: checkedUser.role });
+      console.log('ADMIN_LOGIN_REDIRECT_TO', { redirectTo });
+      redirect(redirectTo);
+    }
 
-  const supabase = await createServerSupabaseClient();
-  if (!supabase) throw new Error('Supabase設定が不足しています');
+    const supabase = await createServerSupabaseClient();
+    if (!supabase) {
+      safeAdminLoginRedirect('config-missing', 'missing_supabase_client');
+    }
+    const checkedSupabase = supabase!;
 
-  const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(error.message);
+    const { data: signInData, error } = await checkedSupabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      safeAdminLoginRedirect('invalid-credentials', 'signin_failed', error.message);
+    }
+    console.log('ADMIN_LOGIN_AUTH_SUCCESS', {
+      email,
+      userId: signInData.user?.id ?? null,
+    });
 
-  const authUser = signInData.user ?? (await supabase.auth.getUser()).data.user ?? null;
-  if (!authUser) redirect('/admin/login?error=session-missing');
+    const authUser = signInData.user ?? (await checkedSupabase.auth.getUser()).data.user ?? null;
+    if (!authUser) safeAdminLoginRedirect('session-missing', 'auth_user_missing_after_signin');
+    const checkedAuthUser = authUser!;
 
-  const { data: meRow, error: meError } = await supabase
-    .from('users')
-    .select('id,role')
-    .eq('id', authUser.id)
-    .maybeSingle();
-  let effectiveMeRow = meRow;
-  if (!effectiveMeRow) {
-    await bootstrapAdminUserIfNeeded(supabase, authUser);
-    const { data: retriedMeRow } = await supabase
+    const { data: meRow, error: meError } = await checkedSupabase
       .from('users')
       .select('id,role')
-      .eq('id', authUser.id)
+      .eq('id', checkedAuthUser.id)
       .maybeSingle();
-    effectiveMeRow = retriedMeRow ?? null;
+    console.log('ADMIN_LOGIN_USER_ROW', {
+      userId: checkedAuthUser.id,
+      found: Boolean(meRow),
+      hasError: Boolean(meError),
+      errorMessage: meError?.message ?? null,
+    });
+    let effectiveMeRow = meRow;
+    if (!effectiveMeRow) {
+      await bootstrapAdminUserIfNeeded(checkedSupabase, checkedAuthUser);
+      const { data: retriedMeRow } = await checkedSupabase
+        .from('users')
+        .select('id,role')
+        .eq('id', checkedAuthUser.id)
+        .maybeSingle();
+      effectiveMeRow = retriedMeRow ?? null;
+    }
+    if (meError || !effectiveMeRow) {
+      await checkedSupabase.auth.signOut();
+      safeAdminLoginRedirect('user-row-missing', 'admin_user_row_missing', meError?.message ?? null);
+    }
+    const checkedMeRow = effectiveMeRow!;
+    if (!isAdminRole(checkedMeRow.role)) {
+      await checkedSupabase.auth.signOut();
+      safeAdminLoginRedirect('forbidden', 'not_admin_role', checkedMeRow.role);
+    }
+    console.log('ADMIN_LOGIN_ROLE', { role: checkedMeRow.role });
+    const redirectTo = resolveAdminLoginRedirectPath(checkedMeRow.role);
+    console.log('ADMIN_LOGIN_REDIRECT_TO', { redirectTo });
+    redirect(redirectTo);
+  } catch (error) {
+    const isRedirectError =
+      typeof error === 'object' &&
+      error !== null &&
+      'digest' in error &&
+      typeof (error as { digest?: unknown }).digest === 'string' &&
+      (error as { digest: string }).digest.startsWith('NEXT_REDIRECT');
+    if (isRedirectError) throw error;
+    console.error('ADMIN_LOGIN_EXCEPTION', {
+      pathname: '/admin/login',
+      queryName: 'admin_login_action',
+      tableName: null,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : null,
+    });
+    safeAdminLoginRedirect('unexpected', 'unhandled_exception', error instanceof Error ? error.message : String(error));
   }
-  if (meError || !effectiveMeRow) {
-    await supabase.auth.signOut();
-    redirect('/admin/login?error=user-row-missing');
-  }
-  if (!isAdminRole(effectiveMeRow.role)) {
-    await supabase.auth.signOut();
-    redirect('/admin/login?error=forbidden');
-  }
-
-  redirect('/admin');
 }
 
 function resolveRequestOrigin(hostname: string | null, proto: string | null) {
@@ -441,126 +504,244 @@ function calculateAgeFromBirthdate(birthdate: string) {
   return age;
 }
 
+function isRateLimitError(message: string | undefined | null, code: string | undefined | null) {
+  const text = (message ?? '').toLowerCase();
+  const normalizedCode = (code ?? '').toLowerCase();
+  return (
+    text.includes('rate limit') ||
+    text.includes('too many') ||
+    normalizedCode === 'over_email_send_rate_limit'
+  );
+}
+
+function isInvalidApiKeyError(error: unknown) {
+  if (!error || typeof error !== 'object') return false;
+  const maybe = error as { message?: unknown; hint?: unknown };
+  const message = String(maybe.message ?? '').toLowerCase();
+  const hint = String(maybe.hint ?? '').toLowerCase();
+  return message.includes('invalid api key') || hint.includes('anon') || hint.includes('service_role');
+}
+
+function generateOtpBypassPassword() {
+  return `NmBypass!${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export async function requestRegisterVerificationAction(formData: FormData) {
-  const email = normalizeEmail(String(formData.get('email') ?? ''));
-  const allowBurst = String(formData.get('allowBurst') ?? '') === '1';
-  const sendEmail = allowBurst ? createBurstAliasEmail(email) : email;
-  const useMock = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
-  console.log('REGISTER_START', {
-    email,
-    sendEmail,
-    allowBurst,
-    useMock,
-  });
-
-  if (!email) {
-    redirect('/register?error=email-required');
-  }
-
-  if (useMock) {
-    console.warn('[requestRegisterVerificationAction] USE_MOCK_DATA=true, OTP send is skipped', {
+  try {
+    const email = normalizeEmail(String(formData.get('email') ?? ''));
+    const allowBurst = String(formData.get('allowBurst') ?? '') === '1';
+    const sendEmail = allowBurst ? createBurstAliasEmail(email) : email;
+    const bypassOtpForDev = process.env.REGISTER_DEV_BYPASS_OTP === 'true';
+    const useMock = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
+    console.log('REGISTER_START', {
       email,
+      sendEmail,
+      allowBurst,
+      bypassOtpForDev,
       useMock,
     });
-    if (email && getUserByEmail(email)) {
-      redirectDuplicateError();
+
+    if (!email) {
+      redirect('/register?error=email-required');
     }
-    redirect(`/register?sent=1${allowBurst ? '&burst=1' : ''}${sendEmail ? `&sentEmail=${encodeURIComponent(sendEmail)}` : ''}`);
-  }
 
-  console.log('SUPABASE_ENV', {
-    hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-    hasAnon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  });
-  console.log('REGISTER_CONFIG_CHECK', {
-    hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-    hasAnon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    useMock: process.env.NEXT_PUBLIC_USE_MOCK,
-  });
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl) {
-    redirect('/register?error=config&detail=missing_url');
-  }
-  if (!supabaseAnonKey) {
-    redirect('/register?error=config&detail=missing_anon_key');
-  }
-
-  // Use a stateless client for OTP request to avoid PKCE cookie verifier mismatch
-  // when users open email links in different browser contexts.
-  const otpClient = createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  });
-
-  const adminSupabase = createAdminSupabaseClient();
-  if (!adminSupabase) {
-    console.warn('[requestRegisterVerificationAction] admin client unavailable. duplicate checks are skipped.', {
-      hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    });
-  }
-
-  if (email && adminSupabase) {
-    const { data: existingEmail } = await adminSupabase.from('users').select('id').ilike('email', email).limit(1).maybeSingle();
-    if (existingEmail) {
-      redirectDuplicateError();
+    if (useMock) {
+      console.warn('[requestRegisterVerificationAction] USE_MOCK_DATA=true, OTP send is skipped', {
+        email,
+        useMock,
+      });
+      if (email && getUserByEmail(email)) {
+        redirectDuplicateError();
+      }
+      redirect(`/register?sent=1${allowBurst ? '&burst=1' : ''}${sendEmail ? `&sentEmail=${encodeURIComponent(sendEmail)}` : ''}`);
     }
-  }
 
-  const headerStore = await headers();
-  const requestOrigin = resolveRequestOrigin(
-    headerStore.get('x-forwarded-host') ?? headerStore.get('host'),
-    headerStore.get('x-forwarded-proto'),
-  );
-  const siteUrl = resolvePublicSiteUrl();
-  const redirectBase = siteUrl ?? requestOrigin;
-  const emailRedirectTo = redirectBase ? `${redirectBase}/auth/callback?next=/register/details` : undefined;
-
-  if (!siteUrl) {
-    console.warn('[requestRegisterVerificationAction] NEXT_PUBLIC_SITE_URL is not set. Falling back to request origin.', {
-      requestOrigin,
-      vercelEnv: process.env.VERCEL_ENV ?? null,
+    console.log('SUPABASE_ENV', {
+      hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasAnon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     });
-  }
-
-  let redirectPath = '/register?sent=1';
-  try {
-    console.log('OTP_REQUEST', {
-      email: sendEmail,
-      redirectTo: emailRedirectTo,
+    console.log('REGISTER_CONFIG_CHECK', {
+      hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasAnon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      useMock: process.env.NEXT_PUBLIC_USE_MOCK,
     });
-    const { data, error } = await otpClient.auth.signInWithOtp({
-      email: sendEmail,
-      options: {
-        ...(emailRedirectTo ? { emailRedirectTo } : {}),
-        shouldCreateUser: true,
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl) {
+      redirect('/register?error=config&detail=missing_url');
+    }
+    if (!supabaseAnonKey) {
+      redirect('/register?error=config&detail=missing_anon_key');
+    }
+
+    const otpClient = createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
       },
     });
 
-    console.log('OTP_RESPONSE', {
-      email: sendEmail,
-      data,
-      error,
+    const adminSupabase = createAdminSupabaseClient();
+    if (!adminSupabase) {
+      console.warn('[requestRegisterVerificationAction] admin client unavailable. duplicate checks are skipped.', {
+        hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      });
+    }
+
+    if (email && adminSupabase) {
+      const { data: existingEmail } = await adminSupabase.from('users').select('id').ilike('email', email).limit(1).maybeSingle();
+      if (existingEmail) {
+        redirectDuplicateError();
+      }
+    }
+
+    const headerStore = await headers();
+    const requestOrigin = resolveRequestOrigin(
+      headerStore.get('x-forwarded-host') ?? headerStore.get('host'),
+      headerStore.get('x-forwarded-proto'),
+    );
+    const siteUrl = resolvePublicSiteUrl();
+    const redirectBase = siteUrl ?? requestOrigin;
+    const emailRedirectTo = redirectBase ? `${redirectBase}/auth/callback?next=/register/details` : undefined;
+
+    if (!siteUrl) {
+      console.warn('[requestRegisterVerificationAction] NEXT_PUBLIC_SITE_URL is not set. Falling back to request origin.', {
+        requestOrigin,
+        vercelEnv: process.env.VERCEL_ENV ?? null,
+      });
+    }
+
+    let redirectPath = '/register?sent=1';
+    try {
+      console.log('OTP_REQUEST', {
+        email: sendEmail,
+        redirectTo: emailRedirectTo,
+      });
+      const { data, error } = await otpClient.auth.signInWithOtp({
+        email: sendEmail,
+        options: {
+          ...(emailRedirectTo ? { emailRedirectTo } : {}),
+          shouldCreateUser: true,
+        },
+      });
+
+      console.log('OTP_RESPONSE', {
+        email: sendEmail,
+        data,
+        error,
+      });
+
+      if (error) {
+        const errorCode =
+          typeof error === 'object' &&
+          error !== null &&
+          'code' in error &&
+          typeof (error as { code?: unknown }).code === 'string'
+            ? (error as { code: string }).code
+            : null;
+
+        if (allowBurst && bypassOtpForDev && isRateLimitError(error.message, errorCode)) {
+          console.warn('REGISTER_OTP_BYPASS_START', {
+            email,
+            sendEmail,
+            errorCode,
+            message: error.message,
+          });
+          const bypassSupabase = await createServerSupabaseClient();
+          const bypassAdmin = createAdminSupabaseClient();
+          if (!bypassSupabase || !bypassAdmin) {
+            console.error('REGISTER_OTP_BYPASS_ERROR', {
+              stage: 'missing_clients',
+              hasBypassSupabase: Boolean(bypassSupabase),
+              hasBypassAdmin: Boolean(bypassAdmin),
+            });
+            redirectPath = '/register?error=supabase&detail=otp_bypass_clients';
+          } else {
+            const temporaryPassword = generateOtpBypassPassword();
+            const { data: createdUserData, error: createUserError } = await bypassAdmin.auth.admin.createUser({
+              email,
+              password: temporaryPassword,
+              email_confirm: true,
+              user_metadata: {
+                registerBypass: true,
+              },
+            });
+
+            if (createUserError) {
+              console.error('REGISTER_OTP_BYPASS_CREATE_USER_ERROR', {
+                message: createUserError.message,
+                code:
+                  typeof (createUserError as { code?: unknown }).code === 'string'
+                    ? (createUserError as { code: string }).code
+                    : null,
+                details:
+                  typeof (createUserError as { details?: unknown }).details === 'string'
+                    ? ((createUserError as { details?: unknown }).details as string)
+                    : null,
+              });
+              if (isSupabaseDuplicateError(createUserError.message)) {
+                redirectDuplicateError();
+              }
+              redirectPath = '/register?error=supabase&detail=otp_bypass_create_user';
+            } else {
+              const { data: bypassSignInData, error: bypassSignInError } = await bypassSupabase.auth.signInWithPassword({
+                email,
+                password: temporaryPassword,
+              });
+
+              if (bypassSignInError || !bypassSignInData.user) {
+                console.error('REGISTER_OTP_BYPASS_SIGNIN_ERROR', {
+                  message: bypassSignInError?.message ?? null,
+                  code:
+                    typeof (bypassSignInError as { code?: unknown } | null)?.code === 'string'
+                      ? ((bypassSignInError as { code: string }).code ?? null)
+                      : null,
+                  createdUserId: createdUserData.user?.id ?? null,
+                });
+                redirectPath = '/register?error=supabase&detail=otp_bypass_signin';
+              } else {
+                console.log('REGISTER_OTP_BYPASS_SUCCESS', {
+                  email,
+                  userId: bypassSignInData.user.id,
+                });
+                redirectPath = '/register/details?bypass=1';
+              }
+            }
+          }
+        } else {
+          console.error('REGISTER_ERROR', {
+            stage: 'otp_response_error',
+            message: error.message ?? 'unknown_error',
+          });
+          const detail = encodeURIComponent(error.message ?? 'unknown_error');
+          redirectPath = `/register?error=supabase&detail=${detail}${allowBurst ? '&burst=1' : ''}`;
+        }
+      } else {
+        redirectPath = `/register?sent=1${allowBurst ? '&burst=1' : ''}${sendEmail ? `&sentEmail=${encodeURIComponent(sendEmail)}` : ''}`;
+      }
+    } catch (err) {
+      if (String(err).includes('NEXT_REDIRECT')) {
+        throw err;
+      }
+      console.error('REGISTER_ERROR', {
+        stage: 'otp_request',
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : null,
+      });
+      redirectPath = '/register?error=supabase&detail=unexpected';
+    }
+
+    redirect(redirectPath);
+  } catch (error) {
+    if (String(error).includes('NEXT_REDIRECT')) throw error;
+    console.error('REGISTER_ERROR', {
+      stage: 'request_register_verification_action',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : null,
     });
-
-    if (error) {
-      const detail = encodeURIComponent(error.message ?? 'unknown_error');
-      redirectPath = `/register?error=supabase&detail=${detail}${allowBurst ? '&burst=1' : ''}`;
-    } else {
-      redirectPath = `/register?sent=1${allowBurst ? '&burst=1' : ''}${sendEmail ? `&sentEmail=${encodeURIComponent(sendEmail)}` : ''}`;
-    }
-  } catch (err) {
-    if (String(err).includes('NEXT_REDIRECT')) {
-      throw err;
-    }
-    console.error('OTP_EXCEPTION', err);
-    redirectPath = '/register?error=supabase&detail=unexpected';
+    redirect('/register?error=supabase&detail=unexpected');
   }
-
-  redirect(redirectPath);
 }
 
 export async function logoutAction() {
@@ -758,237 +939,589 @@ export async function registerAction(formData: FormData) {
 }
 
 export async function registerDetailsAction(formData: FormData) {
-  const gender = String(formData.get('gender') ?? 'female') as 'female' | 'male';
-  const password = String(formData.get('password') ?? '').trim();
-  const passwordConfirm = String(formData.get('passwordConfirm') ?? '').trim();
-  const nickname = String(formData.get('nickname') ?? '').trim();
-  const birthdate = String(formData.get('birthdate') ?? '').trim();
-  const location = String(formData.get('location') ?? '').trim();
-  const requestedDesiredGender = String(formData.get('desiredGender') ?? 'both') as 'male' | 'female' | 'both';
-  const desiredGender = gender === 'male' ? 'female' : requestedDesiredGender;
-  const seekingGender = desiredGender;
-  const age = calculateAgeFromBirthdate(birthdate);
-  const agreeTerms = Boolean(formData.get('agreeTerms'));
-  const agreePrivacy = Boolean(formData.get('agreePrivacy'));
-  const profileImageFile = formData.get('profileImage') as File | null;
-  const identityFile = formData.get('identityDocument') as File | null;
-  const nurseFile = formData.get('nurseDocument') as File | null;
-
-  if (!nickname || !birthdate || !location || age < 18) {
-    redirect('/register/details?error=required');
-  }
-  if (!password) {
-    redirect('/register/details?error=password-required');
-  }
-  if (password.length < 8) {
-    redirect('/register/details?error=password-length');
-  }
-  if (password !== passwordConfirm) {
-    redirect('/register/details?error=password-mismatch');
-  }
-  if (!agreeTerms || !agreePrivacy) {
-    redirect('/register/details?error=terms-required');
-  }
-  if (!profileImageFile || profileImageFile.size <= 0) {
-    redirect('/register/details?error=profile-image-required');
-  }
-  if (!identityFile || identityFile.size <= 0) {
-    redirect('/register/details?error=identity-required');
-  }
-  if (gender === 'female' && (!nurseFile || nurseFile.size <= 0)) {
-    redirect('/register/details?error=nurse-document-required');
-  }
-
-  if (USE_MOCK_DATA) {
-    const me = await getCurrentUser();
-    if (!me) redirect('/register');
-    if (me.role !== 'user') redirect('/register');
-    const isTestUser = me.isTestUser === true;
-    const profileImage = await uploadDocument(profileImageFile, me.id, 'profile');
-    const identityUrl = await uploadDocument(identityFile, me.id, 'identity');
-    const nurseUrl = nurseFile && nurseFile.size > 0 ? await uploadDocument(nurseFile, me.id, 'nurse') : null;
-    const currentImages = listProfileImages(me.id);
-    const uploadedImages = [profileImage].filter(Boolean) as string[];
-    const hasAtLeastOneImage = uploadedImages.length > 0 || currentImages.length > 0;
-    if (!isTestUser && !hasAtLeastOneImage) {
-      redirect('/register/details?error=profile-image-required');
+  const isRedirectThrown = (error: unknown) =>
+    typeof error === 'object' &&
+    error !== null &&
+    'digest' in error &&
+    typeof (error as { digest?: unknown }).digest === 'string' &&
+    (error as { digest: string }).digest.startsWith('NEXT_REDIRECT');
+  const toDbErrorMeta = (error: unknown) => {
+    if (error && typeof error === 'object') {
+      const maybe = error as { message?: unknown; code?: unknown; details?: unknown; hint?: unknown };
+      return {
+        message: typeof maybe.message === 'string' ? maybe.message : String(maybe.message ?? 'unknown_error'),
+        code: typeof maybe.code === 'string' ? maybe.code : null,
+        details: typeof maybe.details === 'string' ? maybe.details : null,
+        hint: typeof maybe.hint === 'string' ? maybe.hint : null,
+      };
     }
+    return {
+      message: error instanceof Error ? error.message : String(error),
+      code: null,
+      details: null,
+      hint: null,
+    };
+  };
+  try {
+    const safeRedirect = (to: string, context: string, details?: unknown): never => {
+      console.error('REGISTER_DETAILS_ERROR', {
+        context,
+        redirectTo: to,
+        details,
+      });
+      console.error('REGISTER_DETAILS_SAFE_REDIRECT', { to, context, details });
+      console.log('REGISTER_DETAILS_REDIRECT_BEFORE', { to, context });
+      redirect(to);
+    };
+
+    console.log('REGISTER_DETAILS_START');
+
+    const gender = String(formData.get('gender') ?? 'female') as 'female' | 'male';
+    const password = String(formData.get('password') ?? '').trim();
+    const passwordConfirm = String(formData.get('passwordConfirm') ?? '').trim();
+    const nickname = String(formData.get('nickname') ?? '').trim();
+    const birthdate = String(formData.get('birthdate') ?? '').trim();
+    const location = String(formData.get('location') ?? '').trim();
+    const requestedDesiredGender = String(formData.get('desiredGender') ?? 'both') as 'male' | 'female' | 'both';
+    const desiredGender = gender === 'male' ? 'female' : requestedDesiredGender;
+    const seekingGender = desiredGender;
+    const age = calculateAgeFromBirthdate(birthdate);
+    const agreeTerms = Boolean(formData.get('agreeTerms'));
+    const agreePrivacy = Boolean(formData.get('agreePrivacy'));
+    const profileImageFile = formData.get('profileImage') as File | null;
+    const identityFile = formData.get('identityDocument') as File | null;
+    const nurseFile = formData.get('nurseDocument') as File | null;
+
+    console.log('REGISTER_DETAILS_FORM_PARSED', {
+      gender,
+      nicknameLength: nickname.length,
+      birthdate,
+      location,
+      desiredGender,
+      seekingGender,
+      age,
+      agreeTerms,
+      agreePrivacy,
+      hasProfileImage: Boolean(profileImageFile && profileImageFile.size > 0),
+      hasIdentityDocument: Boolean(identityFile && identityFile.size > 0),
+      hasNurseDocument: Boolean(nurseFile && nurseFile.size > 0),
+      profileImageSize: profileImageFile?.size ?? 0,
+      identitySize: identityFile?.size ?? 0,
+      nurseSize: nurseFile?.size ?? 0,
+    });
+
+    console.log('REGISTER_DETAILS_SUBMIT_START', {
+      gender,
+      nicknameLength: nickname.length,
+      birthdate,
+      location,
+      desiredGender,
+      agreeTerms,
+      agreePrivacy,
+      profileImageSize: profileImageFile?.size ?? 0,
+      identitySize: identityFile?.size ?? 0,
+      nurseSize: nurseFile?.size ?? 0,
+    });
+
+    if (!nickname || !birthdate || !location || age < 18) {
+      safeRedirect('/register/details?error=required', 'validation_required');
+    }
+    if (!password) {
+      safeRedirect('/register/details?error=password-required', 'validation_password_required');
+    }
+    if (password.length < 8) {
+      safeRedirect('/register/details?error=password-length', 'validation_password_length');
+    }
+    if (password !== passwordConfirm) {
+      safeRedirect('/register/details?error=password-mismatch', 'validation_password_mismatch');
+    }
+    if (!agreeTerms || !agreePrivacy) {
+      safeRedirect('/register/details?error=terms-required', 'validation_terms_required');
+    }
+    if (!profileImageFile || profileImageFile.size <= 0) {
+      safeRedirect('/register/details?error=profile-image-required', 'validation_profile_image_required');
+    }
+    if (!identityFile || identityFile.size <= 0) {
+      safeRedirect('/register/details?error=identity-required', 'validation_identity_required');
+    }
+    if (gender === 'female' && (!nurseFile || nurseFile.size <= 0)) {
+      safeRedirect('/register/details?error=nurse-document-required', 'validation_nurse_document_required');
+    }
+
+    if (USE_MOCK_DATA) {
+      const me = await getCurrentUser();
+      if (!me || me.role !== 'user') {
+        safeRedirect('/register', 'mock_guard_not_user');
+      }
+      const checkedMe = me!;
+
+      const isTestUser = checkedMe.isTestUser === true;
+      let profileImage: string | null = null;
+      let identityUrl: string | null = null;
+      let nurseUrl: string | null = null;
+
+      try {
+        profileImage = await uploadDocument(profileImageFile, checkedMe.id, 'profile');
+      } catch (error) {
+        console.error('REGISTER_UPLOAD_ERROR', {
+          stage: 'mock_profile_upload',
+          userId: checkedMe.id,
+          message: error instanceof Error ? error.message : String(error),
+        });
+        console.error('REGISTER_DETAILS_MOCK_PROFILE_UPLOAD_ERROR', {
+          userId: checkedMe.id,
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : null,
+        });
+        safeRedirect('/register/details?error=unexpected', 'mock_profile_upload_exception');
+      }
+      try {
+        identityUrl = await uploadDocument(identityFile, checkedMe.id, 'identity');
+      } catch (error) {
+        console.error('REGISTER_UPLOAD_ERROR', {
+          stage: 'mock_identity_upload',
+          userId: checkedMe.id,
+          message: error instanceof Error ? error.message : String(error),
+        });
+        console.error('REGISTER_DETAILS_MOCK_IDENTITY_UPLOAD_ERROR', {
+          userId: checkedMe.id,
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : null,
+        });
+        safeRedirect('/register/details?error=unexpected', 'mock_identity_upload_exception');
+      }
+      if (nurseFile && nurseFile.size > 0) {
+        try {
+          nurseUrl = await uploadDocument(nurseFile, checkedMe.id, 'nurse');
+        } catch (error) {
+          console.error('REGISTER_UPLOAD_ERROR', {
+            stage: 'mock_nurse_upload',
+            userId: checkedMe.id,
+            message: error instanceof Error ? error.message : String(error),
+          });
+          console.error('REGISTER_DETAILS_MOCK_NURSE_UPLOAD_ERROR', {
+            userId: checkedMe.id,
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : null,
+          });
+          safeRedirect('/register/details?error=unexpected', 'mock_nurse_upload_exception');
+        }
+      }
+
+      const currentImages = listProfileImages(checkedMe.id);
+      const uploadedImages = [profileImage].filter(Boolean) as string[];
+      const hasAtLeastOneImage = uploadedImages.length > 0 || currentImages.length > 0;
+      if (!isTestUser && !hasAtLeastOneImage) {
+        safeRedirect('/register/details?error=profile-image-required', 'mock_profile_image_required');
+      }
+
+      try {
+        if (uploadedImages.length > 0) {
+          await saveProfileImages(checkedMe.id, uploadedImages);
+        }
+      } catch (error) {
+        console.error('REGISTER_DETAILS_MOCK_PROFILE_IMAGES_SAVE_ERROR', {
+          userId: checkedMe.id,
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : null,
+        });
+        safeRedirect('/register/details?error=unexpected', 'mock_profile_images_save_exception');
+      }
+
+      try {
+        await saveProfile(checkedMe.id, {
+          nickname,
+          location,
+          bio: '',
+          desiredGender: seekingGender,
+          workplaceType: 'hospital',
+          hasNightShift: 'off',
+          job: '',
+          income: '',
+          maritalStatus: 'single',
+          height: '170',
+          smoking: '',
+          drinking: '',
+          nightShiftUnderstanding: 'off',
+          shiftWorkUnderstanding: 'off',
+          profileImageUrl: uploadedImages[0] ?? checkedMe.profileImageUrl,
+          nurseDocumentUrl: nurseUrl ?? '',
+        });
+      } catch (error) {
+        console.error('REGISTER_DETAILS_MOCK_PROFILE_SAVE_ERROR', {
+          userId: checkedMe.id,
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : null,
+        });
+        safeRedirect('/register/details?error=unexpected', 'mock_profile_save_exception');
+      }
+
+      try {
+        if (isTestUser) {
+          if (gender === 'female') setNurseVerificationStatus(checkedMe.id, 'approved');
+          if (gender === 'male') setMaleReviewStatus(checkedMe.id, 'approved');
+        }
+        updateUser(checkedMe.id, {
+          gender,
+          birthdate,
+          age,
+          onboardingStatus: isTestUser ? 'verified' : 'profile_completed',
+          verificationStatus: isTestUser ? 'approved' : 'pending',
+          identityDocumentUrl: identityUrl ?? null,
+        });
+      } catch (error) {
+        console.error('REGISTER_DETAILS_MOCK_USER_UPDATE_ERROR', {
+          userId: checkedMe.id,
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : null,
+        });
+        safeRedirect('/register/details?error=unexpected', 'mock_user_update_exception');
+      }
+
+      if (isTestUser) {
+        safeRedirect(gender === 'female' ? '/home/female' : '/home/male', 'mock_test_user_success');
+      }
+      safeRedirect('/pending-review', 'mock_pending_review_success');
+    }
+
+    const supabase = await createServerSupabaseClient();
+    const adminSupabase = createAdminSupabaseClient();
+    if (!supabase || !adminSupabase) {
+      safeRedirect('/register/details?error=unexpected', 'missing_supabase_clients');
+    }
+    const checkedSupabase = supabase!;
+    const checkedAdminSupabase = adminSupabase!;
+    let useSessionDbClient = false;
+
+    const { error: adminHealthError } = await checkedAdminSupabase.from('users').select('id').limit(1);
+    if (adminHealthError && isInvalidApiKeyError(adminHealthError)) {
+      useSessionDbClient = true;
+      console.error('REGISTER_DETAILS_DB_CLIENT_FALLBACK', {
+        reason: 'admin_invalid_api_key',
+        message: adminHealthError.message,
+      });
+    }
+    const dbClient = useSessionDbClient ? checkedSupabase : checkedAdminSupabase;
+    console.log('REGISTER_DETAILS_DB_CLIENT_SELECTED', {
+      clientType: useSessionDbClient ? 'session' : 'admin',
+    });
+
+    const { data: authData, error: authGetError } = await checkedSupabase.auth.getUser();
+    if (authGetError) {
+      const authMeta = toDbErrorMeta(authGetError);
+      console.error('REGISTER_DETAILS_AUTH_GET_USER_ERROR', authMeta);
+      safeRedirect('/register/details?error=unexpected', 'auth_get_user_failed', authMeta);
+    }
+    const authUser = authData.user;
+    if (!authUser) {
+      safeRedirect('/register/details?error=unexpected', 'missing_auth_user');
+    }
+    const checkedAuthUser = authUser!;
+    console.log('REGISTER_DETAILS_AUTH_USER', {
+      userId: checkedAuthUser.id,
+      email: checkedAuthUser.email ?? null,
+      hasPhone: Boolean(checkedAuthUser.phone),
+    });
+    if (password) {
+      const { error: passwordError } = await checkedSupabase.auth.updateUser({ password });
+      if (passwordError) {
+        const passwordMeta = toDbErrorMeta(passwordError);
+        if (passwordMeta.code === 'same_password') {
+          // Allow users to re-submit the form with their current password during retries.
+          console.warn('REGISTER_DETAILS_PASSWORD_UPDATE_SKIPPED', passwordMeta);
+        } else {
+          console.error('REGISTER_DETAILS_PASSWORD_UPDATE_ERROR', passwordMeta);
+          safeRedirect('/register/details?error=unexpected', 'password_update_failed', passwordMeta);
+        }
+      }
+    }
+
+    const userId = checkedAuthUser.id;
+
+    let profileImage: string | null = null;
+    let identityUrl: string | null = null;
+    let nurseUrl: string | null = null;
+
+    console.log('REGISTER_DETAILS_PROFILE_UPLOAD_START', {
+      userId,
+      hasProfileImage: Boolean(profileImageFile && profileImageFile.size > 0),
+    });
+    try {
+      profileImage = await uploadDocument(profileImageFile, userId, 'profile');
+    } catch (error) {
+      console.error('REGISTER_UPLOAD_ERROR', {
+        stage: 'profile_upload',
+        userId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      console.error('REGISTER_DETAILS_PROFILE_UPLOAD_EXCEPTION', {
+        userId,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : null,
+      });
+      safeRedirect('/register/details?error=unexpected', 'profile_upload_exception');
+    }
+    console.log('REGISTER_DETAILS_PROFILE_UPLOAD_DONE', {
+      userId,
+      uploaded: Boolean(profileImage),
+    });
+    try {
+      identityUrl = await uploadDocument(identityFile, userId, 'identity');
+    } catch (error) {
+      console.error('REGISTER_UPLOAD_ERROR', {
+        stage: 'identity_upload',
+        userId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      console.error('REGISTER_DETAILS_IDENTITY_UPLOAD_EXCEPTION', {
+        userId,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : null,
+      });
+      safeRedirect('/register/details?error=unexpected', 'identity_upload_exception');
+    }
+    if (nurseFile && nurseFile.size > 0) {
+      try {
+        nurseUrl = await uploadDocument(nurseFile, userId, 'nurse');
+      } catch (error) {
+        console.error('REGISTER_UPLOAD_ERROR', {
+          stage: 'nurse_upload',
+          userId,
+          message: error instanceof Error ? error.message : String(error),
+        });
+        console.error('REGISTER_DETAILS_NURSE_UPLOAD_EXCEPTION', {
+          userId,
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : null,
+        });
+        safeRedirect('/register/details?error=unexpected', 'nurse_upload_exception');
+      }
+    }
+
+    const uploadedImages = [profileImage].filter(Boolean) as string[];
+
+    const { data: existingUser, error: existingUserError } = await dbClient.from('users').select('*').eq('id', userId).maybeSingle();
+    if (existingUserError) {
+      const usersSelectMeta = toDbErrorMeta(existingUserError);
+      console.error('REGISTER_DETAILS_USERS_SELECT_ERROR', { userId, ...usersSelectMeta });
+      safeRedirect('/register/details?error=unexpected', 'users_select_failed', usersSelectMeta);
+    }
+    if (existingUser && existingUser.role !== 'user') {
+      console.warn('REGISTER_DETAILS_NON_USER_ROLE_CONTINUE', {
+        userId,
+        previousRole: existingUser.role,
+        nextRole: 'user',
+      });
+    }
+    const isTestUser = existingUser?.is_test_user === true;
+
+    const primaryImage = uploadedImages[0] ?? existingUser?.profile_image_url ?? '';
+    console.log('REGISTER_DETAILS_USER_UPSERT_START', {
+      userId,
+      hasExistingUser: Boolean(existingUser),
+      isTestUser,
+      hasPrimaryImage: Boolean(primaryImage),
+    });
+    const { error: userUpsertError } = await dbClient.from('users').upsert(
+      {
+        id: userId,
+        email: normalizeEmail(checkedAuthUser.email ?? existingUser?.email ?? ''),
+        phone: checkedAuthUser.phone ? normalizePhone(checkedAuthUser.phone) : (existingUser?.phone ?? null),
+        role: 'user',
+        gender,
+        nickname,
+        birthdate,
+        age,
+        location,
+        bio: '',
+        profile_image_url: primaryImage,
+        desired_gender: desiredGender,
+        seeking_gender: seekingGender,
+        onboarding_status: isTestUser ? 'verified' : 'profile_completed',
+        risk_check_status: existingUser?.risk_check_status ?? 'not_checked',
+        verification_status: isTestUser ? 'approved' : 'pending',
+        identity_document_url: identityUrl ?? existingUser?.identity_document_url ?? null,
+        rejected_reason: existingUser?.rejected_reason ?? null,
+        moderation_action: existingUser?.moderation_action ?? 'none',
+        is_suspended: existingUser?.is_suspended ?? false,
+        is_test_user: existingUser?.is_test_user ?? false,
+      },
+      { onConflict: 'id' },
+    );
+    if (userUpsertError) {
+      const usersUpsertMeta = toDbErrorMeta(userUpsertError);
+      console.error('REGISTER_DETAILS_USERS_UPSERT_ERROR', { userId, ...usersUpsertMeta });
+      safeRedirect('/register/details?error=unexpected', 'users_upsert_failed', usersUpsertMeta);
+    }
+    console.log('REGISTER_DETAILS_USER_UPSERT_DONE', { userId });
 
     if (uploadedImages.length > 0) {
-      await saveProfileImages(me.id, uploadedImages);
+      try {
+        await saveProfileImages(userId, uploadedImages);
+      } catch (error) {
+        console.error('REGISTER_DETAILS_PROFILE_IMAGES_SAVE_EXCEPTION', {
+          userId,
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : null,
+        });
+        safeRedirect('/register/details?error=unexpected', 'profile_images_save_exception');
+      }
     }
 
-    await saveProfile(me.id, {
-      nickname,
-      location,
-      bio: '',
-      desiredGender: seekingGender,
-      workplaceType: 'hospital',
-      hasNightShift: 'off',
-      job: '',
-      income: '',
-      maritalStatus: 'single',
-      height: '170',
-      smoking: '',
-      drinking: '',
-      nightShiftUnderstanding: 'off',
-      shiftWorkUnderstanding: 'off',
-      profileImageUrl: uploadedImages[0] ?? me.profileImageUrl,
-      nurseDocumentUrl: nurseUrl ?? '',
-    });
-    if (isTestUser) {
-      if (gender === 'female') setNurseVerificationStatus(me.id, 'approved');
-      if (gender === 'male') setMaleReviewStatus(me.id, 'approved');
+    if (gender === 'female') {
+      const nurseStatus = isTestUser ? 'approved' : 'pending';
+      console.log('REGISTER_DETAILS_FEMALE_PROFILE_UPSERT_START', {
+        userId,
+        nurseStatus,
+        hasNurseDocument: Boolean(nurseUrl),
+      });
+      const { error: femaleUpsertError } = await dbClient.from('female_profiles').upsert(
+        {
+          user_id: userId,
+          nurse_document_url: nurseUrl ?? '',
+          nurse_verification_status: nurseStatus,
+          workplace_type: 'hospital',
+          has_night_shift: false,
+        },
+        { onConflict: 'user_id' },
+      );
+      if (femaleUpsertError) {
+        const femaleUpsertMeta = toDbErrorMeta(femaleUpsertError);
+        console.error('REGISTER_DETAILS_FEMALE_PROFILES_UPSERT_ERROR', { userId, ...femaleUpsertMeta });
+        safeRedirect('/register/details?error=unexpected', 'female_profiles_upsert_failed', femaleUpsertMeta);
+      }
+      console.log('REGISTER_DETAILS_FEMALE_PROFILE_UPSERT_DONE', { userId });
+      const { data: existingIdentity, error: identitySelectError } = await dbClient
+        .from('identity_documents')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (identitySelectError) {
+        const identitySelectMeta = toDbErrorMeta(identitySelectError);
+        console.error('REGISTER_DETAILS_IDENTITY_SELECT_ERROR', { userId, ...identitySelectMeta });
+        safeRedirect('/register/details?error=unexpected', 'identity_select_failed', identitySelectMeta);
+      }
+      if (existingIdentity?.id) {
+        const { error: identityUpdateError } = await dbClient
+          .from('identity_documents')
+          .update({ document_url: identityUrl ?? '', status: isTestUser ? 'approved' : 'pending' })
+          .eq('id', existingIdentity.id);
+        if (identityUpdateError) {
+          const identityUpdateMeta = toDbErrorMeta(identityUpdateError);
+          console.error('REGISTER_DETAILS_IDENTITY_UPDATE_ERROR', { userId, ...identityUpdateMeta });
+          safeRedirect('/register/details?error=unexpected', 'identity_update_failed', identityUpdateMeta);
+        }
+      } else {
+        const { error: identityInsertError } = await dbClient.from('identity_documents').insert({
+          user_id: userId,
+          document_url: identityUrl ?? '',
+          status: isTestUser ? 'approved' : 'pending',
+        });
+        if (identityInsertError) {
+          const identityInsertMeta = toDbErrorMeta(identityInsertError);
+          console.error('REGISTER_DETAILS_IDENTITY_INSERT_ERROR', { userId, ...identityInsertMeta });
+          safeRedirect('/register/details?error=unexpected', 'identity_insert_failed', identityInsertMeta);
+        }
+      }
+      if (isTestUser) {
+        safeRedirect('/home/female', 'female_test_user_success');
+      }
+      console.log('REGISTER_DETAILS_REDIRECT_PENDING_REVIEW', {
+        userId,
+        gender: 'female',
+      });
+      safeRedirect('/pending-review', 'female_pending_review_success');
     }
 
-    updateUser(me.id, {
-      gender,
-      birthdate,
-      age,
-      onboardingStatus: isTestUser ? 'verified' : 'profile_completed',
-      verificationStatus: isTestUser ? 'approved' : 'pending',
-      identityDocumentUrl: identityUrl ?? null,
-    });
-
-    if (isTestUser) {
-      redirect(gender === 'female' ? '/home/female' : '/home/male');
-    }
-    redirect('/pending-review');
-  }
-
-  const supabase = await createServerSupabaseClient();
-  const adminSupabase = createAdminSupabaseClient();
-  if (!supabase || !adminSupabase) redirect('/register');
-
-  const { data: authData } = await supabase.auth.getUser();
-  const authUser = authData.user;
-  if (!authUser) redirect('/register');
-  if (password) {
-    const { error: passwordError } = await supabase.auth.updateUser({ password });
-    if (passwordError) {
-      console.error('REGISTER_DETAILS_PASSWORD_UPDATE_ERROR', passwordError);
-      redirect('/register/details?error=password-update-failed');
-    }
-  }
-
-  const userId = authUser.id;
-  const profileImage = await uploadDocument(profileImageFile, userId, 'profile');
-  const identityUrl = await uploadDocument(identityFile, userId, 'identity');
-  const nurseUrl = nurseFile && nurseFile.size > 0 ? await uploadDocument(nurseFile, userId, 'nurse') : null;
-  const uploadedImages = [profileImage].filter(Boolean) as string[];
-
-  const { data: existingUser } = await adminSupabase.from('users').select('*').eq('id', userId).maybeSingle();
-  if (existingUser && existingUser.role !== 'user') {
-    redirect('/register');
-  }
-  const isTestUser = existingUser?.is_test_user === true;
-
-  const primaryImage = uploadedImages[0] ?? existingUser?.profile_image_url ?? '';
-  const { error: userUpsertError } = await adminSupabase.from('users').upsert(
-    {
-      id: userId,
-      email: normalizeEmail(authUser.email ?? existingUser?.email ?? ''),
-      phone: authUser.phone ? normalizePhone(authUser.phone) : (existingUser?.phone ?? null),
-      role: 'user',
-      gender,
-      nickname,
-      birthdate,
-      age,
-      location,
-      bio: '',
-      profile_image_url: primaryImage,
-      desired_gender: desiredGender,
-      seeking_gender: seekingGender,
-      onboarding_status: isTestUser ? 'verified' : 'profile_completed',
-      risk_check_status: existingUser?.risk_check_status ?? 'not_checked',
-      verification_status: isTestUser ? 'approved' : (existingUser?.verification_status ?? 'pending'),
-      identity_document_url: identityUrl ?? existingUser?.identity_document_url ?? null,
-      rejected_reason: existingUser?.rejected_reason ?? null,
-      moderation_action: existingUser?.moderation_action ?? 'none',
-      is_suspended: existingUser?.is_suspended ?? false,
-      is_test_user: existingUser?.is_test_user ?? false,
-    },
-    { onConflict: 'id' },
-  );
-  if (userUpsertError) redirect('/register/details?error=save-failed');
-
-  if (uploadedImages.length > 0) {
-    await saveProfileImages(userId, uploadedImages);
-  }
-
-  if (gender === 'female') {
-    const nurseStatus = isTestUser ? 'approved' : 'pending';
-    await adminSupabase.from('female_profiles').upsert(
+    const maleStatus = isTestUser ? 'approved' : 'pending';
+    const { error: maleUpsertError } = await dbClient.from('male_profiles').upsert(
       {
         user_id: userId,
-        nurse_document_url: nurseUrl ?? '',
-        nurse_verification_status: nurseStatus,
-        workplace_type: 'hospital',
-        has_night_shift: false,
+        job: '',
+        income: '',
+        marital_status: 'single',
+        has_children: false,
+        male_review_status: maleStatus,
+        income_verified: false,
+        face_photo_verified: false,
+        internal_memo: null,
+        height: 170,
+        body_type: '',
+        holiday: '',
+        smoking: '',
+        drinking: '',
+        night_shift_understanding: false,
+        shift_work_understanding: false,
+        late_night_contact_ok: false,
+        first_date_cost: '',
+        personality_tags: [],
       },
       { onConflict: 'user_id' },
     );
-    const { data: existingIdentity } = await adminSupabase.from('identity_documents').select('id').eq('user_id', userId).maybeSingle();
+    if (maleUpsertError) {
+      const maleUpsertMeta = toDbErrorMeta(maleUpsertError);
+      console.error('REGISTER_DETAILS_MALE_PROFILES_UPSERT_ERROR', { userId, ...maleUpsertMeta });
+      safeRedirect('/register/details?error=unexpected', 'male_profiles_upsert_failed', maleUpsertMeta);
+    }
+    const { data: existingIdentity, error: identitySelectError } = await dbClient.from('identity_documents').select('id').eq('user_id', userId).maybeSingle();
+    if (identitySelectError) {
+      const identitySelectMeta = toDbErrorMeta(identitySelectError);
+      console.error('REGISTER_DETAILS_IDENTITY_SELECT_ERROR', { userId, ...identitySelectMeta });
+      safeRedirect('/register/details?error=unexpected', 'identity_select_failed', identitySelectMeta);
+    }
     if (existingIdentity?.id) {
-      await adminSupabase
+      const { error: identityUpdateError } = await dbClient
         .from('identity_documents')
         .update({ document_url: identityUrl ?? '', status: isTestUser ? 'approved' : 'pending' })
         .eq('id', existingIdentity.id);
+      if (identityUpdateError) {
+        const identityUpdateMeta = toDbErrorMeta(identityUpdateError);
+        console.error('REGISTER_DETAILS_IDENTITY_UPDATE_ERROR', { userId, ...identityUpdateMeta });
+        safeRedirect('/register/details?error=unexpected', 'identity_update_failed', identityUpdateMeta);
+      }
     } else {
-      await adminSupabase.from('identity_documents').insert({
+      const { error: identityInsertError } = await dbClient.from('identity_documents').insert({
         user_id: userId,
         document_url: identityUrl ?? '',
         status: isTestUser ? 'approved' : 'pending',
       });
+      if (identityInsertError) {
+        const identityInsertMeta = toDbErrorMeta(identityInsertError);
+        console.error('REGISTER_DETAILS_IDENTITY_INSERT_ERROR', { userId, ...identityInsertMeta });
+        safeRedirect('/register/details?error=unexpected', 'identity_insert_failed', identityInsertMeta);
+      }
     }
     if (isTestUser) {
-      redirect('/home/female');
+      safeRedirect('/home/male', 'male_test_user_success');
     }
-    redirect('/pending-review');
-  }
-
-  const maleStatus = isTestUser ? 'approved' : 'pending';
-  await adminSupabase.from('male_profiles').upsert(
-    {
-      user_id: userId,
-      job: '',
-      income: '',
-      marital_status: 'single',
-      has_children: false,
-      male_review_status: maleStatus,
-      income_verified: false,
-      face_photo_verified: false,
-      internal_memo: null,
-      height: 170,
-      body_type: '',
-      holiday: '',
-      smoking: '',
-      drinking: '',
-      night_shift_understanding: false,
-      shift_work_understanding: false,
-      late_night_contact_ok: false,
-      first_date_cost: '',
-      personality_tags: [],
-    },
-    { onConflict: 'user_id' },
-  );
-  const { data: existingIdentity } = await adminSupabase.from('identity_documents').select('id').eq('user_id', userId).maybeSingle();
-  if (existingIdentity?.id) {
-    await adminSupabase
-      .from('identity_documents')
-      .update({ document_url: identityUrl ?? '', status: isTestUser ? 'approved' : 'pending' })
-      .eq('id', existingIdentity.id);
-  } else {
-    await adminSupabase.from('identity_documents').insert({
-      user_id: userId,
-      document_url: identityUrl ?? '',
-      status: isTestUser ? 'approved' : 'pending',
+    console.log('REGISTER_DETAILS_REDIRECT_PENDING_REVIEW', {
+      userId,
+      gender: 'male',
     });
+    safeRedirect('/pending-review', 'male_pending_review_success');
+  } catch (error) {
+    if (isRedirectThrown(error)) {
+      throw error;
+    }
+    console.error('REGISTER_DETAILS_ERROR', {
+      context: 'top_level_exception',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : null,
+    });
+    console.error('REGISTER_DETAILS_TOP_LEVEL_EXCEPTION', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : null,
+    });
+    console.error('REGISTER_DETAILS_SAFE_REDIRECT', {
+      to: '/register/details?error=unexpected',
+      context: 'top_level_exception_fallback',
+    });
+    console.log('REGISTER_DETAILS_REDIRECT_BEFORE', {
+      to: '/register/details?error=unexpected',
+      context: 'top_level_exception_fallback',
+    });
+    redirect('/register/details?error=unexpected');
   }
-  if (isTestUser) {
-    redirect('/home/male');
-  }
-  redirect('/pending-review');
 }
 
 export async function swipeAction(formData: FormData) {

@@ -17,6 +17,10 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import type { AppUser } from '@/lib/types/domain';
 
 type Scope = 'all' | 'female' | 'male';
+type AdminTraceContext = {
+  pathname?: string;
+  role?: string;
+};
 
 type Distribution = {
   label: string;
@@ -136,7 +140,7 @@ function filterScopeUsers(users: AppUser[], scope: Scope) {
   return endUsers;
 }
 
-export async function getAdminMetrics(scope: Scope): Promise<AdminMetrics> {
+export async function getAdminMetrics(scope: Scope, context?: AdminTraceContext): Promise<AdminMetrics> {
   if (USE_MOCK_DATA) {
     const users = filterScopeUsers(listUsers(), scope);
     const userIds = new Set(users.map((u) => u.id));
@@ -248,33 +252,123 @@ export async function getAdminMetrics(scope: Scope): Promise<AdminMetrics> {
       economy: { interestSignals: 0, favorites: 0, paymentCount: 0, creditConsumption: 0 },
     };
   }
+  const tracePathname = context?.pathname ?? '/admin';
+  const traceRole = context?.role ?? '(unknown)';
+  const runMetricsQuery = async <T>(
+    queryName: string,
+    tableName: string,
+    runner: () => Promise<{ data: T | null; error: { message: string } | null }>,
+    fallback: T,
+  ): Promise<T> => {
+    try {
+      const { data, error } = await runner();
+      if (error) {
+        console.error('ADMIN_METRICS_QUERY_ERROR', {
+          pathname: tracePathname,
+          role: traceRole,
+          queryName,
+          tableName,
+          message: error.message,
+        });
+        return fallback;
+      }
+      return (data ?? fallback) as T;
+    } catch (error) {
+      console.error('ADMIN_METRICS_QUERY_EXCEPTION', {
+        pathname: tracePathname,
+        role: traceRole,
+        queryName,
+        tableName,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : null,
+      });
+      return fallback;
+    }
+  };
 
-  const [
-    { data: usersRows },
-    { data: femaleRows },
-    { data: maleRows },
-    { data: profileImages },
-    { data: reports },
-    { data: blocks },
-    { data: matches },
-    { data: messages },
-    { data: interestSignals },
-    { data: favorites },
-    { data: creditTransactions },
-  ] =
-    await Promise.all([
-      admin.from('users').select('id,role,gender,age,location,onboarding_status,verification_status,is_suspended,moderation_action,risk_check_status'),
-      admin.from('female_profiles').select('user_id,nurse_verification_status,workplace_type,has_night_shift'),
-      admin.from('male_profiles').select('user_id,male_review_status,job,income,marital_status'),
-      admin.from('profile_images').select('user_id,approved_status'),
-      admin.from('reports').select('target_user_id,status'),
-      admin.from('blocks').select('id,blocker_user_id,blocked_user_id'),
-      admin.from('matches').select('id,user_a_id,user_b_id,relationship_status,created_at'),
-      admin.from('messages').select('id,match_id,created_at'),
-      admin.from('interest_signals').select('user_id,target_user_id'),
-      admin.from('favorites').select('user_id,target_user_id'),
-      admin.from('credit_transactions').select('user_id,type,amount'),
-    ]);
+  const usersRows = await runMetricsQuery(
+    'metrics_users_list',
+    'users',
+    async () => await admin.from('users').select('id,role,gender,age,location,onboarding_status,verification_status,is_suspended,moderation_action,risk_check_status'),
+    [],
+  );
+  const femaleRows = await runMetricsQuery(
+    'metrics_female_profiles_list',
+    'female_profiles',
+    async () => await admin.from('female_profiles').select('user_id,nurse_verification_status,workplace_type,has_night_shift'),
+    [],
+  );
+  const maleRows = await runMetricsQuery(
+    'metrics_male_profiles_list',
+    'male_profiles',
+    async () => await admin.from('male_profiles').select('user_id,male_review_status,job,income,marital_status'),
+    [],
+  );
+  const profileImages = await runMetricsQuery(
+    'metrics_profile_images_list',
+    'profile_images',
+    async () => await admin.from('profile_images').select('user_id,approved_status'),
+    [],
+  );
+  const reports = await runMetricsQuery(
+    'metrics_reports_list',
+    'reports',
+    async () => await admin.from('reports').select('target_user_id,status'),
+    [],
+  );
+  const blocks = await runMetricsQuery(
+    'metrics_blocks_list',
+    'blocks',
+    async () => await admin.from('blocks').select('id,blocker_user_id,blocked_user_id'),
+    [],
+  );
+  const swipes = await runMetricsQuery(
+    'metrics_swipes_list',
+    'swipes',
+    async () => await admin.from('swipes').select('id,from_user_id,to_user_id,action,created_at'),
+    [],
+  );
+  const matches = await runMetricsQuery(
+    'metrics_matches_list',
+    'matches',
+    async () => await admin.from('matches').select('id,user_a_id,user_b_id,relationship_status,created_at'),
+    [],
+  );
+  const messages = await runMetricsQuery(
+    'metrics_messages_list',
+    'messages',
+    async () => await admin.from('messages').select('id,match_id,created_at'),
+    [],
+  );
+  const interestSignals = await runMetricsQuery(
+    'metrics_interest_signals_list',
+    'interest_signals',
+    async () => await admin.from('interest_signals').select('user_id,target_user_id'),
+    [],
+  );
+  const favorites = await runMetricsQuery(
+    'metrics_favorites_list',
+    'favorites',
+    async () => await admin.from('favorites').select('user_id,target_user_id'),
+    [],
+  );
+  const creditTransactions = await runMetricsQuery(
+    'metrics_credit_transactions_list',
+    'credit_transactions',
+    async () => await admin.from('credit_transactions').select('user_id,type,amount'),
+    [],
+  );
+  console.log('ADMIN_METRICS_DATASET_COUNTS', {
+    pathname: tracePathname,
+    role: traceRole,
+    users: usersRows.length,
+    female_profiles: femaleRows.length,
+    male_profiles: maleRows.length,
+    reports: reports.length,
+    swipes: swipes.length,
+    matches: matches.length,
+    messages: messages.length,
+  });
 
   const users = filterScopeUsers(
     (usersRows ?? []).map((u) => ({

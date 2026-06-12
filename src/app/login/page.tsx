@@ -42,6 +42,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <h1 className='mb-1 text-center text-2xl font-bold tracking-tight text-slate-900'>おかえりなさい</h1>
           <p className='mb-6 text-center text-sm text-slate-600'>登録済みの方はこちらからログイン</p>
+          {error === 'under-review' ? (
+            <div className='mb-4 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-700'>
+              <p>現在、審査中のためログインできません。審査完了後にログインできます。</p>
+            </div>
+          ) : null}
           {error === 'auth-callback' ? (
             <div className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
               <p>認証コールバックに失敗しました。もう一度認証リンクを開いてください。</p>

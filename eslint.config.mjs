@@ -5,6 +5,13 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    rules: {
+      // Server components intentionally render fallback JSX inside try/catch
+      // to avoid black-screen crashes (see admin pages). Downgrade to warning.
+      "react-hooks/error-boundaries": "warn",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

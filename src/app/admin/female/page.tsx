@@ -33,21 +33,38 @@ function DistList({ items }: { items: Array<{ label: string; count: number }> })
   );
 }
 
+function isRedirectThrown(error: unknown) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'digest' in error &&
+    typeof (error as { digest?: unknown }).digest === 'string' &&
+    (error as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+  );
+}
+
 export default async function FemaleAdminPage() {
   const user = await getCurrentUser();
-  if (!user) redirect('/admin/login');
-  if (user.role !== 'female_admin' && user.role !== 'super_admin') redirect('/home');
+  if (!user) {
+    console.log('ADMIN_PAGE_REDIRECT', { pathname: '/admin/female', role: null, redirectTo: '/admin/login', queryName: 'auth_guard' });
+    redirect('/admin/login');
+  }
+  if (user.role !== 'female_admin' && user.role !== 'super_admin') {
+    console.log('ADMIN_PAGE_REDIRECT', { pathname: '/admin/female', role: user.role, redirectTo: '/home', queryName: 'role_guard' });
+    redirect('/home');
+  }
 
-  const data = await getAdminData(user.id);
-  const metrics = await getAdminMetrics('female');
-  const females = data.users.filter((u) => u.gender === 'female');
-  const femaleReports = data.reports.filter((r) => females.some((u) => u.id === r.targetUserId));
-  const femaleRiskChecks = data.riskChecks.filter((r): r is NonNullable<typeof r> => Boolean(r)).filter((r) => females.some((u) => u.id === r.userId));
-  const femaleMap = new Map(females.map((u) => [u.id, u.nickname]));
+  try {
+    const data = await getAdminData(user.id, { pathname: '/admin/female', role: user.role });
+    const metrics = await getAdminMetrics('female', { pathname: '/admin/female', role: user.role });
+    const females = data.users.filter((u) => u.gender === 'female');
+    const femaleReports = data.reports.filter((r) => females.some((u) => u.id === r.targetUserId));
+    const femaleRiskChecks = data.riskChecks.filter((r): r is NonNullable<typeof r> => Boolean(r)).filter((r) => females.some((u) => u.id === r.userId));
+    const femaleMap = new Map(females.map((u) => [u.id, u.nickname]));
 
-  return (
-    <AppShell user={user}>
-      <section className='space-y-4'>
+    return (
+      <AppShell user={user}>
+        <section className='space-y-4'>
         <article className='rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
           <h1 className='text-lg font-bold text-slate-900'>女性管理</h1>
           <div className='mt-2 flex flex-wrap gap-2'>
@@ -163,7 +180,26 @@ export default async function FemaleAdminPage() {
             </div>
           ))}
         </article>
-      </section>
-    </AppShell>
-  );
+        </section>
+      </AppShell>
+    );
+  } catch (error) {
+    if (isRedirectThrown(error)) throw error;
+    console.error('ADMIN_PAGE_ERROR', {
+      page: '/admin/female',
+      pathname: '/admin/female',
+      queryName: 'page_render',
+      userId: user.id,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : null,
+    });
+    return (
+      <AppShell user={user}>
+        <section className='rounded-3xl border border-red-100 bg-white p-5 shadow-sm'>
+          <h1 className='text-lg font-bold text-slate-900'>女性管理</h1>
+          <p className='mt-3 text-sm text-red-700'>女性管理ページの読み込み中にエラーが発生しました。時間をおいて再度お試しください。</p>
+        </section>
+      </AppShell>
+    );
+  }
 }

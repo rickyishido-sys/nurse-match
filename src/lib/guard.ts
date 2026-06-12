@@ -38,6 +38,6 @@ export async function getAccessState(user: AppUser): Promise<AppAccessState> {
 export async function redirectByAccessState(user: AppUser) {
   const state = await getAccessState(user);
   if (state === 'suspended') redirect('/suspended');
-  if (state === 'rejected') redirect('/rejected');
+  if (state === 'rejected') redirect('/review-rejected');
   if (state === 'pending') redirect('/pending-review');
 }

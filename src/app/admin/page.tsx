@@ -33,6 +33,16 @@ function riskTone(status: string): 'amber' | 'green' | 'gray' {
   return 'gray';
 }
 
+function isRedirectThrown(error: unknown) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'digest' in error &&
+    typeof (error as { digest?: unknown }).digest === 'string' &&
+    (error as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+  );
+}
+
 function KpiCard({ label, value }: { label: string; value: string | number }) {
   return (
     <article className='rounded-2xl border border-slate-100 bg-gradient-to-b from-white to-blue-50/30 p-3'>
@@ -58,17 +68,24 @@ function DistList({ items }: { items: Array<{ label: string; count: number }> })
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
-  if (!user) redirect('/login');
-  if (user.role !== 'super_admin') redirect('/home');
+  if (!user) {
+    console.log('ADMIN_PAGE_REDIRECT', { pathname: '/admin', role: null, redirectTo: '/login', queryName: 'auth_guard' });
+    redirect('/login');
+  }
+  if (user.role !== 'super_admin') {
+    console.log('ADMIN_PAGE_REDIRECT', { pathname: '/admin', role: user.role, redirectTo: '/home', queryName: 'role_guard' });
+    redirect('/home');
+  }
 
-  const data = await getAdminData(user.id);
-  const metrics = await getAdminMetrics('all');
-  const pendingCount = data.users.filter((u) => u.verificationStatus === 'pending').length;
-  const userMap = new Map(data.users.map((u) => [u.id, u.nickname]));
+  try {
+    const data = await getAdminData(user.id, { pathname: '/admin', role: user.role });
+    const metrics = await getAdminMetrics('all', { pathname: '/admin', role: user.role });
+    const pendingCount = data.users.filter((u) => u.verificationStatus === 'pending').length;
+    const userMap = new Map(data.users.map((u) => [u.id, u.nickname]));
 
-  return (
-    <AppShell user={user}>
-      <section className='space-y-4'>
+    return (
+      <AppShell user={user}>
+        <section className='space-y-4'>
         <article className='rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm'>
           <h1 className='text-xl font-bold text-slate-900'>管理画面</h1>
           <div className='mt-3 flex flex-wrap gap-2'>
@@ -391,7 +408,26 @@ export default async function AdminPage() {
             </ul>
           )}
         </div>
-      </section>
-    </AppShell>
-  );
+        </section>
+      </AppShell>
+    );
+  } catch (error) {
+    if (isRedirectThrown(error)) throw error;
+    console.error('ADMIN_PAGE_ERROR', {
+      page: '/admin',
+      pathname: '/admin',
+      queryName: 'page_render',
+      userId: user.id,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : null,
+    });
+    return (
+      <AppShell user={user}>
+        <section className='rounded-3xl border border-red-100 bg-white p-5 shadow-sm'>
+          <h1 className='text-xl font-bold text-slate-900'>管理画面</h1>
+          <p className='mt-3 text-sm text-red-700'>管理画面の読み込み中にエラーが発生しました。時間をおいて再度お試しください。</p>
+        </section>
+      </AppShell>
+    );
+  }
 }

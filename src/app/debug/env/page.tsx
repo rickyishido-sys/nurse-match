@@ -28,8 +28,26 @@ export default async function DebugEnvPage() {
   const hasSupabaseAnon = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const hasServiceRole = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY.length > 20);
   const hasAdminEmails = !!process.env.ADMIN_EMAILS;
+  const serviceRoleValue = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+  const anonKeyValue = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
   const serviceRoleKeyLength = process.env.SUPABASE_SERVICE_ROLE_KEY?.length ?? 0;
   const adminEmailsLength = process.env.ADMIN_EMAILS?.length ?? 0;
+  const anonKeyLength = anonKeyValue.length;
+  const serviceRoleKeyDotCount = (serviceRoleValue.match(/\./g) ?? []).length;
+  const anonKeyDotCount = (anonKeyValue.match(/\./g) ?? []).length;
+  const serviceRoleStartsWithEyJ = serviceRoleValue.startsWith('eyJ');
+  const anonStartsWithEyJ = anonKeyValue.startsWith('eyJ');
+  const serviceRoleJwtShapeOk = serviceRoleKeyDotCount === 2 && serviceRoleKeyLength > 100 && serviceRoleStartsWithEyJ;
+  const anonJwtShapeOk = anonKeyDotCount === 2 && anonKeyLength > 100 && anonStartsWithEyJ;
+  const supabaseUrlHost = process.env.NEXT_PUBLIC_SUPABASE_URL
+    ? (() => {
+      try {
+        return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host;
+      } catch {
+        return '(invalid-url)';
+      }
+    })()
+    : '(unset)';
   const mockValue = process.env.NEXT_PUBLIC_USE_MOCK ?? '(unset)';
   const hasSiteUrl = !!process.env.NEXT_PUBLIC_SITE_URL;
 
@@ -55,6 +73,38 @@ export default async function DebugEnvPage() {
           <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
             <dt>serviceRoleKeyLength</dt>
             <dd className='font-semibold'>{serviceRoleKeyLength}</dd>
+          </div>
+          <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+            <dt>serviceRoleKeyDotCount</dt>
+            <dd className='font-semibold'>{serviceRoleKeyDotCount}</dd>
+          </div>
+          <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+            <dt>serviceRoleStartsWithEyJ</dt>
+            <dd className='font-semibold'>{String(serviceRoleStartsWithEyJ)}</dd>
+          </div>
+          <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+            <dt>serviceRoleJwtShapeOk</dt>
+            <dd className='font-semibold'>{String(serviceRoleJwtShapeOk)}</dd>
+          </div>
+          <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+            <dt>anonKeyLength</dt>
+            <dd className='font-semibold'>{anonKeyLength}</dd>
+          </div>
+          <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+            <dt>anonKeyDotCount</dt>
+            <dd className='font-semibold'>{anonKeyDotCount}</dd>
+          </div>
+          <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+            <dt>anonStartsWithEyJ</dt>
+            <dd className='font-semibold'>{String(anonStartsWithEyJ)}</dd>
+          </div>
+          <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+            <dt>anonJwtShapeOk</dt>
+            <dd className='font-semibold'>{String(anonJwtShapeOk)}</dd>
+          </div>
+          <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+            <dt>supabaseUrlHost</dt>
+            <dd className='font-semibold'>{supabaseUrlHost}</dd>
           </div>
           <div className='flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
             <dt>hasAdminEmails</dt>

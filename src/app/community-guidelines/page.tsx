@@ -17,10 +17,10 @@ export default async function CommunityGuidelinesPage() {
         </ul>
         <div className='flex gap-2'>
           <Link href='/blocked-users' className='rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700'>
-            ブロック管理（準備）
+            ブロック管理
           </Link>
           <Link href='/delete-account' className='rounded-xl bg-slate-900 px-4 py-2 text-sm text-white'>
-            退会導線（準備）
+            退会
           </Link>
         </div>
       </section>

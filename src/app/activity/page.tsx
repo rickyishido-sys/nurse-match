@@ -10,7 +10,7 @@ export default async function ActivityPage() {
 
   if (!isAdminRole(user.role)) {
     const state = await getAccessState(user);
-    if (state === 'rejected') redirect('/rejected');
+    if (state === 'rejected') redirect('/review-rejected');
     if (state === 'suspended') redirect('/suspended');
     if (user.onboardingStatus !== 'verified') redirect('/preview');
     if (state === 'pending') redirect('/pending-review');
