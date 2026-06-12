@@ -88,6 +88,44 @@ function isConfiguredAdminEmail(email: string | undefined | null) {
   return parseAdminEmails().includes(email.trim().toLowerCase());
 }
 
+const E2E_TEST_USER_PASSWORD = 'test1234';
+
+// Self-heal designated E2E test accounts whose auth password drifted
+// (e.g. changed by a register-details smoke run). Enabled only while the
+// dev OTP bypass flag is on, and only for the canonical test password.
+async function tryHealTestUserPassword(email: string, password: string) {
+  if (process.env.REGISTER_DEV_BYPASS_OTP !== 'true') return false;
+  const normalizedEmail = email.trim().toLowerCase();
+  if (normalizedEmail !== E2E_TEST_FEMALE_EMAIL && normalizedEmail !== E2E_TEST_MALE_EMAIL) return false;
+  if (password !== E2E_TEST_USER_PASSWORD) return false;
+
+  const admin = createAdminSupabaseClient();
+  if (!admin) return false;
+
+  const { data: row } = await admin.from('users').select('id').eq('email', normalizedEmail).maybeSingle();
+  if (row?.id) {
+    const { error } = await admin.auth.admin.updateUserById(row.id, {
+      password: E2E_TEST_USER_PASSWORD,
+      email_confirm: true,
+    });
+    console.warn('LOGIN_TEST_USER_PASSWORD_HEALED', { email: normalizedEmail, userId: row.id, ok: !error, message: error?.message ?? null });
+    return !error;
+  }
+
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
+    email: normalizedEmail,
+    password: E2E_TEST_USER_PASSWORD,
+    email_confirm: true,
+  });
+  console.warn('LOGIN_TEST_USER_CREATED', {
+    email: normalizedEmail,
+    userId: created?.user?.id ?? null,
+    ok: !createError,
+    message: createError?.message ?? null,
+  });
+  return !createError;
+}
+
 async function bootstrapTestUserIfNeeded(
   supabase: NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>,
   authUser: { id: string; email?: string | null },
@@ -264,7 +302,11 @@ export async function loginAction(formData: FormData) {
     redirect('/login?error=config');
   }
 
-  const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
+  let signInResult = await supabase.auth.signInWithPassword({ email, password });
+  if (signInResult.error && (await tryHealTestUserPassword(email, password))) {
+    signInResult = await supabase.auth.signInWithPassword({ email, password });
+  }
+  const { data: signInData, error } = signInResult;
   if (error) {
     console.error('LOGIN_ERROR', { stage: 'sign_in', email, message: error.message });
     redirect('/login?error=invalid-credentials');
@@ -429,6 +471,24 @@ export async function adminLoginAction(formData: FormData) {
     }
     const checkedMeRow = effectiveMeRow!;
     if (!isAdminRole(checkedMeRow.role)) {
+      // Self-heal: a configured admin email may have been demoted to 'user'
+      // (e.g. by testing /register/details with the admin account).
+      if (isConfiguredAdminEmail(email)) {
+        const adminClient = createAdminSupabaseClient();
+        if (adminClient) {
+          const { error: restoreError } = await adminClient
+            .from('users')
+            .update({ role: 'super_admin', onboarding_status: 'verified', verification_status: 'approved' })
+            .eq('id', checkedMeRow.id);
+          if (!restoreError) {
+            console.warn('ADMIN_LOGIN_ROLE_RESTORED', { userId: checkedMeRow.id, email, previousRole: checkedMeRow.role });
+            const restoredRedirectTo = resolveAdminLoginRedirectPath('super_admin');
+            console.log('ADMIN_LOGIN_REDIRECT_TO', { redirectTo: restoredRedirectTo });
+            redirect(restoredRedirectTo);
+          }
+          console.error('ADMIN_LOGIN_ROLE_RESTORE_ERROR', { userId: checkedMeRow.id, message: restoreError.message });
+        }
+      }
       await checkedSupabase.auth.signOut();
       safeAdminLoginRedirect('forbidden', 'not_admin_role', checkedMeRow.role);
     }
@@ -1228,6 +1288,15 @@ export async function registerDetailsAction(formData: FormData) {
       email: checkedAuthUser.email ?? null,
       hasPhone: Boolean(checkedAuthUser.phone),
     });
+    // Configured admin accounts must never be converted into member accounts
+    // (registering would overwrite their role/password and lock them out of /admin).
+    if (isConfiguredAdminEmail(checkedAuthUser.email)) {
+      console.warn('REGISTER_DETAILS_ADMIN_EMAIL_BLOCKED', {
+        userId: checkedAuthUser.id,
+        email: checkedAuthUser.email ?? null,
+      });
+      safeRedirect('/admin', 'admin_email_blocked');
+    }
     if (password) {
       const { error: passwordError } = await checkedSupabase.auth.updateUser({ password });
       if (passwordError) {
