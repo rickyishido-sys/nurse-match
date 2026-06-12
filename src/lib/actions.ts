@@ -259,10 +259,16 @@ export async function loginAction(formData: FormData) {
   }
 
   const supabase = await createServerSupabaseClient();
-  if (!supabase) throw new Error('Supabase設定が不足しています');
+  if (!supabase) {
+    console.error('LOGIN_ERROR', { stage: 'supabase_client_missing', email });
+    redirect('/login?error=config');
+  }
 
   const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error('LOGIN_ERROR', { stage: 'sign_in', email, message: error.message });
+    redirect('/login?error=invalid-credentials');
+  }
 
   console.log('LOGIN_SIGNIN_RESULT', {
     email,

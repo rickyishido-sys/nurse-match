@@ -47,6 +47,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               <p>現在、審査中のためログインできません。審査完了後にログインできます。</p>
             </div>
           ) : null}
+          {error === 'invalid-credentials' ? (
+            <div className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
+              <p>メールアドレスまたはパスワードが正しくありません。もう一度お試しください。</p>
+            </div>
+          ) : null}
+          {error === 'config' || error === 'session-missing' || error === 'user-row-missing' ? (
+            <div className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
+              <p>ログイン処理でエラーが発生しました。時間をおいて再度お試しください。</p>
+            </div>
+          ) : null}
           {error === 'auth-callback' ? (
             <div className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
               <p>認証コールバックに失敗しました。もう一度認証リンクを開いてください。</p>
