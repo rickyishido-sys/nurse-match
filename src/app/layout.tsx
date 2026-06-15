@@ -8,9 +8,9 @@ const noto = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: 'Nurse Match β',
-  description: '看護師女性主導のマッチングアプリ MVP',
-  applicationName: 'Nurse Match',
+  title: 'HANAKAI（花会）',
+  description: 'リアル花会とデジタルコミュニティを循環させる、新しいつながりのかたち。',
+  applicationName: 'HANAKAI',
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [{ url: '/icon.png?v=2', type: 'image/png' }, { url: '/favicon.ico?v=2', type: 'image/x-icon' }],
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Nurse Match',
+    title: 'HANAKAI',
   },
   formatDetection: {
     telephone: false,
@@ -39,7 +39,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
-  themeColor: '#0f172a',
+  themeColor: '#4f7a4a',
 };
 
 export default function RootLayout({

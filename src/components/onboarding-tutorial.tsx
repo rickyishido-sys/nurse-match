@@ -4,42 +4,42 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const ONBOARDING_KEY = 'nursematch:onboarding-seen:v1';
+const ONBOARDING_KEY = 'hanakai:onboarding-seen:v1';
 
 const SLIDES = [
   {
     key: 'welcome',
-    title: 'ようこそ、ナースマッチへ',
+    title: 'ようこそ、花会へ',
     body:
-      '看護師を中心とした、安心重視のマッチングサービスです。\n\n毎日の忙しさの中でも、「ちゃんと話せる人と出会いたい」そんな想いから、ナースマッチは生まれました。\n\n恋人探しも、気軽な会話も、まずは安心できることを大切にしています。',
+      'HANAKAI（花会）は、リアルの花会とデジタルコミュニティを循環させる、新しいつながりのかたちです。\n\n花教室でも、ただのSNSでもありません。リアルの体験を起点に、関係性がゆっくり深まっていきます。',
     image: '/onboarding/welcome.png',
   },
   {
-    key: 'safety',
-    title: '安心して利用できる環境づくり',
-    body:
-      '安心して利用いただくため、登録時に本人確認およびAIを活用した登録審査を行っています。\n女性登録者は、看護師確認書類の提出による確認を実施。通報・ブロック・退会もいつでも可能です。「ちゃんと安心できる」その環境づくりを大切にしています。\nナースマッチでは、現在の職種や年収に加えて、\n・家事への考え方\n・育児への考え方\n・夜勤への理解\n・共働きへの考え方\nなどについても男性登録者へアンケートを実施しています。\n\n「ちゃんと支え合える相手か」を事前に知れることも、安心につながると考えています。\n\n誠実さや思いやりを大切にする方ほど、安心して出会える設計です。',
-    image: '/onboarding/safety.png',
-  },
-  {
     key: 'discover',
-    title: '気になる相手を見つける',
+    title: 'リアルの花会で出会う',
     body:
-      'あなたに合う候補を厳選表示。\n\n女性登録者には、AIが相性や居住地などをもとに毎日正午に10名のお相手候補を表示します。\n\n男性登録者は、カード型プロフィールから気になるお相手へ「興味あり」を送ることができます。\n\n男性登録者にも、価値観が合う相手と出会いやすい導線を用意しています。\n\n気になった相手だけ、ゆっくり深掘りしてください。',
+      '花をいけ、同じ時間を過ごし、その場の人と語らう。\n\nお近くの花会をさがして参加してみましょう。一人参加も大歓迎。初心者向けの会もあります。',
     image: '/onboarding/discover.png',
   },
   {
     key: 'message',
-    title: 'マッチ後にメッセージ開始',
+    title: 'アプリで想いを知る',
     body:
-      'お互いに「興味あり」になると、アプリ内チャットで会話できます。\n直接会う前に、しっかり話して相手を知れるので安心です。\n\n何気ない会話から、思いがけない素敵な出会いが始まるかもしれません。',
+      '自分の作品や想いを投稿し、ほかの人の作品や人柄を知る。\n\n気になる人をフォローし、「気になる」「応援したい」「花会で会ってみたい」を伝えられます。',
     image: '/onboarding/message.png',
   },
   {
-    key: 'start',
-    title: 'それでは始めましょう',
+    key: 'safety',
+    title: '共感で応援する',
     body:
-      'あなたに合う、安心できる出会いを。\n\n仕事を頑張る毎日の中で、ふと誰かと話したくなる時。\n疲れた日に、少しだけ癒されたくなる時。\n\nお互いを尊重できる相手と、安心して関係を育てていきましょう。',
+      'かわいい人にではなく、夢・挑戦・活動への共感で応援する。\n\n講師になりたい人、地域花会を立ち上げたい人、花屋を開きたい人。応援（投げ花）は、その大部分が本人に届く設計です。',
+    image: '/onboarding/safety.png',
+  },
+  {
+    key: 'start',
+    title: 'また、花会で会いましょう',
+    body:
+      'リアル → デジタル → リアル。\n\nこの循環を重ねるほど、関係性は深まります。花会28万人構想を、一緒に育てていきましょう。',
     image: '/onboarding/start.png',
   },
 ] as const;
@@ -92,7 +92,7 @@ export function OnboardingTutorial({ forcePreview = false }: OnboardingTutorialP
     <main className='min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff_0%,_#fdf2f8_45%,_#ffffff_100%)] px-3 py-4'>
       <div className='mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-[420px] flex-col justify-between rounded-[32px] border border-sky-100/80 bg-white/95 px-5 py-4 shadow-[0_16px_45px_-35px_rgba(15,23,42,0.3)] backdrop-blur-sm sm:px-6 sm:py-5'>
         <div className='mb-2 flex items-center justify-between'>
-          <p className='text-xs font-semibold tracking-wide text-slate-500'>Nurse Match Onboarding</p>
+          <p className='text-xs font-semibold tracking-wide text-slate-500'>HANAKAI Onboarding</p>
           {!isLast ? (
             <button type='button' onClick={finish} className='rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600'>
               スキップ

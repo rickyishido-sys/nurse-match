@@ -2,14 +2,14 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Nurse Match',
-    short_name: 'NurseMatch',
-    description: '看護師限定の安心感と、審査制の出会いを。',
+    name: 'HANAKAI（花会）',
+    short_name: 'HANAKAI',
+    description: 'リアル花会とデジタルコミュニティを循環させる、新しいつながりのかたち。',
     start_url: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#ffffff',
-    theme_color: '#0f172a',
+    background_color: '#fcfdfb',
+    theme_color: '#4f7a4a',
     icons: [
       {
         src: '/icons/icon-192.png?v=2',

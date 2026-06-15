@@ -20,6 +20,8 @@ const PUBLIC_PATHS = [
 ];
 const ADMIN_BYPASS_PATHS = ['/register', '/preview', '/pending-review'];
 const MEMBER_ONLY_PATH_PREFIXES = ['/app', '/cards', '/mypage', '/messages', '/discover', '/likes', '/matches', '/chat', '/chats'];
+// HANAKAI community browse routes are public (browse-before-join experience).
+const HANAKAI_PUBLIC_PREFIXES = ['/home', '/posts', '/events', '/members', '/lives', '/support', '/instructor', '/concept', '/manage'];
 
 function isAdminRole(role: string | undefined) {
   return role === 'female_admin' || role === 'male_admin' || role === 'super_admin';
@@ -52,6 +54,7 @@ export async function middleware(request: NextRequest) {
 
   if (
     PUBLIC_PATHS.some((path) => pathname === path) ||
+    HANAKAI_PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) ||
     pathname.startsWith('/register/') ||
     pathname.startsWith('/debug') ||
     pathname.startsWith('/auth') ||
