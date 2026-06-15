@@ -1,11 +1,14 @@
 import type {
+  EventCategory,
   HanakaiEvent,
   HanakaiUser,
   InstructorStage,
   Live,
+  LiveCategory,
   Notice,
   Post,
   PostComment,
+  SupportCategory,
   SupportProject,
 } from '@/lib/hanakai/types';
 
@@ -13,6 +16,94 @@ import type {
 // Real persistence (Supabase) is wired later; see supabase/hanakai-schema.sql.
 
 const img = (id: string, w = 800) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70`;
+
+// --- 「リアル → デジタル → リアル」の循環 ---
+export const CYCLE_STEPS = [
+  {
+    key: 'real-in',
+    phase: 'リアル',
+    icon: '🌿',
+    title: 'リアル花会で花をいける',
+    body: '同じ場所で花に向き合い、自然と会話が生まれる。体験を一緒につくる時間。',
+  },
+  {
+    key: 'digital',
+    phase: 'デジタル',
+    icon: '📱',
+    title: 'アプリで投稿・人を知る・応援する',
+    body: '作品や想いを投稿し、人柄を知る。気になる人をフォローし、挑戦を応援する。',
+  },
+  {
+    key: 'real-out',
+    phase: 'リアル',
+    icon: '🤝',
+    title: 'またリアル花会で会う',
+    body: '価値観の合う人と、また花会で会う。巡るほど関係はゆっくり深まっていく。',
+  },
+] as const;
+
+// --- 花会28万人構想の数字根拠 ---
+export const VISION_MATH = {
+  perBaseMonthly: 4, // 1拠点 月4回
+  perEvent: 6, // 1回6名
+  perBaseYearly: 288, // 年間288名 (4回 x 12ヶ月 x 6名)
+  bases: 1000, // 1000拠点
+  total: 288000, // 年間 288,000名
+} as const;
+
+// --- 投げ花メニュー（モック。決済は未実装） ---
+export type ThrowFlowerTier = {
+  id: string;
+  label: string;
+  amount: number;
+  emoji: string;
+  note: string;
+};
+
+export const THROW_FLOWER_TIERS: ThrowFlowerTier[] = [
+  { id: 'single', label: '一輪', amount: 300, emoji: '🌷', note: 'そっと気持ちを伝える' },
+  { id: 'small-bouquet', label: '小さな花束', amount: 1000, emoji: '💐', note: '応援の気持ちを束ねて' },
+  { id: 'large-bouquet', label: '大きな花束', amount: 3000, emoji: '🌸', note: 'しっかり背中を押す' },
+  { id: 'cheer-bouquet', label: '応援ブーケ', amount: 10000, emoji: '🏵️', note: '夢に本気でコミットする' },
+];
+
+export const EVENT_CATEGORY_LABEL: Record<EventCategory, string> = {
+  day: '昼の花会',
+  night: '夜の花会',
+  alcohol: 'お酒あり花会',
+  business: '経営者花会',
+  parent_child: '親子花会',
+  senior: 'シニア花会',
+  area_launch: '地域立ち上げ花会',
+};
+
+export const EVENT_CATEGORY_ORDER: EventCategory[] = [
+  'day',
+  'night',
+  'alcohol',
+  'business',
+  'parent_child',
+  'senior',
+  'area_launch',
+];
+
+export const SUPPORT_CATEGORY_LABEL: Record<SupportCategory, string> = {
+  instructor: '花会講師になりたい',
+  area: '地域花会を立ち上げたい',
+  shop: '花屋を開きたい',
+  learn: '花を学びたい',
+  spread: '親子・地域に花会を広げたい',
+};
+
+export const LIVE_CATEGORY_LABEL: Record<LiveCategory, string> = {
+  hanakai: '花会ライブ',
+  challenge: '講師チャレンジ',
+  area_launch: '地域立ち上げ',
+  shop: '花屋開業',
+  study: '花留学',
+  report: '開催レポート',
+  dream: '夢応援',
+};
 
 export const INSTRUCTOR_STAGE_LABEL: Record<InstructorStage, string> = {
   participant: '参加者',
@@ -147,13 +238,14 @@ const events: HanakaiEvent[] = [
   {
     id: 'e1',
     title: '春の枝もの花会 ― 桜と語らう夜',
+    category: 'alcohol',
     startAt: '2026-06-20T18:30:00+09:00',
     area: '東京・世田谷',
     venue: 'アトリエ HANA 三軒茶屋',
     capacity: 12,
     reservedCount: 9,
     fee: 4500,
-    description: '季節の枝ものを使って、自由に一杯いけます。終わったあとは参加者同士でゆっくり語らう時間も。',
+    description: '季節の枝ものを使って、自由に一杯いけます。いけ終わったあとは、お酒を片手に参加者同士でゆっくり語らう時間も。',
     hostId: 'u1',
     hasAlcohol: true,
     coverUrl: img('photo-1490750967868-88aa4486c946'),
@@ -162,14 +254,15 @@ const events: HanakaiEvent[] = [
   },
   {
     id: 'e2',
-    title: '初心者歓迎 はじめての花会',
+    title: '昼の花会 ― はじめての一杯',
+    category: 'day',
     startAt: '2026-06-22T14:00:00+09:00',
     area: '愛知・名古屋',
     venue: '名古屋コミュニティスペース栄',
     capacity: 16,
     reservedCount: 6,
     fee: 3000,
-    description: '道具の使い方からていねいに。一人参加が9割なので安心してお越しください。',
+    description: '道具の使い方からていねいに。一人参加が9割なので、はじめてでも安心して体験を共有できます。',
     hostId: 'u1',
     hasAlcohol: false,
     coverUrl: img('photo-1463320726281-696a485928c7'),
@@ -179,6 +272,7 @@ const events: HanakaiEvent[] = [
   {
     id: 'e3',
     title: '鎌倉・地域花会キックオフ',
+    category: 'area_launch',
     startAt: '2026-06-28T13:00:00+09:00',
     area: '神奈川・鎌倉',
     venue: '鎌倉 古民家サロン',
@@ -194,17 +288,86 @@ const events: HanakaiEvent[] = [
   },
   {
     id: 'e4',
-    title: 'モダンアレンジ花会  in 大阪',
-    startAt: '2026-07-05T17:00:00+09:00',
+    title: '夜の花会 ― モダンアレンジ in 大阪',
+    category: 'night',
+    startAt: '2026-07-05T19:00:00+09:00',
     area: '大阪・中央区',
     venue: 'OSAKA FLOWER LAB',
     capacity: 10,
     reservedCount: 4,
     fee: 5500,
-    description: 'ドライと生花を組み合わせたモダンな表現を楽しむ会。作品はそのまま持ち帰れます。',
+    description: '仕事帰りに立ち寄れる夜の会。ドライと生花を組み合わせたモダンな表現を楽しみ、作品はそのまま持ち帰れます。',
     hostId: 'u3',
     hasAlcohol: false,
     coverUrl: img('photo-1487070183336-b863922373d4'),
+    status: 'open',
+    recommended: true,
+  },
+  {
+    id: 'e5',
+    title: '経営者花会 ― 花と対話の時間',
+    category: 'business',
+    startAt: '2026-07-08T18:30:00+09:00',
+    area: '東京・丸の内',
+    venue: 'MARUNOUCHI SALON',
+    capacity: 12,
+    reservedCount: 7,
+    fee: 8000,
+    description: '経営者・事業づくりに挑む人が集う花会。花をいけながら、立場を超えて率直に語り合える場です。',
+    hostId: 'u5',
+    hasAlcohol: true,
+    coverUrl: img('photo-1519681393784-d120267933ba'),
+    status: 'open',
+    recommended: true,
+  },
+  {
+    id: 'e6',
+    title: '親子花会 ― いっしょに花あそび',
+    category: 'parent_child',
+    startAt: '2026-07-12T10:30:00+09:00',
+    area: '神奈川・横浜',
+    venue: 'みなとみらいキッズスタジオ',
+    capacity: 14,
+    reservedCount: 11,
+    fee: 3500,
+    description: '親子で参加できる花会。小さな子も触れる安全な花材を用意。一緒に手を動かす体験が思い出になります。',
+    hostId: 'u4',
+    hasAlcohol: false,
+    coverUrl: img('photo-1471696035578-3d8c78d99684'),
+    status: 'almost_full',
+    recommended: false,
+  },
+  {
+    id: 'e7',
+    title: 'シニア花会 ― ゆっくり季節をいける',
+    category: 'senior',
+    startAt: '2026-07-15T13:30:00+09:00',
+    area: '京都・中京区',
+    venue: '町家サロン 椿',
+    capacity: 10,
+    reservedCount: 5,
+    fee: 3000,
+    description: 'ゆっくりとした進行で、季節の花を楽しむ会。長く花に親しんできた方も、これからの方も歓迎です。',
+    hostId: 'u1',
+    hasAlcohol: false,
+    coverUrl: img('photo-1502920917128-1aa500764cbd'),
+    status: 'open',
+    recommended: false,
+  },
+  {
+    id: 'e8',
+    title: '札幌・地域花会立ち上げ会',
+    category: 'area_launch',
+    startAt: '2026-07-20T13:00:00+09:00',
+    area: '北海道・札幌',
+    venue: '札幌 コミュニティラボ',
+    capacity: 18,
+    reservedCount: 9,
+    fee: 4000,
+    description: '北海道で花会を根づかせるための立ち上げ会。運営に関わってみたい人、地域に居場所をつくりたい人を募集します。',
+    hostId: 'u6',
+    hasAlcohol: false,
+    coverUrl: img('photo-1508808787358-d4f1e2f8e6c9'),
     status: 'open',
     recommended: true,
   },
@@ -294,15 +457,39 @@ const lives: Live[] = [
   },
   {
     id: 'l3',
-    title: '夢応援ライブ｜花屋を開きたいそらの挑戦',
-    category: 'dream',
+    title: '花屋開業ライブ｜小さな花屋を開きたいそらの挑戦',
+    category: 'shop',
     hostId: 'u3',
     scheduledAt: '2026-06-19T21:30:00+09:00',
     isLiveNow: false,
     viewerCount: 0,
     cheerTotal: 7400,
     coverUrl: img('photo-1469259943454-aa100abba749'),
-    description: '小さな花屋を開くまでの道のりを共有する応援配信です。',
+    description: '小さな花屋を開くまでの道のりを共有する応援配信。物件・仕入れ・想いを正直に話します。',
+  },
+  {
+    id: 'l4',
+    title: 'ドイツ花留学ライブ｜本場で学んでくる',
+    category: 'study',
+    hostId: 'u6',
+    scheduledAt: '2026-06-25T21:00:00+09:00',
+    isLiveNow: false,
+    viewerCount: 0,
+    cheerTotal: 15800,
+    coverUrl: img('photo-1465495976277-4387d4b0b4c6'),
+    description: 'ドイツでフラワーデザインを学ぶ挑戦。学んだことは必ず花会に持ち帰り、みんなに還元します。',
+  },
+  {
+    id: 'l5',
+    title: '花会開催レポートライブ｜九州エリアのいま',
+    category: 'report',
+    hostId: 'u5',
+    scheduledAt: '2026-06-16T20:30:00+09:00',
+    isLiveNow: false,
+    viewerCount: 0,
+    cheerTotal: 9200,
+    coverUrl: img('photo-1444930694458-01babf71870c'),
+    description: '各地の花会がどんな様子だったかを共有するレポート配信。次に会いたい人が見つかるかも。',
   },
 ];
 

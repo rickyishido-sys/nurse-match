@@ -2,19 +2,25 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { HanakaiShell } from '@/components/hanakai/shell';
-import { Card, Chip } from '@/components/hanakai/ui';
-import { formatYen, getLive, getUser } from '@/lib/hanakai/data';
+import { Card, Chip, ThrowFlowerMenu } from '@/components/hanakai/ui';
+import { cheerAction } from '@/lib/hanakai/actions';
+import { formatYen, getLive, getUser, LIVE_CATEGORY_LABEL, THROW_FLOWER_TIERS } from '@/lib/hanakai/data';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
-type PageProps = { params: Promise<{ id: string }> };
+type PageProps = {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
 
-export default async function LiveDetailPage({ params }: PageProps) {
+export default async function LiveDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const sp = searchParams ? await searchParams : {};
   const live = getLive(id);
   if (!live) notFound();
 
   const viewer = await getHanakaiViewer();
   const host = getUser(live.hostId);
+  const cheeredAmount = sp.cheered ? Number(sp.cheered) : 0;
 
   return (
     <HanakaiShell viewer={viewer}>
@@ -31,6 +37,7 @@ export default async function LiveDetailPage({ params }: PageProps) {
         </div>
 
         <div className='space-y-1'>
+          <Chip tone='gold'>{LIVE_CATEGORY_LABEL[live.category]}</Chip>
           <h1 className='text-lg font-bold text-slate-800'>{live.title}</h1>
           {host ? (
             <Link href={`/members/${host.id}`} className='inline-flex items-center gap-2'>
@@ -54,10 +61,19 @@ export default async function LiveDetailPage({ params }: PageProps) {
           </div>
         </Card>
 
-        <div className='rounded-3xl border border-dashed border-[#d8e2d3] bg-white p-4 text-center'>
-          <p className='text-xs text-slate-500'>本格的な動画配信は準備中です。まずは応援の循環から。</p>
-          <button className='mt-2 h-11 w-full rounded-2xl bg-[#caa66a] text-sm font-bold text-white'>🌸 花を贈って応援する</button>
-        </div>
+        {cheeredAmount > 0 ? (
+          <p className='rounded-2xl bg-[#f6efdf] px-3 py-2 text-sm text-[#9b7d3f]'>
+            🌸 {formatYen(cheeredAmount)}の投げ花を贈りました。挑戦への応援、ありがとうございます。
+          </p>
+        ) : null}
+
+        <Card className='bg-[#f7faf5]'>
+          <h2 className='text-sm font-bold text-slate-800'>🌸 花を贈って応援する</h2>
+          <p className='mt-1 text-[11px] text-slate-500'>本格的な動画配信は準備中です。まずは夢への共感を投げ花で。</p>
+          <div className='mt-3'>
+            <ThrowFlowerMenu tiers={THROW_FLOWER_TIERS} action={cheerAction} hiddenFields={{ liveId: live.id }} />
+          </div>
+        </Card>
       </article>
     </HanakaiShell>
   );

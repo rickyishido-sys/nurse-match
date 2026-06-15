@@ -1,8 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { HanakaiShell } from '@/components/hanakai/shell';
+import { CycleDiagram } from '@/components/hanakai/ui';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
-import { listUpcomingEvents, listLatestPosts, getUserName, formatEventDate } from '@/lib/hanakai/data';
+import { listUpcomingEvents, listLatestPosts, getUserName, formatEventDate, CYCLE_STEPS } from '@/lib/hanakai/data';
 
 const heroImg = 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=900&q=70';
 
@@ -51,6 +52,8 @@ export default async function LandingPage() {
             花会28万人構想を読む ›
           </Link>
         </article>
+
+        <CycleDiagram steps={CYCLE_STEPS} />
 
         <div>
           <div className='mb-2 flex items-center justify-between'>

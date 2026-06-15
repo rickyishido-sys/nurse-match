@@ -22,7 +22,19 @@ export type LiveCategory =
   | 'hanakai' // 花会ライブ
   | 'challenge' // 講師チャレンジライブ
   | 'area_launch' // 地域花会立ち上げライブ
+  | 'shop' // 花屋開業ライブ
+  | 'study' // 花留学ライブ
+  | 'report' // 花会開催レポートライブ
   | 'dream'; // 夢応援ライブ
+
+export type EventCategory =
+  | 'day' // 昼の花会
+  | 'night' // 夜の花会
+  | 'alcohol' // お酒あり花会
+  | 'business' // 経営者花会
+  | 'parent_child' // 親子花会
+  | 'senior' // シニア花会
+  | 'area_launch'; // 地域立ち上げ花会
 
 export type EventStatus = 'open' | 'almost_full' | 'full' | 'closed';
 
@@ -69,6 +81,7 @@ export type Post = {
 export type HanakaiEvent = {
   id: string;
   title: string;
+  category: EventCategory;
   startAt: string;
   area: string;
   venue: string;

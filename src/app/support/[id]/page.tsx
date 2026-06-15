@@ -2,17 +2,15 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { HanakaiShell } from '@/components/hanakai/shell';
-import { Card, ProgressBar } from '@/components/hanakai/ui';
+import { Card, Chip, ProgressBar, ThrowFlowerMenu } from '@/components/hanakai/ui';
 import { cheerAction } from '@/lib/hanakai/actions';
-import { formatYen, getSupportProject, getUser } from '@/lib/hanakai/data';
+import { formatYen, getSupportProject, getUser, SUPPORT_CATEGORY_LABEL, THROW_FLOWER_TIERS } from '@/lib/hanakai/data';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = {
   params: Promise<{ id: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
-
-const AMOUNTS = [500, 1000, 3000, 5000];
 
 export default async function SupportDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
@@ -22,7 +20,7 @@ export default async function SupportDetailPage({ params, searchParams }: PagePr
 
   const viewer = await getHanakaiViewer();
   const owner = getUser(project.ownerId);
-  const cheered = sp.cheered === '1';
+  const cheeredAmount = sp.cheered ? Number(sp.cheered) : 0;
   const payoutPct = Math.round(project.payoutRate * 100);
 
   return (
@@ -32,6 +30,7 @@ export default async function SupportDetailPage({ params, searchParams }: PagePr
           <Image src={project.coverUrl} alt={project.title} fill className='object-cover' priority />
         </div>
 
+        <Chip tone='gold'>{SUPPORT_CATEGORY_LABEL[project.category]}</Chip>
         <h1 className='text-lg font-bold text-slate-800'>{project.title}</h1>
         {owner ? (
           <Link href={`/members/${owner.id}`} className='inline-flex items-center gap-2'>
@@ -52,21 +51,22 @@ export default async function SupportDetailPage({ params, searchParams }: PagePr
 
         <p className='text-sm leading-7 text-slate-600'>{project.story}</p>
 
-        {cheered ? <p className='rounded-2xl bg-[#f6efdf] px-3 py-2 text-sm text-[#9b7d3f]'>応援（投げ花）を贈りました。ありがとうございます。</p> : null}
+        {cheeredAmount > 0 ? (
+          <p className='rounded-2xl bg-[#f6efdf] px-3 py-2 text-sm text-[#9b7d3f]'>
+            🌸 {formatYen(cheeredAmount)}の投げ花を贈りました。挑戦への応援、ありがとうございます。
+          </p>
+        ) : null}
 
         <Card className='bg-[#f7faf5]'>
           <h2 className='text-sm font-bold text-slate-800'>🌸 花を贈って応援する</h2>
-          <p className='mt-1 text-[11px] text-slate-500'>応援金の約{payoutPct}%が本人に届きます（決済は準備中のモックです）。</p>
-          <div className='mt-3 grid grid-cols-4 gap-2'>
-            {AMOUNTS.map((amount) => (
-              <form key={amount} action={cheerAction}>
-                <input type='hidden' name='projectId' value={project.id} />
-                <input type='hidden' name='amount' value={amount} />
-                <button className='h-11 w-full rounded-2xl border border-[#e0d4b6] bg-white text-xs font-bold text-[#9b7d3f]'>
-                  ¥{amount.toLocaleString('ja-JP')}
-                </button>
-              </form>
-            ))}
+          <p className='mt-1 text-[11px] text-slate-500'>夢・挑戦への共感で応援しましょう。</p>
+          <div className='mt-3'>
+            <ThrowFlowerMenu
+              tiers={THROW_FLOWER_TIERS}
+              action={cheerAction}
+              hiddenFields={{ projectId: project.id }}
+              payoutPct={payoutPct}
+            />
           </div>
         </Card>
       </article>

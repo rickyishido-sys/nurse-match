@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { HanakaiShell } from '@/components/hanakai/shell';
 import { Card, Chip } from '@/components/hanakai/ui';
 import { applyEventAction } from '@/lib/hanakai/actions';
-import { formatEventDate, formatYen, getEvent, getUser, listEventParticipants } from '@/lib/hanakai/data';
+import { EVENT_CATEGORY_LABEL, formatEventDate, formatYen, getEvent, getUser, listEventParticipants } from '@/lib/hanakai/data';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = {
@@ -32,6 +32,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
         </div>
 
         <div className='space-y-1'>
+          <Chip tone='gold'>{EVENT_CATEGORY_LABEL[event.category]}</Chip>
           <h1 className='text-lg font-bold text-slate-800'>{event.title}</h1>
           <p className='text-sm text-slate-500'>{formatEventDate(event.startAt)}</p>
         </div>

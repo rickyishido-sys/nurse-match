@@ -1,9 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { HanakaiShell } from '@/components/hanakai/shell';
-import { Card, Chip, ProgressBar, SectionHeading } from '@/components/hanakai/ui';
+import { Card, Chip, CycleDiagram, ProgressBar, SectionHeading } from '@/components/hanakai/ui';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import {
+  CYCLE_STEPS,
   formatEventDate,
   formatYen,
   getUser,
@@ -36,6 +37,11 @@ export default async function HomePage() {
             リアルの花会で出会い、ここで想いを知り、また会う。その循環で<strong className='text-[#4f7a4a]'>花会28万人構想</strong>へ。
           </p>
           <Link href='/concept' className='mt-2 inline-block text-xs font-semibold text-[#4f7a4a]'>構想を読む ›</Link>
+        </section>
+
+        <section>
+          <SectionHeading title='花会の循環' action={{ href: '/concept', label: '構想' }} />
+          <CycleDiagram steps={CYCLE_STEPS} variant='compact' />
         </section>
 
         <section>
