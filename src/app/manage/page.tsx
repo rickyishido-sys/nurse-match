@@ -3,7 +3,7 @@ import { HanakaiShell } from '@/components/hanakai/shell';
 import { Card, Chip } from '@/components/hanakai/ui';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import {
-  formatYen,
+  formatCoin,
   getUserName,
   INSTRUCTOR_STAGE_LABEL,
   listCertifiedInstructors,
@@ -33,7 +33,7 @@ export default async function ManagePage() {
     { label: '参加申込', value: applications },
     { label: '講師候補', value: candidates.length },
     { label: '認定講師', value: certified.length },
-    { label: '応援履歴', value: support.reduce((s, p) => s + p.supporterCount, 0) },
+    { label: '応援件数', value: support.reduce((s, p) => s + p.supporterCount, 0) },
     { label: '通報', value: 0 },
   ];
 
@@ -80,7 +80,7 @@ export default async function ManagePage() {
         </section>
 
         <section>
-          <h2 className='mb-2 text-sm font-bold text-slate-800'>応援履歴</h2>
+          <h2 className='mb-2 text-sm font-bold text-slate-800'>応援プロジェクト</h2>
           <div className='space-y-2'>
             {support.map((project) => (
               <Card key={project.id} className='flex items-center justify-between p-3'>
@@ -88,7 +88,7 @@ export default async function ManagePage() {
                   <p className='truncate text-sm font-semibold text-slate-800'>{project.title}</p>
                   <p className='truncate text-[11px] text-slate-500'>{getUserName(project.ownerId)}・{project.supporterCount}人</p>
                 </div>
-                <p className='shrink-0 text-xs font-bold text-[#9b7d3f]'>{formatYen(project.raisedAmount)}</p>
+                <p className='shrink-0 text-xs font-bold text-[#9b7d3f]'>{formatCoin(project.raisedCoins)}</p>
               </Card>
             ))}
           </div>

@@ -55,6 +55,8 @@ export type HanakaiUser = {
   followerCount: number;
   cheerPoints: number; // 受け取った応援ポイント
   isCertified: boolean;
+  supportedCoins: number; // 応援に使った総コイン
+  supportCount: number; // 応援した回数
 };
 
 export type PostComment = {
@@ -104,7 +106,7 @@ export type Live = {
   scheduledAt: string;
   isLiveNow: boolean;
   viewerCount: number;
-  cheerTotal: number; // 集まった応援(投げ花)
+  cheerTotal: number; // 集まった応援コイン
   coverUrl: string;
   description: string;
 };
@@ -116,11 +118,10 @@ export type SupportProject = {
   category: SupportCategory;
   summary: string;
   story: string;
-  goalAmount: number;
-  raisedAmount: number;
+  goalCoins: number; // 目標コイン
+  raisedCoins: number; // 集まったコイン
   supporterCount: number;
   coverUrl: string;
-  payoutRate: number; // 本人に届く割合 (0-1)
 };
 
 export type Notice = {

@@ -12,7 +12,7 @@ const NOT_THIS = [
 const IS_THIS = [
   { icon: '🌿', title: '新しいコミュニケーションの形', body: '花を軸に、利害や肩書きを越えて、良質なコミュニケーションが生まれる場をつくります。' },
   { icon: '🤝', title: '体験を共有する関係', body: '同じ時間に手を動かし、語らう。共有された体験が、続く関係の土台になります。' },
-  { icon: '💛', title: '応援でつながる経済圏', body: '見た目や人気ではなく、夢・挑戦・活動への共感で応援する。応援の約80%が本人に届く設計です。' },
+  { icon: '💛', title: '応援でつながる経済圏', body: '見た目や人気ではなく、夢・挑戦・活動への共感で応援する。応援は花会コインで行い、花として可視化されます。' },
 ];
 
 export default async function ConceptPage() {
@@ -96,6 +96,37 @@ export default async function ConceptPage() {
               </p>
               <p className='mt-1 text-[11px] text-slate-400'>= 花会28万人構想</p>
             </div>
+          </Card>
+        </div>
+
+        {/* 応援経済圏 */}
+        <div>
+          <h2 className='mb-2 text-sm font-bold text-slate-800'>HANAKAIの応援経済圏</h2>
+          <Card className='bg-[#f7faf5]'>
+            <p className='text-xs leading-6 text-slate-600'>
+              HANAKAIでは、夢や挑戦を応援するための独自の<strong className='text-[#4f7a4a]'>応援経済圏</strong>を構築します。
+              応援は<strong className='text-[#9b7d3f]'>花会コイン</strong>で行われます。そして応援は<strong className='text-[#9b7d3f]'>花</strong>として可視化されます。
+            </p>
+            <div className='mt-3 flex items-center justify-center gap-2 rounded-2xl bg-white p-3 text-center'>
+              <div>
+                <p className='text-lg'>🪙</p>
+                <p className='text-[10px] font-bold text-slate-600'>花会コイン</p>
+              </div>
+              <span className='text-[#caa66a]'>→</span>
+              <div>
+                <p className='text-lg'>💛</p>
+                <p className='text-[10px] font-bold text-slate-600'>応援する</p>
+              </div>
+              <span className='text-[#caa66a]'>→</span>
+              <div>
+                <p className='text-lg'>🌸</p>
+                <p className='text-[10px] font-bold text-slate-600'>花の演出</p>
+              </div>
+            </div>
+            <p className='mt-2 text-[11px] leading-5 text-slate-500'>
+              目的は人気競争ではありません。夢・挑戦・学び・地域活動・花会拡大への共感による応援です。
+            </p>
+            <Link href='/support' className='mt-2 inline-block text-xs font-semibold text-[#9b7d3f]'>応援経済圏を見る ›</Link>
           </Card>
         </div>
 

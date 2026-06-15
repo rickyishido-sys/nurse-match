@@ -2,26 +2,24 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { HanakaiShell } from '@/components/hanakai/shell';
-import { Card, Chip, ProgressBar, ThrowFlowerMenu } from '@/components/hanakai/ui';
-import { cheerAction } from '@/lib/hanakai/actions';
-import { formatYen, getSupportProject, getUser, SUPPORT_CATEGORY_LABEL, THROW_FLOWER_TIERS } from '@/lib/hanakai/data';
+import { CheerButton } from '@/components/hanakai/cheer';
+import { Card, Chip, ProgressBar } from '@/components/hanakai/ui';
+import { formatCoin, getSupportProject, getUser, getWallet, SUPPORT_CATEGORY_LABEL } from '@/lib/hanakai/data';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function SupportDetailPage({ params, searchParams }: PageProps) {
+export default async function SupportDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const sp = searchParams ? await searchParams : {};
   const project = getSupportProject(id);
   if (!project) notFound();
 
   const viewer = await getHanakaiViewer();
+  const wallet = getWallet();
   const owner = getUser(project.ownerId);
-  const cheeredAmount = sp.cheered ? Number(sp.cheered) : 0;
-  const payoutPct = Math.round(project.payoutRate * 100);
+  const pct = Math.min(100, Math.round((project.raisedCoins / Math.max(1, project.goalCoins)) * 100));
 
   return (
     <HanakaiShell viewer={viewer}>
@@ -41,34 +39,40 @@ export default async function SupportDetailPage({ params, searchParams }: PagePr
           </Link>
         ) : null}
 
+        <p className='text-sm leading-6 text-slate-600'>{project.summary}</p>
+
+        {/* 進捗（コインベース） */}
         <Card>
-          <ProgressBar value={project.raisedAmount} max={project.goalAmount} />
+          <div className='mb-2 flex items-end justify-between'>
+            <div>
+              <p className='text-[11px] text-slate-500'>現在の応援</p>
+              <p className='text-2xl font-bold text-[#9b7d3f]'>{formatCoin(project.raisedCoins)}</p>
+            </div>
+            <p className='text-2xl font-bold text-[#4f7a4a]'>{pct}%</p>
+          </div>
+          <ProgressBar value={project.raisedCoins} max={project.goalCoins} />
           <div className='mt-2 flex items-center justify-between text-xs text-slate-500'>
-            <span className='text-base font-bold text-[#4f7a4a]'>{formatYen(project.raisedAmount)}</span>
-            <span>目標 {formatYen(project.goalAmount)}・{project.supporterCount}人</span>
+            <span>目標 {formatCoin(project.goalCoins)}</span>
+            <span>{project.supporterCount}名が応援</span>
           </div>
         </Card>
 
-        <p className='text-sm leading-7 text-slate-600'>{project.story}</p>
-
-        {cheeredAmount > 0 ? (
-          <p className='rounded-2xl bg-[#f6efdf] px-3 py-2 text-sm text-[#9b7d3f]'>
-            🌸 {formatYen(cheeredAmount)}の投げ花を贈りました。挑戦への応援、ありがとうございます。
-          </p>
-        ) : null}
+        <Card>
+          <h2 className='mb-1 text-sm font-bold text-slate-800'>挑戦のストーリー</h2>
+          <p className='text-sm leading-7 text-slate-600'>{project.story}</p>
+        </Card>
 
         <Card className='bg-[#f7faf5]'>
-          <h2 className='text-sm font-bold text-slate-800'>🌸 花を贈って応援する</h2>
-          <p className='mt-1 text-[11px] text-slate-500'>夢・挑戦への共感で応援しましょう。</p>
-          <div className='mt-3'>
-            <ThrowFlowerMenu
-              tiers={THROW_FLOWER_TIERS}
-              action={cheerAction}
-              hiddenFields={{ projectId: project.id }}
-              payoutPct={payoutPct}
-            />
-          </div>
+          <p className='text-xs leading-6 text-slate-600'>
+            応援は花会コインで行い、画面に花として咲きます。あなたの共感が、この挑戦の背中を押します。
+          </p>
+          <p className='mt-2 text-[11px] font-semibold text-[#9b7d3f]'>保有コイン {wallet.balance.toLocaleString('ja-JP')} Coin</p>
         </Card>
+
+        {/* 応援する（コイン → 花の演出） */}
+        <div className='sticky bottom-20 z-10'>
+          <CheerButton initialBalance={wallet.balance} targetTitle={project.title} />
+        </div>
       </article>
     </HanakaiShell>
   );

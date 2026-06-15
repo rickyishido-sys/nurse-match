@@ -4,7 +4,13 @@ import { notFound } from 'next/navigation';
 import { HanakaiShell } from '@/components/hanakai/shell';
 import { Card, Chip } from '@/components/hanakai/ui';
 import { connectAction } from '@/lib/hanakai/actions';
-import { INSTRUCTOR_STAGE_LABEL, getUser, listPostsByAuthor } from '@/lib/hanakai/data';
+import {
+  formatCoin,
+  getUser,
+  INSTRUCTOR_STAGE_LABEL,
+  listFeaturedSupport,
+  listPostsByAuthor,
+} from '@/lib/hanakai/data';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = {
@@ -27,6 +33,7 @@ export default async function MemberProfilePage({ params, searchParams }: PagePr
 
   const viewer = await getHanakaiViewer();
   const posts = listPostsByAuthor(user.id);
+  const supportedProjects = listFeaturedSupport(2);
   const connected = typeof sp.connected === 'string' ? sp.connected : null;
 
   return (
@@ -74,9 +81,33 @@ export default async function MemberProfilePage({ params, searchParams }: PagePr
           ))}
         </div>
 
+        {/* 応援履歴 */}
+        <Card>
+          <h2 className='mb-2 text-sm font-bold text-slate-800'>応援履歴</h2>
+          <div className='flex gap-2'>
+            <div className='flex-1 rounded-2xl bg-[#f6efdf] p-3 text-center'>
+              <p className='text-base font-bold text-[#9b7d3f]'>{formatCoin(user.supportedCoins)}</p>
+              <p className='text-[10px] text-slate-500'>応援総額</p>
+            </div>
+            <div className='flex-1 rounded-2xl bg-[#eef4ea] p-3 text-center'>
+              <p className='text-base font-bold text-[#4f7a4a]'>{user.supportCount}回</p>
+              <p className='text-[10px] text-slate-500'>応援回数</p>
+            </div>
+          </div>
+          <p className='mb-1 mt-3 text-[11px] font-semibold text-slate-500'>応援したプロジェクト</p>
+          <div className='space-y-1.5'>
+            {supportedProjects.map((project) => (
+              <Link key={project.id} href={`/support/${project.id}`} className='flex items-center justify-between rounded-2xl bg-[#f7faf5] px-3 py-2'>
+                <span className='truncate text-xs text-slate-700'>{project.title}</span>
+                <span className='shrink-0 text-[11px] font-semibold text-[#9b7d3f]'>{formatCoin(project.raisedCoins)}</span>
+              </Link>
+            ))}
+          </div>
+        </Card>
+
         <Card className='bg-[#f7faf5]'>
           <p className='text-xs leading-6 text-slate-600'>
-            応援したいときは <Link href='/support' className='font-semibold text-[#4f7a4a]'>応援（投げ花）</Link> から、この人の挑戦を後押しできます。
+            この人の挑戦を後押ししたいときは <Link href='/support' className='font-semibold text-[#4f7a4a]'>応援プロジェクト</Link> から花会コインで応援できます。
           </p>
         </Card>
 

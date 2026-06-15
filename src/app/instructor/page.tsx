@@ -24,7 +24,7 @@ const CRITERIA = [
   { label: '花会参加回数', icon: '🗓️', body: 'リアルの体験をどれだけ重ねたか' },
   { label: '投稿実績', icon: '🌸', body: '作品や想いをどれだけ共有したか' },
   { label: '参加者レビュー', icon: '⭐️', body: '一緒に過ごした人からの信頼' },
-  { label: '応援ポイント', icon: '💛', body: '挑戦に集まった共感（投げ花）' },
+  { label: '応援ポイント', icon: '💛', body: '挑戦に集まった共感（応援コイン）' },
   { label: '運営貢献', icon: '🤝', body: '場づくりへの関わり・サポート' },
   { label: '講師試験', icon: '📝', body: '教える技術と知識の確認' },
 ];
@@ -128,7 +128,7 @@ export default async function InstructorPage() {
         <Card className='bg-[#f7faf5]'>
           <p className='text-xs leading-6 text-slate-600'>
             講師は教える人であると同時に、地域に花会という<strong className='text-[#4f7a4a]'>居場所</strong>をつくる人。
-            あなたの挑戦も、仲間の投げ花で応援されます。
+            あなたの挑戦も、仲間の花会コインで応援されます。
           </p>
           <Link href='/support' className='mt-2 inline-block text-xs font-semibold text-[#9b7d3f]'>挑戦を応援する ›</Link>
         </Card>

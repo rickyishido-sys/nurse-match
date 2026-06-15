@@ -51,21 +51,77 @@ export const VISION_MATH = {
   total: 288000, // 年間 288,000名
 } as const;
 
-// --- 投げ花メニュー（モック。決済は未実装） ---
-export type ThrowFlowerTier = {
-  id: string;
-  label: string;
-  amount: number;
-  emoji: string;
-  note: string;
+// --- 花会コイン（HANAKAI Coin）。決済は未実装のモック ---
+// コインは「応援の手段」、花は「応援の演出」。
+export type CoinPackage = {
+  coins: number;
+  price: number; // 円（1コイン = 1円）
 };
 
-export const THROW_FLOWER_TIERS: ThrowFlowerTier[] = [
-  { id: 'single', label: '一輪', amount: 300, emoji: '🌷', note: 'そっと気持ちを伝える' },
-  { id: 'small-bouquet', label: '小さな花束', amount: 1000, emoji: '💐', note: '応援の気持ちを束ねて' },
-  { id: 'large-bouquet', label: '大きな花束', amount: 3000, emoji: '🌸', note: 'しっかり背中を押す' },
-  { id: 'cheer-bouquet', label: '応援ブーケ', amount: 10000, emoji: '🏵️', note: '夢に本気でコミットする' },
+export const COIN_PACKAGES: CoinPackage[] = [
+  { coins: 100, price: 100 },
+  { coins: 500, price: 500 },
+  { coins: 1000, price: 1000 },
+  { coins: 3000, price: 3000 },
+  { coins: 10000, price: 10000 },
 ];
+
+// --- 応援メニュー（コイン → 花の演出） ---
+export type CheerTier = {
+  id: string;
+  coins: number;
+  label: string; // 演出名
+  emoji: string; // 代表アイコン
+  effect: string; // 演出の説明
+  burst: string[]; // 画面に咲く花の演出
+  size: 'sm' | 'md' | 'lg' | 'xl';
+};
+
+export const CHEER_TIERS: CheerTier[] = [
+  { id: 'cheer-100', coins: 100, label: '一輪', emoji: '🌷', effect: '一輪の花が咲く', burst: ['🌷'], size: 'sm' },
+  { id: 'cheer-500', coins: 500, label: '一輪のばら', emoji: '🌹', effect: 'ばらが咲く', burst: ['🌹', '🌹'], size: 'sm' },
+  { id: 'cheer-1000', coins: 1000, label: '花束', emoji: '💐', effect: '花束が咲く', burst: ['💐', '🌷', '🌹'], size: 'md' },
+  { id: 'cheer-3000', coins: 3000, label: '大きな花束', emoji: '💐', effect: '花束アニメーション', burst: ['💐', '💐', '🌹', '🌷', '🌸'], size: 'lg' },
+  { id: 'cheer-10000', coins: 10000, label: '巨大な花束', emoji: '🏵️', effect: '巨大な花束演出', burst: ['🏵️', '💐', '🌹', '🌷', '🌸', '💐', '🌹', '🌷', '🌸'], size: 'xl' },
+];
+
+// --- 保有コイン・応援履歴（ビューア向けモック） ---
+export type CoinWallet = {
+  balance: number;
+  totalCheered: number; // 応援に使った総コイン
+  cheerCount: number; // 応援回数
+};
+
+const MOCK_WALLET: CoinWallet = {
+  balance: 12500,
+  totalCheered: 52300,
+  cheerCount: 37,
+};
+
+export function getWallet(): CoinWallet {
+  return MOCK_WALLET;
+}
+
+// --- ライブの応援フィード（モック） ---
+export type CheerEvent = {
+  id: string;
+  userName: string;
+  coins: number;
+  emoji: string;
+};
+
+export function listLiveCheerFeed(): CheerEvent[] {
+  return [
+    { id: 'cf1', userName: '山田 花子', coins: 500, emoji: '🌹' },
+    { id: 'cf2', userName: '蓮', coins: 1000, emoji: '💐' },
+    { id: 'cf3', userName: '楓', coins: 100, emoji: '🌷' },
+    { id: 'cf4', userName: '拓海', coins: 3000, emoji: '💐' },
+  ];
+}
+
+export function formatCoin(value: number) {
+  return `${value.toLocaleString('ja-JP')} Coin`;
+}
 
 export const EVENT_CATEGORY_LABEL: Record<EventCategory, string> = {
   day: '昼の花会',
@@ -141,6 +197,8 @@ const users: HanakaiUser[] = [
     followerCount: 1280,
     cheerPoints: 8600,
     isCertified: true,
+    supportedCoins: 52300,
+    supportCount: 37,
   },
   {
     id: 'u2',
@@ -159,6 +217,8 @@ const users: HanakaiUser[] = [
     followerCount: 540,
     cheerPoints: 5200,
     isCertified: false,
+    supportedCoins: 18400,
+    supportCount: 21,
   },
   {
     id: 'u3',
@@ -177,6 +237,8 @@ const users: HanakaiUser[] = [
     followerCount: 320,
     cheerPoints: 2400,
     isCertified: false,
+    supportedCoins: 7600,
+    supportCount: 12,
   },
   {
     id: 'u4',
@@ -195,6 +257,8 @@ const users: HanakaiUser[] = [
     followerCount: 48,
     cheerPoints: 120,
     isCertified: false,
+    supportedCoins: 1500,
+    supportCount: 4,
   },
   {
     id: 'u5',
@@ -213,6 +277,8 @@ const users: HanakaiUser[] = [
     followerCount: 3100,
     cheerPoints: 21000,
     isCertified: true,
+    supportedCoins: 138000,
+    supportCount: 92,
   },
   {
     id: 'u6',
@@ -231,6 +297,8 @@ const users: HanakaiUser[] = [
     followerCount: 410,
     cheerPoints: 3300,
     isCertified: false,
+    supportedCoins: 9800,
+    supportCount: 15,
   },
 ];
 
@@ -502,11 +570,10 @@ const supportProjects: SupportProject[] = [
     summary: '花を通じた地域の居場所を、続けられる形にしたい。',
     story:
       '一度きりのイベントではなく、毎月通える場所をつくりたい。会場費と花材を安定して用意できれば、参加費を抑えて誰でも来られる花会にできます。',
-    goalAmount: 300000,
-    raisedAmount: 184000,
+    goalCoins: 300000,
+    raisedCoins: 184000,
     supporterCount: 96,
     coverUrl: img('photo-1509719662282-d3e8a14d8d39'),
-    payoutRate: 0.8,
   },
   {
     id: 's2',
@@ -515,11 +582,10 @@ const supportProjects: SupportProject[] = [
     category: 'shop',
     summary: 'モダンな花あわせを届ける、自分の店をはじめます。',
     story: '花会で背中を押されました。最初の什器と仕入れを整えるための応援を募集しています。',
-    goalAmount: 500000,
-    raisedAmount: 156000,
+    goalCoins: 500000,
+    raisedCoins: 156000,
     supporterCount: 58,
     coverUrl: img('photo-1487070183336-b863922373d4'),
-    payoutRate: 0.8,
   },
   {
     id: 's3',
@@ -528,17 +594,28 @@ const supportProjects: SupportProject[] = [
     category: 'instructor',
     summary: '運営補助から講師へ。北海道で花会を広げます。',
     story: '講師試験と教材準備のための挑戦です。学んだことを地域に還元したい。',
-    goalAmount: 200000,
-    raisedAmount: 88000,
+    goalCoins: 200000,
+    raisedCoins: 88000,
     supporterCount: 41,
     coverUrl: img('photo-1455659817273-f96807779a8a'),
-    payoutRate: 0.8,
+  },
+  {
+    id: 's4',
+    ownerId: 'u6',
+    title: 'ドイツ花留学チャレンジ',
+    category: 'learn',
+    summary: '本場ドイツでフラワーデザインを学び、花会に還元する。',
+    story: 'ドイツの花文化を現地で学び、その技術と考え方を日本の花会に持ち帰ります。学んだことはライブとレポートで全部共有します。',
+    goalCoins: 500000,
+    raisedCoins: 238000,
+    supporterCount: 127,
+    coverUrl: img('photo-1465495976277-4387d4b0b4c6'),
   },
 ];
 
 const notices: Notice[] = [
   { id: 'n1', title: '花会28万人構想を公開しました', body: 'リアルとデジタルを循環させる花会の全体像を公開しました。', publishedAt: '2026-06-01T10:00:00+09:00' },
-  { id: 'n2', title: '応援（投げ花）機能のベータ提供について', body: '夢や挑戦への共感で応援できる機能を順次提供します。', publishedAt: '2026-06-05T10:00:00+09:00' },
+  { id: 'n2', title: '花会コインによる応援機能のベータ提供について', body: '花会コインで夢や挑戦を応援し、画面に花を咲かせる応援経済圏を順次提供します。', publishedAt: '2026-06-05T10:00:00+09:00' },
 ];
 
 // --- accessors ---

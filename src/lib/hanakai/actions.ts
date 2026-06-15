@@ -41,20 +41,6 @@ export async function applyEventAction(formData: FormData) {
   redirect(`/events/${eventId}?applied=1`);
 }
 
-export async function cheerAction(formData: FormData) {
-  const projectId = String(formData.get('projectId') ?? '');
-  const liveId = String(formData.get('liveId') ?? '');
-  const amount = Number(formData.get('amount') ?? 0);
-  const tier = String(formData.get('tier') ?? '');
-  console.log('HANAKAI_CHEER', { projectId, liveId, amount, tier });
-  if (liveId) {
-    revalidatePath(`/lives/${liveId}`);
-    redirect(`/lives/${liveId}?cheered=${amount}`);
-  }
-  revalidatePath(`/support/${projectId}`);
-  redirect(`/support/${projectId}?cheered=${amount}`);
-}
-
 export async function connectAction(formData: FormData) {
   const targetId = String(formData.get('targetId') ?? '');
   const kind = String(formData.get('kind') ?? 'follow');

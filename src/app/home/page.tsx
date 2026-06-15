@@ -5,6 +5,7 @@ import { Card, Chip, CycleDiagram, ProgressBar, SectionHeading } from '@/compone
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import {
   CYCLE_STEPS,
+  formatCoin,
   formatEventDate,
   formatYen,
   getUser,
@@ -143,8 +144,8 @@ export default async function HomePage() {
                     </div>
                   </div>
                   <div className='mt-2'>
-                    <ProgressBar value={project.raisedAmount} max={project.goalAmount} />
-                    <p className='mt-1 text-[11px] text-slate-500'>{formatYen(project.raisedAmount)} / {formatYen(project.goalAmount)}</p>
+                    <ProgressBar value={project.raisedCoins} max={project.goalCoins} />
+                    <p className='mt-1 text-[11px] text-slate-500'>{formatCoin(project.raisedCoins)} / 目標 {formatCoin(project.goalCoins)}</p>
                   </div>
                 </Link>
               );

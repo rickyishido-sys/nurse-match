@@ -62,3 +62,52 @@ textarea:focus {
     transform: scale(1.05) translate3d(-1.2%, -0.8%, 0);
   }
 }
+
+/* 応援の花演出: 下から花が舞い上がり、ふわっと消える */
+@keyframes hanakai-bloom-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(40px) scale(0.4) rotate(-12deg);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-220px) scale(1.1) rotate(10deg);
+  }
+}
+
+/* 中央で咲くメインの花（特大応援用） */
+@keyframes hanakai-bloom-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  60% {
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+
+.hanakai-flower {
+  position: absolute;
+  bottom: 8%;
+  will-change: transform, opacity;
+  animation: hanakai-bloom-rise 2s ease-out forwards;
+}
+
+.hanakai-flower-center {
+  animation: hanakai-bloom-pop 2s ease-out forwards;
+}

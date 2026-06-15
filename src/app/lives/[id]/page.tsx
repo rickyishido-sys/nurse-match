@@ -2,25 +2,25 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { HanakaiShell } from '@/components/hanakai/shell';
-import { Card, Chip, ThrowFlowerMenu } from '@/components/hanakai/ui';
-import { cheerAction } from '@/lib/hanakai/actions';
-import { formatYen, getLive, getUser, LIVE_CATEGORY_LABEL, THROW_FLOWER_TIERS } from '@/lib/hanakai/data';
+import { LiveCheerPanel } from '@/components/hanakai/cheer';
+import { Card, Chip } from '@/components/hanakai/ui';
+import { formatCoin, getLive, getUser, getWallet, LIVE_CATEGORY_LABEL, listLiveCheerFeed } from '@/lib/hanakai/data';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function LiveDetailPage({ params, searchParams }: PageProps) {
+export default async function LiveDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const sp = searchParams ? await searchParams : {};
   const live = getLive(id);
   if (!live) notFound();
 
   const viewer = await getHanakaiViewer();
   const host = getUser(live.hostId);
-  const cheeredAmount = sp.cheered ? Number(sp.cheered) : 0;
+  const wallet = getWallet();
+  const feed = listLiveCheerFeed();
+  const viewerName = viewer?.displayName ?? 'あなた';
 
   return (
     <HanakaiShell viewer={viewer}>
@@ -54,24 +54,20 @@ export default async function LiveDetailPage({ params, searchParams }: PageProps
         <Card className='bg-[#f7faf5]'>
           <div className='flex items-center justify-between'>
             <div>
-              <p className='text-xs text-slate-500'>集まった応援（投げ花）</p>
-              <p className='text-lg font-bold text-[#9b7d3f]'>🌸 {formatYen(live.cheerTotal)}</p>
+              <p className='text-xs text-slate-500'>集まった応援</p>
+              <p className='text-lg font-bold text-[#9b7d3f]'>🌸 {formatCoin(live.cheerTotal)}</p>
             </div>
-            <Chip tone='gold'>本人に約80%が届きます</Chip>
+            <Chip tone='gold'>保有 {wallet.balance.toLocaleString('ja-JP')} Coin</Chip>
           </div>
         </Card>
 
-        {cheeredAmount > 0 ? (
-          <p className='rounded-2xl bg-[#f6efdf] px-3 py-2 text-sm text-[#9b7d3f]'>
-            🌸 {formatYen(cheeredAmount)}の投げ花を贈りました。挑戦への応援、ありがとうございます。
-          </p>
-        ) : null}
-
         <Card className='bg-[#f7faf5]'>
-          <h2 className='text-sm font-bold text-slate-800'>🌸 花を贈って応援する</h2>
-          <p className='mt-1 text-[11px] text-slate-500'>本格的な動画配信は準備中です。まずは夢への共感を投げ花で。</p>
+          <h2 className='text-sm font-bold text-slate-800'>💛 応援する</h2>
+          <p className='mt-1 text-[11px] text-slate-500'>
+            本格的な動画配信は準備中です。応援するとフィードに流れ、画面に花が咲きます。
+          </p>
           <div className='mt-3'>
-            <ThrowFlowerMenu tiers={THROW_FLOWER_TIERS} action={cheerAction} hiddenFields={{ liveId: live.id }} />
+            <LiveCheerPanel initialBalance={wallet.balance} viewerName={viewerName} seedFeed={feed} />
           </div>
         </Card>
       </article>

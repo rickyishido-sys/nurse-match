@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { HanakaiShell } from '@/components/hanakai/shell';
 import { Chip } from '@/components/hanakai/ui';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
-import { formatYen, getUserName, listLives, LIVE_CATEGORY_LABEL } from '@/lib/hanakai/data';
+import { formatCoin, getUserName, listLives, LIVE_CATEGORY_LABEL } from '@/lib/hanakai/data';
 
 const LIVE_EXAMPLES = [
   '講師チャレンジライブ',
@@ -26,7 +26,7 @@ export default async function LivesPage() {
           <p className='text-xs font-semibold tracking-[0.2em] text-[#4f7a4a]'>夢を語るライブ</p>
           <h1 className='mt-1 text-lg font-bold text-slate-800'>挑戦を、ライブで応援する。</h1>
           <p className='mt-2 text-xs leading-6 text-slate-600'>
-            ただの配信ではありません。夢や挑戦を語る人に、投げ花で共感を贈る場です。
+            ただの配信ではありません。夢や挑戦を語る人に、花会コインで共感を贈る場です。
           </p>
           <div className='mt-2 flex flex-wrap gap-1.5'>
             {LIVE_EXAMPLES.map((label) => (
@@ -72,7 +72,7 @@ function LiveCard({ live }: { live: ReturnType<typeof listLives>[number] }) {
       <div className='space-y-1 p-3'>
         <p className='text-sm font-semibold text-slate-800'>{live.title}</p>
         <p className='text-xs text-slate-500'>{getUserName(live.hostId)}</p>
-        <p className='text-[11px] text-[#9b7d3f]'>🌸 応援 {formatYen(live.cheerTotal)}{live.isLiveNow ? ` ・ 視聴 ${live.viewerCount}人` : ''}</p>
+        <p className='text-[11px] text-[#9b7d3f]'>🌸 応援 {formatCoin(live.cheerTotal)}{live.isLiveNow ? ` ・ 視聴 ${live.viewerCount}人` : ''}</p>
       </div>
     </Link>
   );
