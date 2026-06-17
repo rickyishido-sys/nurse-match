@@ -17,10 +17,8 @@
 
 body {
   margin: 0;
-  background:
-    radial-gradient(circle at 12% -10%, #eef5ea 0%, transparent 36%),
-    radial-gradient(circle at 92% 0%, #fbeef0 0%, transparent 30%),
-    #f7f9f5;
+  background: #fafaf8;
+  color: #1a1a1a;
 }
 
 input,

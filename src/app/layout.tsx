@@ -8,9 +8,9 @@ const noto = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: 'HANAKAI（花会）',
-  description: 'リアル花会とデジタルコミュニティを循環させる、新しいつながりのかたち。',
-  applicationName: 'HANAKAI',
+  title: 'HANAKAI Connection',
+  description: '人と人との新しいConnectionを生み出す、リアル体験プラットフォーム。',
+  applicationName: 'HANAKAI Connection',
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [{ url: '/icon.png?v=2', type: 'image/png' }, { url: '/favicon.ico?v=2', type: 'image/x-icon' }],
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'HANAKAI',
+    title: 'HANAKAI Connection',
   },
   formatDetection: {
     telephone: false,
@@ -39,7 +39,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
-  themeColor: '#4f7a4a',
+  themeColor: '#1a1a1a',
 };
 
 export default function RootLayout({

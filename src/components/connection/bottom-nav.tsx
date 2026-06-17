@@ -1,0 +1,39 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import clsx from 'clsx';
+
+const items = [
+  { href: '/home', label: 'ホーム' },
+  { href: '/events', label: 'イベント' },
+  { href: '/connections/ce6', label: 'Connection' },
+  { href: '/register/profile', label: 'プロフィール' },
+];
+
+export function ConnectionBottomNav() {
+  const pathname = usePathname();
+
+  return (
+    <nav className='fixed bottom-0 left-1/2 z-30 w-full max-w-[420px] -translate-x-1/2 border-t border-[#ebe9e4] bg-[#fafaf8]/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur'>
+      <ul className='grid grid-cols-4 gap-1'>
+        {items.map((item) => {
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          return (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className={clsx(
+                  'flex items-center justify-center rounded-full py-2.5 text-[11px] font-medium transition',
+                  active ? 'bg-[#1a1a1a] text-white' : 'text-[#6b6b6b]',
+                )}
+              >
+                {item.label}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}

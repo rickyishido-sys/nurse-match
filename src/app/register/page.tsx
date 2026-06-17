@@ -58,16 +58,16 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   const errorMessage = resolveRegisterErrorMessage(error, detail);
 
   return (
-    <main className='min-h-screen bg-[radial-gradient(circle_at_top,_#eef5ea_0%,_#fbeef0_45%,_#ffffff_100%)] px-4 py-8'>
+    <main className='min-h-screen bg-[#fafaf8] px-5 py-8'>
       <div className='mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[420px] items-center'>
-        <section className='w-full rounded-[32px] border border-[#e3ece0] bg-white/95 p-6 shadow-[0_16px_45px_-35px_rgba(63,107,59,0.3)] backdrop-blur-sm sm:p-7'>
+        <section className='w-full rounded-2xl border border-[#ebe9e4] bg-white p-6 sm:p-7'>
           <div className='mb-6 flex flex-col items-center'>
-            <span className='text-2xl font-bold tracking-[0.18em] text-[#3f6b3b]'>HANAKAI</span>
-            <span className='text-sm font-medium text-[#caa66a]'>花会</span>
+            <span className='text-[15px] font-semibold tracking-[0.12em] text-[#1a1a1a]'>HANAKAI</span>
+            <span className='text-[11px] font-medium tracking-[0.2em] text-[#6b6b6b]'>CONNECTION</span>
           </div>
 
-          <h1 className='mb-1 text-center text-2xl font-bold tracking-tight text-slate-900'>花会をはじめる</h1>
-          <p className='mb-6 text-center text-sm text-slate-600'>まずはメール認証から始めます</p>
+          <h1 className='mb-1 text-center text-2xl font-semibold tracking-tight text-[#1a1a1a]'>参加登録</h1>
+          <p className='mb-6 text-center text-sm text-[#6b6b6b]'>まずはメール認証から始めます</p>
 
           {sent === '1' ? (
             <p className='mb-4 rounded-2xl border border-[#d8e2d3] bg-[#eef4ea] px-4 py-3 text-xs leading-5 text-[#4f7a4a]'>

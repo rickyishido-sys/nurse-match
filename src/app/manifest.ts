@@ -2,14 +2,14 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'HANAKAI（花会）',
-    short_name: 'HANAKAI',
-    description: 'リアル花会とデジタルコミュニティを循環させる、新しいつながりのかたち。',
+    name: 'HANAKAI Connection',
+    short_name: 'Connection',
+    description: '人と人との新しいConnectionを生み出す、リアル体験プラットフォーム。',
     start_url: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#fcfdfb',
-    theme_color: '#4f7a4a',
+    background_color: '#fafaf8',
+    theme_color: '#1a1a1a',
     icons: [
       {
         src: '/icons/icon-192.png?v=2',
