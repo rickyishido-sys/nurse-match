@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
+import { ConnectionMessageButton } from '@/components/connection/message-button';
 import { Card, Chip } from '@/components/connection/ui';
 import { followMemberAction } from '@/lib/connection/actions';
 import {
@@ -30,6 +31,7 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
   const canView = canViewConnectionPage(eventId, MOCK_VIEWER_ID);
   const members = getEventMembers(eventId);
   const followedId = typeof sp.followed === 'string' ? sp.followed : null;
+  const messagedId = typeof sp.messaged === 'string' ? sp.messaged : null;
 
   if (!canView) {
     return (
@@ -61,6 +63,12 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
         {followedId ? (
           <p className='rounded-2xl border border-[#ebe9e4] bg-white px-4 py-3 text-xs text-[#4a4a4a]'>
             {getMember(followedId)?.nickname ?? 'メンバー'}さんをフォローしました。
+          </p>
+        ) : null}
+
+        {messagedId ? (
+          <p className='rounded-2xl border border-[#ebe9e4] bg-white px-4 py-3 text-xs text-[#4a4a4a]'>
+            {getMember(messagedId)?.nickname ?? 'メンバー'}さんにメッセージを送りました。
           </p>
         ) : null}
 
@@ -97,9 +105,7 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
                         フォロー
                       </button>
                     </form>
-                    <button type='button' className='h-10 w-full rounded-full bg-[#1a1a1a] text-xs font-semibold text-white'>
-                      メッセージ
-                    </button>
+                    <ConnectionMessageButton memberId={member.id} memberName={member.nickname} eventId={eventId} />
                   </div>
                 ) : null}
               </Card>

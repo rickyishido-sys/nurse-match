@@ -43,6 +43,15 @@ export async function followMemberAction(formData: FormData) {
   redirect(`/connections/${eventId}?followed=${memberId}`);
 }
 
+export async function sendMessageAction(formData: FormData) {
+  const memberId = String(formData.get('memberId') ?? '');
+  const eventId = String(formData.get('eventId') ?? '');
+  const body = String(formData.get('body') ?? '').trim();
+  console.log('CONNECTION_MESSAGE', { memberId, eventId, hasBody: body.length > 0 });
+  revalidatePath(`/connections/${eventId}`);
+  redirect(`/connections/${eventId}?messaged=${memberId}`);
+}
+
 export async function saveProfileAction(formData: FormData) {
   const nickname = String(formData.get('nickname') ?? '').trim();
   console.log('CONNECTION_PROFILE_SAVE', {
