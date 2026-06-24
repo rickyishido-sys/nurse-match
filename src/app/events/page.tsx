@@ -1,10 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
-import { Chip } from '@/components/connection/ui';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import {
-  EVENT_CATEGORY_LABEL,
+  EVENT_CATEGORY_META,
   EVENT_CATEGORY_ORDER,
   formatEventDate,
   listEvents,
@@ -35,7 +34,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
         <div>
           <h1 className='text-xl font-semibold text-[#1a1a1a]'>Connection Event</h1>
           <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>
-            知らない6人が、リアルで出会う。カテゴリを選んで参加申請してください。
+            テーマごとに、知らない誰かとリアルで出会う。気になる世界観を選んでください。
           </p>
         </div>
 
@@ -48,26 +47,50 @@ export default async function EventsPage({ searchParams }: PageProps) {
         <div className='-mx-5 flex gap-2 overflow-x-auto px-5 pb-1'>
           <CategoryPill href='/events' label='すべて' active={!activeCategory} />
           {EVENT_CATEGORY_ORDER.map((cat) => (
-            <CategoryPill key={cat} href={`/events?category=${cat}`} label={EVENT_CATEGORY_LABEL[cat]} active={activeCategory === cat} />
+            <CategoryPill
+              key={cat}
+              href={`/events?category=${cat}`}
+              label={`${EVENT_CATEGORY_META[cat].emoji} ${EVENT_CATEGORY_META[cat].short}`}
+              active={activeCategory === cat}
+            />
           ))}
         </div>
 
-        <div className='space-y-4'>
-          {events.map((event) => (
-            <Link key={event.id} href={`/events/${event.id}`} className='block overflow-hidden rounded-2xl border border-[#ebe9e4] bg-white'>
-              <div className='relative h-40 w-full'>
-                <Image src={event.coverUrl} alt={event.title} fill className='object-cover' />
-                <div className='absolute left-3 top-3'><Chip tone='accent'>{EVENT_CATEGORY_LABEL[event.category]}</Chip></div>
-                <div className='absolute right-3 top-3'><Chip>{statusLabel(event.status)}</Chip></div>
-              </div>
-              <div className='space-y-1 p-4'>
-                <p className='text-sm font-semibold text-[#1a1a1a]'>{event.title}</p>
-                <p className='text-xs text-[#6b6b6b]'>{formatEventDate(event.startAt)}</p>
-                <p className='text-xs text-[#6b6b6b]'>{event.area} · {event.venue}</p>
-                <p className='pt-1 text-xs text-[#9a9a9a]'>{event.reservedCount}/{event.capacity}名 申込</p>
-              </div>
-            </Link>
-          ))}
+        <div className='space-y-5'>
+          {events.map((event) => {
+            const meta = EVENT_CATEGORY_META[event.category];
+            return (
+              <Link
+                key={event.id}
+                href={`/events/${event.id}`}
+                className='block overflow-hidden rounded-3xl border border-[#ebe9e4] bg-white shadow-[0_2px_12px_rgba(26,26,26,0.04)] transition active:scale-[0.99]'
+              >
+                <div className={`relative h-44 w-full bg-gradient-to-br ${meta.gradient}`}>
+                  <Image src={event.coverUrl} alt={event.title} fill className='object-cover mix-blend-multiply' />
+                  <div className='absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent' />
+                  <div className='absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[#1a1a1a] backdrop-blur'>
+                    <span>{meta.emoji}</span>
+                    {meta.short}
+                  </div>
+                  <div className='absolute right-3 top-3 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur'>
+                    {statusLabel(event.status)}
+                  </div>
+                  <div className='absolute bottom-3 left-3 right-3'>
+                    <p className='text-sm font-semibold text-white drop-shadow'>{event.title}</p>
+                    <p className='mt-0.5 text-[11px] text-white/85'>{meta.tagline}</p>
+                  </div>
+                </div>
+                <div className='space-y-1.5 p-4'>
+                  <p className='text-xs text-[#6b6b6b]'>{formatEventDate(event.startAt)}</p>
+                  <p className='text-xs text-[#6b6b6b]'>{event.area} · {event.venue}</p>
+                  <div className='flex items-center justify-between pt-1'>
+                    <span className='text-xs text-[#9a9a9a]'>{event.reservedCount}/{event.capacity}名 申込</span>
+                    <span className='text-xs font-semibold' style={{ color: meta.accent }}>詳細を見る →</span>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </ConnectionShell>
@@ -78,7 +101,7 @@ function CategoryPill({ href, label, active }: { href: string; label: string; ac
   return (
     <Link
       href={href}
-      className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium ${
+      className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
         active ? 'bg-[#1a1a1a] text-white' : 'border border-[#d8d6d1] bg-white text-[#6b6b6b]'
       }`}
     >

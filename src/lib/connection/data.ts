@@ -11,6 +11,7 @@ import type {
   PersonalityProfile,
   ProfileValues,
   TrustVerificationStatus,
+  ValueTag,
   VerificationSource,
 } from '@/lib/connection/types';
 
@@ -65,12 +66,30 @@ export const LIFE_PHASE_LABEL: Record<LifePhase, string> = {
 
 export const LIFE_PHASE_OPTIONS = Object.entries(LIFE_PHASE_LABEL) as [LifePhase, string][];
 
+export const VALUE_TAG_LABEL: Record<ValueTag, string> = {
+  freedom: '自由',
+  challenge: '挑戦',
+  stability: '安定',
+  family: '家族',
+  fellowship: '仲間',
+  growth: '成長',
+  creation: '創作',
+  contribution: '社会貢献',
+  learning: '学び',
+  health: '健康',
+  work: '仕事',
+  travel: '旅',
+  aesthetics: '美意識',
+};
+
+export const VALUE_TAG_OPTIONS = Object.entries(VALUE_TAG_LABEL) as [ValueTag, string][];
+
 export { PERSONALITY_TYPE_META, formatPersonalityAxes } from '@/lib/connection/personality';
 
 export const EVENT_CATEGORY_LABEL: Record<ConnectionEventCategory, string> = {
   flower: 'Flower Connection',
   coffee: 'Coffee Connection',
-  business: 'Business Connection',
+  business: 'Dinner Connection',
   walking: 'Walking Connection',
   fitness: 'Fitness Connection',
 };
@@ -83,6 +102,53 @@ export const EVENT_CATEGORY_ORDER: ConnectionEventCategory[] = [
   'fitness',
 ];
 
+/** カテゴリごとの世界観（絵文字・キャッチ・配色） */
+export const EVENT_CATEGORY_META: Record<
+  ConnectionEventCategory,
+  { label: string; short: string; emoji: string; tagline: string; accent: string; gradient: string }
+> = {
+  flower: {
+    label: 'Flower Connection',
+    short: 'Flower',
+    emoji: '🌸',
+    tagline: '花を介して、心をひらく時間',
+    accent: '#c1738a',
+    gradient: 'from-[#f7e7ec] to-[#efd6df]',
+  },
+  coffee: {
+    label: 'Coffee Connection',
+    short: 'Coffee',
+    emoji: '☕️',
+    tagline: '一杯のコーヒーから始まる対話',
+    accent: '#9a6f4a',
+    gradient: 'from-[#f1e8df] to-[#e6d5c2]',
+  },
+  business: {
+    label: 'Dinner Connection',
+    short: 'Dinner',
+    emoji: '🍽️',
+    tagline: '食卓を囲み、人生を語り合う夜',
+    accent: '#7a6f63',
+    gradient: 'from-[#efece8] to-[#ddd6cc]',
+  },
+  walking: {
+    label: 'Walking Connection',
+    short: 'Walking',
+    emoji: '🍃',
+    tagline: '歩きながら、自然と言葉がほどける',
+    accent: '#5f8a5a',
+    gradient: 'from-[#e8f0e4] to-[#d6e4cf]',
+  },
+  fitness: {
+    label: 'Fitness Connection',
+    short: 'Fitness',
+    emoji: '🤸',
+    tagline: '体を動かしたあとの、軽やかな会話',
+    accent: '#5a7f99',
+    gradient: 'from-[#e4eef3] to-[#cfdfe8]',
+  },
+};
+
 function seedValues(partial: Partial<ProfileValues>): ProfileValues {
   return {
     mostImportant: partial.mostImportant ?? '',
@@ -92,6 +158,7 @@ function seedValues(partial: Partial<ProfileValues>): ProfileValues {
     howOthersSeeMe: partial.howOthersSeeMe ?? '',
     personalityOneWord: partial.personalityOneWord ?? '',
     coreValues: partial.coreValues ?? '',
+    valueTags: partial.valueTags ?? [],
   };
 }
 
@@ -128,6 +195,7 @@ const members: ConnectionMember[] = [
       howOthersSeeMe: '落ち着いていて、聞き上手',
       personalityOneWord: '穏やか',
       coreValues: '誠実さ、好奇心、余白',
+      valueTags: ['freedom', 'growth', 'aesthetics', 'fellowship'],
     }),
     purposes: ['new_friends', 'life_stimulus', 'cross_industry'],
     interestTags: ['coffee', 'art', 'reading', 'travel'],
@@ -164,6 +232,7 @@ const members: ConnectionMember[] = [
       howOthersSeeMe: '熱量が高い、頼れる',
       personalityOneWord: '挑戦者',
       coreValues: '行動力、学び、オープンマインド',
+      valueTags: ['challenge', 'growth', 'work', 'fellowship'],
     }),
     purposes: ['cross_industry', 'learning', 'mutual_support'],
     interestTags: ['startup', 'management', 'coffee', 'ai'],
@@ -429,7 +498,7 @@ const events: ConnectionEvent[] = [
   },
   {
     id: 'ce3',
-    title: 'Business Connection — 丸の内',
+    title: 'Dinner Connection — 丸の内',
     category: 'business',
     startAt: '2026-07-05T18:30:00+09:00',
     area: '東京・丸の内',
@@ -438,7 +507,7 @@ const events: ConnectionEvent[] = [
     reservedCount: 3,
     hostName: 'HANAKAI Connection 運営',
     conditions: '事業・キャリアに関心がある方・名刺不要',
-    description: '堅い交流会ではありません。仕事の話も、人生の話も。6人だけのプライベートなConnection。',
+    description: '堅い交流会ではありません。食卓を囲みながら、仕事の話も、人生の話も。プライベートなDinner Connection。',
     coverUrl: img('photo-1517248135467-4c7edcad34c4'),
     status: 'open',
     isPast: false,

@@ -1,10 +1,15 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
 import { SafetyTrustSection } from '@/components/connection/safety-trust-section';
 import { SecondaryButton } from '@/components/connection/ui';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { listUpcomingEvents } from '@/lib/connection/data';
-import { EVENT_CATEGORY_LABEL, formatEventDate } from '@/lib/connection/data';
+import {
+  EVENT_CATEGORY_META,
+  EVENT_CATEGORY_ORDER,
+  formatEventDate,
+} from '@/lib/connection/data';
 
 export default async function LandingPage() {
   const viewer = await getHanakaiViewer();
@@ -62,6 +67,27 @@ export default async function LandingPage() {
           </ol>
         </div>
 
+        {/* Connection categories */}
+        <div className='space-y-4 border-t border-[#ebe9e4] pt-8'>
+          <h2 className='text-sm font-semibold tracking-wide text-[#1a1a1a]'>Connectionの種類</h2>
+          <div className='grid grid-cols-2 gap-3'>
+            {EVENT_CATEGORY_ORDER.map((cat) => {
+              const meta = EVENT_CATEGORY_META[cat];
+              return (
+                <Link
+                  key={cat}
+                  href={`/events?category=${cat}`}
+                  className={`flex flex-col gap-2 rounded-3xl border border-[#ebe9e4] bg-gradient-to-br ${meta.gradient} p-4 transition active:scale-[0.98]`}
+                >
+                  <span className='text-2xl'>{meta.emoji}</span>
+                  <span className='text-sm font-semibold text-[#1a1a1a]'>{meta.short}</span>
+                  <span className='text-[11px] leading-5 text-[#5a5247]'>{meta.tagline}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
         <SafetyTrustSection />
 
         {/* Upcoming events */}
@@ -70,14 +96,30 @@ export default async function LandingPage() {
             <h2 className='text-sm font-semibold tracking-wide text-[#1a1a1a]'>開催予定のイベント</h2>
             <Link href='/events' className='text-xs text-[#6b6b6b] underline-offset-2 hover:underline'>すべて</Link>
           </div>
-          <div className='space-y-3'>
-            {events.map((event) => (
-              <Link key={event.id} href={`/events/${event.id}`} className='block rounded-2xl border border-[#ebe9e4] bg-white p-4'>
-                <p className='text-[11px] font-medium text-[#6b6b6b]'>{EVENT_CATEGORY_LABEL[event.category]}</p>
-                <p className='mt-1 text-sm font-semibold text-[#1a1a1a]'>{event.title}</p>
-                <p className='mt-1 text-xs text-[#6b6b6b]'>{formatEventDate(event.startAt)} · {event.area}</p>
-              </Link>
-            ))}
+          <div className='space-y-4'>
+            {events.map((event) => {
+              const meta = EVENT_CATEGORY_META[event.category];
+              return (
+                <Link
+                  key={event.id}
+                  href={`/events/${event.id}`}
+                  className='block overflow-hidden rounded-3xl border border-[#ebe9e4] bg-white shadow-[0_2px_12px_rgba(26,26,26,0.04)] transition active:scale-[0.99]'
+                >
+                  <div className={`relative h-36 w-full bg-gradient-to-br ${meta.gradient}`}>
+                    <Image src={event.coverUrl} alt={event.title} fill className='object-cover mix-blend-multiply' />
+                    <div className='absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent' />
+                    <div className='absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[#1a1a1a] backdrop-blur'>
+                      <span>{meta.emoji}</span>
+                      {meta.short}
+                    </div>
+                    <p className='absolute bottom-3 left-3 right-3 text-sm font-semibold text-white drop-shadow'>{event.title}</p>
+                  </div>
+                  <div className='p-4'>
+                    <p className='text-xs text-[#6b6b6b]'>{formatEventDate(event.startAt)} · {event.area}</p>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

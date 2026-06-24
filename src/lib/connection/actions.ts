@@ -10,12 +10,14 @@ import {
   updateMember,
   updateMemberTrust,
 } from '@/lib/connection/data';
+import { VALUE_TAG_LABEL } from '@/lib/connection/data';
 import type {
   ConnectionPurpose,
   InterestTag,
   LifePhase,
   PersonalityType,
   TrustVerificationStatus,
+  ValueTag,
   VerificationSource,
 } from '@/lib/connection/types';
 
@@ -72,7 +74,13 @@ export async function saveProfileAction(formData: FormData) {
 
   const purposes = formData.getAll('purposes') as ConnectionPurpose[];
   const interestTags = formData.getAll('interestTags') as InterestTag[];
+  const valueTags = formData.getAll('valueTags') as ValueTag[];
   const lifePhase = String(formData.get('lifePhase') ?? 'other') as LifePhase;
+
+  // valueTags を coreValues（表示用文字列）にも反映し、既存構造との互換を維持する
+  const explicitCoreValues = String(formData.get('coreValues') ?? '').trim();
+  const coreValues =
+    explicitCoreValues || valueTags.map((tag) => VALUE_TAG_LABEL[tag]).filter(Boolean).join('、');
 
   updateMember(MOCK_VIEWER_ID, {
     nickname,
@@ -88,17 +96,32 @@ export async function saveProfileAction(formData: FormData) {
       recentInspiration: String(formData.get('recentInspiration') ?? '').trim(),
       howOthersSeeMe: String(formData.get('howOthersSeeMe') ?? '').trim(),
       personalityOneWord: String(formData.get('personalityOneWord') ?? '').trim(),
-      coreValues: String(formData.get('coreValues') ?? '').trim(),
+      coreValues,
+      valueTags,
     },
     purposes,
     interestTags,
     lifePhase,
   });
 
-  console.log('CONNECTION_PROFILE_SAVE', { nickname, purposes, interestTags, lifePhase });
+  // ステップ式ウィザードから性格診断結果も同時に届く場合は保存する
+  const personalityType = String(formData.get('personalityType') ?? '') as PersonalityType | '';
+  if (personalityType) {
+    saveMemberPersonality(MOCK_VIEWER_ID, {
+      type: personalityType,
+      axes: {
+        energy: String(formData.get('personalityEnergy') ?? 'introvert') as 'extravert' | 'introvert',
+        thinking: String(formData.get('personalityThinking') ?? 'feeling') as 'logic' | 'feeling',
+        planning: String(formData.get('personalityPlanning') ?? 'flexible') as 'plan' | 'flexible',
+      },
+      completedAt: new Date().toISOString(),
+    });
+  }
+
+  console.log('CONNECTION_PROFILE_SAVE', { nickname, purposes, interestTags, valueTags, lifePhase, personalityType });
   revalidatePath('/register/profile');
   revalidatePath('/manage');
-  redirect('/events?registered=1');
+  redirect('/register/complete');
 }
 
 export async function savePersonalityAction(formData: FormData) {

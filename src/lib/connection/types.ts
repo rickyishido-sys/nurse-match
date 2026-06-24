@@ -63,7 +63,23 @@ export type PersonalityAxes = {
   planning: 'plan' | 'flexible';
 };
 
-/** 価値観・人生観（自由記述） */
+/** 価値観タグ（複数選択） */
+export type ValueTag =
+  | 'freedom'
+  | 'challenge'
+  | 'stability'
+  | 'family'
+  | 'fellowship'
+  | 'growth'
+  | 'creation'
+  | 'contribution'
+  | 'learning'
+  | 'health'
+  | 'work'
+  | 'travel'
+  | 'aesthetics';
+
+/** 価値観・人生観（タグ + 自由記述） */
 export type ProfileValues = {
   mostImportant: string;
   currentChallenge: string;
@@ -72,6 +88,8 @@ export type ProfileValues = {
   howOthersSeeMe: string;
   personalityOneWord: string;
   coreValues: string;
+  /** 価値観タグ（Step形式入力で追加。既存 coreValues とは併存） */
+  valueTags?: ValueTag[];
 };
 
 export type PersonalityProfile = {

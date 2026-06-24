@@ -5,6 +5,7 @@ import {
   LIFE_PHASE_LABEL,
   PERSONALITY_TYPE_META,
   PURPOSE_LABEL,
+  VALUE_TAG_LABEL,
   formatPersonalityAxes,
 } from '@/lib/connection/data';
 import type { ConnectionMember } from '@/lib/connection/types';
@@ -52,6 +53,17 @@ export function MemberInsights({ member, variant = 'compact' }: MemberInsightsPr
           ))}
         </div>
       </div>
+
+      {member.values.valueTags && member.values.valueTags.length > 0 ? (
+        <div>
+          <p className='mb-1 text-[11px] font-medium text-[#6b6b6b]'>価値観</p>
+          <div className='flex flex-wrap gap-1'>
+            {member.values.valueTags.map((t) => (
+              <Chip key={t} tone='neutral'>{VALUE_TAG_LABEL[t]}</Chip>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {showValues ? (
         <div className='space-y-2 border-t border-[#ebe9e4] pt-3'>
