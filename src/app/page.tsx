@@ -48,8 +48,8 @@ export default async function LandingPage() {
             {[
               { step: '01', title: '参加登録', body: 'プロフィールと、あなたが求めるConnectionを登録。' },
               { step: '02', title: 'イベントに申請', body: '気になるConnection Eventに参加希望を送る。' },
-              { step: '03', title: '6人が選ばれる', body: '運営が6名を選定。知らない人同士がリアルで会う。' },
-              { step: '04', title: 'イベント後に繋がる', body: '参加者だけが閲覧できるConnectionページで、次につながる。' },
+              { step: '03', title: '最適なConnectionが生まれる', body: 'イベントごとに、運営が価値観や興味関心をもとに参加メンバーを決定する。' },
+              { step: '04', title: 'Connectionが続いていく', body: 'イベント後も、参加者同士が繋がり、新たなConnectionが生まれていく。' },
             ].map((item) => (
               <li key={item.step} className='flex gap-4'>
                 <span className='text-xs font-semibold text-[#9a9a9a]'>{item.step}</span>
