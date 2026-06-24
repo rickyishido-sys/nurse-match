@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { HanakaiShell } from '@/components/hanakai/shell';
+import { SafetyTrustSection } from '@/components/connection/safety-trust-section';
 import { Card, CycleDiagram } from '@/components/hanakai/ui';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { CYCLE_STEPS, VISION_MATH } from '@/lib/hanakai/data';
@@ -129,6 +130,8 @@ export default async function ConceptPage() {
             <Link href='/support' className='mt-2 inline-block text-xs font-semibold text-[#9b7d3f]'>応援経済圏を見る ›</Link>
           </Card>
         </div>
+
+        <SafetyTrustSection className='border-[#e3ebdd]' />
 
         <Link href='/register' className='flex h-12 items-center justify-center rounded-2xl bg-[#4f7a4a] text-sm font-bold text-white'>
           この循環に参加する

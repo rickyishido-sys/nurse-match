@@ -7,8 +7,11 @@ import type {
   InterestTag,
   LifePhase,
   MemberGroupingProfile,
+  MemberTrustVerificationFields,
   PersonalityProfile,
   ProfileValues,
+  TrustVerificationStatus,
+  VerificationSource,
 } from '@/lib/connection/types';
 
 const img = (id: string, w = 800) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70`;
@@ -92,6 +95,21 @@ function seedValues(partial: Partial<ProfileValues>): ProfileValues {
   };
 }
 
+function seedTrust(partial: Partial<MemberTrustVerificationFields>): MemberTrustVerificationFields {
+  return {
+    trustVerificationStatus: partial.trustVerificationStatus ?? 'pending',
+    identityVerified: partial.identityVerified ?? false,
+    identityVerificationDate: partial.identityVerificationDate ?? null,
+    trustVerificationDate: partial.trustVerificationDate ?? null,
+    trustNotes: partial.trustNotes ?? null,
+    safetyFlags: partial.safetyFlags ?? [],
+    verificationSource: partial.verificationSource ?? 'none',
+    identityVerificationMethod: partial.identityVerificationMethod ?? 'none',
+    externalVerificationRef: partial.externalVerificationRef ?? null,
+    documentUploadStatus: partial.documentUploadStatus ?? 'none',
+  };
+}
+
 const members: ConnectionMember[] = [
   {
     id: 'm1',
@@ -119,6 +137,15 @@ const members: ConnectionMember[] = [
       axes: { energy: 'introvert', thinking: 'feeling', planning: 'plan' },
       completedAt: '2026-06-01T10:00:00+09:00',
     },
+    ...seedTrust({
+      trustVerificationStatus: 'verified',
+      identityVerified: true,
+      identityVerificationDate: '2026-05-28T10:00:00+09:00',
+      trustVerificationDate: '2026-06-01T14:00:00+09:00',
+      verificationSource: 'id_plus_public_info',
+      safetyFlags: ['SNS確認済', '公開情報確認済'],
+      trustNotes: '本人確認書類・LinkedIn・過去の登壇情報を確認。問題なし。',
+    }),
   },
   {
     id: 'm2',
@@ -146,6 +173,15 @@ const members: ConnectionMember[] = [
       axes: { energy: 'extravert', thinking: 'logic', planning: 'plan' },
       completedAt: '2026-05-20T10:00:00+09:00',
     },
+    ...seedTrust({
+      trustVerificationStatus: 'verified',
+      identityVerified: true,
+      identityVerificationDate: '2026-05-15T10:00:00+09:00',
+      trustVerificationDate: '2026-05-18T11:00:00+09:00',
+      verificationSource: 'id_plus_public_info',
+      safetyFlags: ['公開情報確認済', '過去メディア掲載確認済'],
+      trustNotes: 'スタートアップ関連の公開情報と本人確認を照合済み。',
+    }),
   },
   {
     id: 'm3',
@@ -173,6 +209,14 @@ const members: ConnectionMember[] = [
       axes: { energy: 'introvert', thinking: 'feeling', planning: 'flexible' },
       completedAt: '2026-06-05T10:00:00+09:00',
     },
+    ...seedTrust({
+      trustVerificationStatus: 'reviewing',
+      identityVerified: true,
+      identityVerificationDate: '2026-06-04T09:00:00+09:00',
+      verificationSource: 'id_only',
+      safetyFlags: ['追加確認必要'],
+      trustNotes: '本人確認済み。公開情報の追加確認中。',
+    }),
   },
   {
     id: 'm4',
@@ -200,6 +244,14 @@ const members: ConnectionMember[] = [
       axes: { energy: 'introvert', thinking: 'feeling', planning: 'plan' },
       completedAt: '2026-05-15T10:00:00+09:00',
     },
+    ...seedTrust({
+      trustVerificationStatus: 'verified',
+      identityVerified: true,
+      identityVerificationDate: '2026-05-10T10:00:00+09:00',
+      trustVerificationDate: '2026-05-12T16:00:00+09:00',
+      verificationSource: 'id_plus_public_info',
+      safetyFlags: ['SNS確認済', '公開情報確認済'],
+    }),
   },
   {
     id: 'm5',
@@ -227,6 +279,11 @@ const members: ConnectionMember[] = [
       axes: { energy: 'introvert', thinking: 'feeling', planning: 'flexible' },
       completedAt: '2026-06-08T10:00:00+09:00',
     },
+    ...seedTrust({
+      trustVerificationStatus: 'pending',
+      identityVerified: false,
+      verificationSource: 'none',
+    }),
   },
   {
     id: 'm6',
@@ -254,6 +311,14 @@ const members: ConnectionMember[] = [
       axes: { energy: 'extravert', thinking: 'logic', planning: 'plan' },
       completedAt: '2026-06-02T10:00:00+09:00',
     },
+    ...seedTrust({
+      trustVerificationStatus: 'verified',
+      identityVerified: true,
+      identityVerificationDate: '2026-05-30T10:00:00+09:00',
+      trustVerificationDate: '2026-06-01T09:00:00+09:00',
+      verificationSource: 'id_plus_public_info',
+      safetyFlags: ['公開情報確認済'],
+    }),
   },
   {
     id: 'm7',
@@ -281,6 +346,14 @@ const members: ConnectionMember[] = [
       axes: { energy: 'extravert', thinking: 'feeling', planning: 'flexible' },
       completedAt: '2026-05-25T10:00:00+09:00',
     },
+    ...seedTrust({
+      trustVerificationStatus: 'reviewing',
+      identityVerified: true,
+      identityVerificationDate: '2026-06-01T10:00:00+09:00',
+      verificationSource: 'id_only',
+      safetyFlags: ['SNS確認済'],
+      trustNotes: 'SNS確認完了。公開情報の最終確認待ち。',
+    }),
   },
   {
     id: 'm8',
@@ -308,6 +381,14 @@ const members: ConnectionMember[] = [
       axes: { energy: 'extravert', thinking: 'feeling', planning: 'flexible' },
       completedAt: '2026-06-03T10:00:00+09:00',
     },
+    ...seedTrust({
+      trustVerificationStatus: 'rejected',
+      identityVerified: true,
+      identityVerificationDate: '2026-06-02T10:00:00+09:00',
+      verificationSource: 'id_only',
+      safetyFlags: ['追加確認必要'],
+      trustNotes: '公開情報との不一致あり。再確認の連絡済み。',
+    }),
   },
 ];
 
@@ -528,6 +609,37 @@ export function saveMemberPersonality(id: string, personality: PersonalityProfil
   return updateMember(id, { personality });
 }
 
+export function updateMemberTrust(
+  id: string,
+  patch: {
+    trustVerificationStatus?: TrustVerificationStatus;
+    trustNotes?: string | null;
+    safetyFlags?: string[];
+    verificationSource?: VerificationSource;
+    identityVerified?: boolean;
+  },
+) {
+  const member = getMember(id);
+  if (!member) return null;
+
+  const now = new Date().toISOString();
+  const status = patch.trustVerificationStatus ?? member.trustVerificationStatus;
+
+  return updateMember(id, {
+    trustVerificationStatus: status,
+    trustNotes: patch.trustNotes !== undefined ? patch.trustNotes : member.trustNotes,
+    safetyFlags: patch.safetyFlags ?? member.safetyFlags,
+    verificationSource: patch.verificationSource ?? member.verificationSource,
+    identityVerified: patch.identityVerified ?? member.identityVerified,
+    trustVerificationDate:
+      status === 'verified' && member.trustVerificationStatus !== 'verified'
+        ? now
+        : member.trustVerificationDate,
+    identityVerificationDate:
+      patch.identityVerified && !member.identityVerified ? now : member.identityVerificationDate,
+  });
+}
+
 /** 将来のAIグルーピング用スナップショット */
 export function getGroupingProfile(memberId: string): MemberGroupingProfile | null {
   const m = getMember(memberId);
@@ -539,5 +651,11 @@ export function getGroupingProfile(memberId: string): MemberGroupingProfile | nu
     purposes: m.purposes,
     interestTags: m.interestTags,
     personality: m.personality,
+    trust: {
+      trustVerificationStatus: m.trustVerificationStatus,
+      identityVerified: m.identityVerified,
+      verificationSource: m.verificationSource,
+      safetyFlags: m.safetyFlags,
+    },
   };
 }

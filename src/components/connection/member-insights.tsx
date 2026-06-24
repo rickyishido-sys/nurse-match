@@ -1,4 +1,5 @@
 import { Chip } from '@/components/connection/ui';
+import { TrustBadgeList } from '@/components/connection/trust-badge';
 import {
   INTEREST_TAG_LABEL,
   LIFE_PHASE_LABEL,
@@ -19,6 +20,8 @@ export function MemberInsights({ member, variant = 'compact' }: MemberInsightsPr
 
   return (
     <div className='space-y-3'>
+      {variant === 'compact' ? <TrustBadgeList member={member} /> : null}
+
       <div className='flex flex-wrap gap-1'>
         <Chip tone='accent'>{LIFE_PHASE_LABEL[member.lifePhase]}</Chip>
         {member.personality ? (

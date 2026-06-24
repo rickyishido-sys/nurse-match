@@ -80,6 +80,30 @@ export type PersonalityProfile = {
   completedAt: string;
 };
 
+/** Trust Verification ステータス */
+export type TrustVerificationStatus = 'pending' | 'reviewing' | 'verified' | 'rejected';
+
+/** 本人確認の実施ソース */
+export type VerificationSource = 'none' | 'id_only' | 'id_plus_public_info';
+
+/**
+ * Trust / 安全確認フィールド（将来 eKYC・AI顔認証・書類アップロード・外部API 連携を想定）
+ * Date は ISO 8601 文字列で保持（DB/API 互換）
+ */
+export type MemberTrustVerificationFields = {
+  trustVerificationStatus: TrustVerificationStatus;
+  identityVerified: boolean;
+  identityVerificationDate: string | null;
+  trustVerificationDate: string | null;
+  trustNotes: string | null;
+  safetyFlags: string[];
+  verificationSource: VerificationSource;
+  /** 将来: eKYC / AI顔認証 / 外部API */
+  identityVerificationMethod?: 'none' | 'manual_document' | 'ekyc' | 'ai_face_match' | 'external_api';
+  externalVerificationRef?: string | null;
+  documentUploadStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+};
+
 export type ConnectionMember = {
   id: string;
   nickname: string;
@@ -94,7 +118,7 @@ export type ConnectionMember = {
   interestTags: InterestTag[];
   lifePhase: LifePhase;
   personality: PersonalityProfile | null;
-};
+} & MemberTrustVerificationFields;
 
 export type ConnectionEvent = {
   id: string;
@@ -130,4 +154,8 @@ export type MemberGroupingProfile = {
   purposes: ConnectionPurpose[];
   interestTags: InterestTag[];
   personality: PersonalityProfile | null;
+  trust: Pick<
+    MemberTrustVerificationFields,
+    'trustVerificationStatus' | 'identityVerified' | 'verificationSource' | 'safetyFlags'
+  >;
 };

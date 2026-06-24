@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import { saveProfileAction } from '@/lib/connection/actions';
+import { TrustBadgeList } from '@/components/connection/trust-badge';
 import {
   INTEREST_TAG_OPTIONS,
   LIFE_PHASE_OPTIONS,
   PERSONALITY_TYPE_META,
   PURPOSE_OPTIONS,
 } from '@/lib/connection/data';
+import { TRUST_STATUS_LABEL_JA } from '@/lib/connection/trust';
 import type { ConnectionMember } from '@/lib/connection/types';
 
 type ProfileFormProps = {
@@ -25,6 +27,26 @@ export function ConnectionProfileForm({ error, member }: ProfileFormProps) {
     <form action={saveProfileAction} className='space-y-8'>
       {error === 'nickname' ? (
         <p className='rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>ニックネームを入力してください。</p>
+      ) : null}
+
+      {/* Trust Verification ステータス */}
+      {member ? (
+        <section className='rounded-2xl border border-[#ebe9e4] bg-white p-4'>
+          <h2 className='text-sm font-semibold text-[#1a1a1a]'>Trust Verification</h2>
+          <p className='mt-1 text-xs leading-5 text-[#6b6b6b]'>
+            安心してConnectionできる環境のため、本人確認とTrust Verificationを実施しています。
+          </p>
+          <TrustBadgeList member={member} className='mt-3' />
+          {!member.identityVerified && member.trustVerificationStatus === 'pending' ? (
+            <p className='mt-2 text-[11px] text-[#9a9a9a]'>
+              登録後、運営より本人確認のご案内をお送りします。
+            </p>
+          ) : (
+            <p className='mt-2 text-[11px] text-[#9a9a9a]'>
+              安全確認ステータス: {TRUST_STATUS_LABEL_JA[member.trustVerificationStatus]}
+            </p>
+          )}
+        </section>
       ) : null}
 
       {/* 基本情報 */}

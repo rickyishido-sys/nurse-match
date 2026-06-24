@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
+import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { Card, Chip } from '@/components/connection/ui';
 import { applyConnectionEventAction } from '@/lib/connection/actions';
 import {
@@ -57,10 +58,16 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
 
         {confirmedMembers.length > 0 ? (
           <Card>
-            <h2 className='mb-2 text-sm font-semibold text-[#1a1a1a]'>確定メンバー {confirmedMembers.length}名</h2>
-            <div className='flex flex-wrap gap-2'>
+            <h2 className='mb-3 text-sm font-semibold text-[#1a1a1a]'>確定メンバー {confirmedMembers.length}名</h2>
+            <div className='space-y-3'>
               {confirmedMembers.map((m) => (
-                <span key={m.id} className='rounded-full bg-[#f0eeea] px-3 py-1 text-xs text-[#4a4a4a]'>{m.nickname}</span>
+                <div key={m.id} className='flex items-start justify-between gap-3'>
+                  <div>
+                    <p className='text-sm font-medium text-[#1a1a1a]'>{m.nickname}</p>
+                    <p className='text-[11px] text-[#6b6b6b]'>{m.occupation}</p>
+                  </div>
+                  <TrustBadgeList member={m} />
+                </div>
               ))}
             </div>
           </Card>

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
+import { SafetyTrustSection } from '@/components/connection/safety-trust-section';
 import { SecondaryButton } from '@/components/connection/ui';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { listUpcomingEvents } from '@/lib/connection/data';
@@ -60,6 +61,8 @@ export default async function LandingPage() {
             ))}
           </ol>
         </div>
+
+        <SafetyTrustSection />
 
         {/* Upcoming events */}
         <div className='space-y-4 border-t border-[#ebe9e4] pt-8'>

@@ -2,6 +2,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
 import { MemberInsights } from '@/components/connection/member-insights';
+import { TrustAdminPanel, TrustOperationGuide } from '@/components/connection/trust-admin-panel';
+import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { Card } from '@/components/connection/ui';
 import { confirmMemberAction, removeMemberAction } from '@/lib/connection/actions';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
@@ -24,6 +26,7 @@ export default async function ManagePage({ searchParams }: PageProps) {
   const applications = selectedEventId ? listApplications(selectedEventId) : [];
   const pending = applications.filter((a) => a.status === 'pending');
   const confirmed = applications.filter((a) => a.status === 'confirmed');
+  const trustUpdated = typeof sp.trustUpdated === 'string' ? sp.trustUpdated : null;
 
   return (
     <ConnectionShell viewer={viewer}>
@@ -32,9 +35,17 @@ export default async function ManagePage({ searchParams }: PageProps) {
           <p className='text-[11px] font-medium tracking-[0.2em] text-[#6b6b6b]'>ADMIN</p>
           <h1 className='mt-1 text-xl font-semibold text-[#1a1a1a]'>参加者選定</h1>
           <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>
-            属性だけでなく、Connection目的・興味・人生フェーズ・性格タイプを参考に6名を選定します。
+            属性だけでなく、Connection目的・興味・人生フェーズ・性格タイプ・Trust Verificationを参考に6名を選定します。
           </p>
         </div>
+
+        <TrustOperationGuide />
+
+        {trustUpdated ? (
+          <p className='rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs text-emerald-800'>
+            {getMember(trustUpdated)?.nickname ?? 'メンバー'} の Trust Verification を更新しました。
+          </p>
+        ) : null}
 
         <div className='space-y-2'>
           <p className='text-xs font-medium text-[#6b6b6b]'>イベントを選択</p>
@@ -78,6 +89,7 @@ export default async function ManagePage({ searchParams }: PageProps) {
                         <div className='mt-3'>
                           <MemberInsights member={member} variant='full' />
                         </div>
+                        <TrustAdminPanel member={member} eventId={event.id} />
                         <form action={removeMemberAction} className='mt-3'>
                           <input type='hidden' name='eventId' value={event.id} />
                           <input type='hidden' name='memberId' value={member.id} />
@@ -108,6 +120,7 @@ export default async function ManagePage({ searchParams }: PageProps) {
                         <div className='mt-3'>
                           <MemberInsights member={member} variant='full' />
                         </div>
+                        <TrustAdminPanel member={member} eventId={event.id} />
                         <form action={confirmMemberAction} className='mt-3'>
                           <input type='hidden' name='eventId' value={event.id} />
                           <input type='hidden' name='memberId' value={member.id} />
@@ -138,9 +151,10 @@ function MemberHeader({ member }: { member: NonNullable<ReturnType<typeof getMem
       <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full'>
         <Image src={member.avatarUrl} alt={member.nickname} fill className='object-cover' />
       </div>
-      <div className='min-w-0'>
+      <div className='min-w-0 flex-1'>
         <p className='text-sm font-semibold text-[#1a1a1a]'>{member.nickname}</p>
         <p className='text-xs text-[#6b6b6b]'>{member.age}歳 · {member.area} · {member.occupation}</p>
+        <TrustBadgeList member={member} className='mt-1.5' />
         <p className='mt-1 line-clamp-2 text-xs text-[#4a4a4a]'>{member.bio}</p>
       </div>
     </div>

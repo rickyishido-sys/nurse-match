@@ -8,12 +8,15 @@ import {
   removeMemberFromEvent,
   saveMemberPersonality,
   updateMember,
+  updateMemberTrust,
 } from '@/lib/connection/data';
 import type {
   ConnectionPurpose,
   InterestTag,
   LifePhase,
   PersonalityType,
+  TrustVerificationStatus,
+  VerificationSource,
 } from '@/lib/connection/types';
 
 const MOCK_VIEWER_ID = 'm1';
@@ -114,4 +117,30 @@ export async function savePersonalityAction(formData: FormData) {
   revalidatePath('/register/profile');
   revalidatePath('/manage');
   redirect('/register/profile?saved=personality');
+}
+
+export async function updateTrustVerificationAction(formData: FormData) {
+  const memberId = String(formData.get('memberId') ?? '');
+  const eventId = String(formData.get('eventId') ?? '');
+  const trustVerificationStatus = String(formData.get('trustVerificationStatus') ?? 'pending') as TrustVerificationStatus;
+  const verificationSource = String(formData.get('verificationSource') ?? 'none') as VerificationSource;
+  const identityVerified = formData.get('identityVerified') === '1';
+  const trustNotes = String(formData.get('trustNotes') ?? '').trim() || null;
+  const safetyFlags = formData.getAll('safetyFlags').map(String);
+
+  console.log('CONNECTION_TRUST_UPDATE', { memberId, trustVerificationStatus, safetyFlags });
+
+  if (memberId) {
+    updateMemberTrust(memberId, {
+      trustVerificationStatus,
+      verificationSource,
+      identityVerified,
+      trustNotes,
+      safetyFlags,
+    });
+  }
+
+  revalidatePath('/manage');
+  revalidatePath('/register/profile');
+  redirect(`/manage?event=${eventId}&trustUpdated=${memberId}`);
 }

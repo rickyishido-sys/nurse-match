@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
 import { ConnectionMessageButton } from '@/components/connection/message-button';
 import { MemberInsights } from '@/components/connection/member-insights';
+import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { Card, Chip } from '@/components/connection/ui';
 import { followMemberAction } from '@/lib/connection/actions';
 import {
@@ -86,6 +87,7 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
                       <p className='text-sm font-semibold text-[#1a1a1a]'>{member.nickname}</p>
                       {isSelf ? <Chip tone='muted'>あなた</Chip> : null}
                     </div>
+                    <TrustBadgeList member={member} className='mt-1.5' />
                     <p className='text-xs text-[#6b6b6b]'>{member.age}歳 · {member.area} · {member.occupation}</p>
                     <p className='mt-2 text-xs leading-6 text-[#4a4a4a]'>{member.bio}</p>
                     <div className='mt-3'>
