@@ -2,9 +2,20 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { applyToEvent, confirmMemberForEvent, removeMemberFromEvent } from '@/lib/connection/data';
+import {
+  applyToEvent,
+  confirmMemberForEvent,
+  removeMemberFromEvent,
+  saveMemberPersonality,
+  updateMember,
+} from '@/lib/connection/data';
+import type {
+  ConnectionPurpose,
+  InterestTag,
+  LifePhase,
+  PersonalityType,
+} from '@/lib/connection/types';
 
-// Mock viewer ID for MVP (logged-in user stands in as m1).
 const MOCK_VIEWER_ID = 'm1';
 
 export async function applyConnectionEventAction(formData: FormData) {
@@ -54,10 +65,53 @@ export async function sendMessageAction(formData: FormData) {
 
 export async function saveProfileAction(formData: FormData) {
   const nickname = String(formData.get('nickname') ?? '').trim();
-  console.log('CONNECTION_PROFILE_SAVE', {
-    nickname,
-    motivations: formData.getAll('motivations'),
-  });
   if (!nickname) redirect('/register/profile?error=nickname');
+
+  const purposes = formData.getAll('purposes') as ConnectionPurpose[];
+  const interestTags = formData.getAll('interestTags') as InterestTag[];
+  const lifePhase = String(formData.get('lifePhase') ?? 'other') as LifePhase;
+
+  updateMember(MOCK_VIEWER_ID, {
+    nickname,
+    age: Number(formData.get('age') ?? 0),
+    gender: String(formData.get('gender') ?? 'other') as 'female' | 'male' | 'other',
+    area: String(formData.get('area') ?? '').trim(),
+    occupation: String(formData.get('occupation') ?? '').trim(),
+    bio: String(formData.get('bio') ?? '').trim(),
+    values: {
+      mostImportant: String(formData.get('mostImportant') ?? '').trim(),
+      currentChallenge: String(formData.get('currentChallenge') ?? '').trim(),
+      futureGoal: String(formData.get('futureGoal') ?? '').trim(),
+      recentInspiration: String(formData.get('recentInspiration') ?? '').trim(),
+      howOthersSeeMe: String(formData.get('howOthersSeeMe') ?? '').trim(),
+      personalityOneWord: String(formData.get('personalityOneWord') ?? '').trim(),
+      coreValues: String(formData.get('coreValues') ?? '').trim(),
+    },
+    purposes,
+    interestTags,
+    lifePhase,
+  });
+
+  console.log('CONNECTION_PROFILE_SAVE', { nickname, purposes, interestTags, lifePhase });
+  revalidatePath('/register/profile');
+  revalidatePath('/manage');
   redirect('/events?registered=1');
+}
+
+export async function savePersonalityAction(formData: FormData) {
+  const type = String(formData.get('type') ?? '') as PersonalityType;
+  const energy = String(formData.get('energy') ?? 'introvert') as 'extravert' | 'introvert';
+  const thinking = String(formData.get('thinking') ?? 'feeling') as 'logic' | 'feeling';
+  const planning = String(formData.get('planning') ?? 'flexible') as 'plan' | 'flexible';
+
+  saveMemberPersonality(MOCK_VIEWER_ID, {
+    type,
+    axes: { energy, thinking, planning },
+    completedAt: new Date().toISOString(),
+  });
+
+  console.log('CONNECTION_PERSONALITY_SAVE', { type, energy, thinking, planning });
+  revalidatePath('/register/profile');
+  revalidatePath('/manage');
+  redirect('/register/profile?saved=personality');
 }

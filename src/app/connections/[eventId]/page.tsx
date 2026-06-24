@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
 import { ConnectionMessageButton } from '@/components/connection/message-button';
+import { MemberInsights } from '@/components/connection/member-insights';
 import { Card, Chip } from '@/components/connection/ui';
 import { followMemberAction } from '@/lib/connection/actions';
 import {
@@ -10,7 +11,6 @@ import {
   getEvent,
   getEventMembers,
   getMember,
-  MOTIVATION_LABEL,
 } from '@/lib/connection/data';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
@@ -88,10 +88,8 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
                     </div>
                     <p className='text-xs text-[#6b6b6b]'>{member.age}歳 · {member.area} · {member.occupation}</p>
                     <p className='mt-2 text-xs leading-6 text-[#4a4a4a]'>{member.bio}</p>
-                    <div className='mt-2 flex flex-wrap gap-1'>
-                      {member.motivations.map((m) => (
-                        <Chip key={m} tone='muted'>{MOTIVATION_LABEL[m]}</Chip>
-                      ))}
+                    <div className='mt-3'>
+                      <MemberInsights member={member} variant='compact' />
                     </div>
                   </div>
                 </div>

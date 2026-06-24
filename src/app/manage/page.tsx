@@ -1,7 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
-import { Card, Chip } from '@/components/connection/ui';
+import { MemberInsights } from '@/components/connection/member-insights';
+import { Card } from '@/components/connection/ui';
 import { confirmMemberAction, removeMemberAction } from '@/lib/connection/actions';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import {
@@ -11,7 +12,6 @@ import {
   getMember,
   listApplications,
   listEvents,
-  MOTIVATION_LABEL,
 } from '@/lib/connection/data';
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
@@ -32,11 +32,10 @@ export default async function ManagePage({ searchParams }: PageProps) {
           <p className='text-[11px] font-medium tracking-[0.2em] text-[#6b6b6b]'>ADMIN</p>
           <h1 className='mt-1 text-xl font-semibold text-[#1a1a1a]'>参加者選定</h1>
           <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>
-            参加希望者を確認し、6名を手動で選定します（AI不要・MVP）。
+            属性だけでなく、Connection目的・興味・人生フェーズ・性格タイプを参考に6名を選定します。
           </p>
         </div>
 
-        {/* Event selector */}
         <div className='space-y-2'>
           <p className='text-xs font-medium text-[#6b6b6b]'>イベントを選択</p>
           <div className='flex flex-wrap gap-2'>
@@ -66,18 +65,20 @@ export default async function ManagePage({ searchParams }: PageProps) {
               </p>
             </Card>
 
-            {/* Confirmed members */}
             {confirmed.length > 0 ? (
               <section>
                 <h2 className='mb-2 text-sm font-semibold text-[#1a1a1a]'>確定メンバー</h2>
-                <div className='space-y-2'>
+                <div className='space-y-3'>
                   {confirmed.map((app) => {
                     const member = getMember(app.memberId);
                     if (!member) return null;
                     return (
-                      <Card key={app.id} className='flex items-center justify-between p-3'>
-                        <MemberRow member={member} />
-                        <form action={removeMemberAction}>
+                      <Card key={app.id}>
+                        <MemberHeader member={member} />
+                        <div className='mt-3'>
+                          <MemberInsights member={member} variant='full' />
+                        </div>
+                        <form action={removeMemberAction} className='mt-3'>
                           <input type='hidden' name='eventId' value={event.id} />
                           <input type='hidden' name='memberId' value={member.id} />
                           <button type='submit' className='rounded-full border border-[#d8d6d1] px-3 py-1 text-[11px] text-[#6b6b6b]'>
@@ -91,7 +92,6 @@ export default async function ManagePage({ searchParams }: PageProps) {
               </section>
             ) : null}
 
-            {/* Pending applications */}
             <section>
               <h2 className='mb-2 text-sm font-semibold text-[#1a1a1a]'>参加希望者一覧</h2>
               {pending.length === 0 ? (
@@ -104,7 +104,10 @@ export default async function ManagePage({ searchParams }: PageProps) {
                     const atCapacity = event.confirmedMemberIds.length >= event.capacity;
                     return (
                       <Card key={app.id}>
-                        <MemberRow member={member} />
+                        <MemberHeader member={member} />
+                        <div className='mt-3'>
+                          <MemberInsights member={member} variant='full' />
+                        </div>
                         <form action={confirmMemberAction} className='mt-3'>
                           <input type='hidden' name='eventId' value={event.id} />
                           <input type='hidden' name='memberId' value={member.id} />
@@ -129,7 +132,7 @@ export default async function ManagePage({ searchParams }: PageProps) {
   );
 }
 
-function MemberRow({ member }: { member: NonNullable<ReturnType<typeof getMember>> }) {
+function MemberHeader({ member }: { member: NonNullable<ReturnType<typeof getMember>> }) {
   return (
     <div className='flex gap-3'>
       <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full'>
@@ -139,11 +142,6 @@ function MemberRow({ member }: { member: NonNullable<ReturnType<typeof getMember
         <p className='text-sm font-semibold text-[#1a1a1a]'>{member.nickname}</p>
         <p className='text-xs text-[#6b6b6b]'>{member.age}歳 · {member.area} · {member.occupation}</p>
         <p className='mt-1 line-clamp-2 text-xs text-[#4a4a4a]'>{member.bio}</p>
-        <div className='mt-1 flex flex-wrap gap-1'>
-          {member.motivations.slice(0, 3).map((m) => (
-            <Chip key={m} tone='muted'>{MOTIVATION_LABEL[m]}</Chip>
-          ))}
-        </div>
       </div>
     </div>
   );

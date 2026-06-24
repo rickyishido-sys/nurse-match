@@ -2,23 +2,67 @@ import type {
   ConnectionEvent,
   ConnectionEventCategory,
   ConnectionMember,
-  ConnectionMotivation,
+  ConnectionPurpose,
   EventApplication,
+  InterestTag,
+  LifePhase,
+  MemberGroupingProfile,
+  PersonalityProfile,
+  ProfileValues,
 } from '@/lib/connection/types';
 
 const img = (id: string, w = 800) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70`;
 
-export const MOTIVATION_LABEL: Record<ConnectionMotivation, string> = {
-  new_friends: '新しい友人を作りたい',
-  entrepreneurs: '経営者と繋がりたい',
-  hobby: '趣味仲間が欲しい',
-  community: '地域活動に興味がある',
-  startup: '起業に興味がある',
-  lonely: '最近孤独を感じる',
-  more_connections: '人との繋がりを増やしたい',
+export const PURPOSE_LABEL: Record<ConnectionPurpose, string> = {
+  new_friends: '新しい友人が欲しい',
+  hobby_buddies: '趣味仲間が欲しい',
+  life_stimulus: '人生の刺激が欲しい',
+  learning: '学びを得たい',
+  mutual_support: '応援し合える仲間が欲しい',
+  cross_industry: '異業種の人と話したい',
+  local_community: '地域で繋がりたい',
+  other: 'その他',
 };
 
-export const MOTIVATION_OPTIONS = Object.entries(MOTIVATION_LABEL) as [ConnectionMotivation, string][];
+export const PURPOSE_OPTIONS = Object.entries(PURPOSE_LABEL) as [ConnectionPurpose, string][];
+
+export const INTEREST_TAG_LABEL: Record<InterestTag, string> = {
+  flowers: '花',
+  coffee: 'コーヒー',
+  walking: '散歩',
+  art: 'アート',
+  reading: '読書',
+  movies: '映画',
+  music: '音楽',
+  startup: '起業',
+  management: '経営',
+  investment: '投資',
+  sports: 'スポーツ',
+  fitness: 'フィットネス',
+  travel: '旅行',
+  photography: '写真',
+  ai: 'AI',
+  other: 'その他',
+};
+
+export const INTEREST_TAG_OPTIONS = Object.entries(INTEREST_TAG_LABEL) as [InterestTag, string][];
+
+export const LIFE_PHASE_LABEL: Record<LifePhase, string> = {
+  student: '学生',
+  employee: '会社員',
+  executive: '経営者',
+  freelance: 'フリーランス',
+  pre_startup: '起業準備中',
+  job_change: '転職検討中',
+  parenting: '子育て中',
+  second_career: 'セカンドキャリア',
+  retired: 'リタイア後',
+  other: 'その他',
+};
+
+export const LIFE_PHASE_OPTIONS = Object.entries(LIFE_PHASE_LABEL) as [LifePhase, string][];
+
+export { PERSONALITY_TYPE_META, formatPersonalityAxes } from '@/lib/connection/personality';
 
 export const EVENT_CATEGORY_LABEL: Record<ConnectionEventCategory, string> = {
   flower: 'Flower Connection',
@@ -36,6 +80,18 @@ export const EVENT_CATEGORY_ORDER: ConnectionEventCategory[] = [
   'fitness',
 ];
 
+function seedValues(partial: Partial<ProfileValues>): ProfileValues {
+  return {
+    mostImportant: partial.mostImportant ?? '',
+    currentChallenge: partial.currentChallenge ?? '',
+    futureGoal: partial.futureGoal ?? '',
+    recentInspiration: partial.recentInspiration ?? '',
+    howOthersSeeMe: partial.howOthersSeeMe ?? '',
+    personalityOneWord: partial.personalityOneWord ?? '',
+    coreValues: partial.coreValues ?? '',
+  };
+}
+
 const members: ConnectionMember[] = [
   {
     id: 'm1',
@@ -46,7 +102,23 @@ const members: ConnectionMember[] = [
     occupation: 'ブランドマネージャー',
     bio: '仕事以外の出会いが少なくなってきたので、偶然のConnectionを楽しみたいです。',
     avatarUrl: img('photo-1494790108377-be9c29b29330', 200),
-    motivations: ['new_friends', 'more_connections'],
+    values: seedValues({
+      mostImportant: '大切な人との時間と、自分らしさを大切にすること',
+      currentChallenge: '仕事とプライベートの境界を見直している',
+      futureGoal: '地域の小さなコミュニティをつくりたい',
+      recentInspiration: '知らない人との会話から新しい視点が生まれたこと',
+      howOthersSeeMe: '落ち着いていて、聞き上手',
+      personalityOneWord: '穏やか',
+      coreValues: '誠実さ、好奇心、余白',
+    }),
+    purposes: ['new_friends', 'life_stimulus', 'cross_industry'],
+    interestTags: ['coffee', 'art', 'reading', 'travel'],
+    lifePhase: 'employee',
+    personality: {
+      type: 'supporter',
+      axes: { energy: 'introvert', thinking: 'feeling', planning: 'plan' },
+      completedAt: '2026-06-01T10:00:00+09:00',
+    },
   },
   {
     id: 'm2',
@@ -57,7 +129,23 @@ const members: ConnectionMember[] = [
     occupation: 'スタートアップ経営',
     bio: '異業種の人とゆるく話せる場があれば。堅い交流会は苦手です。',
     avatarUrl: img('photo-1507003211169-0a1dd7228f2d', 200),
-    motivations: ['entrepreneurs', 'startup', 'hobby'],
+    values: seedValues({
+      mostImportant: '挑戦し続けることと、チームの信頼',
+      currentChallenge: '新規事業の立ち上げと資金調達',
+      futureGoal: '社会に残るプロダクトをつくる',
+      recentInspiration: '若手メンバーの成長を間近で見たこと',
+      howOthersSeeMe: '熱量が高い、頼れる',
+      personalityOneWord: '挑戦者',
+      coreValues: '行動力、学び、オープンマインド',
+    }),
+    purposes: ['cross_industry', 'learning', 'mutual_support'],
+    interestTags: ['startup', 'management', 'coffee', 'ai'],
+    lifePhase: 'executive',
+    personality: {
+      type: 'challenger',
+      axes: { energy: 'extravert', thinking: 'logic', planning: 'plan' },
+      completedAt: '2026-05-20T10:00:00+09:00',
+    },
   },
   {
     id: 'm3',
@@ -68,7 +156,23 @@ const members: ConnectionMember[] = [
     occupation: 'UIデザイナー',
     bio: '最近転職して知り合いが減った。自然な形で人と繋がりたい。',
     avatarUrl: img('photo-1438761681033-6461ffad8d80', 200),
-    motivations: ['new_friends', 'lonely', 'more_connections'],
+    values: seedValues({
+      mostImportant: '創造性と、心地よい人間関係',
+      currentChallenge: '新しい環境でのキャリア構築',
+      futureGoal: 'デザインで誰かの人生を豊かにしたい',
+      recentInspiration: '街角の小さなギャラリー',
+      howOthersSeeMe: 'センスがいい、優しい',
+      personalityOneWord: '感性派',
+      coreValues: '美しさ、共感、成長',
+    }),
+    purposes: ['new_friends', 'hobby_buddies', 'learning'],
+    interestTags: ['art', 'coffee', 'photography', 'movies'],
+    lifePhase: 'job_change',
+    personality: {
+      type: 'creator',
+      axes: { energy: 'introvert', thinking: 'feeling', planning: 'flexible' },
+      completedAt: '2026-06-05T10:00:00+09:00',
+    },
   },
   {
     id: 'm4',
@@ -79,7 +183,23 @@ const members: ConnectionMember[] = [
     occupation: 'コンサルタント',
     bio: '週末は散歩とコーヒーが好き。気軽に話せる仲間が欲しい。',
     avatarUrl: img('photo-1500648767791-00dcc994a43e', 200),
-    motivations: ['hobby', 'community', 'new_friends'],
+    values: seedValues({
+      mostImportant: '家族との時間と、健康',
+      currentChallenge: '仕事のペースを整えること',
+      futureGoal: 'セカンドキャリアで地域に貢献したい',
+      recentInspiration: '朝の散歩で出会った桜',
+      howOthersSeeMe: '穏やかで頼りになる',
+      personalityOneWord: '堅実',
+      coreValues: '誠実、バランス、継続',
+    }),
+    purposes: ['hobby_buddies', 'local_community', 'new_friends'],
+    interestTags: ['walking', 'coffee', 'reading', 'travel'],
+    lifePhase: 'second_career',
+    personality: {
+      type: 'supporter',
+      axes: { energy: 'introvert', thinking: 'feeling', planning: 'plan' },
+      completedAt: '2026-05-15T10:00:00+09:00',
+    },
   },
   {
     id: 'm5',
@@ -90,7 +210,23 @@ const members: ConnectionMember[] = [
     occupation: 'フリーランスライター',
     bio: '在宅ワークが多く、リアルでの会話を大切にしたい。',
     avatarUrl: img('photo-1534528741775-53994a69daeb', 200),
-    motivations: ['lonely', 'more_connections', 'hobby'],
+    values: seedValues({
+      mostImportant: '言葉の力と、深い対話',
+      currentChallenge: '孤独感との向き合い方',
+      futureGoal: '本を書くこと',
+      recentInspiration: '長いインタビュー記事を読んだこと',
+      howOthersSeeMe: '物静か、芯がある',
+      personalityOneWord: '内省',
+      coreValues: '真実、深さ、表現',
+    }),
+    purposes: ['new_friends', 'mutual_support', 'learning'],
+    interestTags: ['reading', 'coffee', 'movies', 'music'],
+    lifePhase: 'freelance',
+    personality: {
+      type: 'creator',
+      axes: { energy: 'introvert', thinking: 'feeling', planning: 'flexible' },
+      completedAt: '2026-06-08T10:00:00+09:00',
+    },
   },
   {
     id: 'm6',
@@ -101,7 +237,23 @@ const members: ConnectionMember[] = [
     occupation: 'エンジニア',
     bio: 'マッチングアプリではなく、偶然から始まる出会いに興味があります。',
     avatarUrl: img('photo-1506794778202-cad84cf45f1d', 200),
-    motivations: ['new_friends', 'startup'],
+    values: seedValues({
+      mostImportant: '技術で社会に貢献すること',
+      currentChallenge: '副業でプロダクトを立ち上げている',
+      futureGoal: '自分のサービスで100人の人生を変えたい',
+      recentInspiration: 'オープンソースコミュニティの協力',
+      howOthersSeeMe: '論理的、真面目',
+      personalityOneWord: '探究',
+      coreValues: '論理、挑戦、協力',
+    }),
+    purposes: ['cross_industry', 'learning', 'life_stimulus'],
+    interestTags: ['ai', 'startup', 'coffee', 'fitness'],
+    lifePhase: 'pre_startup',
+    personality: {
+      type: 'challenger',
+      axes: { energy: 'extravert', thinking: 'logic', planning: 'plan' },
+      completedAt: '2026-06-02T10:00:00+09:00',
+    },
   },
   {
     id: 'm7',
@@ -112,7 +264,23 @@ const members: ConnectionMember[] = [
     occupation: '事業開発',
     bio: '経営者や挑戦する人との出会いを増やしたい。',
     avatarUrl: img('photo-1544005313-94ddf0286df2', 200),
-    motivations: ['entrepreneurs', 'startup', 'community'],
+    values: seedValues({
+      mostImportant: '人の可能性を引き出すこと',
+      currentChallenge: '新規事業のパートナー探し',
+      futureGoal: '女性起業家の支援',
+      recentInspiration: '後輩の独立',
+      howOthersSeeMe: '頼もしい、つながり屋',
+      personalityOneWord: 'つなぐ',
+      coreValues: '信頼、挑戦、多様性',
+    }),
+    purposes: ['cross_industry', 'mutual_support', 'learning'],
+    interestTags: ['management', 'startup', 'coffee', 'travel'],
+    lifePhase: 'executive',
+    personality: {
+      type: 'explorer',
+      axes: { energy: 'extravert', thinking: 'feeling', planning: 'flexible' },
+      completedAt: '2026-05-25T10:00:00+09:00',
+    },
   },
   {
     id: 'm8',
@@ -123,7 +291,23 @@ const members: ConnectionMember[] = [
     occupation: '地域商店経営',
     bio: '地域の活動にも関心があり、新しい視点の人と話したい。',
     avatarUrl: img('photo-1472099645785-5658abf4ff4e', 200),
-    motivations: ['community', 'entrepreneurs', 'hobby'],
+    values: seedValues({
+      mostImportant: '地域コミュニティの活性化',
+      currentChallenge: '店舗のデジタル化',
+      futureGoal: '鎌倉に新しい居場所をつくる',
+      recentInspiration: '地元の祭り',
+      howOthersSeeMe: '地元愛が強い、話しやすい',
+      personalityOneWord: '地域密着',
+      coreValues: '地域、つながり、継続',
+    }),
+    purposes: ['local_community', 'cross_industry', 'hobby_buddies'],
+    interestTags: ['flowers', 'coffee', 'walking', 'management'],
+    lifePhase: 'executive',
+    personality: {
+      type: 'explorer',
+      axes: { energy: 'extravert', thinking: 'feeling', planning: 'flexible' },
+      completedAt: '2026-06-03T10:00:00+09:00',
+    },
   },
 ];
 
@@ -330,4 +514,30 @@ export function formatEventDate(iso: string) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(d);
+}
+
+/** プロフィール更新（MVP: インメモリ） */
+export function updateMember(id: string, patch: Partial<Omit<ConnectionMember, 'id'>>) {
+  const idx = members.findIndex((m) => m.id === id);
+  if (idx < 0) return null;
+  members[idx] = { ...members[idx], ...patch };
+  return members[idx];
+}
+
+export function saveMemberPersonality(id: string, personality: PersonalityProfile) {
+  return updateMember(id, { personality });
+}
+
+/** 将来のAIグルーピング用スナップショット */
+export function getGroupingProfile(memberId: string): MemberGroupingProfile | null {
+  const m = getMember(memberId);
+  if (!m) return null;
+  return {
+    memberId: m.id,
+    demographics: { age: m.age, gender: m.gender, occupation: m.occupation, lifePhase: m.lifePhase },
+    values: m.values,
+    purposes: m.purposes,
+    interestTags: m.interestTags,
+    personality: m.personality,
+  };
 }
