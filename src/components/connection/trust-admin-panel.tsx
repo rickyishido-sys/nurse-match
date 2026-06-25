@@ -23,7 +23,7 @@ export function TrustAdminPanel({ member, eventId }: TrustAdminPanelProps) {
     <div className='mt-4 space-y-3 rounded-2xl border border-dashed border-[#d8d6d1] bg-[#fafaf8] p-4'>
       <div>
         <p className='text-[11px] font-semibold tracking-wide text-[#6b6b6b]'>Trust Verification（管理者のみ）</p>
-        <p className='mt-0.5 text-[10px] text-[#9a9a9a]'>公開情報確認メモ・安全確認フラグは参加者には表示されません。</p>
+        <p className='mt-0.5 text-[10px] text-[#9a9a9a]'>運営確認ステータス · 公開情報確認メモ・安全確認フラグは参加者には表示されません。</p>
       </div>
 
       <form action={updateTrustVerificationAction} className='space-y-3'>
@@ -31,7 +31,7 @@ export function TrustAdminPanel({ member, eventId }: TrustAdminPanelProps) {
         <input type='hidden' name='eventId' value={eventId} />
 
         <label className='grid gap-1 text-xs'>
-          <span className='font-medium text-[#4a4a4a]'>ステータス</span>
+          <span className='font-medium text-[#4a4a4a]'>運営確認ステータス</span>
           <select
             name='trustVerificationStatus'
             defaultValue={member.trustVerificationStatus}
@@ -101,7 +101,7 @@ export function TrustAdminPanel({ member, eventId }: TrustAdminPanelProps) {
         </fieldset>
 
         <button type='submit' className='h-9 w-full rounded-full border border-[#1a1a1a] text-[11px] font-semibold text-[#1a1a1a]'>
-          Trust Verification を更新
+          運営確認ステータスを更新
         </button>
       </form>
     </div>
@@ -113,7 +113,7 @@ export function TrustOperationGuide() {
   return (
     <div className='space-y-2 rounded-2xl border border-[#ebe9e4] bg-[#fafaf8] p-4'>
       <p className='text-xs font-semibold text-[#1a1a1a]'>Trust Verification 運用メモ</p>
-      <p className='text-[11px] leading-5 text-[#6b6b6b]'>以下を参考に、運営者が最終判断を行います。</p>
+      <p className='text-[11px] leading-5 text-[#6b6b6b]'>運営確認ステータスの判断基準。以下を参考に、運営者が最終判断を行います。</p>
       <ul className='list-inside list-disc space-y-1 text-[11px] text-[#4a4a4a]'>
         {TRUST_OPERATION_GUIDELINES.map((item) => (
           <li key={item}>{item}</li>

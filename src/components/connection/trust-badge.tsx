@@ -13,7 +13,7 @@ type TrustBadgeListProps = {
   className?: string;
 };
 
-/** 本人確認・Trust Verification の公開バッジ */
+/** 本人確認・運営確認の公開バッジ */
 export function TrustBadgeList({ member, className = '' }: TrustBadgeListProps) {
   const badges = getPublicTrustBadges(member);
   if (badges.length === 0) return null;

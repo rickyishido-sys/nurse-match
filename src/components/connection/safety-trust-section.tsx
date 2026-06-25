@@ -18,7 +18,7 @@ export function SafetyTrustSection({ className = '' }: SafetyTrustSectionProps) 
           HANAKAIでは、参加者全員に本人確認をお願いしています。
         </p>
         <p className='text-sm leading-7 text-[#4a4a4a]'>
-          さらに、公開情報や過去のメディア掲載情報等を活用した独自のTrust Verificationを実施しています。
+          さらに、公開情報や過去のメディア掲載情報等を活用した運営による安全確認を実施しています。
         </p>
         <p className='text-sm leading-7 text-[#4a4a4a]'>
           見知らぬ人同士が出会うサービスだからこそ、安心して参加できる環境づくりを何よりも大切にしています。

@@ -35,7 +35,7 @@ export default async function ManagePage({ searchParams }: PageProps) {
           <p className='text-[11px] font-medium tracking-[0.2em] text-[#6b6b6b]'>ADMIN</p>
           <h1 className='mt-1 text-xl font-semibold text-[#1a1a1a]'>参加者選定</h1>
           <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>
-            属性だけでなく、Connection目的・興味・人生フェーズ・性格タイプ・Trust Verificationを参考に6名を選定します。
+            属性だけでなく、Connection目的・興味・人生フェーズ・性格タイプ・運営確認ステータスを参考に6名を選定します。
           </p>
         </div>
 
@@ -43,7 +43,7 @@ export default async function ManagePage({ searchParams }: PageProps) {
 
         {trustUpdated ? (
           <p className='rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs text-emerald-800'>
-            {getMember(trustUpdated)?.nickname ?? 'メンバー'} の Trust Verification を更新しました。
+            {getMember(trustUpdated)?.nickname ?? 'メンバー'} の運営確認ステータスを更新しました。
           </p>
         ) : null}
 

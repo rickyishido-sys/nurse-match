@@ -150,10 +150,13 @@ export function ConnectionProfileForm({ error, member }: ProfileFormProps) {
         <StepPanel title='基本情報' lead='まずは、あなたのことを少しだけ教えてください。'>
           {member ? (
             <div className='rounded-2xl border border-[#ebe9e4] bg-white p-4'>
-              <p className='text-xs font-semibold text-[#1a1a1a]'>Trust Verification</p>
+              <p className='text-xs font-semibold text-[#1a1a1a]'>安全確認</p>
+              <p className='mt-1 text-[11px] leading-5 text-[#6b6b6b]'>
+                運営が参加者の本人確認と公開情報を確認し、安心して参加できる環境を整えています。
+              </p>
               <TrustBadgeList member={member} className='mt-2' />
               <p className='mt-2 text-[11px] text-[#9a9a9a]'>
-                安全確認ステータス: {TRUST_STATUS_LABEL_JA[member.trustVerificationStatus]}
+                現在のステータス: {TRUST_STATUS_LABEL_JA[member.trustVerificationStatus]}
               </p>
             </div>
           ) : null}

@@ -23,7 +23,7 @@ export const TRUST_STATUS_LABEL: Record<TrustVerificationStatus, string> = {
 export const TRUST_STATUS_LABEL_JA: Record<TrustVerificationStatus, string> = {
   pending: '未確認',
   reviewing: '運営確認中',
-  verified: 'Trust Verification済み',
+  verified: '運営確認済み',
   rejected: '確認不可',
 };
 
@@ -65,7 +65,7 @@ export function getPublicTrustBadges(member: ConnectionMember): PublicTrustBadge
   }
 
   if (member.trustVerificationStatus === 'verified') {
-    badges.push({ key: 'trust', label: 'Trust Verification済み', tone: 'verified' });
+    badges.push({ key: 'trust', label: '運営確認済み', tone: 'verified' });
   } else if (member.trustVerificationStatus === 'reviewing') {
     badges.push({ key: 'reviewing', label: '運営確認中', tone: 'reviewing' });
   }
