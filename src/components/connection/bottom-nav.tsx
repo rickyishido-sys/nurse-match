@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
+import { CONNECTION_NAV_CLASS } from '@/lib/connection/layout-width';
 
 const items = [
   { href: '/home', label: 'ホーム' },
@@ -15,7 +16,7 @@ export function ConnectionBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className='fixed bottom-0 left-1/2 z-30 w-full max-w-[420px] -translate-x-1/2 border-t border-[#ebe9e4] bg-[#fafaf8]/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur'>
+    <nav className={CONNECTION_NAV_CLASS}>
       <ul className='grid grid-cols-4 gap-1'>
         {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

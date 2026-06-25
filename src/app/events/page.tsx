@@ -56,7 +56,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
           ))}
         </div>
 
-        <div className='space-y-5'>
+        <div className='space-y-5 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0'>
           {events.map((event) => {
             const meta = EVENT_CATEGORY_META[event.category];
             return (

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ConnectionBottomNav } from '@/components/connection/bottom-nav';
 import { logoutAction } from '@/lib/actions';
+import { CONNECTION_SHELL_CLASS } from '@/lib/connection/layout-width';
 import type { HanakaiViewer } from '@/lib/hanakai/session';
 
 type ConnectionShellProps = {
@@ -13,7 +14,7 @@ type ConnectionShellProps = {
 
 export function ConnectionShell({ viewer, children, showNav = true, flushMain = false }: ConnectionShellProps) {
   return (
-    <div className='mx-auto flex min-h-screen w-full max-w-[420px] flex-col border-x border-[#ebe9e4] bg-[#fafaf8]'>
+    <div className={CONNECTION_SHELL_CLASS}>
       <header className='sticky top-0 z-20 border-b border-[#ebe9e4] bg-[#fafaf8]/95 px-5 py-4 backdrop-blur'>
         <div className='flex items-center justify-between'>
           <Link href='/' className='flex flex-col'>
@@ -41,7 +42,7 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
         </div>
       </header>
 
-      <main className={`flex-1 ${flushMain ? 'px-5 pb-8 pt-0' : 'px-5 py-6'} ${showNav ? 'pb-24' : ''}`}>{children}</main>
+      <main className={`flex-1 ${flushMain ? 'px-5 pb-8 pt-0 lg:px-10' : 'px-5 py-6 lg:px-10'} ${showNav ? 'pb-24' : ''}`}>{children}</main>
 
       <footer className={`border-t border-[#ebe9e4] px-5 py-6 text-center text-[11px] text-[#9a9a9a] ${showNav ? 'mb-16' : ''}`}>
         <p className='mb-1 font-medium tracking-[0.12em] text-[#1a1a1a]'>HANAKAI Connection</p>

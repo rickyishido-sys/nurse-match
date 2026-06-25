@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ConnectionProfileForm } from '@/components/connection/profile-form';
 import { getMember } from '@/lib/connection/data';
+import { CONNECTION_PAGE_CLASS } from '@/lib/connection/layout-width';
 
 const MOCK_VIEWER_ID = 'm1';
 
@@ -19,7 +20,7 @@ export default async function RegisterProfilePage({ searchParams }: PageProps) {
 
   return (
     <main className='min-h-screen bg-[#fafaf8] px-5 py-8'>
-      <div className='mx-auto w-full max-w-[420px]'>
+      <div className={CONNECTION_PAGE_CLASS}>
         <div className='mb-8'>
           <Link href='/' className='flex flex-col'>
             <span className='text-[15px] font-semibold tracking-[0.12em] text-[#1a1a1a]'>HANAKAI</span>

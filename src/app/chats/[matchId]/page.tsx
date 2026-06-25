@@ -16,7 +16,7 @@ export default async function ChatDetailPage({ params }: { params: Promise<{ mat
     const state = await getAccessState(user);
     if (state === 'rejected') redirect('/review-rejected');
     if (state === 'suspended') redirect('/suspended');
-    if (user.onboardingStatus !== 'verified') redirect('/preview');
+    if (user.onboardingStatus !== 'verified') redirect('/onboarding-preview');
     if (state === 'pending') redirect('/pending-review');
   }
 

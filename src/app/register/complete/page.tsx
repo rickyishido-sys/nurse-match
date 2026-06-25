@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getMember } from '@/lib/connection/data';
+import { CONNECTION_PAGE_CLASS } from '@/lib/connection/layout-width';
 import { PERSONALITY_TYPE_META } from '@/lib/connection/personality';
 
 const MOCK_VIEWER_ID = 'm1';
@@ -10,7 +11,7 @@ export default function RegisterCompletePage() {
 
   return (
     <main className='min-h-screen bg-[#fafaf8] px-5 py-10'>
-      <div className='mx-auto w-full max-w-[420px]'>
+      <div className={CONNECTION_PAGE_CLASS}>
         <div className='mb-8 flex flex-col items-center text-center'>
           <span className='text-[15px] font-semibold tracking-[0.12em] text-[#1a1a1a]'>HANAKAI</span>
           <span className='text-[11px] font-medium tracking-[0.2em] text-[#6b6b6b]'>CONNECTION</span>

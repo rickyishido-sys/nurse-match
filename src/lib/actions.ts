@@ -50,7 +50,7 @@ function resolvePostLoginPath(user: {
   if (user.role === 'female_admin') return '/admin/female';
   if (user.role === 'male_admin') return '/admin/male';
   if (user.role === 'super_admin') return '/admin';
-  if (user.onboardingStatus === 'provisional') return '/preview';
+  if (user.onboardingStatus === 'provisional') return '/onboarding-preview';
   if (user.onboardingStatus === 'profile_completed') return '/pending-review';
   return '/home';
 }
@@ -891,8 +891,8 @@ export async function registerAction(formData: FormData) {
       profileImageUrl: profileImageUrl ?? '',
     });
 
-    revalidatePath('/preview');
-    redirect('/preview');
+    revalidatePath('/onboarding-preview');
+    redirect('/onboarding-preview');
   }
 
   const supabase = await createServerSupabaseClient();
@@ -1000,8 +1000,8 @@ export async function registerAction(formData: FormData) {
     if (error) throw new Error(error.message);
   }
 
-  revalidatePath('/preview');
-  redirect('/preview');
+  revalidatePath('/onboarding-preview');
+  redirect('/onboarding-preview');
 }
 
 export async function registerDetailsAction(formData: FormData) {
@@ -1638,7 +1638,7 @@ export async function toggleFavoriteAction(formData: FormData) {
   const userId = String(formData.get('userId'));
   const targetUserId = String(formData.get('targetUserId'));
   await toggleFavoriteCandidate(userId, targetUserId);
-  revalidatePath('/preview');
+  revalidatePath('/onboarding-preview');
   revalidatePath('/favorites');
 }
 
@@ -1658,7 +1658,7 @@ export async function maleInterestSignalAction(formData: FormData) {
   await createInterestSignal({ userId, targetUserId, signalType });
   revalidatePath('/home/male');
   revalidatePath('/home/female');
-  revalidatePath('/preview');
+  revalidatePath('/onboarding-preview');
 }
 
 export async function sendMessageAction(formData: FormData) {

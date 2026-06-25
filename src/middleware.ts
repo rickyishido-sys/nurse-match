@@ -18,7 +18,7 @@ const PUBLIC_PATHS = [
   '/auth',
   '/auth/callback',
 ];
-const ADMIN_BYPASS_PATHS = ['/register', '/preview', '/pending-review'];
+const ADMIN_BYPASS_PATHS = ['/register', '/preview', '/onboarding-preview', '/pending-review'];
 const MEMBER_ONLY_PATH_PREFIXES = ['/app', '/cards', '/mypage', '/messages', '/discover', '/likes', '/matches', '/chat', '/chats'];
 // HANAKAI community browse routes are public (browse-before-join experience).
 const HANAKAI_PUBLIC_PREFIXES = ['/home', '/events', '/connections', '/manage', '/register/profile'];

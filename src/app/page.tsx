@@ -11,7 +11,7 @@ export default async function LandingPage() {
 
   return (
     <ConnectionShell viewer={viewer} showNav={false} flushMain>
-      <div className='space-y-16 pb-8 pt-2'>
+      <div className='space-y-16 pb-8 pt-2 lg:space-y-20'>
         <LandingHero />
         <LandingCategoryCards />
         <LandingFlowSteps />
