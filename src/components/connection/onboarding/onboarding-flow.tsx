@@ -5,6 +5,7 @@ import { saveProfileAction } from '@/lib/connection/actions';
 import {
   DESIRED_CONNECTION_OPTIONS,
   EXPERIENCE_OPTIONS,
+  EXPERIENCE_TO_INTEREST,
   LIFE_PHASE_MINDSET_OPTIONS,
   OCCUPATION_OPTIONS,
   PREFECTURES,
@@ -58,13 +59,11 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
   const [gender, setGender] = useState<'male' | 'female' | 'other' | ''>(member?.gender ?? '');
   const [area, setArea] = useState(member?.area ?? '');
   const [occupation, setOccupation] = useState<LifePhase | ''>(member?.lifePhase ?? '');
-  const [currentPhase, setCurrentPhase] = useState<string>(v?.currentPhase ?? '');
+  const [currentPhase, setCurrentPhase] = useState<string>(v?.mostImportant ?? '');
   const [weekend, setWeekend] = useState<InterestTag[]>(
     (member?.interestTags ?? []).filter((t) => WEEKEND_OPTIONS.some((o) => o.value === t)),
   );
-  const [experiences, setExperiences] = useState<string[]>(
-    (v?.experiences ?? []).filter((e) => EXPERIENCE_OPTIONS.some((o) => o.value === e)),
-  );
+  const [experiences, setExperiences] = useState<string[]>([]);
   const [purposes, setPurposes] = useState<ConnectionPurpose[]>(
     (member?.purposes ?? []).filter((p) => DESIRED_CONNECTION_OPTIONS.some((o) => o.value === p)),
   );
@@ -82,6 +81,14 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
 
   const occupationLabel = OCCUPATION_OPTIONS.find((o) => o.value === occupation)?.label ?? '';
   const selectedTemperament = TEMPERAMENT_OPTIONS.find((t) => t.value === temperament) ?? null;
+
+  // 休日(step7) + 興味のある体験(step8) を既存 interestTags キーへ統合（重複排除）
+  const interestTagsToSubmit = useMemo(() => {
+    const mapped = experiences
+      .map((e) => EXPERIENCE_TO_INTEREST[e])
+      .filter((t): t is InterestTag => Boolean(t));
+    return Array.from(new Set<InterestTag>([...weekend, ...mapped]));
+  }, [weekend, experiences]);
 
   // step 0 = Welcome, step 1..15 = 設問
   const isLast = step === QUESTION_COUNT;
@@ -168,16 +175,13 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
       <input type='hidden' name='area' value={area} />
       <input type='hidden' name='lifePhase' value={occupation || 'other'} />
       <input type='hidden' name='occupation' value={occupationLabel} />
-      <input type='hidden' name='currentPhase' value={currentPhase} />
+      <input type='hidden' name='mostImportant' value={currentPhase} />
       <input type='hidden' name='currentChallenge' value={currentChallenge} />
       <input type='hidden' name='futureGoal' value={futureGoal} />
       <input type='hidden' name='recentInspiration' value={recentInspiration} />
       <input type='hidden' name='howOthersSeeMe' value={howOthersSeeMe} />
-      {weekend.map((t) => (
+      {interestTagsToSubmit.map((t) => (
         <input key={t} type='hidden' name='interestTags' value={t} />
-      ))}
-      {experiences.map((e) => (
-        <input key={e} type='hidden' name='experiences' value={e} />
       ))}
       {purposes.map((p) => (
         <input key={p} type='hidden' name='purposes' value={p} />

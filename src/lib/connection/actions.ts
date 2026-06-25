@@ -82,8 +82,6 @@ export async function saveProfileAction(formData: FormData) {
   const coreValues =
     explicitCoreValues || valueTags.map((tag) => VALUE_TAG_LABEL[tag]).filter(Boolean).join('、');
 
-  const experiences = formData.getAll('experiences').map(String).filter(Boolean);
-
   updateMember(MOCK_VIEWER_ID, {
     nickname,
     age: Number(formData.get('age') ?? 0),
@@ -100,8 +98,6 @@ export async function saveProfileAction(formData: FormData) {
       personalityOneWord: String(formData.get('personalityOneWord') ?? '').trim(),
       coreValues,
       valueTags,
-      currentPhase: String(formData.get('currentPhase') ?? '').trim() || undefined,
-      experiences: experiences.length > 0 ? experiences : undefined,
     },
     purposes,
     interestTags,

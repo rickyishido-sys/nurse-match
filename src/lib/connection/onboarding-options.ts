@@ -7,23 +7,29 @@ import type {
   ValueTag,
 } from '@/lib/connection/types';
 
-/** 選択肢: コードと表示ラベルの組（オンボーディング用） */
+/**
+ * オンボーディング用の選択肢定義。
+ * すべて既存 enum のコードへマッピングし、saveProfileAction の
+ * 既存 FormData キー / repeated key 形式をそのまま利用する。
+ * label は表示専用で、保存される値（value）は既存コードのみ。
+ */
 export type Option<T extends string = string> = { value: T; label: string };
 
-/** 5. 職業（既存 LifePhase enum にマッピングして保存） */
+/** 5. 職業（既存 LifePhase enum にマッピング・表示ラベルのみ調整） */
 export const OCCUPATION_OPTIONS: Option<LifePhase>[] = [
   { value: 'employee', label: '会社員' },
   { value: 'executive', label: '経営者・役員' },
   { value: 'freelance', label: '個人事業主・フリーランス' },
-  { value: 'second_career', label: '医療・福祉' },
-  { value: 'pre_startup', label: 'クリエイター' },
+  { value: 'pre_startup', label: 'クリエイター・専門職' },
   { value: 'student', label: '学生' },
   { value: 'parenting', label: '主婦・主夫' },
   { value: 'job_change', label: '休職中・転職活動中' },
+  { value: 'second_career', label: 'セカンドキャリア' },
+  { value: 'retired', label: 'リタイア後' },
   { value: 'other', label: 'その他' },
 ];
 
-/** 6. 人生フェーズ（マインドセット・values.currentPhase に保存） */
+/** 6. 人生フェーズ（マインドセット）→ 既存自由記述キー mostImportant に保存 */
 export const LIFE_PHASE_MINDSET_OPTIONS: Option[] = [
   { value: '仕事を頑張っている', label: '仕事を頑張っている' },
   { value: '新しい挑戦をしている', label: '新しい挑戦をしている' },
@@ -34,7 +40,7 @@ export const LIFE_PHASE_MINDSET_OPTIONS: Option[] = [
   { value: '変化の途中にいる', label: '変化の途中にいる' },
 ];
 
-/** 7. 休日の過ごし方（既存 InterestTag enum） */
+/** 7. 休日の過ごし方 → 既存 InterestTag enum（暮らし寄りのコードを抜粋） */
 export const WEEKEND_OPTIONS: Option<InterestTag>[] = [
   { value: 'walking', label: '散歩' },
   { value: 'coffee', label: 'カフェ' },
@@ -43,20 +49,13 @@ export const WEEKEND_OPTIONS: Option<InterestTag>[] = [
   { value: 'movies', label: '映画' },
   { value: 'reading', label: '読書' },
   { value: 'music', label: '音楽' },
-  { value: 'food_walk', label: '食べ歩き' },
-  { value: 'cooking', label: '料理' },
-  { value: 'drinks', label: 'お酒' },
-  { value: 'sauna', label: 'サウナ' },
   { value: 'travel', label: '旅行' },
   { value: 'sports', label: 'スポーツ' },
   { value: 'fitness', label: 'ジム' },
-  { value: 'camping', label: 'キャンプ' },
-  { value: 'games', label: 'ゲーム' },
-  { value: 'home_relax', label: '家でゆっくり' },
-  { value: 'friends', label: '友人と会う' },
+  { value: 'photography', label: '写真' },
 ];
 
-/** 8. 興味のある体験（values.experiences に保存） */
+/** 8. 興味のある体験 → 既存 InterestTag enum に合流（重複は送信前に排除） */
 export const EXPERIENCE_OPTIONS: Option[] = [
   { value: 'flower', label: 'Flower' },
   { value: 'coffee', label: 'Coffee' },
@@ -65,37 +64,44 @@ export const EXPERIENCE_OPTIONS: Option[] = [
   { value: 'fitness', label: 'Fitness' },
 ];
 
-/** 9. 求めているConnection（既存 ConnectionPurpose enum） */
+export const EXPERIENCE_TO_INTEREST: Record<string, InterestTag> = {
+  flower: 'flowers',
+  coffee: 'coffee',
+  dinner: 'other',
+  walking: 'walking',
+  fitness: 'fitness',
+};
+
+/** 9. 求めているConnection → 既存 ConnectionPurpose enum */
 export const DESIRED_CONNECTION_OPTIONS: Option<ConnectionPurpose>[] = [
-  { value: 'casual_talk', label: '気軽に話せる人' },
-  { value: 'new_perspective', label: '新しい視点をくれる人' },
-  { value: 'shared_values', label: '価値観が近い人' },
-  { value: 'different_world', label: '自分と違う世界を持っている人' },
-  { value: 'life_stimulus', label: '仕事や人生の刺激になる人' },
-  { value: 'calm_time', label: '穏やかな時間を過ごせる人' },
-  { value: 'lasting', label: '長く関係が続きそうな人' },
+  { value: 'new_friends', label: '新しい友人が欲しい' },
+  { value: 'hobby_buddies', label: '趣味仲間が欲しい' },
+  { value: 'life_stimulus', label: '人生の刺激が欲しい' },
+  { value: 'learning', label: '学びを得たい' },
+  { value: 'mutual_support', label: '応援し合える仲間が欲しい' },
+  { value: 'cross_industry', label: '異業種の人と話したい' },
+  { value: 'local_community', label: '地域で繋がりたい' },
+  { value: 'other', label: 'その他' },
 ];
 
-/** 10. 価値観タグ（既存 ValueTag enum・最大3つ） */
+/** 10. 価値観タグ → 既存 ValueTag enum（最大3つ） */
 export const VALUE_TAG_ONBOARDING_OPTIONS: Option<ValueTag>[] = [
-  { value: 'sincerity', label: '誠実さ' },
-  { value: 'care', label: '丁寧さ' },
   { value: 'freedom', label: '自由' },
   { value: 'challenge', label: '挑戦' },
-  { value: 'reassurance', label: '安心感' },
-  { value: 'curiosity', label: '好奇心' },
-  { value: 'sensibility', label: '感性' },
   { value: 'growth', label: '成長' },
-  { value: 'calm', label: '穏やかさ' },
-  { value: 'humor', label: 'ユーモア' },
-  { value: 'deep_talk', label: '深い会話' },
-  { value: 'authentic', label: '自然体' },
-  { value: 'space', label: '余白' },
-  { value: 'trust', label: '信頼' },
-  { value: 'continuity', label: '継続' },
+  { value: 'stability', label: '安定' },
+  { value: 'fellowship', label: '仲間' },
+  { value: 'family', label: '家族' },
+  { value: 'creation', label: '創作' },
+  { value: 'aesthetics', label: '美意識' },
+  { value: 'learning', label: '学び' },
+  { value: 'contribution', label: '社会貢献' },
+  { value: 'health', label: '健康' },
+  { value: 'work', label: '仕事' },
+  { value: 'travel', label: '旅' },
 ];
 
-/** 15. 性格タイプ（雰囲気選択 → PersonalityType + axes にマッピング） */
+/** 15. 性格タイプ（雰囲気選択 → PersonalityType + axes） */
 export type TemperamentOption = {
   value: string;
   label: string;

@@ -20,14 +20,7 @@ export type ConnectionPurpose =
   | 'mutual_support'
   | 'cross_industry'
   | 'local_community'
-  | 'other'
-  // 求めているConnection（オンボーディングで追加・既存と併存）
-  | 'casual_talk'
-  | 'new_perspective'
-  | 'shared_values'
-  | 'different_world'
-  | 'calm_time'
-  | 'lasting';
+  | 'other';
 
 /** 興味関心タグ（複数選択） */
 export type InterestTag =
@@ -46,16 +39,7 @@ export type InterestTag =
   | 'travel'
   | 'photography'
   | 'ai'
-  | 'other'
-  // 休日の過ごし方（オンボーディングで追加・既存と併存）
-  | 'food_walk'
-  | 'cooking'
-  | 'drinks'
-  | 'sauna'
-  | 'camping'
-  | 'games'
-  | 'home_relax'
-  | 'friends';
+  | 'other';
 
 /** 人生フェーズ（単一選択） */
 export type LifePhase =
@@ -93,20 +77,7 @@ export type ValueTag =
   | 'health'
   | 'work'
   | 'travel'
-  | 'aesthetics'
-  // 価値観タグ（オンボーディングで追加・既存と併存）
-  | 'sincerity'
-  | 'care'
-  | 'reassurance'
-  | 'curiosity'
-  | 'sensibility'
-  | 'calm'
-  | 'humor'
-  | 'deep_talk'
-  | 'authentic'
-  | 'space'
-  | 'trust'
-  | 'continuity';
+  | 'aesthetics';
 
 /** 価値観・人生観（タグ + 自由記述） */
 export type ProfileValues = {
@@ -119,10 +90,6 @@ export type ProfileValues = {
   coreValues: string;
   /** 価値観タグ（Step形式入力で追加。既存 coreValues とは併存） */
   valueTags?: ValueTag[];
-  /** 今の人生フェーズ（オンボーディングで追加・マインドセット記述） */
-  currentPhase?: string;
-  /** 参加してみたい体験（オンボーディングで追加） */
-  experiences?: string[];
 };
 
 export type PersonalityProfile = {
