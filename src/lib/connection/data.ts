@@ -26,6 +26,12 @@ export const PURPOSE_LABEL: Record<ConnectionPurpose, string> = {
   cross_industry: '異業種の人と話したい',
   local_community: '地域で繋がりたい',
   other: 'その他',
+  casual_talk: '気軽に話せる人',
+  new_perspective: '新しい視点をくれる人',
+  shared_values: '価値観が近い人',
+  different_world: '自分と違う世界を持つ人',
+  calm_time: '穏やかな時間を過ごせる人',
+  lasting: '長く関係が続きそうな人',
 };
 
 export const PURPOSE_OPTIONS = Object.entries(PURPOSE_LABEL) as [ConnectionPurpose, string][];
@@ -47,6 +53,14 @@ export const INTEREST_TAG_LABEL: Record<InterestTag, string> = {
   photography: '写真',
   ai: 'AI',
   other: 'その他',
+  food_walk: '食べ歩き',
+  cooking: '料理',
+  drinks: 'お酒',
+  sauna: 'サウナ',
+  camping: 'キャンプ',
+  games: 'ゲーム',
+  home_relax: '家でゆっくり',
+  friends: '友人と会う',
 };
 
 export const INTEREST_TAG_OPTIONS = Object.entries(INTEREST_TAG_LABEL) as [InterestTag, string][];
@@ -80,6 +94,18 @@ export const VALUE_TAG_LABEL: Record<ValueTag, string> = {
   work: '仕事',
   travel: '旅',
   aesthetics: '美意識',
+  sincerity: '誠実さ',
+  care: '丁寧さ',
+  reassurance: '安心感',
+  curiosity: '好奇心',
+  sensibility: '感性',
+  calm: '穏やかさ',
+  humor: 'ユーモア',
+  deep_talk: '深い会話',
+  authentic: '自然体',
+  space: '余白',
+  trust: '信頼',
+  continuity: '継続',
 };
 
 export const VALUE_TAG_OPTIONS = Object.entries(VALUE_TAG_LABEL) as [ValueTag, string][];

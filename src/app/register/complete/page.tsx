@@ -21,11 +21,11 @@ export default function RegisterCompletePage() {
           <div className='mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#f3efe9] text-2xl'>
             🌸
           </div>
-          <h1 className='mt-5 text-xl font-semibold text-[#1a1a1a]'>登録が完了しました</h1>
+          <h1 className='mt-5 text-xl font-semibold text-[#1a1a1a]'>登録ありがとうございます</h1>
           <p className='mt-3 text-sm leading-7 text-[#6b6b6b]'>
-            {member?.nickname ? `${member.nickname}さん、` : ''}ようこそHANAKAI Connectionへ。
+            {member?.nickname ? `${member.nickname}さん、ようこそ。` : ''}
             <br />
-            あなたの価値観に合うConnectionが待っています。
+            HANAKAIでは、プロフィールだけで人を判断しません。あなたの価値観、興味、今の状態をもとに、運営が丁寧にConnectionを設計します。
           </p>
 
           {personality ? (
@@ -40,13 +40,13 @@ export default function RegisterCompletePage() {
         <div className='mt-6 grid gap-3'>
           <Link
             href='/events'
-            className='flex h-12 items-center justify-center rounded-full bg-[#1a1a1a] text-sm font-semibold text-white'
+            className='flex h-12 items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white'
           >
-            あなたに合いそうなConnection Eventを見る
+            イベントを見に行く
           </Link>
           <Link
             href='/register/profile'
-            className='flex h-12 items-center justify-center rounded-full border border-[#1a1a1a] text-sm font-semibold text-[#1a1a1a]'
+            className='flex h-12 items-center justify-center rounded-full border border-[#1f5d4f] text-sm font-semibold text-[#1f5d4f]'
           >
             プロフィールを確認する
           </Link>
