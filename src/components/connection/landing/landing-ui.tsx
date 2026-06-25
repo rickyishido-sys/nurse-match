@@ -16,7 +16,7 @@ export function LandingSectionTitle({
       <p className='text-xs font-medium tracking-[0.12em]' style={{ color: LP_GOLD }}>
         {kicker}
       </p>
-      <h2 className='font-serif text-[1.35rem] font-semibold leading-snug tracking-tight text-[#1a1a1a]'>
+      <h2 className='font-serif text-[1.15rem] font-semibold leading-snug tracking-tight text-[#1a1a1a] sm:text-[1.25rem]'>
         {title}
       </h2>
     </div>
