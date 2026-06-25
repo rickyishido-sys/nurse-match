@@ -102,16 +102,27 @@ export const EVENT_CATEGORY_ORDER: ConnectionEventCategory[] = [
   'fitness',
 ];
 
-/** カテゴリごとの世界観（絵文字・キャッチ・配色） */
+/** カテゴリごとの世界観（絵文字・キャッチ・配色・LP画像） */
 export const EVENT_CATEGORY_META: Record<
   ConnectionEventCategory,
-  { label: string; short: string; emoji: string; tagline: string; accent: string; gradient: string }
+  {
+    label: string;
+    short: string;
+    emoji: string;
+    tagline: string;
+    landingTagline: string;
+    imagePath: string;
+    accent: string;
+    gradient: string;
+  }
 > = {
   flower: {
     label: 'Flower Connection',
     short: 'Flower',
     emoji: '🌸',
     tagline: '花を介して、心をひらく時間',
+    landingTagline: '花と人がつながるやさしい時間',
+    imagePath: '/images/category-flower.jpg',
     accent: '#c1738a',
     gradient: 'from-[#f7e7ec] to-[#efd6df]',
   },
@@ -120,6 +131,8 @@ export const EVENT_CATEGORY_META: Record<
     short: 'Coffee',
     emoji: '☕️',
     tagline: '一杯のコーヒーから始まる対話',
+    landingTagline: '一杯のコーヒーから会話が生まれる',
+    imagePath: '/images/category-coffee.jpg',
     accent: '#9a6f4a',
     gradient: 'from-[#f1e8df] to-[#e6d5c2]',
   },
@@ -128,6 +141,8 @@ export const EVENT_CATEGORY_META: Record<
     short: 'Dinner',
     emoji: '🍽️',
     tagline: '食卓を囲み、人生を語り合う夜',
+    landingTagline: '美味しい食事と素敵な出会いを',
+    imagePath: '/images/category-dinner.jpg',
     accent: '#7a6f63',
     gradient: 'from-[#efece8] to-[#ddd6cc]',
   },
@@ -136,6 +151,8 @@ export const EVENT_CATEGORY_META: Record<
     short: 'Walking',
     emoji: '🍃',
     tagline: '歩きながら、自然と言葉がほどける',
+    landingTagline: '自然の中で心地よくつながる',
+    imagePath: '/images/category-walking.jpg',
     accent: '#5f8a5a',
     gradient: 'from-[#e8f0e4] to-[#d6e4cf]',
   },
@@ -144,10 +161,14 @@ export const EVENT_CATEGORY_META: Record<
     short: 'Fitness',
     emoji: '🤸',
     tagline: '体を動かしたあとの、軽やかな会話',
+    landingTagline: '体を動かして前向きなつながりを',
+    imagePath: '/images/category-fitness.jpg',
     accent: '#5a7f99',
     gradient: 'from-[#e4eef3] to-[#cfdfe8]',
   },
 };
+
+export const LANDING_HERO_IMAGE = '/images/hanakai-hero.jpg';
 
 function seedValues(partial: Partial<ProfileValues>): ProfileValues {
   return {

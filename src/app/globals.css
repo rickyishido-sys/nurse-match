@@ -2,6 +2,7 @@
 
 @theme inline {
   --font-sans: var(--font-noto);
+  --font-serif: var(--font-noto-serif);
 }
 
 :root {

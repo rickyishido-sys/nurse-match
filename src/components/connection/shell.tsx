@@ -7,9 +7,11 @@ type ConnectionShellProps = {
   viewer: HanakaiViewer | null;
   children: React.ReactNode;
   showNav?: boolean;
+  /** LPなど hero をフルブリード表示するページ向け */
+  flushMain?: boolean;
 };
 
-export function ConnectionShell({ viewer, children, showNav = true }: ConnectionShellProps) {
+export function ConnectionShell({ viewer, children, showNav = true, flushMain = false }: ConnectionShellProps) {
   return (
     <div className='mx-auto flex min-h-screen w-full max-w-[420px] flex-col border-x border-[#ebe9e4] bg-[#fafaf8]'>
       <header className='sticky top-0 z-20 border-b border-[#ebe9e4] bg-[#fafaf8]/95 px-5 py-4 backdrop-blur'>
@@ -31,7 +33,7 @@ export function ConnectionShell({ viewer, children, showNav = true }: Connection
                   ログイン
                 </Link>
                 <Link href='/register' className='rounded-full bg-[#1a1a1a] px-3 py-1.5 text-xs font-medium text-white'>
-                  参加登録
+                  参加登録する
                 </Link>
               </>
             )}
@@ -39,7 +41,7 @@ export function ConnectionShell({ viewer, children, showNav = true }: Connection
         </div>
       </header>
 
-      <main className={`flex-1 px-5 py-6 ${showNav ? 'pb-24' : ''}`}>{children}</main>
+      <main className={`flex-1 ${flushMain ? 'px-5 pb-8 pt-0' : 'px-5 py-6'} ${showNav ? 'pb-24' : ''}`}>{children}</main>
 
       <footer className={`border-t border-[#ebe9e4] px-5 py-6 text-center text-[11px] text-[#9a9a9a] ${showNav ? 'mb-16' : ''}`}>
         <p className='mb-1 font-medium tracking-[0.12em] text-[#1a1a1a]'>HANAKAI Connection</p>

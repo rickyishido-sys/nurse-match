@@ -1,128 +1,22 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
-import { SafetyTrustSection } from '@/components/connection/safety-trust-section';
-import { SecondaryButton } from '@/components/connection/ui';
+import { LandingCategoryCards } from '@/components/connection/landing/category-cards';
+import { LandingFlowSteps } from '@/components/connection/landing/flow-steps';
+import { LandingHero } from '@/components/connection/landing/hero';
+import { LandingSafetyCard } from '@/components/connection/landing/safety-card';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
-import { listUpcomingEvents } from '@/lib/connection/data';
-import {
-  EVENT_CATEGORY_META,
-  EVENT_CATEGORY_ORDER,
-  formatEventDate,
-} from '@/lib/connection/data';
 
 export default async function LandingPage() {
   const viewer = await getHanakaiViewer();
-  const events = listUpcomingEvents(3);
 
   return (
-    <ConnectionShell viewer={viewer} showNav={false}>
-      <section className='space-y-10 pt-4'>
-        {/* Hero */}
-        <div className='space-y-6'>
-          <div className='space-y-2'>
-            <p className='text-[11px] font-medium tracking-[0.28em] text-[#6b6b6b]'>HANAKAI CONNECTION</p>
-            <h1 className='text-[2rem] font-semibold leading-[1.2] tracking-tight text-[#1a1a1a]'>
-              人と人との
-              <br />
-              新しいConnectionを
-              <br />
-              生み出す
-            </h1>
-            <p className='text-sm font-medium text-[#6b6b6b]'>リアル体験プラットフォーム</p>
-          </div>
-
-          <div className='space-y-3 text-sm leading-7 text-[#4a4a4a]'>
-            <p>SNSでは作れない出会い。</p>
-            <p>マッチングアプリではない出会い。</p>
-            <p>偶然と共感から始まるConnection。</p>
-          </div>
-
-          <div className='grid gap-3 pt-2'>
-            <Link href='/register' className='flex h-12 items-center justify-center rounded-full bg-[#1a1a1a] text-sm font-semibold text-white'>
-              参加登録
-            </Link>
-            <SecondaryButton href='/events'>イベントを見る</SecondaryButton>
-          </div>
-        </div>
-
-        {/* How it works */}
-        <div className='space-y-4 border-t border-[#ebe9e4] pt-8'>
-          <h2 className='text-sm font-semibold tracking-wide text-[#1a1a1a]'>体験の流れ</h2>
-          <ol className='space-y-4'>
-            {[
-              { step: '01', title: '参加登録', body: 'プロフィールと、あなたが求めるConnectionを登録。' },
-              { step: '02', title: 'イベントに申請', body: '気になるConnection Eventに参加希望を送る。' },
-              { step: '03', title: '最適なConnectionが生まれる', body: 'イベントごとに、運営が価値観や興味関心をもとに参加メンバーを決定する。' },
-              { step: '04', title: 'Connectionが続いていく', body: 'イベント後も、参加者同士が繋がり、新たなConnectionが生まれていく。' },
-            ].map((item) => (
-              <li key={item.step} className='flex gap-4'>
-                <span className='text-xs font-semibold text-[#9a9a9a]'>{item.step}</span>
-                <div>
-                  <p className='text-sm font-semibold text-[#1a1a1a]'>{item.title}</p>
-                  <p className='mt-1 text-xs leading-6 text-[#6b6b6b]'>{item.body}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-
-        {/* Connection categories */}
-        <div className='space-y-4 border-t border-[#ebe9e4] pt-8'>
-          <h2 className='text-sm font-semibold tracking-wide text-[#1a1a1a]'>Connectionの種類</h2>
-          <div className='grid grid-cols-2 gap-3'>
-            {EVENT_CATEGORY_ORDER.map((cat) => {
-              const meta = EVENT_CATEGORY_META[cat];
-              return (
-                <Link
-                  key={cat}
-                  href={`/events?category=${cat}`}
-                  className={`flex flex-col gap-2 rounded-3xl border border-[#ebe9e4] bg-gradient-to-br ${meta.gradient} p-4 transition active:scale-[0.98]`}
-                >
-                  <span className='text-2xl'>{meta.emoji}</span>
-                  <span className='text-sm font-semibold text-[#1a1a1a]'>{meta.short}</span>
-                  <span className='text-[11px] leading-5 text-[#5a5247]'>{meta.tagline}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        <SafetyTrustSection />
-
-        {/* Upcoming events */}
-        <div className='space-y-4 border-t border-[#ebe9e4] pt-8'>
-          <div className='flex items-end justify-between'>
-            <h2 className='text-sm font-semibold tracking-wide text-[#1a1a1a]'>開催予定のイベント</h2>
-            <Link href='/events' className='text-xs text-[#6b6b6b] underline-offset-2 hover:underline'>すべて</Link>
-          </div>
-          <div className='space-y-4'>
-            {events.map((event) => {
-              const meta = EVENT_CATEGORY_META[event.category];
-              return (
-                <Link
-                  key={event.id}
-                  href={`/events/${event.id}`}
-                  className='block overflow-hidden rounded-3xl border border-[#ebe9e4] bg-white shadow-[0_2px_12px_rgba(26,26,26,0.04)] transition active:scale-[0.99]'
-                >
-                  <div className={`relative h-36 w-full bg-gradient-to-br ${meta.gradient}`}>
-                    <Image src={event.coverUrl} alt={event.title} fill className='object-cover mix-blend-multiply' />
-                    <div className='absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent' />
-                    <div className='absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[#1a1a1a] backdrop-blur'>
-                      <span>{meta.emoji}</span>
-                      {meta.short}
-                    </div>
-                    <p className='absolute bottom-3 left-3 right-3 text-sm font-semibold text-white drop-shadow'>{event.title}</p>
-                  </div>
-                  <div className='p-4'>
-                    <p className='text-xs text-[#6b6b6b]'>{formatEventDate(event.startAt)} · {event.area}</p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+    <ConnectionShell viewer={viewer} showNav={false} flushMain>
+      <div className='space-y-12 pb-6'>
+        <LandingHero />
+        <LandingCategoryCards />
+        <LandingFlowSteps />
+        <LandingSafetyCard />
+      </div>
     </ConnectionShell>
   );
 }
