@@ -1,39 +1,107 @@
 'use client';
 
 import type { ChangeEvent } from 'react';
+import { motion } from 'motion/react';
 import { ChoiceCard, Chip, ONB, StepHeading } from './onboarding-ui';
 import type { Option } from '@/lib/connection/onboarding-options';
 
 const inputClass =
   'w-full rounded-2xl border bg-white px-5 py-4 text-base outline-none transition focus:border-current';
 
-/** 0. Welcome画面。上品な円形モチーフのイラスト領域つき。 */
+/** 抽象的で上質なブランドビジュアル（花・会話・コーヒー・散歩・つながりを連想）。 */
+function BrandVisual() {
+  const float = (delay: number, amount = 8, duration = 6) => ({
+    animate: { y: [0, -amount, 0] },
+    transition: { duration, repeat: Infinity, ease: 'easeInOut' as const, delay },
+  });
+
+  return (
+    <div
+      className='relative mt-4 h-60 w-full overflow-hidden rounded-[28px]'
+      style={{
+        background:
+          'radial-gradient(120% 90% at 78% 18%, #f3ede1 0%, #efe9dd 38%, #e9efe9 100%)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)',
+      }}
+    >
+      {/* 大きな有機的グラデーション円（つながり） */}
+      <motion.div
+        className='absolute -left-10 top-10 h-40 w-40 rounded-full'
+        style={{ background: 'linear-gradient(150deg, #2f7163, #1f5d4f)', filter: 'blur(0.2px)' }}
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 0.92, scale: 1 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+      />
+      <motion.div
+        className='absolute -left-10 top-10 h-40 w-40 rounded-full'
+        {...float(0.4, 6, 7)}
+      >
+        <span className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl opacity-90'>🌿</span>
+      </motion.div>
+
+      {/* ベージュのガラスカード（会話・余白） */}
+      <motion.div
+        className='absolute right-6 top-8 h-24 w-32 rounded-2xl border'
+        style={{
+          borderColor: 'rgba(255,255,255,0.7)',
+          background: 'rgba(255,255,255,0.55)',
+          boxShadow: '0 12px 30px rgba(31,36,33,0.10)',
+          backdropFilter: 'blur(2px)',
+        }}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, ease: 'easeOut', delay: 0.15 }}
+      >
+        <div className='flex h-full flex-col justify-center gap-1.5 px-4'>
+          <span className='h-1.5 w-14 rounded-full' style={{ backgroundColor: '#cdb58c' }} />
+          <span className='h-1.5 w-20 rounded-full' style={{ backgroundColor: '#e0d6c4' }} />
+          <span className='h-1.5 w-10 rounded-full' style={{ backgroundColor: '#cdb58c' }} />
+        </div>
+      </motion.div>
+
+      {/* 小さなティール円（コーヒー） */}
+      <motion.div
+        className='absolute bottom-7 right-16 flex h-16 w-16 items-center justify-center rounded-full'
+        style={{ background: 'linear-gradient(140deg, #d8c7a6, #c9b48c)' }}
+        {...float(0.2, 7, 6.5)}
+      >
+        <span className='text-lg'>☕</span>
+      </motion.div>
+
+      {/* ベージュのリング（散歩・循環） */}
+      <motion.div
+        className='absolute bottom-6 left-12 h-20 w-20 rounded-full border-[6px]'
+        style={{ borderColor: 'rgba(31,93,79,0.16)' }}
+        {...float(0.6, 5, 7.5)}
+      />
+
+      {/* 小さな点（花のつぼみ） */}
+      <motion.span
+        className='absolute left-28 top-12 h-3 w-3 rounded-full'
+        style={{ backgroundColor: '#1f5d4f' }}
+        {...float(0.1, 6, 5.5)}
+      />
+      <motion.span
+        className='absolute right-28 bottom-20 h-2.5 w-2.5 rounded-full'
+        style={{ backgroundColor: '#cdb58c' }}
+        {...float(0.5, 6, 6)}
+      />
+    </div>
+  );
+}
+
+/** 0. Welcome画面。ブランド体験としてのビジュアル領域つき。 */
 export function OnboardingStepIntro() {
   return (
-    <div className='flex flex-1 flex-col'>
-      <div className='relative mt-8 flex items-center justify-center'>
-        <div className='relative h-44 w-44'>
-          <span
-            className='absolute inset-0 rounded-full'
-            style={{ background: 'radial-gradient(circle at 35% 30%, #eef3f0, #e3ded3)' }}
-          />
-          <span
-            className='absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full'
-            style={{ background: 'linear-gradient(140deg, #2f7163, #1f5d4f)' }}
-          />
-          <span className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl'>🌿</span>
-          <span
-            className='absolute -right-1 top-6 h-10 w-10 rounded-full'
-            style={{ backgroundColor: '#cdb58c', opacity: 0.85 }}
-          />
-          <span
-            className='absolute -left-2 bottom-6 h-6 w-6 rounded-full'
-            style={{ backgroundColor: '#dfd6c6' }}
-          />
-        </div>
-      </div>
+    <motion.div
+      className='flex flex-1 flex-col'
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    >
+      <BrandVisual />
 
-      <div className='mt-10'>
+      <div className='mt-9'>
         <h1
           className='font-serif text-[28px] leading-[1.4] font-semibold tracking-tight'
           style={{ color: ONB.ink }}
@@ -54,7 +122,7 @@ export function OnboardingStepIntro() {
           <span>この登録は約3分で完了します</span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -230,7 +298,7 @@ export function AreaSelectStep({
   );
 }
 
-/** 自由記述（任意）。 */
+/** 自由記述（任意）。質問ごとの例文を下部に表示。 */
 export function TextareaStep({
   index,
   title,
@@ -238,6 +306,7 @@ export function TextareaStep({
   value,
   onChange,
   placeholder,
+  examples,
 }: {
   index: number;
   title: string;
@@ -245,6 +314,7 @@ export function TextareaStep({
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  examples?: string[];
 }) {
   return (
     <div>
@@ -258,6 +328,26 @@ export function TextareaStep({
           className={`${inputClass} resize-none leading-7`}
           style={{ borderColor: ONB.border, color: ONB.ink }}
         />
+
+        {examples && examples.length > 0 ? (
+          <div
+            className='mt-4 rounded-2xl border px-4 py-3.5'
+            style={{ borderColor: ONB.border, backgroundColor: '#ffffff' }}
+          >
+            <p className='text-[11px] font-medium tracking-[0.12em]' style={{ color: ONB.accent }}>
+              例えば
+            </p>
+            <ul className='mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5'>
+              {examples.map((ex) => (
+                <li key={ex} className='flex items-center gap-1.5 text-[13px]' style={{ color: ONB.subtle }}>
+                  <span style={{ color: '#cdb58c' }}>・</span>
+                  {ex}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
         <p className='mt-3 text-xs' style={{ color: ONB.subtle }}>
           答えられるものだけで大丈夫です。スキップもできます。
         </p>

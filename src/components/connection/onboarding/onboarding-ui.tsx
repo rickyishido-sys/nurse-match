@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 
 export const ONB = {
   bgOuter: '#ece6da',
@@ -13,7 +14,9 @@ export const ONB = {
   accentBorder: '#1f5d4f',
 };
 
-/** 上部の進捗ドット。現在位置を強調する。 */
+const SOFT_SPRING = { type: 'spring' as const, stiffness: 520, damping: 32, mass: 0.7 };
+
+/** 上部中央の進捗ドット。現在位置のみ強調し、滑らかに伸縮する。 */
 export function ProgressDots({ total, current }: { total: number; current: number }) {
   return (
     <div className='flex items-center justify-center gap-1.5'>
@@ -21,14 +24,16 @@ export function ProgressDots({ total, current }: { total: number; current: numbe
         const done = i < current;
         const active = i === current;
         return (
-          <span
+          <motion.span
             key={i}
-            className='h-1.5 rounded-full transition-all duration-300'
-            style={{
-              width: active ? 20 : 6,
+            className='h-1.5 rounded-full'
+            initial={false}
+            animate={{
+              width: active ? 22 : 6,
               backgroundColor: done || active ? ONB.accent : '#ded7c8',
-              opacity: done ? 0.55 : 1,
+              opacity: done ? 0.5 : 1,
             }}
+            transition={{ type: 'spring', stiffness: 420, damping: 34 }}
           />
         );
       })}
@@ -55,11 +60,11 @@ export function OnboardingLayout({
         {header ? (
           <header className='shrink-0 px-6 pt-[calc(18px+var(--safe-top))] pb-4'>{header}</header>
         ) : null}
-        <main className='flex flex-1 flex-col overflow-y-auto px-6 pb-8'>{children}</main>
+        <main className='flex flex-1 flex-col overflow-x-hidden overflow-y-auto px-6 pb-8'>{children}</main>
         {footer ? (
           <footer
-            className='shrink-0 border-t px-6 pt-4 pb-[calc(20px+var(--safe-bottom))]'
-            style={{ borderColor: ONB.border, backgroundColor: ONB.bgInner }}
+            className='shrink-0 border-t px-6 pt-4 pb-[calc(20px+var(--safe-bottom))] backdrop-blur-md'
+            style={{ borderColor: ONB.border, backgroundColor: 'rgba(251,249,245,0.82)' }}
           >
             {footer}
           </footer>
@@ -118,29 +123,33 @@ export function BottomNavButtons({
   return (
     <div className='flex items-center gap-3'>
       {onBack ? (
-        <button
+        <motion.button
           type='button'
           onClick={onBack}
-          className='flex h-13 shrink-0 items-center justify-center rounded-full border px-6 text-sm font-medium transition active:scale-[0.98]'
+          whileTap={{ scale: 0.96 }}
+          transition={SOFT_SPRING}
+          className='flex shrink-0 items-center justify-center rounded-full border px-6 text-sm font-medium'
           style={{ height: 52, borderColor: ONB.border, color: ONB.subtle }}
         >
           戻る
-        </button>
+        </motion.button>
       ) : null}
-      <button
+      <motion.button
         type={nextType}
         onClick={nextType === 'submit' ? undefined : onNext}
         disabled={nextDisabled}
-        className='flex flex-1 items-center justify-center rounded-full text-sm font-semibold text-white transition active:scale-[0.99] disabled:opacity-35'
+        whileTap={{ scale: nextDisabled ? 1 : 0.98 }}
+        transition={SOFT_SPRING}
+        className='flex flex-1 items-center justify-center rounded-full text-sm font-semibold text-white disabled:opacity-35'
         style={{ height: 52, backgroundColor: ONB.accent }}
       >
         {nextLabel}
-      </button>
+      </motion.button>
     </div>
   );
 }
 
-/** 大きめのカード型選択肢（単一/複数共通）。 */
+/** 大きめのカード型選択肢（単一/複数共通）。選択時に静かな達成感を与える。 */
 export function ChoiceCard({
   active,
   onClick,
@@ -153,16 +162,21 @@ export function ChoiceCard({
   hint?: string;
 }) {
   return (
-    <button
+    <motion.button
       type='button'
       onClick={onClick}
       aria-pressed={active}
-      className='flex w-full items-center justify-between gap-3 rounded-2xl border px-5 py-4 text-left transition active:scale-[0.99]'
-      style={{
+      whileTap={{ scale: 0.985 }}
+      initial={false}
+      animate={{
         borderColor: active ? ONB.accentBorder : ONB.border,
         backgroundColor: active ? ONB.accentSoft : '#ffffff',
-        boxShadow: active ? `inset 0 0 0 1px ${ONB.accent}` : 'none',
+        boxShadow: active
+          ? '0 8px 22px rgba(31,93,79,0.13)'
+          : '0 1px 2px rgba(31,36,33,0.04)',
       }}
+      transition={SOFT_SPRING}
+      className='flex w-full items-center justify-between gap-3 rounded-2xl border px-5 py-4 text-left'
     >
       <span className='min-w-0'>
         <span className='block text-[15px] font-medium' style={{ color: ONB.ink }}>
@@ -179,11 +193,23 @@ export function ChoiceCard({
         style={{
           borderColor: active ? ONB.accent : '#d6d0c4',
           backgroundColor: active ? ONB.accent : 'transparent',
+          transition: 'background-color 180ms ease, border-color 180ms ease',
         }}
       >
-        {active ? '✓' : ''}
+        <AnimatePresence initial={false}>
+          {active ? (
+            <motion.span
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 600, damping: 22 }}
+            >
+              ✓
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
       </span>
-    </button>
+    </motion.button>
   );
 }
 
@@ -200,19 +226,23 @@ export function Chip({
   disabled?: boolean;
 }) {
   return (
-    <button
+    <motion.button
       type='button'
       onClick={onClick}
       disabled={disabled && !active}
       aria-pressed={active}
-      className='rounded-full border px-4 py-2.5 text-sm transition active:scale-[0.97] disabled:opacity-40'
-      style={{
+      whileTap={{ scale: disabled && !active ? 1 : 0.94 }}
+      initial={false}
+      animate={{
         borderColor: active ? ONB.accentBorder : ONB.border,
         backgroundColor: active ? ONB.accent : '#ffffff',
         color: active ? '#ffffff' : ONB.ink,
+        boxShadow: active ? '0 5px 14px rgba(31,93,79,0.16)' : '0 0px 0px rgba(0,0,0,0)',
       }}
+      transition={SOFT_SPRING}
+      className='rounded-full border px-4 py-2.5 text-sm disabled:opacity-40'
     >
       {children}
-    </button>
+    </motion.button>
   );
 }

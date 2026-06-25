@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { saveProfileAction } from '@/lib/connection/actions';
 import {
   DESIRED_CONNECTION_OPTIONS,
@@ -49,10 +50,25 @@ function toggle<T>(list: T[], value: T, max?: number): T[] {
   return [...list, value];
 }
 
+/** 「次へ」は右からスライドイン・左へフェードアウト、「戻る」は逆方向。 */
+const stepVariants = {
+  enter: (dir: number) => ({ opacity: 0, x: dir >= 0 ? 26 : -26 }),
+  center: { opacity: 1, x: 0, transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] as const } },
+  exit: (dir: number) => ({ opacity: 0, x: dir >= 0 ? -26 : 26, transition: { duration: 0.16, ease: 'easeIn' as const } }),
+};
+
+const QUESTION_EXAMPLES: Record<number, string[]> = {
+  11: ['新しい習慣', '仕事や学び', '身体づくり', '趣味の探求'],
+  12: ['旅行', '新しい趣味', '仕事への挑戦', '人との出会い'],
+  13: ['最近読んだ本', '旅先で見た景色', '誰かとの会話', '映画や音楽'],
+  14: ['穏やか', '聞き上手', '行動的', '面倒見がいい'],
+};
+
 export function OnboardingFlow({ error, member }: { error?: string; member?: ConnectionMember | null }) {
   const v = member?.values;
 
   const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState(1);
 
   const [nickname, setNickname] = useState(member?.nickname ?? '');
   const [age, setAge] = useState(member?.age ? String(member.age) : '');
@@ -130,9 +146,11 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
   }, [step, nickname, ageValid, gender, area, occupation, currentPhase, weekend, experiences, purposes, valueTags, temperament]);
 
   function next() {
+    setDirection(1);
     setStep((s) => Math.min(QUESTION_COUNT, s + 1));
   }
   function back() {
+    setDirection(-1);
     setStep((s) => Math.max(0, s - 1));
   }
 
@@ -165,6 +183,189 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         nextType={isLast ? 'submit' : 'button'}
       />
     );
+
+  function renderStep() {
+    switch (step) {
+      case 0:
+        return <OnboardingStepIntro />;
+      case 1:
+        return (
+          <TextInputStep
+            index={1}
+            title='あなたの表示名を決めましょう'
+            subtitle='あとから変更できます'
+            value={nickname}
+            onChange={setNickname}
+            placeholder='例：Ricky'
+            maxLength={20}
+          />
+        );
+      case 2:
+        return (
+          <TextInputStep
+            index={2}
+            title='あなたの年齢を教えてください'
+            subtitle='Connection設計の参考にします。正確に入力してください。'
+            value={age}
+            onChange={setAge}
+            placeholder='32'
+            inputMode='numeric'
+            suffix='歳'
+            maxLength={3}
+          />
+        );
+      case 3:
+        return (
+          <SingleChoiceStep
+            index={3}
+            title='あなたの性別を教えてください'
+            options={GENDER_OPTIONS}
+            value={gender}
+            onChange={setGender}
+          />
+        );
+      case 4:
+        return (
+          <AreaSelectStep
+            index={4}
+            title='お住まいの地域を教えてください'
+            subtitle='近いエリアの体験をご案内する参考にします'
+            value={area}
+            onChange={setArea}
+            options={PREFECTURES}
+          />
+        );
+      case 5:
+        return (
+          <SingleChoiceStep
+            index={5}
+            title='今のお仕事に近いものを選んでください'
+            options={OCCUPATION_OPTIONS}
+            value={occupation}
+            onChange={setOccupation}
+          />
+        );
+      case 6:
+        return (
+          <SingleChoiceStep
+            index={6}
+            title='今のあなたに近いものを選んでください'
+            subtitle='Connectionの組み合わせを考える参考にします'
+            options={LIFE_PHASE_MINDSET_OPTIONS}
+            value={currentPhase}
+            onChange={setCurrentPhase}
+          />
+        );
+      case 7:
+        return (
+          <MultiChoiceStep
+            index={7}
+            title='お休みの日は何をしていますか？'
+            subtitle={`まずは2つ選んでみましょう${weekend.length > 0 ? `（${weekend.length}つ選択中）` : ''}`}
+            options={WEEKEND_OPTIONS}
+            values={weekend}
+            onToggle={(value) => setWeekend((s) => toggle(s, value))}
+            variant='chip'
+          />
+        );
+      case 8:
+        return (
+          <MultiChoiceStep
+            index={8}
+            title='参加してみたい体験を選んでください'
+            subtitle='HANAKAIでは、体験を通じて自然なConnectionをつくります'
+            options={EXPERIENCE_OPTIONS}
+            values={experiences}
+            onToggle={(value) => setExperiences((s) => toggle(s, value))}
+            variant='card'
+          />
+        );
+      case 9:
+        return (
+          <MultiChoiceStep
+            index={9}
+            title='今、どんなConnectionを求めていますか？'
+            subtitle='複数選べます'
+            options={DESIRED_CONNECTION_OPTIONS}
+            values={purposes}
+            onToggle={(value) => setPurposes((s) => toggle(s, value))}
+            variant='card'
+          />
+        );
+      case 10:
+        return (
+          <MultiChoiceStep
+            index={10}
+            title='大切にしている価値観を選んでください'
+            subtitle={`3つまで選べます${valueTags.length > 0 ? `（${valueTags.length}/${VALUE_TAG_MAX}）` : ''}`}
+            options={VALUE_TAG_ONBOARDING_OPTIONS}
+            values={valueTags}
+            onToggle={(value) => setValueTags((s) => toggle(s, value, VALUE_TAG_MAX))}
+            variant='chip'
+            max={VALUE_TAG_MAX}
+          />
+        );
+      case 11:
+        return (
+          <TextareaStep
+            index={11}
+            title='最近、挑戦していることはありますか？'
+            subtitle='小さなことでも構いません'
+            value={currentChallenge}
+            onChange={setCurrentChallenge}
+            placeholder='例：朝の時間を大切にする習慣をつくっています'
+            examples={QUESTION_EXAMPLES[11]}
+          />
+        );
+      case 12:
+        return (
+          <TextareaStep
+            index={12}
+            title='これからやってみたいことはありますか？'
+            value={futureGoal}
+            onChange={setFutureGoal}
+            placeholder='例：もう少し自然に触れる時間を増やしたい'
+            examples={QUESTION_EXAMPLES[12]}
+          />
+        );
+      case 13:
+        return (
+          <TextareaStep
+            index={13}
+            title='最近、心が動いたことを教えてください'
+            subtitle='感動したこと、考えさせられたこと、印象に残ったことなど'
+            value={recentInspiration}
+            onChange={setRecentInspiration}
+            placeholder='例：ふと立ち寄った展示で、静かな時間を過ごせました'
+            examples={QUESTION_EXAMPLES[13]}
+          />
+        );
+      case 14:
+        return (
+          <TextareaStep
+            index={14}
+            title='周りからどんな人だと言われますか？'
+            value={howOthersSeeMe}
+            onChange={setHowOthersSeeMe}
+            placeholder='例：穏やかで聞き上手、とよく言われます'
+            examples={QUESTION_EXAMPLES[14]}
+          />
+        );
+      case 15:
+        return (
+          <SingleChoiceStep
+            index={15}
+            title='あなたに近い雰囲気を選んでください'
+            subtitle='評価のためではなく、相互理解のための参考にします'
+            options={TEMPERAMENT_OPTIONS.map((t) => ({ value: t.value, label: t.label }))}
+            value={temperament}
+            onChange={setTemperament}
+          />
+        );
+      default:
+        return null;
+    }
+  }
 
   return (
     <form action={saveProfileAction}>
@@ -205,177 +406,19 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
           </p>
         ) : null}
 
-        {step === 0 ? <OnboardingStepIntro /> : null}
-
-        {step === 1 ? (
-          <TextInputStep
-            index={1}
-            title='あなたの表示名を決めましょう'
-            subtitle='あとから変更できます'
-            value={nickname}
-            onChange={setNickname}
-            placeholder='例：Ricky'
-            maxLength={20}
-          />
-        ) : null}
-
-        {step === 2 ? (
-          <TextInputStep
-            index={2}
-            title='あなたの年齢を教えてください'
-            subtitle='Connection設計の参考にします。正確に入力してください。'
-            value={age}
-            onChange={setAge}
-            placeholder='32'
-            inputMode='numeric'
-            suffix='歳'
-            maxLength={3}
-          />
-        ) : null}
-
-        {step === 3 ? (
-          <SingleChoiceStep
-            index={3}
-            title='あなたの性別を教えてください'
-            options={GENDER_OPTIONS}
-            value={gender}
-            onChange={setGender}
-          />
-        ) : null}
-
-        {step === 4 ? (
-          <AreaSelectStep
-            index={4}
-            title='お住まいの地域を教えてください'
-            subtitle='近いエリアの体験をご案内する参考にします'
-            value={area}
-            onChange={setArea}
-            options={PREFECTURES}
-          />
-        ) : null}
-
-        {step === 5 ? (
-          <SingleChoiceStep
-            index={5}
-            title='今のお仕事に近いものを選んでください'
-            options={OCCUPATION_OPTIONS}
-            value={occupation}
-            onChange={setOccupation}
-          />
-        ) : null}
-
-        {step === 6 ? (
-          <SingleChoiceStep
-            index={6}
-            title='今のあなたに近いものを選んでください'
-            subtitle='Connectionの組み合わせを考える参考にします'
-            options={LIFE_PHASE_MINDSET_OPTIONS}
-            value={currentPhase}
-            onChange={setCurrentPhase}
-          />
-        ) : null}
-
-        {step === 7 ? (
-          <MultiChoiceStep
-            index={7}
-            title='お休みの日は何をしていますか？'
-            subtitle={`まずは2つ選んでみましょう${weekend.length > 0 ? `（${weekend.length}つ選択中）` : ''}`}
-            options={WEEKEND_OPTIONS}
-            values={weekend}
-            onToggle={(value) => setWeekend((s) => toggle(s, value))}
-            variant='chip'
-          />
-        ) : null}
-
-        {step === 8 ? (
-          <MultiChoiceStep
-            index={8}
-            title='参加してみたい体験を選んでください'
-            subtitle='HANAKAIでは、体験を通じて自然なConnectionをつくります'
-            options={EXPERIENCE_OPTIONS}
-            values={experiences}
-            onToggle={(value) => setExperiences((s) => toggle(s, value))}
-            variant='card'
-          />
-        ) : null}
-
-        {step === 9 ? (
-          <MultiChoiceStep
-            index={9}
-            title='今、どんなConnectionを求めていますか？'
-            subtitle='複数選べます'
-            options={DESIRED_CONNECTION_OPTIONS}
-            values={purposes}
-            onToggle={(value) => setPurposes((s) => toggle(s, value))}
-            variant='card'
-          />
-        ) : null}
-
-        {step === 10 ? (
-          <MultiChoiceStep
-            index={10}
-            title='大切にしている価値観を選んでください'
-            subtitle={`3つまで選べます${valueTags.length > 0 ? `（${valueTags.length}/${VALUE_TAG_MAX}）` : ''}`}
-            options={VALUE_TAG_ONBOARDING_OPTIONS}
-            values={valueTags}
-            onToggle={(value) => setValueTags((s) => toggle(s, value, VALUE_TAG_MAX))}
-            variant='chip'
-            max={VALUE_TAG_MAX}
-          />
-        ) : null}
-
-        {step === 11 ? (
-          <TextareaStep
-            index={11}
-            title='最近、挑戦していることはありますか？'
-            subtitle='小さなことでも構いません'
-            value={currentChallenge}
-            onChange={setCurrentChallenge}
-            placeholder='例：朝の時間を大切にする習慣をつくっています'
-          />
-        ) : null}
-
-        {step === 12 ? (
-          <TextareaStep
-            index={12}
-            title='これからやってみたいことはありますか？'
-            value={futureGoal}
-            onChange={setFutureGoal}
-            placeholder='例：もう少し自然に触れる時間を増やしたい'
-          />
-        ) : null}
-
-        {step === 13 ? (
-          <TextareaStep
-            index={13}
-            title='最近、心が動いたことを教えてください'
-            subtitle='感動したこと、考えさせられたこと、印象に残ったことなど'
-            value={recentInspiration}
-            onChange={setRecentInspiration}
-            placeholder='例：ふと立ち寄った展示で、静かな時間を過ごせました'
-          />
-        ) : null}
-
-        {step === 14 ? (
-          <TextareaStep
-            index={14}
-            title='周りからどんな人だと言われますか？'
-            value={howOthersSeeMe}
-            onChange={setHowOthersSeeMe}
-            placeholder='例：穏やかで聞き上手、とよく言われます'
-          />
-        ) : null}
-
-        {step === 15 ? (
-          <SingleChoiceStep
-            index={15}
-            title='あなたに近い雰囲気を選んでください'
-            subtitle='評価のためではなく、相互理解のための参考にします'
-            options={TEMPERAMENT_OPTIONS.map((t) => ({ value: t.value, label: t.label }))}
-            value={temperament}
-            onChange={setTemperament}
-          />
-        ) : null}
+        <AnimatePresence mode='wait' initial={false} custom={direction}>
+          <motion.div
+            key={step}
+            custom={direction}
+            variants={stepVariants}
+            initial='enter'
+            animate='center'
+            exit='exit'
+            className='flex flex-1 flex-col'
+          >
+            {renderStep()}
+          </motion.div>
+        </AnimatePresence>
       </OnboardingLayout>
     </form>
   );
