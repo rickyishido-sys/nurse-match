@@ -7,9 +7,23 @@ export type ConnectionEventCategory =
   | 'coffee'
   | 'business'
   | 'walking'
-  | 'fitness';
+  | 'fitness'
+  | 'learning'
+  | 'bar'
+  | 'sports'
+  | 'workshop'
+  | 'other';
 
 export type ConnectionEventStatus = 'open' | 'almost_full' | 'full' | 'closed' | 'completed';
+
+/** 参加申請の承認方式 */
+export type EventApprovalMode = 'host_approval' | 'auto';
+
+/**
+ * Hostバッジ（現時点ではUI/ダミーデータのみ。将来は開催実績・評価・本人確認の
+ * 組み合わせで自動付与することを想定）
+ */
+export type HostBadge = 'community' | 'trusted' | 'premium';
 
 /** Connection目的（複数選択） */
 export type ConnectionPurpose =
@@ -136,6 +150,8 @@ export type ConnectionMember = {
   interestTags: InterestTag[];
   lifePhase: LifePhase;
   personality: PersonalityProfile | null;
+  /** Hostバッジ（UIのみ・将来は実績ベースで自動付与） */
+  hostBadges?: HostBadge[];
 } & MemberTrustVerificationFields;
 
 export type ConnectionEvent = {
@@ -154,6 +170,14 @@ export type ConnectionEvent = {
   status: ConnectionEventStatus;
   isPast: boolean;
   confirmedMemberIds: string[];
+  /** 参加費（円・税込）。0 または未設定は無料扱い */
+  fee?: number;
+  /** 承認方式。未設定は主催者承認制（host_approval）として扱う */
+  approvalMode?: EventApprovalMode;
+  /** 主催メンバーID（運営主催のシードイベントでは未設定） */
+  hostId?: string;
+  /** ユーザー作成イベントかどうか */
+  isUserCreated?: boolean;
 };
 
 export type EventApplication = {
@@ -162,6 +186,8 @@ export type EventApplication = {
   memberId: string;
   appliedAt: string;
   status: 'pending' | 'confirmed' | 'rejected';
+  /** 参加理由（100〜300文字） */
+  reason?: string;
 };
 
 /** AI grouping 用の正規化スナップショット（将来の選定API向け） */

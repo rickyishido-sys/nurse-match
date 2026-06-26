@@ -1,15 +1,20 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
+import { HostBadgeList } from '@/components/connection/host-badge';
+import { ApplyForm } from '@/components/connection/events/apply-form';
+import { formatFee } from '@/components/connection/events/event-card';
 import { Card, Chip } from '@/components/connection/ui';
-import { applyConnectionEventAction } from '@/lib/connection/actions';
 import {
   EVENT_CATEGORY_LABEL,
+  EVENT_CATEGORY_META,
   formatEventDate,
   getApplication,
   getEvent,
   getEventMembers,
+  getMember,
 } from '@/lib/connection/data';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
@@ -27,78 +32,155 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
   if (!event) notFound();
 
   const viewer = await getHanakaiViewer();
+  const meta = EVENT_CATEGORY_META[event.category];
   const applied = sp.applied === '1';
+  const created = sp.created === '1';
   const existingApp = getApplication(event.id, MOCK_VIEWER_ID);
   const confirmedMembers = getEventMembers(event.id);
+  const host = event.hostId ? getMember(event.hostId) : null;
+  const isHost = event.hostId === MOCK_VIEWER_ID;
+  const approvalMode = event.approvalMode ?? 'host_approval';
   const isFull = event.status === 'full' || event.reservedCount >= event.capacity;
 
   return (
     <ConnectionShell viewer={viewer}>
       <article className='space-y-5'>
-        <div className='relative h-52 w-full overflow-hidden rounded-2xl'>
-          <Image src={event.coverUrl} alt={event.title} fill className='object-cover' priority />
+        <div className={`relative h-52 w-full overflow-hidden rounded-2xl bg-gradient-to-br ${meta.gradient}`}>
+          {event.coverUrl ? (
+            <Image src={event.coverUrl} alt={event.title} fill className='object-cover' priority />
+          ) : (
+            <div className='absolute inset-0 flex items-center justify-center text-6xl opacity-70' aria-hidden>
+              {meta.emoji}
+            </div>
+          )}
         </div>
 
+        {created ? (
+          <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
+            イベントを公開しました。参加申請が届いたら、管理画面から承認できます。
+          </p>
+        ) : null}
+
         <div className='space-y-2'>
-          <Chip tone='accent'>{EVENT_CATEGORY_LABEL[event.category]}</Chip>
+          <div className='flex flex-wrap items-center gap-2'>
+            <Chip tone='accent'>{EVENT_CATEGORY_LABEL[event.category]}</Chip>
+            {event.isUserCreated ? <Chip tone='muted'>ユーザー主催</Chip> : null}
+            <Chip tone='muted'>{approvalMode === 'auto' ? '自動承認' : '主催者承認制'}</Chip>
+          </div>
           <h1 className='text-xl font-semibold text-[#1a1a1a]'>{event.title}</h1>
-          <p className='text-sm text-[#6b6b6b]'>{event.description}</p>
+          <p className='whitespace-pre-line text-sm leading-7 text-[#6b6b6b]'>{event.description}</p>
         </div>
 
         <Card>
           <dl className='space-y-3 text-sm'>
             <Row label='開催日時'>{formatEventDate(event.startAt)}</Row>
-            <Row label='場所'>{event.area} · {event.venue}</Row>
-            <Row label='募集人数'>{event.capacity}名</Row>
-            <Row label='申込人数'>{event.reservedCount}名</Row>
-            <Row label='主催者'>{event.hostName}</Row>
-            <Row label='参加条件'>{event.conditions}</Row>
+            <Row label='場所'>{event.area}{event.venue ? ` · ${event.venue}` : ''}</Row>
+            <Row label='定員'>{event.capacity}名</Row>
+            <Row label='参加予定'>{event.reservedCount}名</Row>
+            <Row label='参加費'>{formatFee(event.fee)}</Row>
+            {event.conditions ? <Row label='参加条件'>{event.conditions}</Row> : null}
           </dl>
         </Card>
 
-        {confirmedMembers.length > 0 ? (
-          <Card>
-            <h2 className='mb-3 text-sm font-semibold text-[#1a1a1a]'>確定メンバー {confirmedMembers.length}名</h2>
+        <Card>
+          <h2 className='mb-3 text-sm font-semibold text-[#1a1a1a]'>主催者</h2>
+          <div className='flex items-start gap-3'>
+            {host ? (
+              <Image
+                src={host.avatarUrl}
+                alt={host.nickname}
+                width={48}
+                height={48}
+                className='h-12 w-12 shrink-0 rounded-full object-cover'
+              />
+            ) : (
+              <span className='flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f0eeea] text-lg' aria-hidden>
+                ✿
+              </span>
+            )}
+            <div className='space-y-1.5'>
+              <p className='text-sm font-medium text-[#1a1a1a]'>{event.hostName}</p>
+              {host ? <p className='text-xs text-[#6b6b6b]'>{host.occupation} · {host.area}</p> : null}
+              {host ? <HostBadgeList badges={host.hostBadges} /> : null}
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <h2 className='mb-3 text-sm font-semibold text-[#1a1a1a]'>
+            参加予定者 {confirmedMembers.length}名 <span className='font-normal text-[#9a9a9a]'>/ 定員{event.capacity}名</span>
+          </h2>
+          {confirmedMembers.length > 0 ? (
             <div className='space-y-3'>
               {confirmedMembers.map((m) => (
-                <div key={m.id} className='flex items-start justify-between gap-3'>
-                  <div>
-                    <p className='text-sm font-medium text-[#1a1a1a]'>{m.nickname}</p>
-                    <p className='text-[11px] text-[#6b6b6b]'>{m.occupation}</p>
+                <div key={m.id} className='flex items-center justify-between gap-3'>
+                  <div className='flex items-center gap-3'>
+                    <Image
+                      src={m.avatarUrl}
+                      alt={m.nickname}
+                      width={40}
+                      height={40}
+                      className='h-10 w-10 rounded-full object-cover'
+                    />
+                    <div>
+                      <p className='text-sm font-medium text-[#1a1a1a]'>{m.nickname}</p>
+                      <p className='text-[11px] text-[#6b6b6b]'>{m.occupation}</p>
+                    </div>
                   </div>
                   <TrustBadgeList member={m} />
                 </div>
               ))}
             </div>
-          </Card>
-        ) : null}
+          ) : (
+            <p className='text-sm text-[#9a9a9a]'>まだ参加者は確定していません。最初のひとりになりませんか。</p>
+          )}
+        </Card>
 
         {event.isPast ? (
           <Card className='bg-[#f5f4f2]'>
             <p className='text-sm text-[#4a4a4a]'>このイベントは終了しました。</p>
-            <a href={`/connections/${event.id}`} className='mt-2 inline-block text-xs font-semibold text-[#1a1a1a] underline-offset-2 hover:underline'>
+            <Link href={`/connections/${event.id}`} className='mt-2 inline-block text-xs font-semibold text-[#1a1a1a] underline-offset-2 hover:underline'>
               Connectionページを見る →
-            </a>
+            </Link>
+          </Card>
+        ) : isHost ? (
+          <Card className='border-[#cfe3da] bg-[#f3f7f5]'>
+            <p className='text-sm font-semibold text-[#1a1a1a]'>あなたが主催するイベントです</p>
+            <p className='mt-1 text-xs leading-6 text-[#5b6f67]'>
+              申請者の参加理由を読み、参加する方を選びましょう。
+            </p>
+            <Link
+              href={`/events/manage/${event.id}`}
+              className='mt-3 inline-flex h-11 w-full items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white'
+            >
+              申請者を管理する
+            </Link>
           </Card>
         ) : (
-          <>
+          <Card>
             {applied || existingApp ? (
-              <p className='rounded-2xl border border-[#ebe9e4] bg-white px-4 py-3 text-sm text-[#4a4a4a]'>
-                参加申請を受け付けました。運営が6名を選定します。
+              <p className='text-sm leading-7 text-[#4a4a4a]'>
+                {existingApp?.status === 'confirmed'
+                  ? '参加が確定しました。当日お会いできるのを楽しみにしています。'
+                  : existingApp?.status === 'rejected'
+                    ? '今回はご縁がありませんでしたが、ほかのConnectionでお会いできますように。'
+                    : approvalMode === 'auto'
+                      ? '参加を受け付けました。当日お会いできるのを楽しみにしています。'
+                      : '参加申請を受け付けました。主催者が参加理由を読んで参加者を選びます。'}
               </p>
-            ) : null}
-
-            <form action={applyConnectionEventAction}>
-              <input type='hidden' name='eventId' value={event.id} />
-              <button
-                type='submit'
-                disabled={isFull || Boolean(existingApp)}
-                className='h-12 w-full rounded-full bg-[#1a1a1a] text-sm font-semibold text-white disabled:opacity-40'
-              >
-                {existingApp ? '申請済み' : isFull ? '満席です' : '参加申請する'}
-              </button>
-            </form>
-          </>
+            ) : isFull ? (
+              <p className='text-sm text-[#9a9a9a]'>このイベントは満席です。</p>
+            ) : (
+              <>
+                <p className='mb-3 text-sm leading-7 text-[#6b6b6b]'>
+                  {approvalMode === 'auto'
+                    ? 'あなたの想いを添えて参加できます。'
+                    : 'あなたの想いを添えて申請してください。主催者が読んで参加者を選びます。'}
+                </p>
+                <ApplyForm eventId={event.id} approvalMode={approvalMode} />
+              </>
+            )}
+          </Card>
         )}
       </article>
     </ConnectionShell>

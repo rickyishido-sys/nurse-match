@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation';
 import {
   applyToEvent,
   confirmMemberForEvent,
+  createEvent,
+  rejectApplication,
   removeMemberFromEvent,
   saveMemberPersonality,
   updateMember,
@@ -12,7 +14,9 @@ import {
 } from '@/lib/connection/data';
 import { VALUE_TAG_LABEL } from '@/lib/connection/data';
 import type {
+  ConnectionEventCategory,
   ConnectionPurpose,
+  EventApprovalMode,
   InterestTag,
   LifePhase,
   PersonalityType,
@@ -23,14 +27,92 @@ import type {
 
 const MOCK_VIEWER_ID = 'm1';
 
+const VALID_CATEGORIES: ConnectionEventCategory[] = [
+  'flower',
+  'coffee',
+  'business',
+  'walking',
+  'fitness',
+  'learning',
+  'bar',
+  'sports',
+  'workshop',
+  'other',
+];
+
+export async function createConnectionEventAction(formData: FormData) {
+  const title = String(formData.get('title') ?? '').trim();
+  const rawCategory = String(formData.get('category') ?? 'other');
+  const category = (VALID_CATEGORIES.includes(rawCategory as ConnectionEventCategory)
+    ? rawCategory
+    : 'other') as ConnectionEventCategory;
+  const description = String(formData.get('description') ?? '').trim();
+  const startAt = String(formData.get('startAt') ?? '').trim();
+  const area = String(formData.get('area') ?? '').trim();
+  const venue = String(formData.get('venue') ?? '').trim();
+  const capacity = Math.max(2, Math.min(50, Number(formData.get('capacity')) || 6));
+  const fee = Math.max(0, Number(formData.get('fee')) || 0);
+  const coverUrl = String(formData.get('coverUrl') ?? '').trim();
+  const conditions = String(formData.get('conditions') ?? '').trim();
+  const approvalMode = (String(formData.get('approvalMode') ?? 'host_approval') === 'auto'
+    ? 'auto'
+    : 'host_approval') as EventApprovalMode;
+
+  if (!title || !startAt || !area) {
+    redirect('/events/create?error=required');
+  }
+
+  const event = createEvent({
+    title,
+    category,
+    description,
+    startAt,
+    area,
+    venue,
+    capacity,
+    fee,
+    coverUrl,
+    conditions,
+    approvalMode,
+    hostId: MOCK_VIEWER_ID,
+  });
+
+  console.log('CONNECTION_EVENT_CREATE', { id: event.id, title, category, approvalMode });
+  revalidatePath('/events');
+  revalidatePath('/home');
+  redirect(`/events/${event.id}?created=1`);
+}
+
 export async function applyConnectionEventAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '');
-  console.log('CONNECTION_APPLY', { eventId, memberId: MOCK_VIEWER_ID });
-  if (eventId) applyToEvent(eventId, MOCK_VIEWER_ID);
+  const reason = String(formData.get('reason') ?? '').trim();
+  console.log('CONNECTION_APPLY', { eventId, memberId: MOCK_VIEWER_ID, reasonLength: reason.length });
+  if (eventId) applyToEvent(eventId, MOCK_VIEWER_ID, reason);
   revalidatePath(`/events/${eventId}`);
   revalidatePath('/events');
   revalidatePath('/manage');
+  revalidatePath(`/events/manage/${eventId}`);
   redirect(`/events/${eventId}?applied=1`);
+}
+
+export async function approveApplicationAction(formData: FormData) {
+  const eventId = String(formData.get('eventId') ?? '');
+  const memberId = String(formData.get('memberId') ?? '');
+  console.log('CONNECTION_HOST_APPROVE', { eventId, memberId });
+  if (eventId && memberId) confirmMemberForEvent(eventId, memberId);
+  revalidatePath(`/events/manage/${eventId}`);
+  revalidatePath(`/events/${eventId}`);
+  redirect(`/events/manage/${eventId}?approved=${memberId}`);
+}
+
+export async function rejectApplicationAction(formData: FormData) {
+  const eventId = String(formData.get('eventId') ?? '');
+  const memberId = String(formData.get('memberId') ?? '');
+  console.log('CONNECTION_HOST_REJECT', { eventId, memberId });
+  if (eventId && memberId) rejectApplication(eventId, memberId);
+  revalidatePath(`/events/manage/${eventId}`);
+  revalidatePath(`/events/${eventId}`);
+  redirect(`/events/manage/${eventId}?rejected=${memberId}`);
 }
 
 export async function confirmMemberAction(formData: FormData) {

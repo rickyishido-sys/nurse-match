@@ -92,8 +92,14 @@ export const EVENT_CATEGORY_LABEL: Record<ConnectionEventCategory, string> = {
   business: 'Dinner Connection',
   walking: 'Walking Connection',
   fitness: 'Fitness Connection',
+  learning: 'Learning Connection',
+  bar: 'Bar Connection',
+  sports: 'Sports Connection',
+  workshop: 'Workshop Connection',
+  other: 'Connection',
 };
 
+/** ランディング / 一覧フィルタで見せる運営キュレーションの基本カテゴリー（5種） */
 export const EVENT_CATEGORY_ORDER: ConnectionEventCategory[] = [
   'flower',
   'coffee',
@@ -101,6 +107,42 @@ export const EVENT_CATEGORY_ORDER: ConnectionEventCategory[] = [
   'walking',
   'fitness',
 ];
+
+/** イベント作成で選べる全カテゴリー（ユーザー作成向け） */
+export const EVENT_CATEGORY_CREATE_ORDER: ConnectionEventCategory[] = [
+  'flower',
+  'coffee',
+  'business',
+  'walking',
+  'fitness',
+  'learning',
+  'bar',
+  'sports',
+  'workshop',
+  'other',
+];
+
+/** Hostバッジの表示メタ（UIのみ・ダミー） */
+export const HOST_BADGE_META: Record<
+  import('@/lib/connection/types').HostBadge,
+  { label: string; emoji: string; description: string }
+> = {
+  community: {
+    label: 'Community Host',
+    emoji: '🌱',
+    description: 'コミュニティづくりに貢献しているホスト',
+  },
+  trusted: {
+    label: 'Trusted Host',
+    emoji: '🤝',
+    description: '安心して参加できると評価されたホスト',
+  },
+  premium: {
+    label: 'Premium Host',
+    emoji: '✦',
+    description: '上質な体験を継続して届けているホスト',
+  },
+};
 
 /** カテゴリごとの世界観（絵文字・キャッチ・配色・LP画像） */
 export const EVENT_CATEGORY_META: Record<
@@ -166,6 +208,56 @@ export const EVENT_CATEGORY_META: Record<
     accent: '#5a7f99',
     gradient: 'from-[#e4eef3] to-[#cfdfe8]',
   },
+  learning: {
+    label: 'Learning Connection',
+    short: 'Learning',
+    emoji: '📚',
+    tagline: '学びを分かち合い、視点を広げる時間',
+    landingTagline: '学びを通じて知的なつながりを',
+    imagePath: '',
+    accent: '#6a6391',
+    gradient: 'from-[#ece8f2] to-[#ddd6ea]',
+  },
+  bar: {
+    label: 'Bar Connection',
+    short: 'Bar',
+    emoji: '🍷',
+    tagline: '一杯を傾けながら、本音で語る夜',
+    landingTagline: 'お酒とともに心ほどける夜を',
+    imagePath: '',
+    accent: '#8a5a63',
+    gradient: 'from-[#f0e6e8] to-[#e2d0d4]',
+  },
+  sports: {
+    label: 'Sports Connection',
+    short: 'Sports',
+    emoji: '🎾',
+    tagline: '一緒に体を動かし、自然と打ち解ける',
+    landingTagline: 'スポーツで心地よくつながる',
+    imagePath: '',
+    accent: '#5f8a72',
+    gradient: 'from-[#e6f0ea] to-[#d2e2d8]',
+  },
+  workshop: {
+    label: 'Workshop Connection',
+    short: 'Workshop',
+    emoji: '🎨',
+    tagline: '手を動かしながら、自然に生まれる対話',
+    landingTagline: '手を動かしてつくる時間を共に',
+    imagePath: '',
+    accent: '#a07a4a',
+    gradient: 'from-[#f2ebde] to-[#e4d6c2]',
+  },
+  other: {
+    label: 'Connection',
+    short: 'Other',
+    emoji: '✨',
+    tagline: 'テーマを超えて、心地よくつながる',
+    landingTagline: 'あなたらしいConnectionを',
+    imagePath: '',
+    accent: '#7a7468',
+    gradient: 'from-[#efece8] to-[#ddd6cc]',
+  },
 };
 
 export const LANDING_HERO_IMAGE = '/images/hanakai-hero.jpg';
@@ -226,6 +318,7 @@ const members: ConnectionMember[] = [
       axes: { energy: 'introvert', thinking: 'feeling', planning: 'plan' },
       completedAt: '2026-06-01T10:00:00+09:00',
     },
+    hostBadges: ['community', 'trusted'],
     ...seedTrust({
       trustVerificationStatus: 'verified',
       identityVerified: true,
@@ -263,6 +356,7 @@ const members: ConnectionMember[] = [
       axes: { energy: 'extravert', thinking: 'logic', planning: 'plan' },
       completedAt: '2026-05-20T10:00:00+09:00',
     },
+    hostBadges: ['premium', 'trusted'],
     ...seedTrust({
       trustVerificationStatus: 'verified',
       identityVerified: true,
@@ -585,6 +679,28 @@ const events: ConnectionEvent[] = [
     isPast: true,
     confirmedMemberIds: ['m1', 'm3', 'm5', 'm6', 'm7', 'm8'],
   },
+  {
+    id: 'ue1',
+    title: '朝の花あしらいと珈琲 — 南青山',
+    category: 'flower',
+    startAt: '2026-07-12T10:00:00+09:00',
+    area: '東京・南青山',
+    venue: 'アトリエ&カフェ AOYAMA',
+    capacity: 6,
+    reservedCount: 3,
+    hostName: 'あやか',
+    hostId: 'm1',
+    isUserCreated: true,
+    approvalMode: 'host_approval',
+    fee: 3500,
+    conditions: '初参加歓迎・一人参加OK・花が好きな方',
+    description:
+      '季節の花を少しだけあしらってから、淹れたての珈琲を片手にゆっくり語り合う朝。人を集める会ではなく、心地よいつながりが生まれる小さな時間を一緒につくれたら嬉しいです。',
+    coverUrl: img('photo-1487070183336-b863922373d4'),
+    status: 'open',
+    isPast: false,
+    confirmedMemberIds: [],
+  },
 ];
 
 let applications: EventApplication[] = [
@@ -597,6 +713,33 @@ let applications: EventApplication[] = [
   { id: 'a7', eventId: 'ce3', memberId: 'm7', appliedAt: '2026-06-12T10:00:00+09:00', status: 'pending' },
   { id: 'a8', eventId: 'ce3', memberId: 'm2', appliedAt: '2026-06-12T11:00:00+09:00', status: 'pending' },
   { id: 'a9', eventId: 'ce3', memberId: 'm8', appliedAt: '2026-06-13T09:00:00+09:00', status: 'pending' },
+  {
+    id: 'a10',
+    eventId: 'ue1',
+    memberId: 'm3',
+    appliedAt: '2026-06-24T10:00:00+09:00',
+    status: 'pending',
+    reason:
+      '最近お花のある暮らしに憧れていて、自分でも少しずつ生けるようになりました。同じように静かな時間を楽しめる方とゆっくりお話ししてみたいと思い、参加を希望します。朝の珈琲も大好きなので楽しみです。',
+  },
+  {
+    id: 'a11',
+    eventId: 'ue1',
+    memberId: 'm5',
+    appliedAt: '2026-06-24T14:30:00+09:00',
+    status: 'pending',
+    reason:
+      '転職をきっかけに新しいつながりを探しています。花も珈琲も初心者ですが、丁寧な時間を過ごせそうな雰囲気に惹かれました。気負わずいろいろな方と落ち着いて話してみたいです。よろしくお願いします。',
+  },
+  {
+    id: 'a12',
+    eventId: 'ue1',
+    memberId: 'm7',
+    appliedAt: '2026-06-25T09:15:00+09:00',
+    status: 'pending',
+    reason:
+      '休日に心が整うような時間を持ちたいと思っていました。花をあしらう体験は初めてですが、同じ感性の方々とゆったり語り合えたら嬉しいです。少し人見知りですが、温かい場づくりに参加できたらと思っています。',
+  },
 ];
 
 // --- accessors ---
@@ -633,17 +776,82 @@ export function getApplication(eventId: string, memberId: string) {
   return applications.find((a) => a.eventId === eventId && a.memberId === memberId) ?? null;
 }
 
-export function applyToEvent(eventId: string, memberId: string) {
+export function applyToEvent(eventId: string, memberId: string, reason?: string) {
   if (getApplication(eventId, memberId)) return;
+  const event = getEvent(eventId);
+  const autoApprove = event?.approvalMode === 'auto';
   applications.push({
     id: `a${Date.now()}`,
     eventId,
     memberId,
     appliedAt: new Date().toISOString(),
-    status: 'pending',
+    status: autoApprove ? 'confirmed' : 'pending',
+    reason: reason?.trim() ? reason.trim() : undefined,
   });
+  if (event) {
+    event.reservedCount = Math.min(event.capacity, event.reservedCount + 1);
+    if (autoApprove && !event.confirmedMemberIds.includes(memberId)) {
+      event.confirmedMemberIds.push(memberId);
+    }
+  }
+}
+
+/** 申請を却下（主催者承認制のホスト操作） */
+export function rejectApplication(eventId: string, memberId: string) {
   const event = getEvent(eventId);
-  if (event) event.reservedCount = Math.min(event.capacity, event.reservedCount + 1);
+  const app = getApplication(eventId, memberId);
+  if (app) app.status = 'rejected';
+  if (event) {
+    event.confirmedMemberIds = event.confirmedMemberIds.filter((id) => id !== memberId);
+  }
+}
+
+export type CreateEventInput = {
+  title: string;
+  category: ConnectionEventCategory;
+  description: string;
+  startAt: string;
+  area: string;
+  venue: string;
+  capacity: number;
+  fee: number;
+  coverUrl: string;
+  conditions: string;
+  approvalMode: import('@/lib/connection/types').EventApprovalMode;
+  hostId: string;
+};
+
+/** ユーザー作成イベントを追加（MVP: インメモリ） */
+export function createEvent(input: CreateEventInput): ConnectionEvent {
+  const host = getMember(input.hostId);
+  const event: ConnectionEvent = {
+    id: `ue_${Date.now()}`,
+    title: input.title,
+    category: input.category,
+    startAt: input.startAt,
+    area: input.area,
+    venue: input.venue,
+    capacity: input.capacity,
+    reservedCount: 0,
+    hostName: host?.nickname ?? 'HANAKAI ホスト',
+    hostId: input.hostId,
+    isUserCreated: true,
+    approvalMode: input.approvalMode,
+    fee: input.fee,
+    conditions: input.conditions,
+    description: input.description,
+    coverUrl: input.coverUrl,
+    status: 'open',
+    isPast: false,
+    confirmedMemberIds: [],
+  };
+  events.push(event);
+  return event;
+}
+
+/** 指定メンバーが主催するイベント一覧 */
+export function listEventsByHost(hostId: string) {
+  return listEvents().filter((e) => e.hostId === hostId);
 }
 
 export function confirmMemberForEvent(eventId: string, memberId: string) {
