@@ -64,6 +64,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/icons') ||
     pathname.startsWith('/logo') ||
     pathname.startsWith('/hero') ||
+    pathname.startsWith('/categories') ||
+    pathname.startsWith('/flow') ||
     pathname === '/manifest.webmanifest'
   ) {
     return NextResponse.next();

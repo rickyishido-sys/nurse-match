@@ -1,21 +1,22 @@
+import Image from 'next/image';
 import { LandingSectionTitle, LP_GOLD } from '@/components/connection/landing/landing-ui';
 
 const STEPS = [
   {
     step: '01',
-    icon: '✎',
+    img: '/flow/register.png',
     title: '参加登録',
     body: 'プロフィールと、あなたが求めるConnectionを登録。',
   },
   {
     step: '02',
-    icon: '♡',
+    img: '/flow/apply.png',
     title: 'イベントに申請',
     body: '気になるConnection Eventに参加希望を送る。',
   },
   {
     step: '03',
-    icon: '👥',
+    img: '/flow/matching.png',
     title: '最適なConnectionが生まれる',
     body: (
       <>
@@ -31,7 +32,7 @@ const STEPS = [
   },
   {
     step: '04',
-    icon: '🤝',
+    img: '/flow/continue.png',
     title: 'Connectionが続いていく',
     body: 'イベント後も、参加者同士がつながり、新たなConnectionが生まれていく。',
   },
@@ -50,11 +51,14 @@ export function LandingFlowSteps() {
               <p className='text-[10px] font-semibold tracking-wider' style={{ color: LP_GOLD }}>
                 {item.step}
               </p>
-              <div
-                className='mt-1.5 flex h-10 w-10 items-center justify-center rounded-full border bg-[#fafaf8] text-sm'
-                style={{ borderColor: `${LP_GOLD}66` }}
-              >
-                {item.icon}
+              <div className='relative mt-1.5 h-16 w-16'>
+                <Image
+                  src={item.img}
+                  alt={item.title}
+                  fill
+                  sizes='64px'
+                  className='object-contain'
+                />
               </div>
             </div>
             <div className='min-w-0 flex-1 border-b border-[#ebe5dc] pb-5'>
@@ -72,11 +76,14 @@ export function LandingFlowSteps() {
             <p className='text-xs font-semibold tracking-wider' style={{ color: LP_GOLD }}>
               {item.step}
             </p>
-            <div
-              className='mt-2 flex h-12 w-12 items-center justify-center rounded-full border bg-white text-base shadow-sm'
-              style={{ borderColor: `${LP_GOLD}99` }}
-            >
-              {item.icon}
+            <div className='relative mt-3 h-24 w-24'>
+              <Image
+                src={item.img}
+                alt={item.title}
+                fill
+                sizes='96px'
+                className='object-contain'
+              />
             </div>
             <p className='mt-3 text-sm font-semibold text-[#1a1a1a]'>{item.title}</p>
             <p className='mt-2 text-xs leading-6 text-[#6b6b6b]'>{item.body}</p>

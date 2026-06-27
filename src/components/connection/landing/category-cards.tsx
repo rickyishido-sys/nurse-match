@@ -1,17 +1,26 @@
+import Image from 'next/image';
 import Link from 'next/link';
-import { CoverImage } from '@/components/connection/landing/cover-image';
 import { LandingSectionTitle } from '@/components/connection/landing/landing-ui';
-import { EVENT_CATEGORY_META, EVENT_CATEGORY_ORDER } from '@/lib/connection/data';
+import { EVENT_CATEGORY_META } from '@/lib/connection/data';
 import type { ConnectionEventCategory } from '@/lib/connection/types';
+
+/** ランディングで紹介するカテゴリーと、対応するイラスト。 */
+const CATEGORY_CARDS: { category: ConnectionEventCategory; img: string }[] = [
+  { category: 'flower', img: '/categories/flower.png' },
+  { category: 'coffee', img: '/categories/cafe.png' },
+  { category: 'bar', img: '/categories/bar.png' },
+  { category: 'fitness', img: '/categories/fitness.png' },
+  { category: 'walking', img: '/categories/stroll.png' },
+];
 
 export function LandingCategoryCards() {
   return (
     <section className='space-y-5 lg:space-y-6'>
       <LandingSectionTitle kicker='さまざまなテーマでつながる' title='Connectionの種類' />
 
-      <div className='-mx-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] md:gap-3 lg:mx-0 lg:grid lg:grid-cols-5 lg:gap-4 lg:overflow-visible lg:px-0 lg:snap-none [&::-webkit-scrollbar]:hidden'>
-        {EVENT_CATEGORY_ORDER.map((cat) => (
-          <CategoryCard key={cat} category={cat} />
+      <div className='-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:none] md:gap-4 lg:mx-0 lg:grid lg:grid-cols-5 lg:gap-4 lg:overflow-visible lg:px-0 lg:snap-none [&::-webkit-scrollbar]:hidden'>
+        {CATEGORY_CARDS.map(({ category, img }) => (
+          <CategoryCard key={category} category={category} img={img} />
         ))}
       </div>
 
@@ -27,34 +36,26 @@ export function LandingCategoryCards() {
   );
 }
 
-function CategoryCard({ category }: { category: ConnectionEventCategory }) {
+function CategoryCard({ category, img }: { category: ConnectionEventCategory; img: string }) {
   const meta = EVENT_CATEGORY_META[category];
 
   return (
     <Link
       href={`/events?category=${category}`}
-      className='h-[228px] w-[128px] shrink-0 snap-start overflow-hidden rounded-xl border border-[#ebe5dc] bg-white shadow-[0_2px_10px_rgba(26,26,26,0.04)] transition active:scale-[0.98] md:h-[240px] md:w-[136px] lg:h-[280px] lg:w-full lg:shrink'
+      className='flex w-[150px] shrink-0 snap-start flex-col items-center rounded-2xl border border-[#ebe5dc] bg-white px-4 py-7 text-center shadow-[0_2px_12px_rgba(26,26,26,0.04)] transition active:scale-[0.98] md:w-[160px] lg:w-full lg:shrink lg:px-5 lg:py-8'
     >
-      <div className='relative h-[84px] lg:h-[120px]'>
-        <CoverImage
-          src={meta.imagePath}
+      <div className='relative h-24 w-24 lg:h-28 lg:w-28'>
+        <Image
+          src={img}
           alt={meta.short}
-          fallbackClassName={`bg-gradient-to-br ${meta.gradient}`}
-          imageClassName='object-cover'
+          fill
+          sizes='(min-width: 1024px) 112px, 96px'
+          className='object-contain'
         />
       </div>
 
-      <div className='relative px-2.5 pb-3.5 pt-6 text-center lg:px-3 lg:pb-4 lg:pt-7'>
-        <div
-          className='absolute -top-4 left-1/2 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full border bg-white text-sm shadow-sm lg:h-9 lg:w-9 lg:text-base'
-          style={{ borderColor: '#c5a059' }}
-          aria-hidden
-        >
-          {meta.emoji}
-        </div>
-        <p className='text-xs font-semibold text-[#1a1a1a] lg:text-sm'>{meta.short}</p>
-        <p className='mt-1 text-[9px] leading-[1.55] text-[#6b6b6b] lg:text-[11px]'>{meta.landingTagline}</p>
-      </div>
+      <p className='mt-5 text-sm font-semibold text-[#1a1a1a] lg:text-base'>{meta.short}</p>
+      <p className='mt-1.5 text-[11px] leading-[1.6] text-[#6b6b6b] lg:text-xs'>{meta.landingTagline}</p>
     </Link>
   );
 }
