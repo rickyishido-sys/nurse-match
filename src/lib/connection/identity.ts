@@ -8,7 +8,6 @@
 //         作成し、hanakai_members 行を get-or-create して member id を返す。
 // 後からメール認証・本人確認へ「昇格」できる（auth_user_id は不変のまま）。
 import { HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
-import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export const MOCK_VIEWER_ID = 'm1';
@@ -16,8 +15,7 @@ export const MOCK_VIEWER_ID = 'm1';
 const useSupabase = HANAKAI_CONNECTION_BACKEND === 'supabase';
 
 async function findMemberIdByAuthUser(authUserId: string): Promise<string | null> {
-  const admin = createAdminSupabaseClient();
-  const sb = admin ?? (await createServerSupabaseClient());
+  const sb = await createServerSupabaseClient();
   if (!sb) return null;
   const { data } = await sb
     .from('hanakai_members')
@@ -74,11 +72,10 @@ export async function ensureViewerMemberId(): Promise<string | null> {
     const existing = await findMemberIdByAuthUser(user.id);
     if (existing) return existing;
 
-    // 行が無ければ作成（service_role 優先で RLS を気にせず作成）
-    const admin = createAdminSupabaseClient();
-    const writer = admin ?? sb;
+    // 行が無ければ作成。匿名サインイン済み session の RLS self-insert
+    // (auth.uid() = auth_user_id) で作成できるため service_role は不要。
     const fallbackName = user.email ? user.email.split('@')[0] : 'ゲスト';
-    const { data, error } = await writer
+    const { data, error } = await sb
       .from('hanakai_members')
       .insert({
         auth_user_id: user.id,

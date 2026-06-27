@@ -2,7 +2,6 @@
 // Mirrors the async surface declared in repo.ts. Reads are public (RLS select
 // true); writes run server-side via the service-role client. Identity is
 // resolved separately (see identity.ts) and passed in as member ids.
-import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import type {
   ConnectionEvent,
@@ -18,10 +17,12 @@ import type { CreateEventInput } from '@/lib/connection/data';
 
 // --- low-level clients --------------------------------------------------
 
-/** 読み書き両用のサーバー側クライアント（service_role 優先 / anon フォールバック）。 */
+/**
+ * 読み書き両用のサーバー側クライアント。
+ * HANAKAI の全導線は RLS + (匿名)セッションで成立するため server client を使う。
+ * 共有の service_role キーには依存しない（Nurse Match の導線・共有設定へ影響を与えない）。
+ */
 async function db() {
-  const admin = createAdminSupabaseClient();
-  if (admin) return admin;
   return createServerSupabaseClient();
 }
 
