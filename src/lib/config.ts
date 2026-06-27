@@ -5,6 +5,13 @@ export const APP_NAME_JA = 'Connection';
 export const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
 /**
+ * 本番サイトの正規URL（origin）。
+ * metadataBase / canonical / OGP / robots / sitemap / メール内リンクの単一ソース。
+ * 環境変数 NEXT_PUBLIC_SITE_URL が優先され、未設定時は新ブランドのサブドメインにフォールバックする。
+ */
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://hanakai.kranz.design').replace(/\/$/, '');
+
+/**
  * HANAKAI Connection のデータ保存先バックエンド。
  * - 'mock'（既定）: 既存のインメモリ実装（src/lib/connection/data.ts）
  * - 'supabase'    : Supabase 実データ保存（hanakai_* テーブル）

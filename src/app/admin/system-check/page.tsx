@@ -124,7 +124,7 @@ export default async function AdminSystemCheckPage() {
         <article className='rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
           <h2 className='font-semibold text-slate-900'>環境情報</h2>
           <ul className='mt-2 space-y-1 text-xs text-slate-600'>
-            <li>本番URL: https://nurse.kranz.design</li>
+            <li>本番URL: https://hanakai.kranz.design</li>
             <li>PWA manifest URL: /manifest.webmanifest</li>
             <li>manifest name: {String(pwa.name)}</li>
             <li>manifest display: {String(pwa.display)}</li>

@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import { Noto_Sans_JP, Noto_Serif_JP } from 'next/font/google';
+import { SITE_URL } from '@/lib/config';
 import './globals.css';
+
+const SITE_TITLE = 'HANAKAI Connection';
+const SITE_DESCRIPTION = '人と人との新しいConnectionを生み出す、リアル体験プラットフォーム。';
 
 const noto = Noto_Sans_JP({
   subsets: ['latin'],
@@ -14,9 +18,30 @@ const notoSerif = Noto_Serif_JP({
 });
 
 export const metadata: Metadata = {
-  title: 'HANAKAI Connection',
-  description: '人と人との新しいConnectionを生み出す、リアル体験プラットフォーム。',
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
   applicationName: 'HANAKAI Connection',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    siteName: SITE_TITLE,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    locale: 'ja_JP',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [{ url: '/icon.png?v=2', type: 'image/png' }, { url: '/favicon.ico?v=2', type: 'image/x-icon' }],

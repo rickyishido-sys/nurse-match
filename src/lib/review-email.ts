@@ -1,4 +1,6 @@
-const LOGIN_URL = 'https://nurse.kranz.design/login';
+import { SITE_URL } from '@/lib/config';
+
+const LOGIN_URL = `${SITE_URL}/login`;
 
 function buildApprovedBody() {
   return [
