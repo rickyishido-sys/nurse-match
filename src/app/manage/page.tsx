@@ -32,11 +32,14 @@ export default async function ManagePage({ searchParams }: PageProps) {
   return (
     <ConnectionShell viewer={viewer}>
       <div className='space-y-6'>
-        <div>
-          <p className='text-[11px] font-medium tracking-[0.2em] text-[#6b6b6b]'>ADMIN</p>
-          <h1 className='mt-1 text-xl font-semibold text-[#1a1a1a]'>参加者選定</h1>
-          <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>
-            属性だけでなく、Connection目的・興味・人生フェーズ・性格タイプ・運営確認ステータスを参考に6名を選定します。
+        <div className='space-y-2'>
+          <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: '#b8956a' }}>
+            ADMIN
+          </p>
+          <h1 className='text-[1.6rem] font-semibold leading-tight tracking-tight text-[#1a1a1a]'>参加者選定とConnection設計</h1>
+          <p className='text-sm leading-7 text-[#6b6b6b]'>
+            属性だけでなく、Connection目的・興味・人生フェーズ・性格タイプ・運営確認ステータス・過去の参加態度・再会希望などを参考に、
+            このイベントに最適な参加メンバーを選定します。
           </p>
         </div>
 

@@ -1,33 +1,99 @@
 import Link from 'next/link';
-import { AppShell } from '@/components/app-shell';
-import { getCurrentUser } from '@/lib/data';
+import { ConnectionShell } from '@/components/connection/shell';
+import { getHanakaiViewer } from '@/lib/hanakai/session';
+
+const GOLD = '#b8956a';
+
+const SECTIONS: { heading: string; body?: string; items?: string[] }[] = [
+  {
+    heading: '利用条件',
+    items: [
+      '本サービスは18歳以上の方のみご利用いただけます。',
+      'プロフィールに虚偽の内容を登録することは禁止します。',
+    ],
+  },
+  {
+    heading: 'リアルイベントへの参加',
+    body: 'HANAKAI Connectionは、リアルな体験を通じてつながりを育む場です。参加者が安心して過ごせるよう、次のマナーをお守りください。',
+    items: [
+      '他の参加者を尊重し、節度ある態度で参加してください。',
+      '迷惑行為・勧誘・営業・ハラスメントは固く禁止します。',
+      '集合時間・場所などイベントごとのルールに従ってください。',
+    ],
+  },
+  {
+    heading: '運営による参加管理',
+    body: '安心できる場を保つため、運営は以下を行う場合があります。',
+    items: [
+      'イベントごとの参加承認、および参加の制限。',
+      'ユーザーが作成したイベントの内容確認（審査）。',
+      '規約違反が確認された場合の、利用停止・強制退会などの措置。',
+    ],
+  },
+  {
+    heading: '参加費・キャンセルについて',
+    items: [
+      '参加費はイベントごとに定められ、申込時にご確認いただけます。',
+      'キャンセルは各イベントに定めるポリシーに従います。直前のキャンセルや無断不参加は、今後の参加が制限される場合があります。',
+    ],
+  },
+];
 
 export default async function TermsPage() {
-  const user = await getCurrentUser();
+  const viewer = await getHanakaiViewer();
 
   return (
-    <AppShell user={user}>
-      <section className='space-y-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm'>
-        <h1 className='text-xl font-bold text-slate-900'>利用規約</h1>
-        <p className='text-sm leading-7 text-slate-600'>
-          本サービスは18歳以上のみ利用可能です。本人確認および審査のために提出された情報に虚偽があった場合、
-          アカウント停止・退会処理を行う場合があります。
-        </p>
-        <ul className='space-y-2 text-sm text-slate-600'>
-          <li>・年齢確認と本人確認は必須です。</li>
-          <li>・婚姻状態を含むプロフィールの虚偽申告は禁止です。</li>
-          <li>・ハラスメント行為や危険行為は禁止です。</li>
-          <li>・通報内容は運営が確認し、必要に応じて警告・停止・退会措置を行います。</li>
-          <li>・ブロック機能により相互非表示となる場合があります。</li>
-          <li>・退会は設定画面からいつでも可能です（退会後はログアウト）。</li>
-          <li>・AIを活用した登録審査および公開情報確認を行う場合があります。</li>
-          <li>・運営判断で警告/停止/永久停止を行う場合があります。</li>
-        </ul>
-        <p className='text-xs text-slate-500'>特定商取引法表記は今後 ` /tokushoho ` で公開予定です。</p>
-        <Link href='/privacy' className='inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm text-white'>
-          プライバシーポリシーへ
-        </Link>
-      </section>
-    </AppShell>
+    <ConnectionShell viewer={viewer}>
+      <div className='mx-auto max-w-[680px] space-y-8'>
+        <div className='space-y-2'>
+          <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
+            TERMS
+          </p>
+          <h1 className='text-[1.6rem] font-semibold leading-tight tracking-tight text-[#1a1a1a]'>
+            利用規約
+          </h1>
+          <p className='text-sm leading-7 text-[#6b6b6b]'>
+            HANAKAI Connectionを安心してご利用いただくための基本的なルールです。ご参加の前にご確認ください。
+          </p>
+        </div>
+
+        <div className='space-y-4'>
+          {SECTIONS.map((section) => (
+            <section
+              key={section.heading}
+              className='space-y-3 rounded-3xl border border-[#ebe5dc] bg-white p-6 shadow-[0_2px_12px_rgba(26,26,26,0.04)]'
+            >
+              <h2 className='text-base font-semibold text-[#1a1a1a]'>{section.heading}</h2>
+              {section.body ? <p className='text-sm leading-7 text-[#5a5247]'>{section.body}</p> : null}
+              {section.items ? (
+                <ul className='space-y-2 text-sm leading-7 text-[#6b6b6b]'>
+                  {section.items.map((item) => (
+                    <li key={item} className='flex gap-2'>
+                      <span style={{ color: GOLD }}>・</span>
+                      <span className='min-w-0'>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </section>
+          ))}
+        </div>
+
+        <div className='flex flex-wrap gap-3'>
+          <Link
+            href='/privacy'
+            className='inline-flex h-11 items-center justify-center rounded-full bg-[#1f5d4f] px-6 text-sm font-semibold text-white transition active:scale-[0.98]'
+          >
+            プライバシーポリシーを見る
+          </Link>
+          <Link
+            href='/'
+            className='inline-flex h-11 items-center justify-center rounded-full border border-[#d8d6d1] px-6 text-sm font-medium text-[#6b6b6b] transition active:scale-[0.98]'
+          >
+            トップへ戻る
+          </Link>
+        </div>
+      </div>
+    </ConnectionShell>
   );
 }
