@@ -44,9 +44,12 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.webmanifest',
   icons: {
-    icon: [{ url: '/icons/icon-192.svg?v=3', type: 'image/svg+xml' }],
-    shortcut: [{ url: '/icons/icon-192.svg?v=3', type: 'image/svg+xml' }],
-    apple: [{ url: '/icons/icon-512.svg?v=3', type: 'image/svg+xml' }],
+    icon: [
+      { url: '/favicon.ico?v=4', sizes: 'any' },
+      { url: '/icon.png?v=4', type: 'image/png' },
+    ],
+    shortcut: [{ url: '/favicon.ico?v=4', sizes: 'any' }],
+    apple: [{ url: '/apple-touch-icon.png?v=4', sizes: '180x180', type: 'image/png' }],
   },
   appleWebApp: {
     capable: true,

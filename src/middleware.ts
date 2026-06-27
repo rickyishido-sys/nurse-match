@@ -61,7 +61,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/onboarding/') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
-    pathname.startsWith('/icons') ||
+    pathname.startsWith('/icon') ||
+    pathname.startsWith('/apple-touch-icon') ||
     pathname.startsWith('/logo') ||
     pathname.startsWith('/hero') ||
     pathname.startsWith('/categories') ||

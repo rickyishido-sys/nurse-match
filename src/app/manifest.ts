@@ -12,17 +12,17 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#1a1a1a',
     icons: [
       {
-        src: '/icons/icon-192.svg?v=3',
+        src: '/icons/icon-192.svg?v=4',
         sizes: '192x192',
         type: 'image/svg+xml',
       },
       {
-        src: '/icons/icon-512.svg?v=3',
+        src: '/icons/icon-512.svg?v=4',
         sizes: '512x512',
         type: 'image/svg+xml',
       },
       {
-        src: '/icons/icon-maskable.svg?v=3',
+        src: '/icons/icon-maskable.svg?v=4',
         sizes: '512x512',
         type: 'image/svg+xml',
         purpose: 'maskable',
