@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import Image from 'next/image';
 import { AnimatePresence, motion } from 'motion/react';
 
 export const ONB = {
@@ -12,7 +13,40 @@ export const ONB = {
   accent: '#1f5d4f',
   accentSoft: '#edf3f0',
   accentBorder: '#1f5d4f',
+  /** トップページと共通のゴールド（キッカー用）。 */
+  gold: '#b8956a',
 };
+
+/** イラストごとの、やわらかい水彩トーンの背景グラデーション。 */
+const ART_TONE: Record<string, string> = {
+  '/flow/register.png': 'radial-gradient(circle at 50% 36%, #eef3ef 0%, #e7efe8 72%)',
+  '/flow/apply.png': 'radial-gradient(circle at 50% 36%, #f3efe6 0%, #ece5d6 72%)',
+  '/flow/matching.png': 'radial-gradient(circle at 50% 36%, #f1eef6 0%, #e7e3ef 72%)',
+  '/flow/continue.png': 'radial-gradient(circle at 50% 36%, #eef3ef 0%, #e6ede6 72%)',
+  '/categories/flower.png': 'radial-gradient(circle at 50% 36%, #f8eef0 0%, #f0e2e4 72%)',
+  '/categories/cafe.png': 'radial-gradient(circle at 50% 36%, #f4ede2 0%, #ebddc9 72%)',
+  '/categories/bar.png': 'radial-gradient(circle at 50% 36%, #f2ecf2 0%, #e8dde8 72%)',
+  '/categories/fitness.png': 'radial-gradient(circle at 50% 36%, #eaf3ee 0%, #dfeee4 72%)',
+  '/categories/stroll.png': 'radial-gradient(circle at 50% 36%, #eef3e9 0%, #e4ecdd 72%)',
+};
+
+/** 各ステップ上部の水彩イラスト。やわらかなタイルに乗せて上質感を出す。 */
+export function StepArt({ src }: { src: string }) {
+  const background = ART_TONE[src] ?? 'radial-gradient(circle at 50% 36%, #f3ede1 0%, #eef2ee 72%)';
+  return (
+    <motion.div
+      className='relative mb-5 flex h-[88px] w-[88px] items-center justify-center rounded-[26px]'
+      style={{ background, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.65)' }}
+      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    >
+      <div className='relative h-[60px] w-[60px]'>
+        <Image src={src} alt='' fill sizes='60px' className='object-contain' />
+      </div>
+    </motion.div>
+  );
+}
 
 const SOFT_SPRING = { type: 'spring' as const, stiffness: 520, damping: 32, mass: 0.7 };
 
@@ -74,25 +108,28 @@ export function OnboardingLayout({
   );
 }
 
-/** 大きなタイトル + 補足。各画面の上部に置く。 */
+/** 大きなタイトル + 補足。各画面の上部に置く。水彩イラスト（art）を伴う。 */
 export function StepHeading({
   index,
   title,
   subtitle,
+  art,
 }: {
   index?: number;
   title: string;
   subtitle?: string;
+  art?: string;
 }) {
   return (
     <div className='pt-6'>
+      {art ? <StepArt src={art} /> : null}
       {typeof index === 'number' ? (
-        <p className='mb-3 text-[11px] font-medium tracking-[0.22em]' style={{ color: ONB.accent }}>
+        <p className='mb-2.5 text-[11px] font-semibold tracking-[0.2em]' style={{ color: ONB.gold }}>
           {String(index).padStart(2, '0')}
         </p>
       ) : null}
       <h1
-        className='font-serif text-[26px] leading-[1.4] font-semibold tracking-tight'
+        className='font-sans text-[25px] leading-[1.42] font-semibold tracking-tight'
         style={{ color: ONB.ink }}
       >
         {title}

@@ -64,6 +64,25 @@ const QUESTION_EXAMPLES: Record<number, string[]> = {
   14: ['穏やか', '聞き上手', '行動的', '面倒見がいい'],
 };
 
+/** ステップごとの水彩イラスト（トップページと共通の世界観）。設問テーマに合わせて対応付け。 */
+const STEP_ART: Record<number, string> = {
+  1: '/flow/register.png',
+  2: '/flow/register.png',
+  3: '/flow/register.png',
+  4: '/categories/stroll.png',
+  5: '/categories/cafe.png',
+  6: '/categories/flower.png',
+  7: '/categories/stroll.png',
+  8: '/categories/fitness.png',
+  9: '/flow/matching.png',
+  10: '/categories/flower.png',
+  11: '/categories/fitness.png',
+  12: '/flow/matching.png',
+  13: '/categories/cafe.png',
+  14: '/categories/bar.png',
+  15: '/flow/continue.png',
+};
+
 export function OnboardingFlow({ error, member }: { error?: string; member?: ConnectionMember | null }) {
   const v = member?.values;
 
@@ -192,6 +211,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <TextInputStep
             index={1}
+            art={STEP_ART[1]}
             title='あなたの表示名を決めましょう'
             subtitle='あとから変更できます'
             value={nickname}
@@ -204,6 +224,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <TextInputStep
             index={2}
+            art={STEP_ART[2]}
             title='あなたの年齢を教えてください'
             subtitle='Connection設計の参考にします。正確に入力してください。'
             value={age}
@@ -218,6 +239,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <SingleChoiceStep
             index={3}
+            art={STEP_ART[3]}
             title='あなたの性別を教えてください'
             options={GENDER_OPTIONS}
             value={gender}
@@ -228,6 +250,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <AreaSelectStep
             index={4}
+            art={STEP_ART[4]}
             title='お住まいの地域を教えてください'
             subtitle='近いエリアの体験をご案内する参考にします'
             value={area}
@@ -239,6 +262,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <SingleChoiceStep
             index={5}
+            art={STEP_ART[5]}
             title='今のお仕事に近いものを選んでください'
             options={OCCUPATION_OPTIONS}
             value={occupation}
@@ -249,6 +273,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <SingleChoiceStep
             index={6}
+            art={STEP_ART[6]}
             title='今のあなたに近いものを選んでください'
             subtitle='Connectionの組み合わせを考える参考にします'
             options={LIFE_PHASE_MINDSET_OPTIONS}
@@ -260,6 +285,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <MultiChoiceStep
             index={7}
+            art={STEP_ART[7]}
             title='お休みの日は何をしていますか？'
             subtitle={`まずは2つ選んでみましょう${weekend.length > 0 ? `（${weekend.length}つ選択中）` : ''}`}
             options={WEEKEND_OPTIONS}
@@ -272,6 +298,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <MultiChoiceStep
             index={8}
+            art={STEP_ART[8]}
             title='参加してみたい体験を選んでください'
             subtitle='HANAKAIでは、体験を通じて自然なConnectionをつくります'
             options={EXPERIENCE_OPTIONS}
@@ -284,6 +311,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <MultiChoiceStep
             index={9}
+            art={STEP_ART[9]}
             title='今、どんなConnectionを求めていますか？'
             subtitle='複数選べます'
             options={DESIRED_CONNECTION_OPTIONS}
@@ -296,6 +324,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <MultiChoiceStep
             index={10}
+            art={STEP_ART[10]}
             title='大切にしている価値観を選んでください'
             subtitle={`3つまで選べます${valueTags.length > 0 ? `（${valueTags.length}/${VALUE_TAG_MAX}）` : ''}`}
             options={VALUE_TAG_ONBOARDING_OPTIONS}
@@ -309,6 +338,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <TextareaStep
             index={11}
+            art={STEP_ART[11]}
             title='最近、挑戦していることはありますか？'
             subtitle='小さなことでも構いません'
             value={currentChallenge}
@@ -321,6 +351,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <TextareaStep
             index={12}
+            art={STEP_ART[12]}
             title='これからやってみたいことはありますか？'
             value={futureGoal}
             onChange={setFutureGoal}
@@ -332,6 +363,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <TextareaStep
             index={13}
+            art={STEP_ART[13]}
             title='最近、心が動いたことを教えてください'
             subtitle='感動したこと、考えさせられたこと、印象に残ったことなど'
             value={recentInspiration}
@@ -344,6 +376,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <TextareaStep
             index={14}
+            art={STEP_ART[14]}
             title='周りからどんな人だと言われますか？'
             value={howOthersSeeMe}
             onChange={setHowOthersSeeMe}
@@ -355,6 +388,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return (
           <SingleChoiceStep
             index={15}
+            art={STEP_ART[15]}
             title='あなたに近い雰囲気を選んでください'
             subtitle='評価のためではなく、相互理解のための参考にします'
             options={TEMPERAMENT_OPTIONS.map((t) => ({ value: t.value, label: t.label }))}

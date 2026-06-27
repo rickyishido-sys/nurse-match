@@ -1,6 +1,7 @@
 'use client';
 
 import type { ChangeEvent } from 'react';
+import Image from 'next/image';
 import { motion } from 'motion/react';
 import { ChoiceCard, Chip, ONB, StepHeading } from './onboarding-ui';
 import type { Option } from '@/lib/connection/onboarding-options';
@@ -8,84 +9,32 @@ import type { Option } from '@/lib/connection/onboarding-options';
 const inputClass =
   'w-full rounded-2xl border bg-white px-5 py-4 text-base outline-none transition focus:border-current';
 
-/** 抽象的で上質なブランドビジュアル（花・会話・コーヒー・散歩・つながりを連想）。 */
+/** トップページと同じ水彩イラストを使ったブランドビジュアル。 */
+const WELCOME_ART = [
+  { src: '/categories/flower.png', tone: 'radial-gradient(circle at 50% 38%, #f8eef0 0%, #f0e2e4 74%)' },
+  { src: '/categories/cafe.png', tone: 'radial-gradient(circle at 50% 38%, #f4ede2 0%, #ebddc9 74%)' },
+  { src: '/categories/stroll.png', tone: 'radial-gradient(circle at 50% 38%, #eef3e9 0%, #e4ecdd 74%)' },
+] as const;
+
 function BrandVisual() {
-  const float = (delay: number, amount = 8, duration = 6) => ({
-    animate: { y: [0, -amount, 0] },
-    transition: { duration, repeat: Infinity, ease: 'easeInOut' as const, delay },
-  });
-
   return (
-    <div
-      className='relative mt-4 h-60 w-full overflow-hidden rounded-[28px]'
-      style={{
-        background:
-          'radial-gradient(120% 90% at 78% 18%, #f3ede1 0%, #efe9dd 38%, #e9efe9 100%)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)',
-      }}
-    >
-      {/* 大きな有機的グラデーション円（つながり） */}
-      <motion.div
-        className='absolute -left-10 top-10 h-40 w-40 rounded-full'
-        style={{ background: 'linear-gradient(150deg, #2f7163, #1f5d4f)', filter: 'blur(0.2px)' }}
-        initial={{ opacity: 0, scale: 0.85 }}
-        animate={{ opacity: 0.92, scale: 1 }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
-      />
-      <motion.div
-        className='absolute -left-10 top-10 h-40 w-40 rounded-full'
-        {...float(0.4, 6, 7)}
-      >
-        <span className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl opacity-90'>🌿</span>
-      </motion.div>
-
-      {/* ベージュのガラスカード（会話・余白） */}
-      <motion.div
-        className='absolute right-6 top-8 h-24 w-32 rounded-2xl border'
-        style={{
-          borderColor: 'rgba(255,255,255,0.7)',
-          background: 'rgba(255,255,255,0.55)',
-          boxShadow: '0 12px 30px rgba(31,36,33,0.10)',
-          backdropFilter: 'blur(2px)',
-        }}
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: 'easeOut', delay: 0.15 }}
-      >
-        <div className='flex h-full flex-col justify-center gap-1.5 px-4'>
-          <span className='h-1.5 w-14 rounded-full' style={{ backgroundColor: '#cdb58c' }} />
-          <span className='h-1.5 w-20 rounded-full' style={{ backgroundColor: '#e0d6c4' }} />
-          <span className='h-1.5 w-10 rounded-full' style={{ backgroundColor: '#cdb58c' }} />
-        </div>
-      </motion.div>
-
-      {/* 小さなティール円（コーヒー） */}
-      <motion.div
-        className='absolute bottom-7 right-16 flex h-16 w-16 items-center justify-center rounded-full'
-        style={{ background: 'linear-gradient(140deg, #d8c7a6, #c9b48c)' }}
-        {...float(0.2, 7, 6.5)}
-      >
-        <span className='text-lg'>☕</span>
-      </motion.div>
-
-      {/* ベージュのリング（散歩・循環） */}
-      <motion.div
-        className='absolute bottom-6 left-12 h-20 w-20 rounded-full border-[6px]'
-        style={{ borderColor: 'rgba(31,93,79,0.16)' }}
-        {...float(0.6, 5, 7.5)}
-      />
-
-      {/* 小さな点（花のつぼみ） */}
-      <motion.span
-        className='absolute left-28 top-12 h-3 w-3 rounded-full'
-        style={{ backgroundColor: '#1f5d4f' }}
-        {...float(0.1, 6, 5.5)}
-      />
-      <motion.span
-        className='absolute right-28 bottom-20 h-2.5 w-2.5 rounded-full'
-        style={{ backgroundColor: '#cdb58c' }}
-        {...float(0.5, 6, 6)}
-      />
+    <div className='mt-2 flex items-end justify-center gap-3'>
+      {WELCOME_ART.map((art, i) => (
+        <motion.div
+          key={art.src}
+          className={`relative flex items-center justify-center rounded-[28px] ${
+            i === 1 ? 'h-[124px] w-[124px]' : 'h-[100px] w-[100px]'
+          }`}
+          style={{ background: art.tone, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.65)' }}
+          initial={{ opacity: 0, y: 14, scale: 0.94 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6, ease: 'easeOut', delay: 0.08 * i }}
+        >
+          <div className={`relative ${i === 1 ? 'h-[84px] w-[84px]' : 'h-[68px] w-[68px]'}`}>
+            <Image src={art.src} alt='' fill sizes='84px' className='object-contain' priority={i === 1} />
+          </div>
+        </motion.div>
+      ))}
     </div>
   );
 }
@@ -94,16 +43,19 @@ function BrandVisual() {
 export function OnboardingStepIntro() {
   return (
     <motion.div
-      className='flex flex-1 flex-col'
+      className='flex flex-1 flex-col pt-4'
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
       <BrandVisual />
 
-      <div className='mt-9'>
+      <div className='mt-10'>
+        <p className='mb-2.5 text-[11px] font-semibold tracking-[0.2em]' style={{ color: ONB.gold }}>
+          WELCOME
+        </p>
         <h1
-          className='font-serif text-[28px] leading-[1.4] font-semibold tracking-tight'
+          className='font-sans text-[27px] leading-[1.4] font-semibold tracking-tight'
           style={{ color: ONB.ink }}
         >
           HANAKAI Connection
@@ -134,6 +86,7 @@ export function SingleChoiceStep<T extends string>({
   options,
   value,
   onChange,
+  art,
 }: {
   index: number;
   title: string;
@@ -141,10 +94,11 @@ export function SingleChoiceStep<T extends string>({
   options: Option<T>[];
   value: T | '';
   onChange: (value: T) => void;
+  art?: string;
 }) {
   return (
     <div>
-      <StepHeading index={index} title={title} subtitle={subtitle} />
+      <StepHeading index={index} title={title} subtitle={subtitle} art={art} />
       <div className='mt-7 grid gap-2.5'>
         {options.map((opt) => (
           <ChoiceCard key={opt.value} active={value === opt.value} onClick={() => onChange(opt.value)}>
@@ -166,6 +120,7 @@ export function MultiChoiceStep<T extends string>({
   onToggle,
   variant = 'chip',
   max,
+  art,
 }: {
   index: number;
   title: string;
@@ -175,11 +130,12 @@ export function MultiChoiceStep<T extends string>({
   onToggle: (value: T) => void;
   variant?: 'chip' | 'card';
   max?: number;
+  art?: string;
 }) {
   const atMax = typeof max === 'number' && values.length >= max;
   return (
     <div>
-      <StepHeading index={index} title={title} subtitle={subtitle} />
+      <StepHeading index={index} title={title} subtitle={subtitle} art={art} />
       {variant === 'chip' ? (
         <div className='mt-7 flex flex-wrap gap-2.5'>
           {options.map((opt) => (
@@ -221,6 +177,7 @@ export function TextInputStep({
   inputMode,
   suffix,
   maxLength,
+  art,
 }: {
   index: number;
   title: string;
@@ -231,6 +188,7 @@ export function TextInputStep({
   inputMode?: 'text' | 'numeric';
   suffix?: string;
   maxLength?: number;
+  art?: string;
 }) {
   function handle(e: ChangeEvent<HTMLInputElement>) {
     const next = inputMode === 'numeric' ? e.target.value.replace(/[^0-9]/g, '') : e.target.value;
@@ -238,7 +196,7 @@ export function TextInputStep({
   }
   return (
     <div>
-      <StepHeading index={index} title={title} subtitle={subtitle} />
+      <StepHeading index={index} title={title} subtitle={subtitle} art={art} />
       <div className='mt-8 flex items-center gap-3'>
         <input
           value={value}
@@ -268,6 +226,7 @@ export function AreaSelectStep({
   value,
   onChange,
   options,
+  art,
 }: {
   index: number;
   title: string;
@@ -275,10 +234,11 @@ export function AreaSelectStep({
   value: string;
   onChange: (value: string) => void;
   options: readonly string[];
+  art?: string;
 }) {
   return (
     <div>
-      <StepHeading index={index} title={title} subtitle={subtitle} />
+      <StepHeading index={index} title={title} subtitle={subtitle} art={art} />
       <div className='mt-8'>
         <select
           value={value}
@@ -307,6 +267,7 @@ export function TextareaStep({
   onChange,
   placeholder,
   examples,
+  art,
 }: {
   index: number;
   title: string;
@@ -315,10 +276,11 @@ export function TextareaStep({
   onChange: (value: string) => void;
   placeholder?: string;
   examples?: string[];
+  art?: string;
 }) {
   return (
     <div>
-      <StepHeading index={index} title={title} subtitle={subtitle} />
+      <StepHeading index={index} title={title} subtitle={subtitle} art={art} />
       <div className='mt-7'>
         <textarea
           value={value}

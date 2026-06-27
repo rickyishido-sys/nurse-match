@@ -61,7 +61,7 @@ export function CompletionView({
           <SuccessMark />
 
           <motion.h1
-            className='mt-8 font-serif text-[24px] font-semibold tracking-tight'
+            className='mt-8 font-sans text-[24px] font-semibold tracking-tight'
             style={{ color: ONB.ink }}
             {...fadeUp(0.45)}
           >

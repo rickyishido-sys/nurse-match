@@ -6,6 +6,8 @@ import { listEvents } from '@/lib/connection/repo';
 import type { ConnectionEventCategory } from '@/lib/connection/types';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
+const GOLD = '#b8956a';
+
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
 
 export default async function EventsPage({ searchParams }: PageProps) {
@@ -19,36 +21,44 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
   return (
     <ConnectionShell viewer={viewer}>
-      <div className='space-y-6'>
-        <div>
-          <h1 className='text-xl font-semibold text-[#1a1a1a]'>Connection Event</h1>
-          <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>
-            テーマごとに、知らない誰かとリアルで出会う。気になる世界観を選んでください。
+      <div className='space-y-7'>
+        <div className='space-y-2'>
+          <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
+            CONNECTION EVENT
+          </p>
+          <h1 className='text-[1.6rem] font-semibold leading-tight tracking-tight text-[#1a1a1a]'>
+            気になる世界観を選ぶ
+          </h1>
+          <p className='text-sm leading-7 text-[#6b6b6b]'>
+            テーマごとに、知らない誰かとリアルで出会う。心が動くイベントを見つけてください。
           </p>
         </div>
 
         {registered ? (
-          <p className='rounded-2xl border border-[#ebe9e4] bg-white px-4 py-3 text-xs text-[#4a4a4a]'>
+          <p className='rounded-2xl border border-[#1f5d4f]/15 bg-[#f3f7f5] px-4 py-3 text-xs leading-6 text-[#3f5a51]'>
             プロフィール登録が完了しました。気になるイベントに参加申請しましょう。
           </p>
         ) : null}
 
         <Link
           href='/events/create'
-          className='flex items-center justify-between gap-3 rounded-3xl border border-[#1f5d4f]/20 bg-gradient-to-br from-[#f3f7f5] to-[#eef3f0] px-5 py-4 transition active:scale-[0.99]'
+          className='flex items-center justify-between gap-3 rounded-3xl border border-[#1f5d4f]/15 bg-gradient-to-br from-[#f3f7f5] to-[#eef3f0] px-6 py-5 transition active:scale-[0.99]'
         >
           <div>
-            <p className='text-sm font-semibold text-[#1a1a1a]'>イベントを作成する</p>
+            <p className='text-[11px] font-semibold tracking-[0.18em]' style={{ color: GOLD }}>
+              HOST
+            </p>
+            <p className='mt-1.5 text-sm font-semibold text-[#1a1a1a]'>イベントを作成する</p>
             <p className='mt-0.5 text-xs leading-6 text-[#5b6f67]'>
               あなた自身が、心地よいConnectionをひらけます。
             </p>
           </div>
-          <span className='flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1f5d4f] text-lg font-light text-white'>
+          <span className='flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#1f5d4f] text-xl font-light text-white'>
             +
           </span>
         </Link>
 
-        <div className='-mx-5 flex gap-2 overflow-x-auto px-5 pb-1'>
+        <div className='-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
           <CategoryPill href='/events' label='すべて' active={!activeCategory} />
           {EVENT_CATEGORY_ORDER.map((cat) => (
             <CategoryPill
@@ -67,7 +77,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
             ))}
           </div>
         ) : (
-          <p className='rounded-2xl border border-[#ebe9e4] bg-white px-4 py-8 text-center text-sm text-[#9a9a9a]'>
+          <p className='rounded-2xl border border-[#ebe9e4] bg-white px-4 py-10 text-center text-sm text-[#9a9a9a]'>
             このカテゴリーのイベントはまだありません。
           </p>
         )}
@@ -80,8 +90,10 @@ function CategoryPill({ href, label, active }: { href: string; label: string; ac
   return (
     <Link
       href={href}
-      className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
-        active ? 'bg-[#1a1a1a] text-white' : 'border border-[#d8d6d1] bg-white text-[#6b6b6b]'
+      className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium transition active:scale-[0.97] ${
+        active
+          ? 'bg-[#1a1a1a] text-white shadow-[0_2px_8px_rgba(26,26,26,0.18)]'
+          : 'border border-[#e3ddd2] bg-white text-[#6b6b6b]'
       }`}
     >
       {label}
