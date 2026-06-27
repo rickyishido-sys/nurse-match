@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
 import { EventCard } from '@/components/connection/events/event-card';
-import { EVENT_CATEGORY_META, EVENT_CATEGORY_ORDER, listEvents } from '@/lib/connection/data';
+import { EVENT_CATEGORY_META, EVENT_CATEGORY_ORDER } from '@/lib/connection/data';
+import { listEvents } from '@/lib/connection/repo';
 import type { ConnectionEventCategory } from '@/lib/connection/types';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
@@ -13,7 +14,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const activeCategory = (typeof sp.category === 'string' ? sp.category : '') as ConnectionEventCategory | '';
   const registered = sp.registered === '1';
 
-  const allEvents = listEvents().filter((e) => !e.isPast);
+  const allEvents = (await listEvents()).filter((e) => !e.isPast);
   const events = activeCategory ? allEvents.filter((e) => e.category === activeCategory) : allEvents;
 
   return (

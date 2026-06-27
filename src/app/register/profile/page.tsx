@@ -1,7 +1,6 @@
 import { OnboardingFlow } from '@/components/connection/onboarding/onboarding-flow';
-import { getMember } from '@/lib/connection/data';
-
-const MOCK_VIEWER_ID = 'm1';
+import { getMember } from '@/lib/connection/repo';
+import { getViewerMemberId } from '@/lib/connection/identity';
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
 
@@ -13,7 +12,8 @@ function pickFirst(value: string | string[] | undefined) {
 export default async function RegisterProfilePage({ searchParams }: PageProps) {
   const sp = searchParams ? await searchParams : {};
   const error = pickFirst(sp.error);
-  const member = getMember(MOCK_VIEWER_ID);
+  const viewerMemberId = await getViewerMemberId();
+  const member = viewerMemberId ? await getMember(viewerMemberId) : null;
 
   return <OnboardingFlow error={error || undefined} member={member} />;
 }

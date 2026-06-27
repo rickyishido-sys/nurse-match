@@ -7,15 +7,9 @@ import { HostBadgeList } from '@/components/connection/host-badge';
 import { ApplyForm } from '@/components/connection/events/apply-form';
 import { formatFee } from '@/components/connection/events/event-card';
 import { Card, Chip } from '@/components/connection/ui';
-import {
-  EVENT_CATEGORY_LABEL,
-  EVENT_CATEGORY_META,
-  formatEventDate,
-  getApplication,
-  getEvent,
-  getEventMembers,
-  getMember,
-} from '@/lib/connection/data';
+import { EVENT_CATEGORY_LABEL, EVENT_CATEGORY_META, formatEventDate } from '@/lib/connection/data';
+import { getApplication, getEvent, getEventMembers, getMember } from '@/lib/connection/repo';
+import { getViewerMemberId } from '@/lib/connection/identity';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = {
@@ -23,22 +17,21 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const MOCK_VIEWER_ID = 'm1';
-
 export default async function EventDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const sp = searchParams ? await searchParams : {};
-  const event = getEvent(id);
+  const event = await getEvent(id);
   if (!event) notFound();
 
   const viewer = await getHanakaiViewer();
+  const viewerMemberId = await getViewerMemberId();
   const meta = EVENT_CATEGORY_META[event.category];
   const applied = sp.applied === '1';
   const created = sp.created === '1';
-  const existingApp = getApplication(event.id, MOCK_VIEWER_ID);
-  const confirmedMembers = getEventMembers(event.id);
-  const host = event.hostId ? getMember(event.hostId) : null;
-  const isHost = event.hostId === MOCK_VIEWER_ID;
+  const existingApp = viewerMemberId ? await getApplication(event.id, viewerMemberId) : null;
+  const confirmedMembers = await getEventMembers(event.id);
+  const host = event.hostId ? await getMember(event.hostId) : null;
+  const isHost = !!viewerMemberId && event.hostId === viewerMemberId;
   const approvalMode = event.approvalMode ?? 'host_approval';
   const isFull = event.status === 'full' || event.reservedCount >= event.capacity;
 

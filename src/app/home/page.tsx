@@ -2,17 +2,15 @@ import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
 import { Card, SectionHeading } from '@/components/connection/ui';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
-import {
-  EVENT_CATEGORY_LABEL,
-  formatEventDate,
-  getMember,
-  listUpcomingEvents,
-} from '@/lib/connection/data';
+import { EVENT_CATEGORY_LABEL, formatEventDate } from '@/lib/connection/data';
+import { getMember, listUpcomingEvents } from '@/lib/connection/repo';
+import { getViewerMemberId } from '@/lib/connection/identity';
 
 export default async function HomePage() {
   const viewer = await getHanakaiViewer();
-  const events = listUpcomingEvents(4);
-  const member = getMember('m1'); // mock viewer
+  const events = await listUpcomingEvents(4);
+  const viewerMemberId = await getViewerMemberId();
+  const member = viewerMemberId ? await getMember(viewerMemberId) : null;
 
   return (
     <ConnectionShell viewer={viewer}>

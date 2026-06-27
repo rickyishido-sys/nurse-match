@@ -11,8 +11,9 @@ import {
   saveMemberPersonality,
   updateMember,
   updateMemberTrust,
-} from '@/lib/connection/data';
+} from '@/lib/connection/repo';
 import { VALUE_TAG_LABEL } from '@/lib/connection/data';
+import { ensureViewerMemberId } from '@/lib/connection/identity';
 import type {
   ConnectionEventCategory,
   ConnectionPurpose,
@@ -24,8 +25,6 @@ import type {
   ValueTag,
   VerificationSource,
 } from '@/lib/connection/types';
-
-const MOCK_VIEWER_ID = 'm1';
 
 const VALID_CATEGORIES: ConnectionEventCategory[] = [
   'flower',
@@ -62,7 +61,10 @@ export async function createConnectionEventAction(formData: FormData) {
     redirect('/events/create?error=required');
   }
 
-  const event = createEvent({
+  const hostId = await ensureViewerMemberId();
+  if (!hostId) redirect('/events/create?error=session');
+
+  const event = await createEvent({
     title,
     category,
     description,
@@ -74,7 +76,7 @@ export async function createConnectionEventAction(formData: FormData) {
     coverUrl,
     conditions,
     approvalMode,
-    hostId: MOCK_VIEWER_ID,
+    hostId,
   });
 
   console.log('CONNECTION_EVENT_CREATE', { id: event.id, title, category, approvalMode });
@@ -86,8 +88,10 @@ export async function createConnectionEventAction(formData: FormData) {
 export async function applyConnectionEventAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '');
   const reason = String(formData.get('reason') ?? '').trim();
-  console.log('CONNECTION_APPLY', { eventId, memberId: MOCK_VIEWER_ID, reasonLength: reason.length });
-  if (eventId) applyToEvent(eventId, MOCK_VIEWER_ID, reason);
+  const memberId = await ensureViewerMemberId();
+  if (!memberId) redirect(`/events/${eventId}?error=session`);
+  console.log('CONNECTION_APPLY', { eventId, memberId, reasonLength: reason.length });
+  if (eventId) await applyToEvent(eventId, memberId, reason);
   revalidatePath(`/events/${eventId}`);
   revalidatePath('/events');
   revalidatePath('/manage');
@@ -99,7 +103,7 @@ export async function approveApplicationAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '');
   const memberId = String(formData.get('memberId') ?? '');
   console.log('CONNECTION_HOST_APPROVE', { eventId, memberId });
-  if (eventId && memberId) confirmMemberForEvent(eventId, memberId);
+  if (eventId && memberId) await confirmMemberForEvent(eventId, memberId);
   revalidatePath(`/events/manage/${eventId}`);
   revalidatePath(`/events/${eventId}`);
   redirect(`/events/manage/${eventId}?approved=${memberId}`);
@@ -109,7 +113,7 @@ export async function rejectApplicationAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '');
   const memberId = String(formData.get('memberId') ?? '');
   console.log('CONNECTION_HOST_REJECT', { eventId, memberId });
-  if (eventId && memberId) rejectApplication(eventId, memberId);
+  if (eventId && memberId) await rejectApplication(eventId, memberId);
   revalidatePath(`/events/manage/${eventId}`);
   revalidatePath(`/events/${eventId}`);
   redirect(`/events/manage/${eventId}?rejected=${memberId}`);
@@ -119,7 +123,7 @@ export async function confirmMemberAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '');
   const memberId = String(formData.get('memberId') ?? '');
   console.log('CONNECTION_CONFIRM', { eventId, memberId });
-  if (eventId && memberId) confirmMemberForEvent(eventId, memberId);
+  if (eventId && memberId) await confirmMemberForEvent(eventId, memberId);
   revalidatePath('/manage');
   redirect(`/manage?event=${eventId}`);
 }
@@ -128,7 +132,7 @@ export async function removeMemberAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '');
   const memberId = String(formData.get('memberId') ?? '');
   console.log('CONNECTION_REMOVE', { eventId, memberId });
-  if (eventId && memberId) removeMemberFromEvent(eventId, memberId);
+  if (eventId && memberId) await removeMemberFromEvent(eventId, memberId);
   revalidatePath('/manage');
   redirect(`/manage?event=${eventId}`);
 }
@@ -154,6 +158,9 @@ export async function saveProfileAction(formData: FormData) {
   const nickname = String(formData.get('nickname') ?? '').trim();
   if (!nickname) redirect('/register/profile?error=nickname');
 
+  const memberId = await ensureViewerMemberId();
+  if (!memberId) redirect('/register/profile?error=session');
+
   const purposes = formData.getAll('purposes') as ConnectionPurpose[];
   const interestTags = formData.getAll('interestTags') as InterestTag[];
   const valueTags = formData.getAll('valueTags') as ValueTag[];
@@ -164,7 +171,7 @@ export async function saveProfileAction(formData: FormData) {
   const coreValues =
     explicitCoreValues || valueTags.map((tag) => VALUE_TAG_LABEL[tag]).filter(Boolean).join('、');
 
-  updateMember(MOCK_VIEWER_ID, {
+  await updateMember(memberId, {
     nickname,
     age: Number(formData.get('age') ?? 0),
     gender: String(formData.get('gender') ?? 'other') as 'female' | 'male' | 'other',
@@ -189,7 +196,7 @@ export async function saveProfileAction(formData: FormData) {
   // ステップ式ウィザードから性格診断結果も同時に届く場合は保存する
   const personalityType = String(formData.get('personalityType') ?? '') as PersonalityType | '';
   if (personalityType) {
-    saveMemberPersonality(MOCK_VIEWER_ID, {
+    await saveMemberPersonality(memberId, {
       type: personalityType,
       axes: {
         energy: String(formData.get('personalityEnergy') ?? 'introvert') as 'extravert' | 'introvert',
@@ -212,7 +219,10 @@ export async function savePersonalityAction(formData: FormData) {
   const thinking = String(formData.get('thinking') ?? 'feeling') as 'logic' | 'feeling';
   const planning = String(formData.get('planning') ?? 'flexible') as 'plan' | 'flexible';
 
-  saveMemberPersonality(MOCK_VIEWER_ID, {
+  const memberId = await ensureViewerMemberId();
+  if (!memberId) redirect('/register/profile?error=session');
+
+  await saveMemberPersonality(memberId, {
     type,
     axes: { energy, thinking, planning },
     completedAt: new Date().toISOString(),
@@ -236,7 +246,7 @@ export async function updateTrustVerificationAction(formData: FormData) {
   console.log('CONNECTION_TRUST_UPDATE', { memberId, trustVerificationStatus, safetyFlags });
 
   if (memberId) {
-    updateMemberTrust(memberId, {
+    await updateMemberTrust(memberId, {
       trustVerificationStatus,
       verificationSource,
       identityVerified,

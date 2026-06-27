@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { PersonalityQuiz } from '@/components/connection/personality-quiz';
-import { getMember } from '@/lib/connection/data';
+import { getMember } from '@/lib/connection/repo';
+import { getViewerMemberId } from '@/lib/connection/identity';
 
-const MOCK_VIEWER_ID = 'm1';
-
-export default function PersonalityPage() {
-  const member = getMember(MOCK_VIEWER_ID);
+export default async function PersonalityPage() {
+  const viewerMemberId = await getViewerMemberId();
+  const member = viewerMemberId ? await getMember(viewerMemberId) : null;
 
   return (
     <main className='min-h-screen bg-[#fafaf8] px-5 py-8'>

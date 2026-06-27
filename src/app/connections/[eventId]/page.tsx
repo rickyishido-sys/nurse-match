@@ -7,12 +7,8 @@ import { MemberInsights } from '@/components/connection/member-insights';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { Card, Chip } from '@/components/connection/ui';
 import { followMemberAction } from '@/lib/connection/actions';
-import {
-  canViewConnectionPage,
-  getEvent,
-  getEventMembers,
-  getMember,
-} from '@/lib/connection/data';
+import { canViewConnectionPage, getEvent, getEventMembers, getMember } from '@/lib/connection/repo';
+import { getViewerMemberId } from '@/lib/connection/identity';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = {
@@ -20,19 +16,20 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const MOCK_VIEWER_ID = 'm1';
-
 export default async function ConnectionPage({ params, searchParams }: PageProps) {
   const { eventId } = await params;
   const sp = searchParams ? await searchParams : {};
-  const event = getEvent(eventId);
+  const event = await getEvent(eventId);
   if (!event) notFound();
 
   const viewer = await getHanakaiViewer();
-  const canView = canViewConnectionPage(eventId, MOCK_VIEWER_ID);
-  const members = getEventMembers(eventId);
+  const viewerMemberId = await getViewerMemberId();
+  const canView = !!viewerMemberId && (await canViewConnectionPage(eventId, viewerMemberId));
+  const members = await getEventMembers(eventId);
   const followedId = typeof sp.followed === 'string' ? sp.followed : null;
   const messagedId = typeof sp.messaged === 'string' ? sp.messaged : null;
+  const followedMember = followedId ? await getMember(followedId) : null;
+  const messagedMember = messagedId ? await getMember(messagedId) : null;
 
   if (!canView) {
     return (
@@ -63,19 +60,19 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
 
         {followedId ? (
           <p className='rounded-2xl border border-[#ebe9e4] bg-white px-4 py-3 text-xs text-[#4a4a4a]'>
-            {getMember(followedId)?.nickname ?? 'メンバー'}さんをフォローしました。
+            {followedMember?.nickname ?? 'メンバー'}さんをフォローしました。
           </p>
         ) : null}
 
         {messagedId ? (
           <p className='rounded-2xl border border-[#ebe9e4] bg-white px-4 py-3 text-xs text-[#4a4a4a]'>
-            {getMember(messagedId)?.nickname ?? 'メンバー'}さんにメッセージを送りました。
+            {messagedMember?.nickname ?? 'メンバー'}さんにメッセージを送りました。
           </p>
         ) : null}
 
         <div className='space-y-4'>
           {members.map((member) => {
-            const isSelf = member.id === MOCK_VIEWER_ID;
+            const isSelf = member.id === viewerMemberId;
             return (
               <Card key={member.id}>
                 <div className='flex gap-4'>

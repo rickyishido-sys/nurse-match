@@ -7,26 +7,27 @@ import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { Card } from '@/components/connection/ui';
 import { confirmMemberAction, removeMemberAction } from '@/lib/connection/actions';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
-import {
-  EVENT_CATEGORY_LABEL,
-  formatEventDate,
-  getEvent,
-  getMember,
-  listApplications,
-  listEvents,
-} from '@/lib/connection/data';
+import { EVENT_CATEGORY_LABEL, formatEventDate } from '@/lib/connection/data';
+import { getEvent, getMember, listApplications, listEvents } from '@/lib/connection/repo';
+import type { ConnectionMember } from '@/lib/connection/types';
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
 
 export default async function ManagePage({ searchParams }: PageProps) {
   const viewer = await getHanakaiViewer();
   const sp = searchParams ? await searchParams : {};
-  const selectedEventId = typeof sp.event === 'string' ? sp.event : listEvents().find((e) => !e.isPast)?.id ?? '';
-  const event = getEvent(selectedEventId);
-  const applications = selectedEventId ? listApplications(selectedEventId) : [];
+  const upcomingEvents = (await listEvents()).filter((e) => !e.isPast);
+  const selectedEventId = typeof sp.event === 'string' ? sp.event : upcomingEvents[0]?.id ?? '';
+  const event = selectedEventId ? await getEvent(selectedEventId) : null;
+  const applications = selectedEventId ? await listApplications(selectedEventId) : [];
   const pending = applications.filter((a) => a.status === 'pending');
   const confirmed = applications.filter((a) => a.status === 'confirmed');
   const trustUpdated = typeof sp.trustUpdated === 'string' ? sp.trustUpdated : null;
+  const trustUpdatedMember = trustUpdated ? await getMember(trustUpdated) : null;
+
+  const memberIds = [...new Set(applications.map((a) => a.memberId))];
+  const memberList = await Promise.all(memberIds.map((mid) => getMember(mid)));
+  const memberMap = new Map(memberList.filter(Boolean).map((m) => [m!.id, m!]));
 
   return (
     <ConnectionShell viewer={viewer}>
@@ -43,16 +44,14 @@ export default async function ManagePage({ searchParams }: PageProps) {
 
         {trustUpdated ? (
           <p className='rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs text-emerald-800'>
-            {getMember(trustUpdated)?.nickname ?? 'メンバー'} の運営確認ステータスを更新しました。
+            {trustUpdatedMember?.nickname ?? 'メンバー'} の運営確認ステータスを更新しました。
           </p>
         ) : null}
 
         <div className='space-y-2'>
           <p className='text-xs font-medium text-[#6b6b6b]'>イベントを選択</p>
           <div className='flex flex-wrap gap-2'>
-            {listEvents()
-              .filter((e) => !e.isPast)
-              .map((e) => (
+            {upcomingEvents.map((e) => (
                 <Link
                   key={e.id}
                   href={`/manage?event=${e.id}`}
@@ -81,7 +80,7 @@ export default async function ManagePage({ searchParams }: PageProps) {
                 <h2 className='mb-2 text-sm font-semibold text-[#1a1a1a]'>確定メンバー</h2>
                 <div className='space-y-3'>
                   {confirmed.map((app) => {
-                    const member = getMember(app.memberId);
+                    const member = memberMap.get(app.memberId);
                     if (!member) return null;
                     return (
                       <Card key={app.id}>
@@ -111,7 +110,7 @@ export default async function ManagePage({ searchParams }: PageProps) {
               ) : (
                 <div className='space-y-3'>
                   {pending.map((app) => {
-                    const member = getMember(app.memberId);
+                    const member = memberMap.get(app.memberId);
                     if (!member) return null;
                     const atCapacity = event.confirmedMemberIds.length >= event.capacity;
                     return (
@@ -145,7 +144,7 @@ export default async function ManagePage({ searchParams }: PageProps) {
   );
 }
 
-function MemberHeader({ member }: { member: NonNullable<ReturnType<typeof getMember>> }) {
+function MemberHeader({ member }: { member: ConnectionMember }) {
   return (
     <div className='flex gap-3'>
       <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full'>

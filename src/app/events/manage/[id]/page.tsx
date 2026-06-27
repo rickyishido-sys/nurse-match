@@ -6,14 +6,9 @@ import { HostBadgeList } from '@/components/connection/host-badge';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { Card, Chip } from '@/components/connection/ui';
 import { approveApplicationAction, rejectApplicationAction } from '@/lib/connection/actions';
-import {
-  INTEREST_TAG_LABEL,
-  VALUE_TAG_LABEL,
-  formatEventDate,
-  getEvent,
-  getMember,
-  listApplications,
-} from '@/lib/connection/data';
+import { INTEREST_TAG_LABEL, VALUE_TAG_LABEL, formatEventDate } from '@/lib/connection/data';
+import { getEvent, getMember, listApplications } from '@/lib/connection/repo';
+import { getViewerMemberId } from '@/lib/connection/identity';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = {
@@ -21,17 +16,16 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const MOCK_VIEWER_ID = 'm1';
-
 export default async function ManageEventPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const sp = searchParams ? await searchParams : {};
-  const event = getEvent(id);
+  const event = await getEvent(id);
   if (!event) notFound();
 
   const viewer = await getHanakaiViewer();
-  const isHost = event.hostId === MOCK_VIEWER_ID;
-  const hostMember = getMember(MOCK_VIEWER_ID);
+  const viewerMemberId = await getViewerMemberId();
+  const isHost = !!viewerMemberId && event.hostId === viewerMemberId;
+  const hostMember = viewerMemberId ? await getMember(viewerMemberId) : null;
 
   if (!isHost) {
     return (
@@ -51,9 +45,13 @@ export default async function ManageEventPage({ params, searchParams }: PageProp
     );
   }
 
-  const applications = listApplications(event.id);
+  const applications = await listApplications(event.id);
   const pending = applications.filter((a) => a.status === 'pending');
   const confirmed = applications.filter((a) => a.status === 'confirmed');
+
+  const memberIds = [...new Set(applications.map((a) => a.memberId))];
+  const memberList = await Promise.all(memberIds.map((mid) => getMember(mid)));
+  const memberMap = new Map(memberList.filter(Boolean).map((m) => [m!.id, m!]));
   const justApproved = typeof sp.approved === 'string' ? sp.approved : '';
   const justRejected = typeof sp.rejected === 'string' ? sp.rejected : '';
 
@@ -96,7 +94,7 @@ export default async function ManageEventPage({ params, searchParams }: PageProp
             </Card>
           ) : (
             pending.map((app) => {
-              const m = getMember(app.memberId);
+              const m = memberMap.get(app.memberId);
               if (!m) return null;
               const valueTags = m.values.valueTags ?? [];
               return (
@@ -186,7 +184,7 @@ export default async function ManageEventPage({ params, searchParams }: PageProp
             ) : (
               <div className='space-y-3'>
                 {confirmed.map((app) => {
-                  const m = getMember(app.memberId);
+                  const m = memberMap.get(app.memberId);
                   if (!m) return null;
                   return (
                     <div key={app.id} className='flex items-center justify-between gap-3'>
