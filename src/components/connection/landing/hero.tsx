@@ -1,20 +1,12 @@
 import Link from 'next/link';
-import { CoverImage } from '@/components/connection/landing/cover-image';
-import { LANDING_HERO_IMAGE } from '@/lib/connection/data';
+import { HeroSlider } from '@/components/connection/landing/hero-slider';
 
 export function LandingHero() {
   return (
-    <section className='relative -mx-5 -mt-6 h-[540px] overflow-hidden sm:h-[560px] md:h-[600px] lg:h-[640px]'>
-      <CoverImage
-        src={LANDING_HERO_IMAGE}
-        alt='HANAKAI Connection — 人と人が集まるリアル体験'
-        fallbackClassName='bg-gradient-to-br from-[#4a4038] via-[#2e2824] to-[#1a1614]'
-        priority
-      />
-      <div className='absolute inset-0 bg-gradient-to-r from-black/78 via-black/45 to-black/10' aria-hidden />
-      <div className='absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/35' aria-hidden />
+    <section className='relative -mx-5 -mt-6 min-h-[70vh] overflow-hidden lg:min-h-[80vh]'>
+      <HeroSlider />
 
-      <div className='relative flex h-full flex-col justify-center px-5 py-10 lg:px-10'>
+      <div className='relative flex min-h-[70vh] flex-col justify-center px-5 py-10 lg:min-h-[80vh] lg:px-10'>
         <div className='max-w-[340px] lg:max-w-[480px]'>
           <h1 className='font-serif text-[1.5rem] font-semibold leading-[1.35] tracking-tight text-white sm:text-[1.65rem] lg:text-[2rem]'>
             人と人との
