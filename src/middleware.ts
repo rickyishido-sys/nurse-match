@@ -66,7 +66,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/hero') ||
     pathname.startsWith('/categories') ||
     pathname.startsWith('/flow') ||
-    pathname === '/manifest.webmanifest'
+    pathname === '/manifest.webmanifest' ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml'
   ) {
     return NextResponse.next();
   }
