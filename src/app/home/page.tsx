@@ -107,10 +107,10 @@ export default async function HomePage() {
               イベント参加者だけが見られるページで、出会った人とつながれます。
             </p>
             <Link
-              href='/connections/ce6'
+              href='/connections'
               className='mt-3 inline-block text-xs font-semibold text-[#8b7355] underline-offset-2 hover:underline'
             >
-              横浜 Coffee Connection を見る →
+              自分のConnectionを見る →
             </Link>
           </div>
           <div className='relative hidden h-20 w-20 shrink-0 items-center justify-center rounded-[24px] bg-white/60 sm:flex'>

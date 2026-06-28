@@ -8,7 +8,7 @@ import { CONNECTION_NAV_CLASS } from '@/lib/connection/layout-width';
 const items = [
   { href: '/home', label: 'ホーム' },
   { href: '/events', label: 'イベント' },
-  { href: '/connections/ce6', label: 'Connection' },
+  { href: '/connections', label: 'Connection' },
   { href: '/register/profile', label: 'プロフィール' },
 ];
 
