@@ -21,7 +21,7 @@ const PUBLIC_PATHS = [
 const ADMIN_BYPASS_PATHS = ['/register', '/preview', '/onboarding-preview', '/pending-review'];
 const MEMBER_ONLY_PATH_PREFIXES = ['/app', '/cards', '/mypage', '/messages', '/discover', '/likes', '/matches', '/chat', '/chats'];
 // HANAKAI community browse routes are public (browse-before-join experience).
-const HANAKAI_PUBLIC_PREFIXES = ['/home', '/events', '/connections', '/manage', '/admin/connection', '/register/profile', '/my-profile'];
+const HANAKAI_PUBLIC_PREFIXES = ['/home', '/events', '/connections', '/groups', '/manage', '/admin/connection', '/register/profile', '/my-profile'];
 
 function isAdminRole(role: string | undefined) {
   return role === 'female_admin' || role === 'male_admin' || role === 'super_admin';
