@@ -31,6 +31,7 @@ import {
   TextInputStep,
   TextareaStep,
 } from './steps';
+import { ProfilePhotosStep } from './profile-photos-step';
 
 const GENDER_OPTIONS: Option<'male' | 'female' | 'other'>[] = [
   { value: 'male', label: '男性' },
@@ -42,7 +43,7 @@ const VALUE_TAG_MAX = 3;
 const WEEKEND_MIN = 2;
 
 /** 進捗ドットに含めるステップ数（Welcome を除く設問数）。 */
-const QUESTION_COUNT = 15;
+const QUESTION_COUNT = 16;
 
 function toggle<T>(list: T[], value: T, max?: number): T[] {
   if (list.includes(value)) return list.filter((v) => v !== value);
@@ -81,6 +82,7 @@ const STEP_ART: Record<number, string> = {
   13: '/categories/cafe.png',
   14: '/categories/bar.png',
   15: '/flow/continue.png',
+  16: '/onboarding/welcome.png',
 };
 
 export function OnboardingFlow({ error, member }: { error?: string; member?: ConnectionMember | null }) {
@@ -168,6 +170,8 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         return true; // 深掘り質問は任意
       case 15:
         return temperament !== '';
+      case 16:
+        return true; // プロフィール写真は任意
       default:
         return false;
     }
@@ -404,6 +408,10 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
             value={temperament}
             onChange={setTemperament}
           />
+        );
+      case 16:
+        return (
+          <ProfilePhotosStep index={16} art={STEP_ART[16]} initialPhotos={member?.photos} />
         );
       default:
         return null;

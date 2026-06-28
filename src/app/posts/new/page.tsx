@@ -1,6 +1,10 @@
+import Link from 'next/link';
 import { HanakaiShell } from '@/components/hanakai/shell';
+import { MemberAvatar, MemberPhotoGallery } from '@/components/connection/member-avatar';
 import { createPostAction } from '@/lib/hanakai/actions';
 import { listEvents } from '@/lib/hanakai/data';
+import { getViewerMemberId } from '@/lib/connection/identity';
+import { getMember } from '@/lib/connection/repo';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
@@ -8,6 +12,8 @@ type PageProps = { searchParams?: Promise<Record<string, string | string[] | und
 export default async function NewPostPage({ searchParams }: PageProps) {
   const sp = searchParams ? await searchParams : {};
   const viewer = await getHanakaiViewer();
+  const viewerMemberId = await getViewerMemberId();
+  const member = viewerMemberId ? await getMember(viewerMemberId) : null;
   const events = listEvents();
   const error = sp.error;
 
@@ -15,6 +21,23 @@ export default async function NewPostPage({ searchParams }: PageProps) {
     <HanakaiShell viewer={viewer}>
       <div className='space-y-4'>
         <h1 className='text-lg font-bold text-slate-800'>作品を投稿する</h1>
+        {member ? (
+          <div className='rounded-3xl border border-[#eaeee6] bg-white p-4'>
+            <div className='flex items-center gap-3'>
+              <MemberAvatar member={member} size={44} />
+              <div>
+                <p className='text-sm font-semibold text-slate-800'>{member.nickname}</p>
+                <p className='text-xs text-slate-500'>投稿者として表示されるプロフィール</p>
+              </div>
+            </div>
+            <div className='mt-4'>
+              <MemberPhotoGallery member={member} />
+            </div>
+            <Link href='/my-profile' className='mt-3 inline-block text-xs font-semibold text-[#4f7a4a] underline-offset-2 hover:underline'>
+              プロフィール写真を編集 ›
+            </Link>
+          </div>
+        ) : null}
         {error === 'title' ? <p className='rounded-2xl bg-rose-50 px-3 py-2 text-xs text-rose-600'>タイトルを入力してください。</p> : null}
         <form action={createPostAction} className='space-y-4'>
           <label className='block'>

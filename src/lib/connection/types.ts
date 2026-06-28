@@ -136,6 +136,25 @@ export type MemberTrustVerificationFields = {
   documentUploadStatus?: 'none' | 'pending' | 'approved' | 'rejected';
 };
 
+/** 将来拡張: 自分 / 趣味 / 作品 / ペット / 景色 / イベント など */
+export type ProfilePhotoCategory =
+  | 'self'
+  | 'hobby'
+  | 'work'
+  | 'pet'
+  | 'scenery'
+  | 'event'
+  | null;
+
+export type MemberProfilePhoto = {
+  id: string;
+  memberId: string;
+  url: string;
+  storagePath: string;
+  sortOrder: number;
+  category: ProfilePhotoCategory;
+};
+
 export type ConnectionMember = {
   id: string;
   nickname: string;
@@ -145,6 +164,8 @@ export type ConnectionMember = {
   occupation: string;
   bio: string;
   avatarUrl: string;
+  /** プロフィール写真（最大6枚）。1枚目がメイン。 */
+  photos: MemberProfilePhoto[];
   values: ProfileValues;
   purposes: ConnectionPurpose[];
   interestTags: InterestTag[];

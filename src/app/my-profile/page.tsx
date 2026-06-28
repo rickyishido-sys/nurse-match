@@ -1,6 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
+import { MemberAvatar, MemberPhotoGallery } from '@/components/connection/member-avatar';
+import { ProfilePhotoForm } from '@/components/connection/profile-photo-form';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
@@ -19,6 +21,8 @@ const GENDER_LABEL: Record<ConnectionMember['gender'], string> = {
   male: '男性',
   other: 'その他 / 未回答',
 };
+
+type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
 
 function EmptyProfile({ viewer }: { viewer: Awaited<ReturnType<typeof getHanakaiViewer>> }) {
   return (
@@ -104,8 +108,10 @@ function SectionCard({
   );
 }
 
-export default async function MyProfilePage() {
+export default async function MyProfilePage({ searchParams }: PageProps) {
   const viewer = await getHanakaiViewer();
+  const sp = searchParams ? await searchParams : {};
+  const photosSaved = sp.photos === 'saved';
   const viewerMemberId = await getViewerMemberId();
   const member = viewerMemberId ? await getMember(viewerMemberId) : null;
 
@@ -120,20 +126,15 @@ export default async function MyProfilePage() {
   return (
     <ConnectionShell viewer={viewer}>
       <div className='space-y-12'>
+        {photosSaved ? (
+          <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
+            プロフィール写真を保存しました。
+          </p>
+        ) : null}
+
         {/* ヘッダー */}
         <section className='flex items-center gap-5'>
-          <div className='relative h-20 w-20 shrink-0 overflow-hidden rounded-full ring-1 ring-[#ebe9e4]'>
-            {member.avatarUrl ? (
-              <Image src={member.avatarUrl} alt={member.nickname} fill className='object-cover' />
-            ) : (
-              <div
-                className='flex h-full w-full items-center justify-center text-2xl font-semibold text-[#1f5d4f]'
-                style={{ background: 'radial-gradient(circle at 50% 36%, #eef3ef 0%, #e4ecdd 74%)' }}
-              >
-                {member.nickname.charAt(0)}
-              </div>
-            )}
-          </div>
+          <MemberAvatar member={member} size={80} priority />
           <div className='min-w-0 space-y-1.5'>
             <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
               MY PROFILE
@@ -147,6 +148,14 @@ export default async function MyProfilePage() {
             </p>
           </div>
         </section>
+
+        {/* プロフィール写真 */}
+        <SectionCard kicker='PHOTOS' title='プロフィール写真'>
+          <MemberPhotoGallery member={member} />
+          <div className='mt-5 border-t border-[#f1efe9] pt-5'>
+            <ProfilePhotoForm initialPhotos={member.photos} />
+          </div>
+        </SectionCard>
 
         {/* 基本情報 */}
         <SectionCard kicker='BASIC' title='基本情報'>

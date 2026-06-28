@@ -9,6 +9,7 @@ import {
   rejectApplication,
   removeMemberFromEvent,
   saveMemberPersonality,
+  saveMemberPhotos,
   updateMember,
   updateMemberTrust,
 } from '@/lib/connection/repo';
@@ -26,6 +27,28 @@ import type {
   ValueTag,
   VerificationSource,
 } from '@/lib/connection/types';
+import type { PhotoManifestEntry } from '@/lib/connection/repo-supabase';
+
+function parsePhotoManifest(raw: string): PhotoManifestEntry[] {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (e): e is PhotoManifestEntry =>
+        (e?.type === 'existing' && typeof e.id === 'string') ||
+        (e?.type === 'new' && typeof e.fileIndex === 'number'),
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function persistProfilePhotos(memberId: string, formData: FormData) {
+  const manifest = parsePhotoManifest(String(formData.get('photoManifest') ?? '[]'));
+  const files = formData.getAll('profileImages').filter((v): v is File => v instanceof File && v.size > 0);
+  if (manifest.length === 0 && files.length === 0) return;
+  await saveMemberPhotos(memberId, manifest, files);
+}
 
 const VALID_CATEGORIES: ConnectionEventCategory[] = [
   'flower',
@@ -213,9 +236,23 @@ export async function saveProfileAction(formData: FormData) {
   }
 
   console.log('CONNECTION_PROFILE_SAVE', { nickname, purposes, interestTags, valueTags, lifePhase, personalityType });
+  await persistProfilePhotos(memberId, formData);
   revalidatePath('/register/profile');
+  revalidatePath('/my-profile');
   revalidatePath('/manage');
   redirect('/register/complete');
+}
+
+export async function saveMemberPhotosAction(formData: FormData) {
+  const memberId = await ensureViewerMemberId();
+  if (!memberId) redirect('/register/profile?error=session');
+
+  await persistProfilePhotos(memberId, formData);
+
+  revalidatePath('/my-profile');
+  revalidatePath('/events');
+  revalidatePath('/posts');
+  redirect('/my-profile?photos=saved');
 }
 
 export async function savePersonalityAction(formData: FormData) {

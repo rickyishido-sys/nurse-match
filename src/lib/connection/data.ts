@@ -312,6 +312,7 @@ const members: ConnectionMember[] = [
     occupation: 'ブランドマネージャー',
     bio: '仕事以外の出会いが少なくなってきたので、偶然のConnectionを楽しみたいです。',
     avatarUrl: img('photo-1494790108377-be9c29b29330', 200),
+    photos: [],
     values: seedValues({
       mostImportant: '大切な人との時間と、自分らしさを大切にすること',
       currentChallenge: '仕事とプライベートの境界を見直している',
@@ -350,6 +351,7 @@ const members: ConnectionMember[] = [
     occupation: 'スタートアップ経営',
     bio: '異業種の人とゆるく話せる場があれば。堅い交流会は苦手です。',
     avatarUrl: img('photo-1507003211169-0a1dd7228f2d', 200),
+    photos: [],
     values: seedValues({
       mostImportant: '挑戦し続けることと、チームの信頼',
       currentChallenge: '新規事業の立ち上げと資金調達',
@@ -388,6 +390,7 @@ const members: ConnectionMember[] = [
     occupation: 'UIデザイナー',
     bio: '最近転職して知り合いが減った。自然な形で人と繋がりたい。',
     avatarUrl: img('photo-1438761681033-6461ffad8d80', 200),
+    photos: [],
     values: seedValues({
       mostImportant: '創造性と、心地よい人間関係',
       currentChallenge: '新しい環境でのキャリア構築',
@@ -423,6 +426,7 @@ const members: ConnectionMember[] = [
     occupation: 'コンサルタント',
     bio: '週末は散歩とコーヒーが好き。気軽に話せる仲間が欲しい。',
     avatarUrl: img('photo-1500648767791-00dcc994a43e', 200),
+    photos: [],
     values: seedValues({
       mostImportant: '家族との時間と、健康',
       currentChallenge: '仕事のペースを整えること',
@@ -458,6 +462,7 @@ const members: ConnectionMember[] = [
     occupation: 'フリーランスライター',
     bio: '在宅ワークが多く、リアルでの会話を大切にしたい。',
     avatarUrl: img('photo-1534528741775-53994a69daeb', 200),
+    photos: [],
     values: seedValues({
       mostImportant: '言葉の力と、深い対話',
       currentChallenge: '孤独感との向き合い方',
@@ -490,6 +495,7 @@ const members: ConnectionMember[] = [
     occupation: 'エンジニア',
     bio: 'マッチングアプリではなく、偶然から始まる出会いに興味があります。',
     avatarUrl: img('photo-1506794778202-cad84cf45f1d', 200),
+    photos: [],
     values: seedValues({
       mostImportant: '技術で社会に貢献すること',
       currentChallenge: '副業でプロダクトを立ち上げている',
@@ -525,6 +531,7 @@ const members: ConnectionMember[] = [
     occupation: '事業開発',
     bio: '経営者や挑戦する人との出会いを増やしたい。',
     avatarUrl: img('photo-1544005313-94ddf0286df2', 200),
+    photos: [],
     values: seedValues({
       mostImportant: '人の可能性を引き出すこと',
       currentChallenge: '新規事業のパートナー探し',
@@ -560,6 +567,7 @@ const members: ConnectionMember[] = [
     occupation: '地域商店経営',
     bio: '地域の活動にも関心があり、新しい視点の人と話したい。',
     avatarUrl: img('photo-1472099645785-5658abf4ff4e', 200),
+    photos: [],
     values: seedValues({
       mostImportant: '地域コミュニティの活性化',
       currentChallenge: '店舗のデジタル化',
@@ -920,6 +928,37 @@ export function updateMember(id: string, patch: Partial<Omit<ConnectionMember, '
 
 export function saveMemberPersonality(id: string, personality: PersonalityProfile) {
   return updateMember(id, { personality });
+}
+
+type PhotoManifestEntry = { type: 'existing'; id: string } | { type: 'new'; fileIndex: number };
+
+/** プロフィール写真保存（mock） */
+export async function saveMemberPhotos(
+  memberId: string,
+  manifest: PhotoManifestEntry[],
+  _newFiles: File[],
+): Promise<import('@/lib/connection/types').MemberProfilePhoto[]> {
+  const member = getMember(memberId);
+  if (!member) return [];
+  const currentById = new Map(member.photos.map((p) => [p.id, p]));
+  const saved: import('@/lib/connection/types').MemberProfilePhoto[] = [];
+  manifest.slice(0, 6).forEach((entry, i) => {
+    if (entry.type === 'existing') {
+      const photo = currentById.get(entry.id);
+      if (photo) saved.push({ ...photo, sortOrder: i });
+    } else {
+      saved.push({
+        id: `mp_${Date.now()}_${i}`,
+        memberId,
+        url: img('photo-1494790108377-be9c29b29330', 600),
+        storagePath: '',
+        sortOrder: i,
+        category: null,
+      });
+    }
+  });
+  updateMember(memberId, { photos: saved, avatarUrl: saved[0]?.url ?? member.avatarUrl });
+  return saved;
 }
 
 export function updateMemberTrust(

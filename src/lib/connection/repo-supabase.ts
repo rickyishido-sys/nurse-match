@@ -8,12 +8,15 @@ import type {
   ConnectionMember,
   EventApplication,
   MemberGroupingProfile,
+  MemberProfilePhoto,
   PersonalityProfile,
+  ProfilePhotoCategory,
   ProfileValues,
   TrustVerificationStatus,
   VerificationSource,
 } from '@/lib/connection/types';
 import type { CreateEventInput } from '@/lib/connection/data';
+import { deleteProfilePhotoFile, uploadProfilePhoto } from '@/lib/connection/profile-photo-storage';
 
 // --- low-level clients --------------------------------------------------
 
@@ -43,7 +46,39 @@ const EMPTY_VALUES: ProfileValues = {
   valueTags: [],
 };
 
-function memberFromRow(row: MemberRow): ConnectionMember {
+function photoFromRow(row: Record<string, unknown>): MemberProfilePhoto {
+  return {
+    id: String(row.id),
+    memberId: String(row.member_id),
+    url: String(row.url ?? ''),
+    storagePath: String(row.storage_path ?? ''),
+    sortOrder: Number(row.sort_order ?? 0),
+    category: (row.category as ProfilePhotoCategory) ?? null,
+  };
+}
+
+async function photosForMembers(memberIds: string[]): Promise<Map<string, MemberProfilePhoto[]>> {
+  const map = new Map<string, MemberProfilePhoto[]>();
+  if (memberIds.length === 0) return map;
+  const sb = await db();
+  if (!sb) return map;
+  const { data } = await sb
+    .from('hanakai_member_photos')
+    .select('*')
+    .in('member_id', memberIds)
+    .order('sort_order', { ascending: true });
+  for (const row of data ?? []) {
+    const photo = photoFromRow(row);
+    const list = map.get(photo.memberId) ?? [];
+    list.push(photo);
+    map.set(photo.memberId, list);
+  }
+  return map;
+}
+
+function memberFromRow(row: MemberRow, photos: MemberProfilePhoto[] = []): ConnectionMember {
+  const sorted = [...photos].sort((a, b) => a.sortOrder - b.sortOrder);
+  const mainUrl = sorted[0]?.url || (row.avatar_url ?? '');
   return {
     id: row.id,
     nickname: row.nickname ?? '',
@@ -52,7 +87,8 @@ function memberFromRow(row: MemberRow): ConnectionMember {
     area: row.area ?? '',
     occupation: row.occupation ?? '',
     bio: row.bio ?? '',
-    avatarUrl: row.avatar_url ?? '',
+    avatarUrl: mainUrl,
+    photos: sorted,
     values: { ...EMPTY_VALUES, ...((row.values ?? {}) as Partial<ProfileValues>) },
     purposes: row.purposes ?? [],
     interestTags: row.interest_tags ?? [],
@@ -134,14 +170,18 @@ export async function listMembers(): Promise<ConnectionMember[]> {
   const sb = await db();
   if (!sb) return [];
   const { data } = await sb.from('hanakai_members').select('*');
-  return (data ?? []).map(memberFromRow);
+  const rows = data ?? [];
+  const photoMap = await photosForMembers(rows.map((r) => r.id as string));
+  return rows.map((r) => memberFromRow(r, photoMap.get(r.id as string) ?? []));
 }
 
 export async function getMember(id: string): Promise<ConnectionMember | null> {
   const sb = await db();
   if (!sb) return null;
   const { data } = await sb.from('hanakai_members').select('*').eq('id', id).maybeSingle();
-  return data ? memberFromRow(data) : null;
+  if (!data) return null;
+  const photoMap = await photosForMembers([id]);
+  return memberFromRow(data, photoMap.get(id) ?? []);
 }
 
 export async function listEvents(): Promise<ConnectionEvent[]> {
@@ -206,7 +246,8 @@ export async function getEventMembers(eventId: string): Promise<ConnectionMember
   const ids = (apps ?? []).map((a) => a.member_id);
   if (ids.length === 0) return [];
   const { data: rows } = await sb.from('hanakai_members').select('*').in('id', ids);
-  return (rows ?? []).map(memberFromRow);
+  const photoMap = await photosForMembers(ids);
+  return (rows ?? []).map((r) => memberFromRow(r, photoMap.get(r.id as string) ?? []));
 }
 
 export async function canViewConnectionPage(eventId: string, viewerMemberId: string): Promise<boolean> {
@@ -342,7 +383,9 @@ export async function updateMember(id: string, patch: MemberPatch): Promise<Conn
   const update = toMemberUpdate(patch);
   if (Object.keys(update).length === 0) return getMember(id);
   const { data } = await sb.from('hanakai_members').update(update).eq('id', id).select('*').maybeSingle();
-  return data ? memberFromRow(data) : null;
+  if (!data) return null;
+  const photoMap = await photosForMembers([id]);
+  return memberFromRow(data, photoMap.get(id) ?? []);
 }
 
 export async function saveMemberPersonality(id: string, personality: PersonalityProfile) {
@@ -393,4 +436,89 @@ export async function getGroupingProfile(memberId: string): Promise<MemberGroupi
       safetyFlags: m.safetyFlags,
     },
   };
+}
+
+export type PhotoManifestEntry = { type: 'existing'; id: string } | { type: 'new'; fileIndex: number };
+
+const MAX_PROFILE_PHOTOS = 6;
+
+/** プロフィール写真を並び替え・追加・削除して保存。1枚目を avatar_url に同期。 */
+export async function saveMemberPhotos(
+  memberId: string,
+  manifest: PhotoManifestEntry[],
+  newFiles: File[],
+): Promise<MemberProfilePhoto[]> {
+  const sb = await db();
+  if (!sb) return [];
+
+  const trimmed = manifest.slice(0, MAX_PROFILE_PHOTOS);
+  const current = (await photosForMembers([memberId])).get(memberId) ?? [];
+  const currentById = new Map(current.map((p) => [p.id, p]));
+
+  const finalRows: { id?: string; url: string; storagePath: string; category: ProfilePhotoCategory }[] = [];
+
+  for (const entry of trimmed) {
+    if (entry.type === 'existing') {
+      const photo = currentById.get(entry.id);
+      if (photo) {
+        finalRows.push({
+          id: photo.id,
+          url: photo.url,
+          storagePath: photo.storagePath,
+          category: photo.category,
+        });
+      }
+    } else if (entry.type === 'new') {
+      const file = newFiles[entry.fileIndex];
+      if (!file) continue;
+      const uploaded = await uploadProfilePhoto(memberId, file);
+      if (uploaded) {
+        finalRows.push({
+          url: uploaded.url,
+          storagePath: uploaded.storagePath,
+          category: null,
+        });
+      }
+    }
+  }
+
+  const keepIds = new Set(finalRows.map((r) => r.id).filter(Boolean));
+  for (const photo of current) {
+    if (!keepIds.has(photo.id)) {
+      await deleteProfilePhotoFile(photo.storagePath);
+      await sb.from('hanakai_member_photos').delete().eq('id', photo.id);
+    }
+  }
+
+  const saved: MemberProfilePhoto[] = [];
+  for (let i = 0; i < finalRows.length; i++) {
+    const row = finalRows[i];
+    if (row.id) {
+      const { data } = await sb
+        .from('hanakai_member_photos')
+        .update({ sort_order: i, category: row.category })
+        .eq('id', row.id)
+        .select('*')
+        .maybeSingle();
+      if (data) saved.push(photoFromRow(data));
+    } else {
+      const { data } = await sb
+        .from('hanakai_member_photos')
+        .insert({
+          member_id: memberId,
+          storage_path: row.storagePath,
+          url: row.url,
+          sort_order: i,
+          category: row.category,
+        })
+        .select('*')
+        .single();
+      if (data) saved.push(photoFromRow(data));
+    }
+  }
+
+  const mainUrl = saved[0]?.url ?? '';
+  await sb.from('hanakai_members').update({ avatar_url: mainUrl }).eq('id', memberId);
+
+  return saved.sort((a, b) => a.sortOrder - b.sortOrder);
 }

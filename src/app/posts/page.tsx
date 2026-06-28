@@ -1,13 +1,17 @@
-import Image from 'next/image';
 import Link from 'next/link';
+import Image from 'next/image';
 import { HanakaiShell } from '@/components/hanakai/shell';
+import { MemberAvatar } from '@/components/connection/member-avatar';
 import { Chip } from '@/components/hanakai/ui';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { getUser, listPosts } from '@/lib/hanakai/data';
+import { listMembers } from '@/lib/connection/repo';
 
 export default async function PostsPage() {
   const viewer = await getHanakaiViewer();
   const posts = listPosts();
+  const connectionMembers = await listMembers();
+  const memberByNickname = new Map(connectionMembers.map((m) => [m.nickname, m]));
 
   return (
     <HanakaiShell viewer={viewer}>
@@ -22,12 +26,17 @@ export default async function PostsPage() {
         <div className='space-y-5'>
           {posts.map((post) => {
             const author = getUser(post.authorId);
+            const connectionMember = author ? memberByNickname.get(author.nickname) : null;
             return (
               <article key={post.id} className='overflow-hidden rounded-3xl border border-[#eaeee6] bg-white'>
                 <Link href={`/members/${post.authorId}`} className='flex items-center gap-2 px-3 py-2.5'>
-                  <div className='relative h-8 w-8 overflow-hidden rounded-full'>
-                    {author ? <Image src={author.avatarUrl} alt={author.nickname} fill className='object-cover' /> : null}
-                  </div>
+                  {connectionMember ? (
+                    <MemberAvatar member={connectionMember} size={32} />
+                  ) : author ? (
+                    <div className='relative h-8 w-8 overflow-hidden rounded-full'>
+                      <Image src={author.avatarUrl} alt={author.nickname} fill className='object-cover' />
+                    </div>
+                  ) : null}
                   <span className='text-sm font-semibold text-slate-800'>{author?.nickname}</span>
                   <span className='text-xs text-slate-400'>@{author?.handle}</span>
                 </Link>

@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
@@ -7,6 +6,7 @@ import { HostBadgeList } from '@/components/connection/host-badge';
 import { ApplyForm } from '@/components/connection/events/apply-form';
 import { formatFee } from '@/components/connection/events/event-card';
 import { EventGallery } from '@/components/connection/events/event-gallery';
+import { MemberAvatar } from '@/components/connection/member-avatar';
 import { Card, Chip } from '@/components/connection/ui';
 import { EVENT_CATEGORY_LABEL, formatEventDate } from '@/lib/connection/data';
 import { getApplication, getEvent, getEventMembers, getMember } from '@/lib/connection/repo';
@@ -71,13 +71,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
           <h2 className='mb-3 text-sm font-semibold text-[#1a1a1a]'>主催者</h2>
           <div className='flex items-start gap-3'>
             {host ? (
-              <Image
-                src={host.avatarUrl}
-                alt={host.nickname}
-                width={48}
-                height={48}
-                className='h-12 w-12 shrink-0 rounded-full object-cover'
-              />
+              <MemberAvatar member={host} size={48} />
             ) : (
               <span className='flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f0eeea] text-lg' aria-hidden>
                 ✿
@@ -100,13 +94,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
               {confirmedMembers.map((m) => (
                 <div key={m.id} className='flex items-center justify-between gap-3'>
                   <div className='flex items-center gap-3'>
-                    <Image
-                      src={m.avatarUrl}
-                      alt={m.nickname}
-                      width={40}
-                      height={40}
-                      className='h-10 w-10 rounded-full object-cover'
-                    />
+                    <MemberAvatar member={m} size={40} />
                     <div>
                       <p className='text-sm font-medium text-[#1a1a1a]'>{m.nickname}</p>
                       <p className='text-[11px] text-[#6b6b6b]'>{m.occupation}</p>

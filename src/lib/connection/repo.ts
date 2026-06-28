@@ -107,6 +107,14 @@ export async function saveMemberPersonality(id: string, personality: Personality
   return useSupabase ? supa.saveMemberPersonality(id, personality) : mock.saveMemberPersonality(id, personality);
 }
 
+export async function saveMemberPhotos(
+  memberId: string,
+  manifest: supa.PhotoManifestEntry[],
+  newFiles: File[],
+) {
+  return useSupabase ? supa.saveMemberPhotos(memberId, manifest, newFiles) : mock.saveMemberPhotos(memberId, manifest, newFiles);
+}
+
 export async function updateMemberTrust(
   id: string,
   patch: {
