@@ -56,6 +56,12 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
           <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>
             このイベントに参加した{members.length}人だけが閲覧できます。フォローやメッセージで、次のConnectionへ。
           </p>
+          <Link
+            href={`/groups/${eventId}`}
+            className='mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#1f5d4f] underline-offset-2 hover:underline'
+          >
+            参加者グループを見る →
+          </Link>
         </div>
 
         {followedId ? (

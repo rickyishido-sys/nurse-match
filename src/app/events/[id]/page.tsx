@@ -112,9 +112,16 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
         {event.isPast ? (
           <Card className='bg-[#f5f4f2]'>
             <p className='text-sm text-[#4a4a4a]'>このイベントは終了しました。</p>
-            <Link href={`/connections/${event.id}`} className='mt-2 inline-block text-xs font-semibold text-[#1a1a1a] underline-offset-2 hover:underline'>
-              Connectionページを見る →
-            </Link>
+            <div className='mt-3 flex flex-col gap-2'>
+              <Link href={`/connections/${event.id}`} className='text-xs font-semibold text-[#1a1a1a] underline-offset-2 hover:underline'>
+                Connectionページを見る →
+              </Link>
+              {(existingApp?.status === 'confirmed' || isHost) && viewerMemberId ? (
+                <Link href={`/groups/${event.id}`} className='text-xs font-semibold text-[#1f5d4f] underline-offset-2 hover:underline'>
+                  参加者グループを見る →
+                </Link>
+              ) : null}
+            </div>
           </Card>
         ) : isHost ? (
           <Card className='border-[#cfe3da] bg-[#f3f7f5]'>
@@ -122,24 +129,43 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
             <p className='mt-1 text-xs leading-6 text-[#5b6f67]'>
               申請者の参加理由を読み、参加する方を選びましょう。
             </p>
+            <div className='mt-3 space-y-2'>
+              <Link
+                href={`/events/manage/${event.id}`}
+                className='inline-flex h-11 w-full items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white'
+              >
+                申請者を管理する
+              </Link>
+              <Link
+                href={`/groups/${event.id}`}
+                className='inline-flex h-11 w-full items-center justify-center rounded-full border border-[#1f5d4f] text-sm font-semibold text-[#1f5d4f]'
+              >
+                参加者グループを開く
+              </Link>
+            </div>
+          </Card>
+        ) : existingApp?.status === 'confirmed' ? (
+          <Card className='border-[#dfe9e4] bg-[#faf9f6]'>
+            <p className='text-sm font-semibold text-[#1a1a1a]'>参加が確定しました</p>
+            <p className='mt-1 text-xs leading-6 text-[#6b6b6b]'>
+              参加者同士で感想や写真を共有できます。
+            </p>
             <Link
-              href={`/events/manage/${event.id}`}
-              className='mt-3 inline-flex h-11 w-full items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white'
+              href={`/groups/${event.id}`}
+              className='mt-3 inline-flex h-11 w-full items-center justify-center rounded-full border border-[#1f5d4f] text-sm font-semibold text-[#1f5d4f]'
             >
-              申請者を管理する
+              グループを開く
             </Link>
           </Card>
         ) : (
           <Card>
             {applied || existingApp ? (
               <p className='text-sm leading-7 text-[#4a4a4a]'>
-                {existingApp?.status === 'confirmed'
-                  ? '参加が確定しました。当日お会いできるのを楽しみにしています。'
-                  : existingApp?.status === 'rejected'
-                    ? '今回はご縁がありませんでしたが、ほかのConnectionでお会いできますように。'
-                    : approvalMode === 'auto'
-                      ? '参加を受け付けました。当日お会いできるのを楽しみにしています。'
-                      : '参加申請を受け付けました。主催者が参加理由を読んで参加者を選びます。'}
+                {existingApp?.status === 'rejected'
+                  ? '今回はご縁がありませんでしたが、ほかのConnectionでお会いできますように。'
+                  : approvalMode === 'auto'
+                    ? '参加を受け付けました。当日お会いできるのを楽しみにしています。'
+                    : '参加申請を受け付けました。主催者が参加理由を読んで参加者を選びます。'}
               </p>
             ) : isFull ? (
               <p className='text-sm text-[#9a9a9a]'>このイベントは満席です。</p>

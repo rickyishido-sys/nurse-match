@@ -83,12 +83,17 @@ export async function rejectApplication(eventId: string, memberId: string): Prom
 }
 
 export async function createEvent(input: CreateEventInput): Promise<ConnectionEvent> {
-  return useSupabase ? supa.createEvent(input) : mock.createEvent(input);
+  const event = useSupabase ? await supa.createEvent(input) : mock.createEvent(input);
+  const { syncGroupHost } = await import('@/lib/connection/group-repo');
+  await syncGroupHost(event.id, input.hostId);
+  return event;
 }
 
 export async function confirmMemberForEvent(eventId: string, memberId: string): Promise<void> {
-  if (useSupabase) return supa.confirmMemberForEvent(eventId, memberId);
-  mock.confirmMemberForEvent(eventId, memberId);
+  if (useSupabase) await supa.confirmMemberForEvent(eventId, memberId);
+  else mock.confirmMemberForEvent(eventId, memberId);
+  const { syncGroupForConfirmedMember } = await import('@/lib/connection/group-repo');
+  await syncGroupForConfirmedMember(eventId, memberId, 'participant');
 }
 
 export async function removeMemberFromEvent(eventId: string, memberId: string): Promise<void> {

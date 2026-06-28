@@ -226,3 +226,55 @@ export type MemberGroupingProfile = {
     'trustVerificationStatus' | 'identityVerified' | 'verificationSource' | 'safetyFlags'
   >;
 };
+
+/** グループ写真の利用ステータス */
+export type GroupPhotoUsageStatus = 'private' | 'requested' | 'approved' | 'rejected' | 'reported';
+
+/** 利用許可リクエストの対象範囲（将来拡張: sns / ad / print） */
+export type GroupPhotoUsageScope = 'site' | 'event_page' | 'sns' | 'ad' | 'print';
+
+export type ConnectionGroup = {
+  id: string;
+  eventId: string;
+  createdAt: string;
+};
+
+export type GroupMemberRole = 'host' | 'participant' | 'admin';
+
+export type GroupPost = {
+  id: string;
+  groupId: string;
+  memberId: string;
+  body: string;
+  isHidden: boolean;
+  reportCount: number;
+  createdAt: string;
+};
+
+export type GroupPhoto = {
+  id: string;
+  groupId: string;
+  memberId: string;
+  postId?: string;
+  url: string;
+  storagePath: string;
+  usageStatus: GroupPhotoUsageStatus;
+  isHidden: boolean;
+  reportCount: number;
+  consentAcknowledged: boolean;
+  createdAt: string;
+};
+
+export type GroupPhotoUsageRequest = {
+  id: string;
+  photoId: string;
+  scopes: GroupPhotoUsageScope[];
+  message: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  respondedAt?: string;
+};
+
+export type GroupFeedItem =
+  | { type: 'post'; post: GroupPost; photos: GroupPhoto[] }
+  | { type: 'photos'; photos: GroupPhoto[]; memberId: string; createdAt: string };
