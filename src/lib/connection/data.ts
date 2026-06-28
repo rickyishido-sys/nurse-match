@@ -144,6 +144,18 @@ export const HOST_BADGE_META: Record<
   },
 };
 
+/**
+ * 写真未登録イベント向けの、カテゴリ既定イラスト（public/categories 配下）。
+ * 画像のないカテゴリは未定義 → 呼び出し側で gradient + 絵文字にフォールバック。
+ */
+export const EVENT_CATEGORY_DEFAULT_IMAGE: Partial<Record<ConnectionEventCategory, string>> = {
+  flower: '/categories/flower.png',
+  coffee: '/categories/cafe.png',
+  walking: '/categories/stroll.png',
+  fitness: '/categories/fitness.png',
+  bar: '/categories/bar.png',
+};
+
 /** カテゴリごとの世界観（絵文字・キャッチ・配色・LP画像） */
 export const EVENT_CATEGORY_META: Record<
   ConnectionEventCategory,
@@ -819,6 +831,8 @@ export type CreateEventInput = {
   conditions: string;
   approvalMode: import('@/lib/connection/types').EventApprovalMode;
   hostId: string;
+  /** 主催者がアップロードしたイベント写真URL（最大5枚） */
+  imageUrls?: string[];
 };
 
 /** ユーザー作成イベントを追加（MVP: インメモリ） */
@@ -841,6 +855,7 @@ export function createEvent(input: CreateEventInput): ConnectionEvent {
     conditions: input.conditions,
     description: input.description,
     coverUrl: input.coverUrl,
+    imageUrls: input.imageUrls ?? [],
     status: 'open',
     isPast: false,
     confirmedMemberIds: [],

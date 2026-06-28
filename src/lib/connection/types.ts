@@ -167,6 +167,8 @@ export type ConnectionEvent = {
   conditions: string;
   description: string;
   coverUrl: string;
+  /** 主催者がアップロードしたイベント写真（最大5枚）。空配列はカテゴリ既定表示にフォールバック。 */
+  imageUrls?: string[];
   status: ConnectionEventStatus;
   isPast: boolean;
   confirmedMemberIds: string[];

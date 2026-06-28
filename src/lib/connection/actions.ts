@@ -13,6 +13,7 @@ import {
   updateMemberTrust,
 } from '@/lib/connection/repo';
 import { VALUE_TAG_LABEL } from '@/lib/connection/data';
+import { uploadEventImages } from '@/lib/connection/storage';
 import { ensureViewerMemberId } from '@/lib/connection/identity';
 import type {
   ConnectionEventCategory,
@@ -51,8 +52,8 @@ export async function createConnectionEventAction(formData: FormData) {
   const venue = String(formData.get('venue') ?? '').trim();
   const capacity = Math.max(2, Math.min(50, Number(formData.get('capacity')) || 6));
   const fee = Math.max(0, Number(formData.get('fee')) || 0);
-  const coverUrl = String(formData.get('coverUrl') ?? '').trim();
   const conditions = String(formData.get('conditions') ?? '').trim();
+  const imageFiles = formData.getAll('images').filter((v): v is File => v instanceof File);
   const approvalMode = (String(formData.get('approvalMode') ?? 'host_approval') === 'auto'
     ? 'auto'
     : 'host_approval') as EventApprovalMode;
@@ -64,6 +65,9 @@ export async function createConnectionEventAction(formData: FormData) {
   const hostId = await ensureViewerMemberId();
   if (!hostId) redirect('/events/create?error=session');
 
+  // 匿名サインイン後のセッションでアップロードできるため、メンバー確定後に実行する。
+  const imageUrls = imageFiles.length > 0 ? await uploadEventImages(imageFiles) : [];
+
   const event = await createEvent({
     title,
     category,
@@ -73,13 +77,14 @@ export async function createConnectionEventAction(formData: FormData) {
     venue,
     capacity,
     fee,
-    coverUrl,
+    coverUrl: '',
     conditions,
     approvalMode,
     hostId,
+    imageUrls,
   });
 
-  console.log('CONNECTION_EVENT_CREATE', { id: event.id, title, category, approvalMode });
+  console.log('CONNECTION_EVENT_CREATE', { id: event.id, title, category, approvalMode, images: imageUrls.length });
   revalidatePath('/events');
   revalidatePath('/home');
   redirect(`/events/${event.id}?created=1`);

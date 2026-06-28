@@ -6,8 +6,9 @@ import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { HostBadgeList } from '@/components/connection/host-badge';
 import { ApplyForm } from '@/components/connection/events/apply-form';
 import { formatFee } from '@/components/connection/events/event-card';
+import { EventGallery } from '@/components/connection/events/event-gallery';
 import { Card, Chip } from '@/components/connection/ui';
-import { EVENT_CATEGORY_LABEL, EVENT_CATEGORY_META, formatEventDate } from '@/lib/connection/data';
+import { EVENT_CATEGORY_LABEL, formatEventDate } from '@/lib/connection/data';
 import { getApplication, getEvent, getEventMembers, getMember } from '@/lib/connection/repo';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
@@ -25,7 +26,6 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
 
   const viewer = await getHanakaiViewer();
   const viewerMemberId = await getViewerMemberId();
-  const meta = EVENT_CATEGORY_META[event.category];
   const applied = sp.applied === '1';
   const created = sp.created === '1';
   const existingApp = viewerMemberId ? await getApplication(event.id, viewerMemberId) : null;
@@ -38,15 +38,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
   return (
     <ConnectionShell viewer={viewer}>
       <article className='space-y-5'>
-        <div className={`relative h-52 w-full overflow-hidden rounded-2xl bg-gradient-to-br ${meta.gradient}`}>
-          {event.coverUrl ? (
-            <Image src={event.coverUrl} alt={event.title} fill className='object-cover' priority />
-          ) : (
-            <div className='absolute inset-0 flex items-center justify-center text-6xl opacity-70' aria-hidden>
-              {meta.emoji}
-            </div>
-          )}
-        </div>
+        <EventGallery event={event} />
 
         {created ? (
           <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>

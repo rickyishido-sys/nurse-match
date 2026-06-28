@@ -100,6 +100,7 @@ function eventFromRow(row: EventRow, apps: AppRow[]): ConnectionEvent {
     conditions: row.conditions ?? '',
     description: row.description ?? '',
     coverUrl: row.cover_url ?? '',
+    imageUrls: row.image_urls ?? [],
     status: row.status,
     isPast,
     confirmedMemberIds: confirmed,
@@ -245,7 +246,7 @@ export async function rejectApplication(eventId: string, memberId: string): Prom
 export async function createEvent(input: CreateEventInput): Promise<ConnectionEvent> {
   const sb = await db();
   const host = await getMember(input.hostId);
-  const payload = {
+  const payload: Record<string, unknown> = {
     title: input.title,
     category: input.category,
     start_at: input.startAt,
@@ -263,6 +264,10 @@ export async function createEvent(input: CreateEventInput): Promise<ConnectionEv
     is_user_created: true,
     is_past: false,
   };
+  // image_urls カラム未適用環境でも作成を壊さないよう、写真がある時のみ含める。
+  if (input.imageUrls && input.imageUrls.length > 0) {
+    payload.image_urls = input.imageUrls;
+  }
   if (!sb) {
     // クライアント不在時もフォーム遷移を壊さない最低限のフォールバック
     return eventFromRow({ id: `ue_${Date.now()}`, ...payload }, []);

@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { EVENT_CATEGORY_META, formatEventDate } from '@/lib/connection/data';
+import { EVENT_CATEGORY_DEFAULT_IMAGE, EVENT_CATEGORY_META, formatEventDate } from '@/lib/connection/data';
 import type { ConnectionEvent } from '@/lib/connection/types';
 
 function statusLabel(status: string) {
@@ -17,6 +17,9 @@ export function formatFee(fee?: number) {
 
 export function EventCard({ event }: { event: ConnectionEvent }) {
   const meta = EVENT_CATEGORY_META[event.category];
+  const uploaded = event.imageUrls?.[0];
+  const categoryImage = EVENT_CATEGORY_DEFAULT_IMAGE[event.category];
+  const heroSrc = uploaded || event.coverUrl || categoryImage || null;
 
   return (
     <Link
@@ -24,8 +27,13 @@ export function EventCard({ event }: { event: ConnectionEvent }) {
       className='block overflow-hidden rounded-3xl border border-[#ebe9e4] bg-white shadow-[0_2px_12px_rgba(26,26,26,0.04)] transition active:scale-[0.99]'
     >
       <div className={`relative h-44 w-full bg-gradient-to-br ${meta.gradient}`}>
-        {event.coverUrl ? (
-          <Image src={event.coverUrl} alt={event.title} fill className='object-cover mix-blend-multiply' />
+        {heroSrc ? (
+          <Image
+            src={heroSrc}
+            alt={event.title}
+            fill
+            className={uploaded || event.coverUrl ? 'object-cover' : 'object-contain p-6 mix-blend-multiply'}
+          />
         ) : (
           <div className='absolute inset-0 flex items-center justify-center text-5xl opacity-70' aria-hidden>
             {meta.emoji}

@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { createConnectionEventAction } from '@/lib/connection/actions';
 
 type CategoryOption = { value: string; label: string; emoji: string };
 
 const ACCENT = '#1f5d4f';
+const GOLD = '#b8956a';
+const MAX_IMAGES = 5;
+const ACCEPTED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 const labelClass = 'mb-2 block text-sm font-semibold text-[#1a1a1a]';
 const fieldClass =
@@ -17,6 +21,72 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
   const [category, setCategory] = useState<string>(categories[0]?.value ?? 'flower');
   const [approvalMode, setApprovalMode] = useState<'host_approval' | 'auto'>('host_approval');
   const [description, setDescription] = useState('');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [images, setImages] = useState<{ file: File; url: string }[]>([]);
+  const [imageError, setImageError] = useState('');
+
+  // 並び替え・削除のたびに、実際に送信される <input type=file> の files を同期する。
+  function syncInput(next: { file: File; url: string }[]) {
+    const dt = new DataTransfer();
+    next.forEach((item) => dt.items.add(item.file));
+    if (fileInputRef.current) fileInputRef.current.files = dt.files;
+  }
+
+  function addFiles(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    let err = '';
+    const accepted: { file: File; url: string }[] = [];
+    for (const file of Array.from(fileList)) {
+      if (!ACCEPTED_TYPES.includes(file.type)) {
+        err = 'jpg / png / webp の画像を選択してください。';
+        continue;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        err = '1枚あたり10MBまでアップロードできます。';
+        continue;
+      }
+      accepted.push({ file, url: URL.createObjectURL(file) });
+    }
+    setImages((prev) => {
+      const room = MAX_IMAGES - prev.length;
+      if (accepted.length > room) err = `写真は最大${MAX_IMAGES}枚までです。`;
+      const next = [...prev, ...accepted.slice(0, Math.max(0, room))];
+      syncInput(next);
+      return next;
+    });
+    setImageError(err);
+  }
+
+  function removeAt(index: number) {
+    setImages((prev) => {
+      const target = prev[index];
+      if (target) URL.revokeObjectURL(target.url);
+      const next = prev.filter((_, i) => i !== index);
+      syncInput(next);
+      return next;
+    });
+    setImageError('');
+  }
+
+  function move(index: number, dir: -1 | 1) {
+    setImages((prev) => {
+      const j = index + dir;
+      if (j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[j]] = [next[j], next[index]];
+      syncInput(next);
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    return () => {
+      images.forEach((item) => URL.revokeObjectURL(item.url));
+    };
+    // unmount 時のみクリーンアップ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <form action={createConnectionEventAction} className='space-y-7'>
@@ -154,11 +224,107 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
         </div>
 
         <div>
-          <label htmlFor='coverUrl' className={labelClass}>
-            カバー画像URL <span className='font-normal text-[#9a9a9a]'>（任意）</span>
-          </label>
-          <input id='coverUrl' name='coverUrl' type='url' placeholder='https://…' className={fieldClass} />
-          <p className={helpClass}>未入力の場合、カテゴリーの世界観カラーが表示されます。</p>
+          <span className={labelClass}>
+            イベント写真 <span className='font-normal text-[#9a9a9a]'>（任意・最大{MAX_IMAGES}枚）</span>
+          </span>
+
+          {/* 送信用の隠しファイル入力。並び替え・削除は state → files へ同期。 */}
+          <input
+            ref={fileInputRef}
+            type='file'
+            name='images'
+            accept='image/jpeg,image/png,image/webp'
+            multiple
+            className='hidden'
+            onChange={(e) => {
+              addFiles(e.target.files);
+            }}
+          />
+
+          {images.length === 0 ? (
+            <button
+              type='button'
+              onClick={() => fileInputRef.current?.click()}
+              className='flex w-full flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#d8cdbb] bg-[#faf7f1] px-4 py-9 text-center transition active:scale-[0.99]'
+            >
+              <p className='text-xs leading-6 text-[#7a7264]'>
+                前回開催時の写真や、イベントの雰囲気が分かる写真を追加できます。
+              </p>
+              <span
+                className='inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold text-white'
+                style={{ backgroundColor: ACCENT }}
+              >
+                <span className='text-base leading-none'>＋</span>
+                写真を追加する
+              </span>
+            </button>
+          ) : (
+            <div className='-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
+              {images.map((item, index) => (
+                <div key={item.url} className='relative shrink-0'>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.url}
+                    alt={`イベント写真 ${index + 1}`}
+                    className='h-28 w-28 rounded-2xl border border-[#e7e2d8] object-cover'
+                  />
+                  {index === 0 ? (
+                    <span
+                      className='absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white'
+                      style={{ backgroundColor: GOLD }}
+                    >
+                      表紙
+                    </span>
+                  ) : null}
+                  <button
+                    type='button'
+                    onClick={() => removeAt(index)}
+                    aria-label='写真を削除'
+                    className='absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-sm leading-none text-white backdrop-blur'
+                  >
+                    ×
+                  </button>
+                  <div className='absolute inset-x-1.5 bottom-1.5 flex justify-between'>
+                    <button
+                      type='button'
+                      onClick={() => move(index, -1)}
+                      disabled={index === 0}
+                      aria-label='前へ移動'
+                      className='flex h-6 w-6 items-center justify-center rounded-full bg-white/85 text-xs text-[#1a1a1a] disabled:opacity-30'
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => move(index, 1)}
+                      disabled={index === images.length - 1}
+                      aria-label='次へ移動'
+                      className='flex h-6 w-6 items-center justify-center rounded-full bg-white/85 text-xs text-[#1a1a1a] disabled:opacity-30'
+                    >
+                      ›
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {images.length < MAX_IMAGES ? (
+                <button
+                  type='button'
+                  onClick={() => fileInputRef.current?.click()}
+                  className='flex h-28 w-28 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-[#d8cdbb] bg-[#faf7f1] text-[#1f5d4f] transition active:scale-[0.97]'
+                >
+                  <span className='text-xl leading-none'>＋</span>
+                  <span className='text-[11px] font-medium'>追加</span>
+                </button>
+              ) : null}
+            </div>
+          )}
+
+          {imageError ? (
+            <p className='mt-2 text-xs text-[#c0526b]'>{imageError}</p>
+          ) : (
+            <p className={helpClass}>jpg / png / webp・1枚10MBまで。1枚目が一覧の表紙になります。</p>
+          )}
         </div>
       </section>
 
