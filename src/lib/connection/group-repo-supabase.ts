@@ -1,4 +1,5 @@
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { uploadGroupPhotos } from '@/lib/connection/group-storage';
 import type {
   ConnectionGroup,
@@ -9,8 +10,10 @@ import type {
   GroupPost,
 } from '@/lib/connection/types';
 
-/** グループ書き込みは RLS 上ホスト→参加者追加などクロスユーザー操作を含むため service_role を使用（phase1 と同方針）。 */
-function db() {
+/** 認証済みセッションを優先。service_role が無効な本番環境でも RLS 経由で動作する。 */
+async function db() {
+  const user = await createServerSupabaseClient();
+  if (user) return user;
   return createAdminSupabaseClient();
 }
 
@@ -51,7 +54,7 @@ function photoFromRow(row: Record<string, unknown>): GroupPhoto {
 }
 
 export async function getGroupByEventId(eventId: string): Promise<ConnectionGroup | null> {
-  const sb = db();
+  const sb = await db();
   if (!sb) return null;
   const { data, error } = await sb.from('hanakai_connection_groups').select('*').eq('event_id', eventId).maybeSingle();
   if (error) console.error('HANAKAI_GROUP_GET_FAILED', { eventId, message: error.message });
@@ -61,7 +64,7 @@ export async function getGroupByEventId(eventId: string): Promise<ConnectionGrou
 export async function ensureGroupForEvent(eventId: string): Promise<ConnectionGroup | null> {
   const existing = await getGroupByEventId(eventId);
   if (existing) return existing;
-  const sb = db();
+  const sb = await db();
   if (!sb) return null;
   const { data, error } = await sb.from('hanakai_connection_groups').insert({ event_id: eventId }).select('*').single();
   if (error) {
@@ -72,7 +75,7 @@ export async function ensureGroupForEvent(eventId: string): Promise<ConnectionGr
 }
 
 export async function addGroupMember(groupId: string, memberId: string, role: GroupMemberRole) {
-  const sb = db();
+  const sb = await db();
   if (!sb) return;
   const { error } = await sb.from('hanakai_group_members').upsert(
     { group_id: groupId, member_id: memberId, role },
@@ -96,7 +99,7 @@ export async function syncGroupHost(eventId: string, hostMemberId: string) {
 }
 
 export async function listGroupMemberIds(groupId: string): Promise<string[]> {
-  const sb = db();
+  const sb = await db();
   if (!sb) return [];
   const { data, error } = await sb.from('hanakai_group_members').select('member_id').eq('group_id', groupId);
   if (error) console.error('HANAKAI_GROUP_MEMBERS_LIST_FAILED', { groupId, message: error.message });
@@ -104,7 +107,7 @@ export async function listGroupMemberIds(groupId: string): Promise<string[]> {
 }
 
 export async function listGroupPosts(groupId: string): Promise<GroupPost[]> {
-  const sb = db();
+  const sb = await db();
   if (!sb) return [];
   const { data, error } = await sb
     .from('hanakai_group_posts')
@@ -117,7 +120,7 @@ export async function listGroupPosts(groupId: string): Promise<GroupPost[]> {
 }
 
 export async function listGroupPhotos(groupId: string): Promise<GroupPhoto[]> {
-  const sb = db();
+  const sb = await db();
   if (!sb) return [];
   const { data, error } = await sb
     .from('hanakai_group_photos')
@@ -130,7 +133,7 @@ export async function listGroupPhotos(groupId: string): Promise<GroupPhoto[]> {
 }
 
 export async function createGroupPost(groupId: string, memberId: string, body: string): Promise<GroupPost | null> {
-  const sb = db();
+  const sb = await db();
   if (!sb) return null;
   const { data, error } = await sb
     .from('hanakai_group_posts')
@@ -152,7 +155,7 @@ export async function createGroupPhotosFromFiles(
 ): Promise<GroupPhoto[]> {
   const uploaded = await uploadGroupPhotos(groupId, files);
   if (uploaded.length === 0) return [];
-  const sb = db();
+  const sb = await db();
   if (!sb) return [];
   const rows = uploaded.map((u) => ({
     group_id: groupId,
@@ -172,7 +175,7 @@ export async function createGroupPhotosFromFiles(
 }
 
 export async function reportGroupPost(postId: string) {
-  const sb = db();
+  const sb = await db();
   if (!sb) return;
   const { data } = await sb.from('hanakai_group_posts').select('report_count').eq('id', postId).maybeSingle();
   if (!data) return;
@@ -181,7 +184,7 @@ export async function reportGroupPost(postId: string) {
 }
 
 export async function reportGroupPhoto(photoId: string) {
-  const sb = db();
+  const sb = await db();
   if (!sb) return;
   const { data } = await sb.from('hanakai_group_photos').select('report_count').eq('id', photoId).maybeSingle();
   if (!data) return;
@@ -193,14 +196,14 @@ export async function reportGroupPhoto(photoId: string) {
 }
 
 export async function hideGroupPost(postId: string) {
-  const sb = db();
+  const sb = await db();
   if (!sb) return;
   const { error } = await sb.from('hanakai_group_posts').update({ is_hidden: true }).eq('id', postId);
   if (error) console.error('HANAKAI_GROUP_POST_HIDE_FAILED', { postId, message: error.message });
 }
 
 export async function hideGroupPhoto(photoId: string) {
-  const sb = db();
+  const sb = await db();
   if (!sb) return;
   const { error } = await sb.from('hanakai_group_photos').update({ is_hidden: true }).eq('id', photoId);
   if (error) console.error('HANAKAI_GROUP_PHOTO_HIDE_FAILED', { photoId, message: error.message });
@@ -211,7 +214,7 @@ export async function requestPhotoUsage(
   scopes: GroupPhotoUsageScope[],
   message: string,
 ): Promise<GroupPhotoUsageRequest | null> {
-  const sb = db();
+  const sb = await db();
   if (!sb) return null;
   const { error: upErr } = await sb.from('hanakai_group_photos').update({ usage_status: 'requested' }).eq('id', photoId);
   if (upErr) {

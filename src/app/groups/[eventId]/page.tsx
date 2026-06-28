@@ -51,7 +51,19 @@ export default async function GroupPage({ params }: PageProps) {
   }
 
   const group = await refreshGroupMembership(eventId);
-  if (!group) notFound();
+  if (!group) {
+    return (
+      <ConnectionShell viewer={viewer}>
+        <div className='mx-auto max-w-md space-y-6 py-8 text-center'>
+          <p className='text-sm font-semibold text-[#1a1a1a]'>グループを読み込めませんでした</p>
+          <p className='text-xs leading-7 text-[#6b6b6b]'>しばらくしてから再度お試しください。</p>
+          <Link href={`/events/${eventId}`} className='inline-flex h-11 items-center justify-center rounded-full border border-[#1f5d4f] px-6 text-sm font-semibold text-[#1f5d4f]'>
+            イベント詳細へ戻る
+          </Link>
+        </div>
+      </ConnectionShell>
+    );
+  }
 
   const [posts, photos, members] = await Promise.all([
     listGroupPosts(group.id),
