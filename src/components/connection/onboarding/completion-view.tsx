@@ -106,7 +106,7 @@ export function CompletionView({
             イベントを見る
           </Link>
           <Link
-            href='/register/profile'
+            href='/my-profile'
             className='flex items-center justify-center rounded-full border text-sm font-medium transition active:scale-[0.99]'
             style={{ height: 52, borderColor: ONB.border, color: ONB.subtle }}
           >

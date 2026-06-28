@@ -98,7 +98,12 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
   const [weekend, setWeekend] = useState<InterestTag[]>(
     (member?.interestTags ?? []).filter((t) => WEEKEND_OPTIONS.some((o) => o.value === t)),
   );
-  const [experiences, setExperiences] = useState<string[]>([]);
+  const [experiences, setExperiences] = useState<string[]>(
+    EXPERIENCE_OPTIONS.filter((o) => {
+      const mapped = EXPERIENCE_TO_INTEREST[o.value];
+      return mapped ? (member?.interestTags ?? []).includes(mapped) : false;
+    }).map((o) => o.value),
+  );
   const [purposes, setPurposes] = useState<ConnectionPurpose[]>(
     (member?.purposes ?? []).filter((p) => DESIRED_CONNECTION_OPTIONS.some((o) => o.value === p)),
   );
@@ -109,7 +114,11 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
   const [futureGoal, setFutureGoal] = useState(v?.futureGoal ?? '');
   const [recentInspiration, setRecentInspiration] = useState(v?.recentInspiration ?? '');
   const [howOthersSeeMe, setHowOthersSeeMe] = useState(v?.howOthersSeeMe ?? '');
-  const [temperament, setTemperament] = useState<string>('');
+  const [temperament, setTemperament] = useState<string>(
+    member?.personality
+      ? (TEMPERAMENT_OPTIONS.find((t) => t.type === member.personality!.type)?.value ?? '')
+      : '',
+  );
 
   const ageNum = Number(age);
   const ageValid = age.trim().length > 0 && ageNum >= 18 && ageNum <= 119;

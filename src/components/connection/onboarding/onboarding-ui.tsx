@@ -121,7 +121,7 @@ export function StepHeading({
   art?: string;
 }) {
   return (
-    <div className='pt-6'>
+    <div className='pt-9'>
       {art ? <StepArt src={art} /> : null}
       {typeof index === 'number' ? (
         <p className='mb-2.5 text-[11px] font-semibold tracking-[0.2em]' style={{ color: ONB.gold }}>

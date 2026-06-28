@@ -9,7 +9,7 @@ const items = [
   { href: '/home', label: 'ホーム' },
   { href: '/events', label: 'イベント' },
   { href: '/connections', label: 'Connection' },
-  { href: '/register/profile', label: 'プロフィール' },
+  { href: '/my-profile', label: 'プロフィール' },
 ];
 
 export function ConnectionBottomNav() {

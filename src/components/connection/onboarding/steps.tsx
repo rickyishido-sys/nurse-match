@@ -7,7 +7,7 @@ import { ChoiceCard, Chip, ONB, StepHeading } from './onboarding-ui';
 import type { Option } from '@/lib/connection/onboarding-options';
 
 const inputClass =
-  'w-full rounded-2xl border bg-white px-5 py-4 text-base outline-none transition focus:border-current';
+  'w-full rounded-2xl border bg-white px-5 py-[18px] text-base leading-relaxed outline-none transition focus:border-current';
 
 /** トップページと同じ水彩イラストを使ったブランドビジュアル。 */
 const WELCOME_ART = [
