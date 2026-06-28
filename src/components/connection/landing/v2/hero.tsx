@@ -6,12 +6,13 @@ import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
 // 表紙画像（主催者動画/画像が未設定のときの既定ビジュアル）。
+// 花に寄りすぎないよう、さまざまな体験テーマを順番に見せる。
 const SLIDES = [
-  { src: '/hero/desktop/flower.png', mobile: '/hero/mobile/flower.png' },
   { src: '/hero/desktop/cafe.png', mobile: '/hero/mobile/cafe.png' },
+  { src: '/hero/desktop/Stroll.png', mobile: '/hero/mobile/Stroll.png' },
   { src: '/hero/desktop/bar.png', mobile: '/hero/mobile/bar.png' },
   { src: '/hero/desktop/fitness.png', mobile: '/hero/mobile/fitness.png' },
-  { src: '/hero/desktop/Stroll.png', mobile: '/hero/mobile/Stroll.png' },
+  { src: '/hero/desktop/flower.png', mobile: '/hero/mobile/flower.png' },
 ];
 
 const ROTATE_MS = 5600;
@@ -132,20 +133,20 @@ export function LandingHeroV2({ videoSrc }: { videoSrc?: string }) {
           transition={{ duration: 1, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
           className='mt-6 font-serif text-[2rem] font-semibold leading-[1.5] tracking-tight text-white sm:text-[2.6rem] lg:text-[3.2rem]'
         >
-          花のある暮らしを、
+          いつもの日常に、
           <br />
-          もっと身近に。
+          新しい出会いを。
         </motion.h1>
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className='mt-6 max-w-[34ch] text-sm leading-[2] text-white/85 sm:text-base'
+          className='mt-6 max-w-[36ch] text-sm leading-[2] text-white/85 sm:text-base'
         >
-          花を通じて、人と出会い、人生を豊かにする。
+          花、カフェ、散歩、食事、バー、アート。
           <br className='hidden sm:block' />
-          リアルな出会いと体験から始まる、新しいコミュニティ。
+          さまざまな体験を通じて、普段出会わない人と自然につながる。
         </motion.p>
 
         <motion.div

@@ -39,7 +39,7 @@ export function LandingAppMock() {
     <Section tone='cream'>
       <div className='flex flex-col items-center text-center'>
         <Reveal>
-          <Kicker>Point 05</Kicker>
+          <Kicker>Point 06</Kicker>
         </Reveal>
         <Reveal delay={0.05}>
           <Heading className='mt-5'>イベント後もつながる</Heading>

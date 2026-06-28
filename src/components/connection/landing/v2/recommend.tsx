@@ -4,12 +4,12 @@ import { Heading, Kicker, Reveal, Section } from '@/components/connection/landin
 import { SnapCarousel } from '@/components/connection/landing/v2/carousel';
 
 const ITEMS = [
-  { emoji: '🌱', text: '大人になってから、友達が減ったと感じる' },
-  { emoji: '🤝', text: '趣味を通じて、新しい仲間をつくりたい' },
+  { emoji: '💬', text: '普段出会わない人と、話してみたい' },
+  { emoji: '🌿', text: '仕事以外の、新しいつながりが欲しい' },
+  { emoji: '🎨', text: '趣味や体験を通じて、自然に出会いたい' },
   { emoji: '🚪', text: '一人でも気軽に参加できる場所がほしい' },
-  { emoji: '📱', text: 'SNSだけの関係に、少し疲れてしまった' },
-  { emoji: '🌸', text: '花が好き。好きなものでつながりたい' },
-  { emoji: '✨', text: '日々の暮らしを、もっと豊かにしたい' },
+  { emoji: '🤝', text: '同性・異性を問わず、新しい人間関係を作りたい' },
+  { emoji: '📱', text: 'SNSではなく、リアルで人と会いたい' },
 ];
 
 export function LandingRecommend() {
@@ -17,7 +17,7 @@ export function LandingRecommend() {
     <Section tone='cream'>
       <div className='flex flex-col items-center text-center'>
         <Reveal>
-          <Kicker>Point 03</Kicker>
+          <Kicker>Point 04</Kicker>
         </Reveal>
         <Reveal delay={0.05}>
           <Heading className='mt-5'>こんな方におすすめ</Heading>

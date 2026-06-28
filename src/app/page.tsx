@@ -3,6 +3,7 @@ import { LandingNav } from '@/components/connection/landing/v2/nav';
 import { LandingHeroV2 } from '@/components/connection/landing/v2/hero';
 import { LandingAbout } from '@/components/connection/landing/v2/about';
 import { LandingCycle } from '@/components/connection/landing/v2/cycle';
+import { LandingThemes } from '@/components/connection/landing/v2/themes';
 import { LandingRecommend } from '@/components/connection/landing/v2/recommend';
 import { LandingSafety } from '@/components/connection/landing/v2/safety';
 import { LandingAppMock } from '@/components/connection/landing/v2/app-mock';
@@ -25,6 +26,7 @@ export default async function LandingPage() {
         <LandingHeroV2 />
         <LandingAbout />
         <LandingCycle />
+        <LandingThemes />
         <LandingRecommend />
         <LandingSafety />
         <LandingAppMock />
@@ -40,9 +42,9 @@ export default async function LandingPage() {
           <p className='text-[15px] font-semibold tracking-[0.2em]'>HANAKAI</p>
           <p className='mt-1 text-[10px] font-medium tracking-[0.34em] text-white/60'>花 会</p>
           <p className='mx-auto mt-5 max-w-[34ch] text-xs leading-[1.9] text-white/70'>
-            花を通じて、人と出会い、人生を豊かにする。
+            体験を通じて、人と出会い、人生を豊かにする。
             <br />
-            リアルな出会いと体験から始まる、新しいコミュニティ。
+            普段出会わない人とつながる、新しいコミュニティ。
           </p>
           <div className='mt-7 flex flex-wrap items-center justify-center gap-5 text-xs text-white/80'>
             <Link href='/events' className='underline-offset-4 hover:underline'>

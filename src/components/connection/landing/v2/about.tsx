@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
 
 const STORY = [
-  { img: '/categories/flower.png', label: '花を作る' },
+  { img: '/categories/flower.png', label: '体験する' },
   { img: '/categories/cafe.png', label: '会話する' },
   { img: '/flow/matching.png', label: '仲間になる' },
   { img: '/flow/continue.png', label: 'また会う' },
@@ -18,13 +18,15 @@ export function LandingAbout() {
           <Kicker>Point 01</Kicker>
         </Reveal>
         <Reveal delay={0.05}>
-          <Heading className='mt-5'>花会とは</Heading>
+          <Heading className='mt-5'>体験でつながるConnection</Heading>
         </Reveal>
         <Reveal delay={0.1}>
-          <Lead className='mt-6 max-w-[40ch]'>
-            花会は、花教室ではありません。
+          <Lead className='mt-6 max-w-[44ch]'>
+            HANAKAIは、花をきっかけに始まったConnectionコミュニティです。
+            いまはカフェ、食事、散歩、バー、運動、アートなど、さまざまな体験を通じて
+            人と人が出会う場所へ広がっています。
             <br />
-            花を通して人と出会い、会話し、仲間をつくるコミュニティです。
+            花教室でも、SNSでもありません。体験を入口に、リアルなつながりが生まれます。
           </Lead>
         </Reveal>
       </div>

@@ -84,7 +84,7 @@ export function LandingSafety() {
     <Section tone='white'>
       <div className='flex flex-col items-center text-center'>
         <Reveal>
-          <Kicker>Point 04</Kicker>
+          <Kicker>Point 05</Kicker>
         </Reveal>
         <Reveal delay={0.05}>
           <Heading className='mt-5'>安心して参加できる仕組み</Heading>

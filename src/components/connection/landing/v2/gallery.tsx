@@ -3,18 +3,19 @@
 import Image from 'next/image';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { Heading, Kicker, Reveal, Section } from '@/components/connection/landing/v2/ui';
+import { Heading, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
 
+// カフェ・散歩・バー・運動・花など、多様な体験の雰囲気が伝わる並び。
 const PHOTOS = [
-  '/hero/mobile/flower.png',
   '/hero/mobile/cafe.png',
+  '/hero/mobile/Stroll.png',
   '/hero/mobile/bar.png',
   '/hero/mobile/fitness.png',
-  '/hero/mobile/Stroll.png',
-  '/categories/flower.png',
+  '/hero/mobile/flower.png',
   '/categories/cafe.png',
   '/categories/stroll.png',
   '/categories/fitness.png',
+  '/categories/bar.png',
 ];
 
 export function LandingGallery() {
@@ -39,6 +40,12 @@ export function LandingGallery() {
         </Reveal>
         <Reveal delay={0.05}>
           <Heading className='mt-5'>実際のイベント風景</Heading>
+        </Reveal>
+        <Reveal delay={0.1}>
+          <Lead className='mt-6 max-w-[42ch]'>
+            カフェで話す、食卓を囲む、街を歩く、一杯を傾ける、体を動かす、花をつくる。
+            さまざまな体験の中で、自然な出会いが生まれています。
+          </Lead>
         </Reveal>
       </div>
 

@@ -31,7 +31,7 @@ export function LandingSupport() {
     <Section tone='warm'>
       <div className='flex flex-col items-center text-center'>
         <Reveal>
-          <Kicker>Point 06</Kicker>
+          <Kicker>Point 07</Kicker>
         </Reveal>
         <Reveal delay={0.05}>
           <Heading className='mt-5'>応援し合えるコミュニティ</Heading>
