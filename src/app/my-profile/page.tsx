@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
 import { MemberAvatar, MemberPhotoGallery } from '@/components/connection/member-avatar';
-import { ProfilePhotoForm } from '@/components/connection/profile-photo-form';
+import { ProfileEditForm } from '@/components/connection/profile-edit-form';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
@@ -23,6 +23,11 @@ const GENDER_LABEL: Record<ConnectionMember['gender'], string> = {
 };
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
+
+function param(sp: Record<string, string | string[] | undefined>, key: string): string | undefined {
+  const v = sp[key];
+  return Array.isArray(v) ? v[0] : v;
+}
 
 function EmptyProfile({ viewer }: { viewer: Awaited<ReturnType<typeof getHanakaiViewer>> }) {
   return (
@@ -111,12 +116,37 @@ function SectionCard({
 export default async function MyProfilePage({ searchParams }: PageProps) {
   const viewer = await getHanakaiViewer();
   const sp = searchParams ? await searchParams : {};
-  const photosSaved = sp.photos === 'saved';
+  const mode = param(sp, 'mode');
+  const isEditMode = mode === 'edit';
+  const profileSaved = param(sp, 'saved') === '1';
+  const photosSaved = param(sp, 'photos') === 'saved';
+  const editError = param(sp, 'error');
   const viewerMemberId = await getViewerMemberId();
   const member = viewerMemberId ? await getMember(viewerMemberId) : null;
 
   if (!member || !member.nickname.trim()) {
     return <EmptyProfile viewer={viewer} />;
+  }
+
+  if (isEditMode) {
+    return (
+      <ConnectionShell viewer={viewer}>
+        <div className='space-y-8'>
+          <section className='space-y-1.5'>
+            <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
+              MY PROFILE
+            </p>
+            <h1 className='text-[1.5rem] font-semibold leading-tight tracking-tight text-[#1a1a1a]'>
+              プロフィールを編集
+            </h1>
+            <p className='text-sm leading-7 text-[#6b6b6b]'>
+              内容を変更したら「保存する」を押してください。
+            </p>
+          </section>
+          <ProfileEditForm member={member} error={editError} />
+        </div>
+      </ConnectionShell>
+    );
   }
 
   const personality = member.personality ? PERSONALITY_TYPE_META[member.personality.type] : null;
@@ -126,6 +156,11 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
   return (
     <ConnectionShell viewer={viewer}>
       <div className='space-y-12'>
+        {profileSaved ? (
+          <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
+            プロフィールを更新しました
+          </p>
+        ) : null}
         {photosSaved ? (
           <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
             プロフィール写真を保存しました。
@@ -152,9 +187,6 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
         {/* プロフィール写真 */}
         <SectionCard kicker='PHOTOS' title='プロフィール写真'>
           <MemberPhotoGallery member={member} />
-          <div className='mt-5 border-t border-[#f1efe9] pt-5'>
-            <ProfilePhotoForm initialPhotos={member.photos} />
-          </div>
         </SectionCard>
 
         {/* 基本情報 */}
@@ -193,7 +225,7 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
 
         {/* 編集 */}
         <Link
-          href='/register/profile'
+          href='/my-profile?mode=edit'
           className='flex h-13 items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white transition active:scale-[0.99]'
           style={{ height: 52 }}
         >

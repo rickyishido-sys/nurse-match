@@ -14,6 +14,7 @@ import {
   updateMemberTrust,
 } from '@/lib/connection/repo';
 import { VALUE_TAG_LABEL } from '@/lib/connection/data';
+import { TEMPERAMENT_OPTIONS } from '@/lib/connection/onboarding-options';
 import { uploadEventImages } from '@/lib/connection/storage';
 import { ensureViewerMemberId } from '@/lib/connection/identity';
 import type {
@@ -245,7 +246,7 @@ export async function saveProfileAction(formData: FormData) {
 
 export async function saveMemberPhotosAction(formData: FormData) {
   const memberId = await ensureViewerMemberId();
-  if (!memberId) redirect('/register/profile?error=session');
+  if (!memberId) redirect('/my-profile?mode=edit&error=session');
 
   await persistProfilePhotos(memberId, formData);
 
@@ -253,6 +254,47 @@ export async function saveMemberPhotosAction(formData: FormData) {
   revalidatePath('/events');
   revalidatePath('/posts');
   redirect('/my-profile?photos=saved');
+}
+
+export async function updateMyProfileAction(formData: FormData) {
+  const nickname = String(formData.get('nickname') ?? '').trim();
+  if (!nickname) redirect('/my-profile?mode=edit&error=nickname');
+
+  const memberId = await ensureViewerMemberId();
+  if (!memberId) redirect('/my-profile?mode=edit&error=session');
+
+  const purposes = formData.getAll('purposes') as ConnectionPurpose[];
+  const interestTags = formData.getAll('interestTags') as InterestTag[];
+  const lifePhase = String(formData.get('lifePhase') ?? 'other') as LifePhase;
+
+  await updateMember(memberId, {
+    nickname,
+    age: Number(formData.get('age') ?? 0),
+    gender: String(formData.get('gender') ?? 'other') as 'female' | 'male' | 'other',
+    area: String(formData.get('area') ?? '').trim(),
+    bio: String(formData.get('bio') ?? '').trim(),
+    purposes,
+    interestTags,
+    lifePhase,
+  });
+
+  const temperamentValue = String(formData.get('temperament') ?? '');
+  const temp = TEMPERAMENT_OPTIONS.find((t) => t.value === temperamentValue);
+  if (temp) {
+    await saveMemberPersonality(memberId, {
+      type: temp.type,
+      axes: temp.axes,
+      completedAt: new Date().toISOString(),
+    });
+  }
+
+  await persistProfilePhotos(memberId, formData);
+
+  console.log('CONNECTION_PROFILE_UPDATE', { memberId, nickname, purposes, interestTags, lifePhase });
+  revalidatePath('/my-profile');
+  revalidatePath('/events');
+  revalidatePath('/posts');
+  redirect('/my-profile?saved=1');
 }
 
 export async function savePersonalityAction(formData: FormData) {
