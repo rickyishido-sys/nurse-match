@@ -1,16 +1,17 @@
 import { SITE_URL } from '@/lib/config';
 
 const LOGIN_URL = `${SITE_URL}/login`;
+const BRAND = 'HANAKAI Connection';
 
 function buildApprovedBody() {
   return [
-    'ナースマッチへのご登録ありがとうございます。',
+    `${BRAND}へのご登録ありがとうございます。`,
     '',
-    '審査が完了し、',
+    'プロフィール確認が完了し、',
     'サービスをご利用いただけるようになりました。',
     '',
-    'マイページからプロフィールを充実させることで、',
-    'よりあなたに合ったお相手と出会いやすくなります。',
+    'プロフィールを充実させることで、',
+    'よりあなたに合った体験や出会いを見つけやすくなります。',
     '',
     `ログイン: ${LOGIN_URL}`,
   ].join('\n');
@@ -18,7 +19,7 @@ function buildApprovedBody() {
 
 function buildRejectedBody(reason: string) {
   return [
-    'ナースマッチへのご登録ありがとうございます。',
+    `${BRAND}へのご登録ありがとうございます。`,
     '',
     '確認の結果、',
     '現在の登録内容では審査を完了できませんでした。',
@@ -39,7 +40,7 @@ function buildRejectedBody(reason: string) {
 export async function sendReviewApprovedEmail(email: string) {
   console.log('REVIEW_APPROVED_EMAIL', {
     to: email,
-    subject: '【ナースマッチ】審査が完了しました',
+    subject: '【HANAKAI Connection】参加審査が完了しました',
     body: buildApprovedBody(),
   });
 }
@@ -47,7 +48,7 @@ export async function sendReviewApprovedEmail(email: string) {
 export async function sendReviewRejectedEmail(email: string, reason: string) {
   console.log('REVIEW_REJECTED_EMAIL', {
     to: email,
-    subject: '【ナースマッチ】登録内容確認のお願い',
+    subject: '【HANAKAI Connection】登録内容確認のお願い',
     body: buildRejectedBody(reason),
   });
 }

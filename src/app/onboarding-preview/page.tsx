@@ -6,7 +6,7 @@ import { toggleFavoriteAction } from '@/lib/actions';
 import { DEFAULT_FEMALE_FILTERS, generateDailyRecommendations, getCandidateCards, getCurrentUser, getDailyRecommendationCards, getFavoriteTargetIds } from '@/lib/data';
 import { isAdminRole } from '@/lib/guard';
 
-/** 旧 Nurse Match オンボーディングプレビュー（/preview から移行） */
+/** 旧オンボーディングプレビュー（/preview から移行） */
 export default async function OnboardingPreviewPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');

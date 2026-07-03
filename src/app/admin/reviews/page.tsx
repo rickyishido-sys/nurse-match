@@ -144,10 +144,10 @@ export default async function AdminReviewsPage() {
                   {entry.gender === 'female' ? (
                     nurseDocumentUrl ? (
                       <a href={nurseDocumentUrl} target='_blank' rel='noreferrer' className='rounded-lg border border-slate-300 bg-white px-2 py-1'>
-                        看護師確認書類
+                        プロフィール確認書類
                       </a>
                     ) : (
-                      <span className='rounded-lg border border-amber-300 bg-amber-50 px-2 py-1 text-amber-700'>看護師確認書類: 未提出</span>
+                      <span className='rounded-lg border border-amber-300 bg-amber-50 px-2 py-1 text-amber-700'>プロフィール確認書類: 未提出</span>
                     )
                   ) : null}
                 </div>

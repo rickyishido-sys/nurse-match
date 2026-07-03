@@ -68,7 +68,7 @@ export default async function FemaleAdminPage() {
         <article className='rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
           <h1 className='text-lg font-bold text-slate-900'>女性管理</h1>
           <div className='mt-2 flex flex-wrap gap-2'>
-            <Badge tone='amber'>看護師確認待ち {females.filter((u) => data.femaleProfiles.find((f) => f.userId === u.id)?.profile?.nurseVerificationStatus === 'pending').length}</Badge>
+            <Badge tone='amber'>プロフィール確認待ち {females.filter((u) => data.femaleProfiles.find((f) => f.userId === u.id)?.profile?.nurseVerificationStatus === 'pending').length}</Badge>
             <Badge tone='gray'>女性通報 {femaleReports.length}</Badge>
           </div>
         </article>
@@ -79,7 +79,7 @@ export default async function FemaleAdminPage() {
             <KpiCard label='女性登録数' value={metrics.userCounts.female} />
             <KpiCard label='仮登録数' value={metrics.userCounts.provisional} />
             <KpiCard label='本人確認済み数' value={metrics.userCounts.verified} />
-            <KpiCard label='看護師確認済み女性数' value={metrics.userCounts.nurseApprovedFemale} />
+            <KpiCard label='プロフィール確認済み女性数' value={metrics.userCounts.nurseApprovedFemale} />
             <KpiCard label='女性通報 open' value={metrics.safety.reportOpen} />
             <KpiCard label='女性通報 reviewing' value={metrics.safety.reportReviewing} />
             <KpiCard label='女性通報 resolved' value={metrics.safety.reportResolved} />
@@ -104,7 +104,7 @@ export default async function FemaleAdminPage() {
               <div key={u.id} className='rounded-2xl border border-slate-100 bg-slate-50 p-3 text-xs'>
                 <p className='font-semibold text-slate-900'>{u.nickname}</p>
                 {u.isTestUser ? <Badge tone='pink'>TEST</Badge> : null}
-                <p className='text-slate-600'>看護師確認: {fp?.nurseVerificationStatus ?? 'pending'}</p>
+                <p className='text-slate-600'>プロフィール確認: {fp?.nurseVerificationStatus ?? 'pending'}</p>
                 <p className='text-slate-600'>seeking_gender: {seekingGenderLabel(u.desiredGender)}</p>
                 <p className='text-slate-600'>リスクチェック: {u.riskCheckStatus}</p>
                 <div className='mt-2 flex flex-wrap gap-2'>

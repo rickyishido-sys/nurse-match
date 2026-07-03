@@ -40,7 +40,7 @@ export function SwipeCard({ user, maleProfile, femaleProfile, profileImages = []
         <div className='flex flex-wrap gap-2'>
           <Badge tone='green'>本人確認済み</Badge>
           {user.gender === 'female' && femaleProfile?.nurseVerificationStatus === 'approved' ? (
-            <Badge tone='pink'>看護師確認済み</Badge>
+            <Badge tone='pink'>プロフィール確認済み</Badge>
           ) : null}
           {maleProfile?.maleReviewStatus === 'approved' ? <Badge tone='navy'>男性審査通過</Badge> : null}
           {!limitedPreview && maleProfile ? <Badge tone='gray'>婚姻: {maritalStatusLabel(maleProfile.maritalStatus)}</Badge> : null}

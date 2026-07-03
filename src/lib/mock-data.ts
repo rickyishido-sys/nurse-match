@@ -38,7 +38,7 @@ const users: AppUser[] = [
     birthdate: '1996-03-10',
     age: 30,
     location: '東京都',
-    bio: '都内で働く看護師です。休日はカフェ巡り。',
+    bio: '都内で働いています。休日はカフェ巡り。',
     profileImageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800',
     desiredGender: 'both',
     onboardingStatus: 'verified',

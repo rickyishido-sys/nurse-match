@@ -34,7 +34,7 @@ export default async function DatefiPage({ searchParams }: DatefiPageProps) {
           <h1 className='text-2xl font-bold text-slate-900'>運用feeを、出会いのきっかけに。</h1>
           <p className='text-sm text-slate-600'>働いたお金だけではなく、資産にも少し働いてもらう。</p>
           <p className='text-sm leading-7 text-slate-600'>
-            ナースマッチでは、
+            HANAKAI Connectionでは、
             <br />
             Base上のETH/USDC運用で得られるfeeを、
             <br />
@@ -68,7 +68,7 @@ export default async function DatefiPage({ searchParams }: DatefiPageProps) {
             <div className='rounded-2xl border border-slate-100 bg-slate-50 p-4'>
               <p className='text-xs font-semibold text-pink-600'>STEP 3</p>
               <h3 className='mt-1 font-semibold text-slate-900'>出会いや食事に活用</h3>
-              <p className='mt-2 text-sm text-slate-600'>得られたfeeを、ナースマッチ内の利用料や、将来的には食事・買い物などに活用する構想です。</p>
+              <p className='mt-2 text-sm text-slate-600'>得られたfeeを、HANAKAI Connection内の利用や、将来的には食事・体験などに活用する構想です。</p>
             </div>
           </div>
         </article>

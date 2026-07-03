@@ -109,7 +109,7 @@ export default async function AdminPage() {
             <KpiCard label='男性登録者数' value={metrics.userCounts.male} />
             <KpiCard label='仮登録数' value={metrics.userCounts.provisional} />
             <KpiCard label='本人確認済み数' value={metrics.userCounts.verified} />
-            <KpiCard label='看護師確認済み女性数' value={metrics.userCounts.nurseApprovedFemale} />
+            <KpiCard label='プロフィール確認済み女性数' value={metrics.userCounts.nurseApprovedFemale} />
             <KpiCard label='男性審査通過数' value={metrics.userCounts.maleReviewApproved} />
             <KpiCard label='停止中ユーザー数' value={metrics.userCounts.suspended} />
           </div>
@@ -147,9 +147,9 @@ export default async function AdminPage() {
             <KpiCard label='本人確認 pending' value={metrics.reviews.verification.pending} />
             <KpiCard label='本人確認 approved' value={metrics.reviews.verification.approved} />
             <KpiCard label='本人確認 rejected' value={metrics.reviews.verification.rejected} />
-            <KpiCard label='看護師確認 pending' value={metrics.reviews.nurse.pending} />
-            <KpiCard label='看護師確認 approved' value={metrics.reviews.nurse.approved} />
-            <KpiCard label='看護師確認 rejected' value={metrics.reviews.nurse.rejected} />
+            <KpiCard label='プロフィール確認 pending' value={metrics.reviews.nurse.pending} />
+            <KpiCard label='プロフィール確認 approved' value={metrics.reviews.nurse.approved} />
+            <KpiCard label='プロフィール確認 rejected' value={metrics.reviews.nurse.rejected} />
             <KpiCard label='男性審査 pending' value={metrics.reviews.maleReview.pending} />
             <KpiCard label='男性審査 approved' value={metrics.reviews.maleReview.approved} />
             <KpiCard label='男性審査 rejected' value={metrics.reviews.maleReview.rejected} />
@@ -200,7 +200,7 @@ export default async function AdminPage() {
                   <Badge tone={statusTone(u.verificationStatus)}>本人 {u.verificationStatus}</Badge>
                   <Badge tone={riskTone(u.riskCheckStatus)}>リスク {u.riskCheckStatus}</Badge>
                   {male ? <Badge tone={statusTone(male.maleReviewStatus)}>男性審査 {male.maleReviewStatus}</Badge> : null}
-                  {female ? <Badge tone={statusTone(female.nurseVerificationStatus)}>看護師確認 {female.nurseVerificationStatus}</Badge> : null}
+                  {female ? <Badge tone={statusTone(female.nurseVerificationStatus)}>プロフィール確認 {female.nurseVerificationStatus}</Badge> : null}
                 </div>
 
                 <p>{u.email}</p>
@@ -215,7 +215,7 @@ export default async function AdminPage() {
                   )}
                   {u.gender === 'female' && female?.nurseDocumentUrl ? (
                     <a href={female.nurseDocumentUrl} target='_blank' rel='noreferrer' className='rounded-lg border border-slate-200 bg-white px-2 py-1'>
-                      看護師書類確認
+                      プロフィール確認書類
                     </a>
                   ) : null}
                 </div>
@@ -251,7 +251,7 @@ export default async function AdminPage() {
                         <option value='approved'>approved</option>
                         <option value='rejected'>rejected</option>
                       </select>
-                      <button className='rounded-lg bg-pink-600 px-2 py-1 text-white'>看護師確認更新</button>
+                      <button className='rounded-lg bg-pink-600 px-2 py-1 text-white'>プロフィール確認更新</button>
                     </form>
                   ) : null}
 

@@ -1,86 +1,57 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { AppShell } from '@/components/app-shell';
-import { Badge } from '@/components/badges';
-import { getCurrentUser, getFemaleProfileByUserId, getMaleProfileByUserId } from '@/lib/data';
+import { HanakaiWordmark } from '@/components/hanakai/wordmark';
+import { getCurrentUser } from '@/lib/data';
 import { isAdminRole } from '@/lib/guard';
 import { logoutAction } from '@/lib/actions';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export default async function PendingReviewPage() {
   const user = await getCurrentUser();
-  console.log('PENDING_REVIEW_AUTH_STATE', {
-    hasUser: Boolean(user),
-    userId: user?.id ?? null,
-    role: user?.role ?? null,
-    onboardingStatus: user?.onboardingStatus ?? null,
-    verificationStatus: user?.verificationStatus ?? null,
-  });
   if (!user) {
-    console.error('PENDING_REVIEW_AUTH_MISSING', {
-      reason: 'no_current_user',
-      redirectTo: '/register?error=session_not_found&from=pending-review',
-    });
-    redirect('/register?error=session_not_found&from=pending-review');
+    redirect('/login?error=session_not_found');
   }
-  if (user && isAdminRole(user.role)) {
+  if (isAdminRole(user.role)) {
     if (user.role === 'female_admin') redirect('/admin/female');
     if (user.role === 'male_admin') redirect('/admin/male');
     redirect('/admin');
   }
-  const femaleProfile = user?.gender === 'female' ? await getFemaleProfileByUserId(user.id) : null;
-  const maleProfile = user?.gender === 'male' ? await getMaleProfileByUserId(user.id) : null;
-  const supabase = await createServerSupabaseClient();
-  const { data: identityDocument } = supabase
-    ? await supabase.from('identity_documents').select('document_url,status').eq('user_id', user.id).maybeSingle()
-    : { data: null };
-
-  const hasIdentityDocument = Boolean(identityDocument?.document_url);
-  const hasNurseDocument = Boolean(femaleProfile?.nurseDocumentUrl);
-  const identityStatusLabel = !hasIdentityDocument ? '未提出' : (user.verificationStatus ?? 'pending');
-  const nurseStatusLabel = !hasNurseDocument ? '未提出' : (femaleProfile?.nurseVerificationStatus ?? 'pending');
 
   return (
-    <AppShell user={user}>
-      <section className='space-y-4 rounded-[28px] border border-pink-100 bg-white p-6 shadow-sm'>
-        <h1 className='text-2xl font-bold text-slate-900'>審査を行っています</h1>
-        <p className='text-sm leading-7 text-slate-600'>
-          現在、登録内容と確認書類を確認しています。
-          <br />
-          <br />
-          本人確認・看護師確認の完了後、
-          <br />
-          メールにて結果をご案内します。
-        </p>
-        <p className='rounded-2xl border border-pink-100 bg-pink-50 px-4 py-3 text-sm text-slate-600'>
-          承認後は、プロフィール編集・カード表示・マッチ機能などをご利用いただけます。
-        </p>
-
-        <div className='flex flex-wrap gap-2'>
-          <Badge tone={identityStatusLabel === 'approved' ? 'green' : 'amber'}>本人確認: {identityStatusLabel}</Badge>
-          {user?.gender === 'female' ? (
-            <Badge tone={nurseStatusLabel === 'approved' ? 'pink' : 'amber'}>
-              看護師確認: {nurseStatusLabel}
-            </Badge>
-          ) : null}
-          {user?.gender === 'male' ? (
-            <Badge tone={maleProfile?.maleReviewStatus === 'approved' ? 'green' : 'amber'}>
-              男性審査: {maleProfile?.maleReviewStatus ?? 'pending'}
-            </Badge>
-          ) : null}
+    <main className='min-h-screen bg-[#fafaf8] px-5 py-8'>
+      <div className='mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[480px] flex-col'>
+        <div className='mb-8 flex justify-center'>
+          <HanakaiWordmark href='/home' />
         </div>
 
-        <div className='flex flex-wrap gap-2'>
-          <form action={logoutAction}>
-            <button className='inline-flex h-11 items-center rounded-xl border border-slate-300 px-5 text-sm font-semibold text-slate-700'>
-              ログアウト
-            </button>
-          </form>
-          <Link href='/' className='inline-flex h-11 items-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white'>
-            トップへ戻る
-          </Link>
-        </div>
-      </section>
-    </AppShell>
+        <section className='flex-1 space-y-5 rounded-3xl border border-[#ebe9e4] bg-white px-6 py-8 shadow-[0_1px_8px_rgba(31,93,79,0.04)]'>
+          <h1 className='text-xl font-semibold tracking-tight text-[#1a1a1a]'>参加内容を確認しています</h1>
+          <div className='space-y-4 text-sm leading-7 text-[#6b6b6b]'>
+            <p>現在、プロフィール内容を確認しています。</p>
+            <p>安心して交流できるコミュニティを維持するため、運営チームが内容を確認しています。</p>
+            <p>確認完了後、メールまたはアプリ内でお知らせします。</p>
+          </div>
+          <p className='rounded-2xl border border-[#ebe9e4] bg-[#fbfaf7] px-4 py-3 text-sm leading-7 text-[#6b6b6b]'>
+            承認後はイベント参加、Connection、グループ機能などをご利用いただけます。
+          </p>
+
+          <div className='flex flex-col gap-2 pt-2 sm:flex-row'>
+            <Link
+              href='/home'
+              className='inline-flex h-11 flex-1 items-center justify-center rounded-full bg-[#1f5d4f] px-5 text-sm font-semibold text-white'
+            >
+              トップへ戻る
+            </Link>
+            <form action={logoutAction} className='flex-1'>
+              <button
+                type='submit'
+                className='inline-flex h-11 w-full items-center justify-center rounded-full border border-[#e2ddd2] px-5 text-sm font-semibold text-[#6b6b6b]'
+              >
+                ログアウト
+              </button>
+            </form>
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }

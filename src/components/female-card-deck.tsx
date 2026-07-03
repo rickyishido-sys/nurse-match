@@ -132,7 +132,7 @@ export function FemaleCardDeck({ userId, selfProfileImageUrl, cards, filters }: 
             ) : null}
             <div className='absolute right-4 top-4 flex flex-col gap-2'>
               <Badge tone='green'>本人確認済み</Badge>
-              {current.user.gender === 'female' && current.femaleProfile?.nurseVerificationStatus === 'approved' ? <Badge tone='pink'>看護師確認済み</Badge> : null}
+              {current.user.gender === 'female' && current.femaleProfile?.nurseVerificationStatus === 'approved' ? <Badge tone='pink'>プロフィール確認済み</Badge> : null}
               {current.user.gender === 'male' && current.maleProfile?.maleReviewStatus === 'approved' ? <Badge tone='navy'>男性審査通過</Badge> : null}
             </div>
             <div className='absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/85 via-slate-900/40 to-transparent p-5'>

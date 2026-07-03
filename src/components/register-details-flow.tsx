@@ -1,8 +1,8 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { HanakaiWordmark } from '@/components/hanakai/wordmark';
 import { registerDetailsAction } from '@/lib/actions';
 
 type RegisterDetailsDefaults = {
@@ -30,7 +30,7 @@ type RegisterDetailsDraft = {
   agreePrivacy: boolean;
 };
 
-const REGISTER_DETAILS_DRAFT_KEY = 'nursematch:register-details-draft:v1';
+const REGISTER_DETAILS_DRAFT_KEY = 'hanakai:register-details-draft:v1';
 
 const PREFECTURES = [
   '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
@@ -119,18 +119,11 @@ export function RegisterDetailsFlow({ defaults, error }: RegisterDetailsFlowProp
   };
 
   return (
-    <main className='min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff_0%,_#fdf2f8_45%,_#ffffff_100%)] px-4 py-8'>
+    <main className='min-h-screen bg-[#fafaf8] px-4 py-8'>
       <div className='mx-auto w-full max-w-[430px]'>
-        <section className='rounded-[32px] border border-sky-100/80 bg-white/95 p-6 shadow-[0_16px_45px_-35px_rgba(15,23,42,0.3)] backdrop-blur-sm sm:p-7'>
+        <section className='rounded-[32px] border border-[#ebe9e4] bg-white p-6 shadow-[0_1px_8px_rgba(31,93,79,0.04)] sm:p-7'>
           <div className='mb-4 flex justify-center'>
-            <Image
-              src='/logo/nurse-match-logo-horizontal.png'
-              alt='ナースマッチ ロゴ'
-              width={300}
-              height={94}
-              className='h-12 w-auto object-contain sm:h-14'
-              priority
-            />
+            <HanakaiWordmark href='/home' />
           </div>
           <h1 className='text-center text-2xl font-bold text-slate-900'>プロフィールを作成</h1>
           <p className='mt-1 text-center text-sm text-slate-600'>あと少しで登録完了</p>
@@ -153,7 +146,7 @@ export function RegisterDetailsFlow({ defaults, error }: RegisterDetailsFlowProp
           ) : null}
           {error === 'profile-image-required' ? <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>プロフィール画像を1枚追加してください。</p> : null}
           {error === 'identity-required' ? <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>本人確認書類をアップロードしてください。</p> : null}
-          {error === 'nurse-document-required' ? <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>女性会員は看護師確認書類が必須です。</p> : null}
+          {error === 'nurse-document-required' ? <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>プロフィール確認書類が必須です。</p> : null}
           {error === 'terms-required' ? <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>利用規約とプライバシーポリシーへの同意が必要です。</p> : null}
           {error === 'save-failed' ? (
             <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
@@ -288,9 +281,9 @@ export function RegisterDetailsFlow({ defaults, error }: RegisterDetailsFlowProp
               </label>
               {gender === 'female' ? (
                 <label className='grid gap-1 text-sm'>
-                  看護師確認書類（女性は必須）
+                  プロフィール確認書類
                   <input type='file' name='nurseDocument' required className='rounded-xl border border-slate-200 px-3 py-2' />
-                  <span className='text-[11px] text-slate-500'>看護師免許証・職員証などの画像。審査にのみ使用し、他のユーザーには公開されません。</span>
+                  <span className='text-[11px] text-slate-500'>本人確認に使用する書類の画像。審査にのみ使用し、他のユーザーには公開されません。</span>
                 </label>
               ) : null}
               <label className='flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600'>

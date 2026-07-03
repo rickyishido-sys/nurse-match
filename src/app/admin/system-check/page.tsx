@@ -92,7 +92,7 @@ export default async function AdminSystemCheckPage() {
   const bucketChecks = await checkStorageBuckets(adminSupabase);
 
   const pwa = manifest();
-  const pwaOk = pwa.name === 'Nurse Match' && (pwa.icons?.length ?? 0) > 0;
+  const pwaOk = pwa.name === 'HANAKAI Connection' && (pwa.icons?.length ?? 0) > 0;
   const checks: CheckResult[] = [
     {
       label: 'Supabase接続状態',

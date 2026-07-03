@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { requestRegisterVerificationAction } from '@/lib/actions';
 
-const COOLDOWN_STORAGE_KEY = 'nursematch:register-cooldown';
+const COOLDOWN_STORAGE_KEY = 'hanakai:register-cooldown';
 // Temporary relaxed resend interval for active verification testing.
 const COOLDOWN_SECONDS = 10;
 

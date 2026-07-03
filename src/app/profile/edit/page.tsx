@@ -140,7 +140,7 @@ export default async function EditProfilePage() {
             </>
           ) : (
             <article className='rounded-3xl border border-pink-100 bg-pink-50/60 p-4 text-sm shadow-sm'>
-              <h2 className='mb-2 text-sm font-bold text-pink-700'>看護師プロフィール情報</h2>
+              <h2 className='mb-2 text-sm font-bold text-[#1f5d4f]'>プロフィール情報</h2>
               <label className='mb-2 grid gap-1'>
                 出会いたい相手
                 <select name='desiredGender' defaultValue={user.desiredGender} className='h-11 w-full rounded-xl border border-slate-200 bg-white px-3'>
@@ -162,10 +162,10 @@ export default async function EditProfilePage() {
                 <input type='checkbox' name='hasNightShift' defaultChecked={femaleProfile?.hasNightShift} /> 夜勤あり
               </label>
               <label className='mt-2 grid gap-1'>
-                看護師資格書類を再提出
+                プロフィール確認書類を再提出
                 <input type='file' name='nurseDocument' className='rounded-xl border border-slate-200 bg-white px-3 py-2' />
               </label>
-              <p className='mt-1 text-xs text-pink-700'>再提出時は看護師確認ステータスが pending に戻ります。</p>
+              <p className='mt-1 text-xs text-[#1f5d4f]'>再提出時はプロフィール確認ステータスが pending に戻ります。</p>
             </article>
           )}
 

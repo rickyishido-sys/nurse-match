@@ -19,7 +19,7 @@ export default async function MyPage() {
         <h1 className='text-xl font-bold text-slate-900'>マイページ</h1>
         <div className='flex items-center gap-3'>
           <Image
-            src={user.profileImageUrl || '/logo/nurse-match-logo-mark.png'}
+            src={user.profileImageUrl || '/icon.png'}
             alt='プロフィール画像'
             width={64}
             height={64}
@@ -49,7 +49,7 @@ export default async function MyPage() {
           <p className='text-sm leading-7 text-slate-600'>
             ETH/USDCの運用で得たfeeを、
             <br />
-            ナースマッチの利用料や食事・お茶の費用に活用する。
+            HANAKAI Connection のイベントや体験の利用に活用する。
             <br />
             そんな新しい使い方を準備しています。
           </p>

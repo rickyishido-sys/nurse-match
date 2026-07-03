@@ -172,7 +172,7 @@ export function ProfileDetailModal({
 
             <div className='absolute right-3 top-3 flex flex-col gap-1.5'>
               <Badge tone='green'>本人確認済み</Badge>
-              {femaleProfile?.nurseVerificationStatus === 'approved' ? <Badge tone='pink'>看護師確認済み</Badge> : null}
+              {femaleProfile?.nurseVerificationStatus === 'approved' ? <Badge tone='pink'>プロフィール確認済み</Badge> : null}
               {maleProfile?.maleReviewStatus === 'approved' ? <Badge tone='navy'>男性審査通過</Badge> : null}
             </div>
 

@@ -111,7 +111,7 @@ export function ActivityTabs({ userId, selfProfileImageUrl, incoming, outgoing, 
                   <p className='mt-1 line-clamp-1 text-xs text-slate-600'>{row.user.bio}</p>
                   <div className='mt-2 flex flex-wrap gap-1'>
                     <Badge tone='green'>本人確認済み</Badge>
-                    {row.femaleProfile?.nurseVerificationStatus === 'approved' ? <Badge tone='pink'>看護師確認済み</Badge> : null}
+                    {row.femaleProfile?.nurseVerificationStatus === 'approved' ? <Badge tone='pink'>プロフィール確認済み</Badge> : null}
                     {row.maleProfile?.maleReviewStatus === 'approved' ? <Badge tone='navy'>男性審査通過</Badge> : null}
                   </div>
                   <p className='mt-1 text-[11px] text-slate-400'>{new Date(row.sentAt).toLocaleString('ja-JP')}</p>
