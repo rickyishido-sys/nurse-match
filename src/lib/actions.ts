@@ -27,7 +27,8 @@ import {
   updateUserModerationState,
   updateVerification,
 } from '@/lib/data';
-import { USE_MOCK_DATA } from '@/lib/config';
+import { USE_MOCK_DATA, HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
+import { ensureHanakaiMemberForAuthUser } from '@/lib/connection/identity';
 import {
   getUserByEmail,
   listProfileImages,
@@ -344,6 +345,16 @@ export async function loginAction(formData: FormData) {
     effectiveMeRow = retriedMeRow ?? null;
   }
   if (meError || !effectiveMeRow) {
+    if (HANAKAI_CONNECTION_BACKEND === 'supabase') {
+      const memberId = await ensureHanakaiMemberForAuthUser(authUser.id, {
+        email: authUser.email,
+        nickname: (authUser.user_metadata?.nickname as string | undefined) ?? null,
+      });
+      if (memberId) {
+        console.log('LOGIN_CONNECTION_ONLY', { email, userId: authUser.id, memberId });
+        redirect('/home');
+      }
+    }
     console.log('LOGIN_USER_ROW_MISSING', {
       email,
       userId: authUser.id,
@@ -669,7 +680,11 @@ export async function requestRegisterVerificationAction(formData: FormData) {
     );
     const siteUrl = resolvePublicSiteUrl();
     const redirectBase = siteUrl ?? requestOrigin;
-    const emailRedirectTo = redirectBase ? `${redirectBase}/auth/callback?next=/register/details` : undefined;
+    const legacyFlow = String(formData.get('legacyFlow') ?? '') === '1';
+    const postAuthPath = legacyFlow ? '/register/details' : '/register/profile';
+    const emailRedirectTo = redirectBase
+      ? `${redirectBase}/auth/callback?next=${encodeURIComponent(postAuthPath)}`
+      : undefined;
 
     if (!siteUrl) {
       console.warn('[requestRegisterVerificationAction] NEXT_PUBLIC_SITE_URL is not set. Falling back to request origin.', {

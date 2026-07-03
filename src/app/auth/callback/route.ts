@@ -2,15 +2,28 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
 
+const AUTH_COMPLETE_ALLOWED_NEXT = new Set(['/register/profile', '/register/details']);
+
+function resolveSafeNext(nextRaw: string | null): string {
+  if (nextRaw && nextRaw.startsWith('/') && AUTH_COMPLETE_ALLOWED_NEXT.has(nextRaw)) {
+    return nextRaw;
+  }
+  return '/register/profile';
+}
+
+function authCompleteRedirectUrl(origin: string, next: string): URL {
+  return new URL(`/auth/complete?next=${encodeURIComponent(next)}`, origin);
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
   const tokenHash = requestUrl.searchParams.get('token_hash');
   const otpType = requestUrl.searchParams.get('type');
   const nextRaw = requestUrl.searchParams.get('next');
-  const safeNext = nextRaw && nextRaw.startsWith('/') ? nextRaw : '/register/details';
-  const callbackSuccessPath = '/auth/complete';
-  let redirectTo = callbackSuccessPath;
+  const safeNext = resolveSafeNext(nextRaw);
+  const callbackSuccessPath = authCompleteRedirectUrl(requestUrl.origin, safeNext);
+  let redirectTo: URL | string = callbackSuccessPath;
 
   console.log('AUTH_CALLBACK_START', {
     requestUrl: request.url,
@@ -30,7 +43,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/register?error=auth-callback&detail=missing_config', requestUrl.origin));
   }
 
-  let response = NextResponse.redirect(new URL(callbackSuccessPath, requestUrl.origin));
+  let response = NextResponse.redirect(callbackSuccessPath);
   const requestCookies = request.headers.get('cookie') ?? '';
   const parsedCookies = requestCookies
     .split(';')
@@ -48,7 +61,7 @@ export async function GET(request: Request) {
         return parsedCookies;
       },
       setAll(cookiesToSet) {
-        response = NextResponse.redirect(new URL(callbackSuccessPath, requestUrl.origin));
+        response = NextResponse.redirect(callbackSuccessPath);
         cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
       },
     },
@@ -61,8 +74,6 @@ export async function GET(request: Request) {
         console.error('AUTH_CALLBACK_EXCHANGE_ERROR', error);
         console.log('AUTH_CALLBACK_EXCHANGE_RESULT', { success: false, message: error.message });
         if (error.message?.toLowerCase().includes('code verifier')) {
-          // Some clients complete auth on Supabase side and land here without usable PKCE verifier.
-          // Defer to /auth/complete session bridge before treating as hard failure.
           redirectTo = callbackSuccessPath;
         } else {
           redirectTo = '/register?error=auth-callback&detail=exchange_failed';
@@ -90,12 +101,10 @@ export async function GET(request: Request) {
         }
       }
     } else {
-      // Some email clients can strip query params while still completing sign-in.
-      // Try session bridge first before returning an error to the user.
       redirectTo = callbackSuccessPath;
     }
 
-    if (redirectTo === callbackSuccessPath) {
+    if (redirectTo instanceof URL && redirectTo.pathname === '/auth/complete') {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       console.log('AUTH_CALLBACK_GET_SESSION_RESULT', {
         success: !sessionError,
@@ -114,8 +123,6 @@ export async function GET(request: Request) {
         userId: userData.user?.id ?? null,
       });
 
-      // iPhone Gmail in-app browser can delay cookie visibility.
-      // Defer final verification to /auth/complete retry bridge.
       redirectTo = callbackSuccessPath;
     }
   } catch (error) {
@@ -123,7 +130,7 @@ export async function GET(request: Request) {
     redirectTo = '/register?error=auth-callback&detail=unexpected';
   }
 
-  console.log('AUTH_CALLBACK_FINAL_REDIRECT', { redirectTo });
-  response = NextResponse.redirect(new URL(redirectTo, requestUrl.origin));
+  console.log('AUTH_CALLBACK_FINAL_REDIRECT', { redirectTo: String(redirectTo) });
+  response = NextResponse.redirect(typeof redirectTo === 'string' ? new URL(redirectTo, requestUrl.origin) : redirectTo);
   return response;
 }

@@ -87,7 +87,7 @@ export async function createConnectionEventAction(formData: FormData) {
   }
 
   const hostId = await ensureViewerMemberId();
-  if (!hostId) redirect('/events/create?error=session');
+  if (!hostId) redirect('/login?next=/events/create');
 
   // 匿名サインイン後のセッションでアップロードできるため、メンバー確定後に実行する。
   const imageUrls = imageFiles.length > 0 ? await uploadEventImages(imageFiles) : [];
@@ -118,7 +118,7 @@ export async function applyConnectionEventAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '');
   const reason = String(formData.get('reason') ?? '').trim();
   const memberId = await ensureViewerMemberId();
-  if (!memberId) redirect(`/events/${eventId}?error=session`);
+  if (!memberId) redirect(`/login?next=${encodeURIComponent(`/events/${eventId}`)}`);
   console.log('CONNECTION_APPLY', { eventId, memberId, reasonLength: reason.length });
   if (eventId) await applyToEvent(eventId, memberId, reason);
   revalidatePath(`/events/${eventId}`);
@@ -188,7 +188,7 @@ export async function saveProfileAction(formData: FormData) {
   if (!nickname) redirect('/register/profile?error=nickname');
 
   const memberId = await ensureViewerMemberId();
-  if (!memberId) redirect('/register/profile?error=session');
+  if (!memberId) redirect('/register');
 
   const purposes = formData.getAll('purposes') as ConnectionPurpose[];
   const interestTags = formData.getAll('interestTags') as InterestTag[];
@@ -246,7 +246,7 @@ export async function saveProfileAction(formData: FormData) {
 
 export async function saveMemberPhotosAction(formData: FormData) {
   const memberId = await ensureViewerMemberId();
-  if (!memberId) redirect('/my-profile?mode=edit&error=session');
+  if (!memberId) redirect('/login?next=/my-profile');
 
   await persistProfilePhotos(memberId, formData);
 
@@ -261,7 +261,7 @@ export async function updateMyProfileAction(formData: FormData) {
   if (!nickname) redirect('/my-profile?mode=edit&error=nickname');
 
   const memberId = await ensureViewerMemberId();
-  if (!memberId) redirect('/my-profile?mode=edit&error=session');
+  if (!memberId) redirect('/login?next=/my-profile');
 
   const purposes = formData.getAll('purposes') as ConnectionPurpose[];
   const interestTags = formData.getAll('interestTags') as InterestTag[];
@@ -304,7 +304,7 @@ export async function savePersonalityAction(formData: FormData) {
   const planning = String(formData.get('planning') ?? 'flexible') as 'plan' | 'flexible';
 
   const memberId = await ensureViewerMemberId();
-  if (!memberId) redirect('/register/profile?error=session');
+  if (!memberId) redirect('/register');
 
   await saveMemberPersonality(memberId, {
     type,

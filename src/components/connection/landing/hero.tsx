@@ -26,7 +26,7 @@ export function LandingHero() {
 
           <div className='mt-6 flex max-w-[320px] gap-2.5 lg:max-w-[360px]'>
             <Link
-              href='/register/profile'
+              href='/register'
               className='flex h-10 flex-1 items-center justify-center rounded-full bg-[#1f5d4f] px-3 text-[11px] font-semibold text-white transition active:scale-[0.98] lg:h-11 lg:text-xs'
             >
               参加登録する

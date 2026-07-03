@@ -1,14 +1,24 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 const RETRY_MS = 500;
 const MAX_RETRY = 10;
+const ALLOWED_NEXT = new Set(['/register/profile', '/register/details']);
+
+function resolveNext(raw: string | null): string {
+  if (raw && raw.startsWith('/') && ALLOWED_NEXT.has(raw)) return raw;
+  return '/register/profile';
+}
 
 export default function AuthCompletePage() {
   const router = useRouter();
+  const [nextPath] = useState(() => {
+    if (typeof window === 'undefined') return '/register/profile';
+    return resolveNext(new URLSearchParams(window.location.search).get('next'));
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -30,6 +40,7 @@ export default function AuthCompletePage() {
         }
         console.log('AUTH_COMPLETE_SESSION_CHECK', {
           attempt,
+          nextPath,
           serverHasSession,
           serverHasUser,
           clientHasSession,
@@ -37,7 +48,7 @@ export default function AuthCompletePage() {
         });
         if (cancelled) return;
         if ((serverHasSession && serverHasUser) || clientHasSession) {
-          router.replace('/register/details');
+          router.replace(nextPath);
           return;
         }
         if (attempt < MAX_RETRY) {
@@ -55,7 +66,7 @@ export default function AuthCompletePage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, nextPath]);
 
   return (
     <main className='min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff_0%,_#fdf2f8_45%,_#ffffff_100%)] px-4 py-8'>

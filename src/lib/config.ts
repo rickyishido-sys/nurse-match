@@ -22,6 +22,14 @@ export type HanakaiConnectionBackend = 'mock' | 'supabase';
 export const HANAKAI_CONNECTION_BACKEND: HanakaiConnectionBackend =
   process.env.HANAKAI_CONNECTION_BACKEND === 'supabase' ? 'supabase' : 'mock';
 
+/**
+ * 本番では true に設定し、匿名 Auth による member 自動作成を禁止する。
+ * 未設定時: supabase バックエンドでは true（安全側）、mock では false。
+ */
+export const HANAKAI_DISABLE_ANONYMOUS_AUTH =
+  process.env.HANAKAI_DISABLE_ANONYMOUS_AUTH === 'true' ||
+  (process.env.HANAKAI_DISABLE_ANONYMOUS_AUTH !== 'false' && HANAKAI_CONNECTION_BACKEND === 'supabase');
+
 export const STORAGE_BUCKETS = {
   profile: 'profile-images',
   post: 'post-images',

@@ -36,7 +36,7 @@ export function LandingFinalCta() {
             イベントを探す
           </Link>
           <Link
-            href='/register/profile'
+            href='/register'
             className='flex h-12 flex-1 items-center justify-center rounded-full bg-[#1f5d4f] px-6 text-sm font-semibold text-white shadow-lg transition active:scale-[0.98]'
           >
             今すぐ始める

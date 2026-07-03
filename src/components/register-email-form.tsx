@@ -31,9 +31,11 @@ function SubmitButton({ cooldownRemaining }: { cooldownRemaining: number }) {
 type RegisterEmailFormProps = {
   sent: boolean;
   allowBurst?: boolean;
+  /** Nurse Match Legacy: OTP 後に /register/details へ */
+  legacyFlow?: boolean;
 };
 
-export function RegisterEmailForm({ sent, allowBurst = false }: RegisterEmailFormProps) {
+export function RegisterEmailForm({ sent, allowBurst = false, legacyFlow = false }: RegisterEmailFormProps) {
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   useEffect(() => {
@@ -85,6 +87,7 @@ export function RegisterEmailForm({ sent, allowBurst = false }: RegisterEmailFor
         />
       </label>
       {allowBurst ? <input type='hidden' name='allowBurst' value='1' /> : null}
+      {legacyFlow ? <input type='hidden' name='legacyFlow' value='1' /> : null}
       {allowBurst ? (
         <p className='rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-[11px] leading-5 text-amber-700'>
           テストモード: Gmailは自動で +エイリアスに変換して送信します。

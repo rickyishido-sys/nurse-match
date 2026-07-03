@@ -55,6 +55,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   const detail = safeDecode(pickFirst(params.detail));
   const sentEmail = safeDecode(pickFirst(params.sentEmail));
   const burst = true;
+  const legacyFlow = pickFirst(params.legacy) === '1';
   const errorMessage = resolveRegisterErrorMessage(error, detail);
 
   return (
@@ -86,7 +87,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
             </div>
           ) : null}
 
-          <RegisterEmailForm sent={sent === '1'} allowBurst={burst} />
+          <RegisterEmailForm sent={sent === '1'} allowBurst={burst} legacyFlow={legacyFlow} />
 
           <div className='mt-5 text-center text-xs text-slate-600'>
             登録済みの方はこちら{' '}

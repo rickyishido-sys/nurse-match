@@ -18,7 +18,7 @@ import type { GroupPhotoUsageScope } from '@/lib/connection/types';
 
 async function assertGroupAccess(eventId: string) {
   const memberId = await ensureViewerMemberId();
-  if (!memberId) redirect(`/groups/${eventId}?denied=1`);
+  if (!memberId) redirect(`/login?next=${encodeURIComponent(`/groups/${eventId}`)}`);
   const access = await canAccessGroup(eventId, memberId);
   if (!access.ok) redirect(`/groups/${eventId}?denied=1`);
   const group = await refreshGroupMembership(eventId);
