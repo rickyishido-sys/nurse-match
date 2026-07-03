@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { AdminCard, AdminPageHeader, Badge, KpiCard } from '@/components/admin/ui';
 import {
   AdminEmptyState,
-  AdminPhase2Note,
   formatAdminDate,
   formatKpiValue,
 } from '@/components/admin/hanakai/hanakai-admin-shared';
@@ -40,7 +39,13 @@ export default async function HanakaiAdminDashboardPage() {
           <KpiCard label='開催予定イベント' value={kpis.upcomingEventCount} />
           <KpiCard label='参加申請数' value={kpis.applicationCount} />
           <KpiCard label='承認待ち申請' value={kpis.pendingApplicationCount} />
-          <KpiCard label='通報件数' value={formatKpiValue(kpis.reportCount)} hint='Phase 2で連携予定' />
+          <Link href='/admin/hanakai/reports' className='block'>
+            <KpiCard
+              label='通報件数'
+              value={formatKpiValue(kpis.reportCount)}
+              hint='要対応（open / reviewing）'
+            />
+          </Link>
           <KpiCard
             label='写真利用許可申請'
             value={formatKpiValue(kpis.photoUsageRequestCount)}
@@ -78,7 +83,12 @@ export default async function HanakaiAdminDashboardPage() {
                       <p className='text-[11px] text-[#9a9a9a]'>{formatAdminDate(m.createdAt)}</p>
                     </div>
                   </div>
-                  <AdminPhase2Note />
+                  <Link
+                    href={`/admin/hanakai/members/${m.id}`}
+                    className='shrink-0 text-[11px] font-medium text-[#1f5d4f]'
+                  >
+                    詳細 →
+                  </Link>
                 </AdminCard>
               ))}
             </div>
@@ -105,7 +115,9 @@ export default async function HanakaiAdminDashboardPage() {
                         {e.categoryLabel} · {formatAdminDate(e.startAt)}
                       </p>
                     </div>
-                    <AdminPhase2Note />
+                    <Link href='/admin/hanakai/events' className='text-[11px] text-[#1f5d4f]'>
+                      一覧 →
+                    </Link>
                   </div>
                 </AdminCard>
               ))}

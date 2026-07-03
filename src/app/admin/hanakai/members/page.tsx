@@ -1,11 +1,8 @@
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { AdminPageHeader, Badge } from '@/components/admin/ui';
 import { AdminSearchBar } from '@/components/admin/hanakai/hanakai-admin-filters';
-import {
-  AdminEmptyState,
-  AdminPhase2Note,
-  formatAdminDate,
-} from '@/components/admin/hanakai/hanakai-admin-shared';
+import { AdminEmptyState, formatAdminDate } from '@/components/admin/hanakai/hanakai-admin-shared';
 import { listHanakaiAdminMembers } from '@/lib/connection/hanakai-admin-repo';
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
@@ -78,7 +75,12 @@ async function MembersContent({ query }: { query: string }) {
                   <Badge tone={statusTone[m.status]}>{statusLabel[m.status]}</Badge>
                 </td>
                 <td className='px-4 py-3'>
-                  <AdminPhase2Note />
+                  <Link
+                    href={`/admin/hanakai/members/${m.id}`}
+                    className='rounded-full border border-[#1f5d4f] px-3 py-1 text-[11px] font-medium text-[#1f5d4f] transition hover:bg-[#eef3ef]'
+                  >
+                    詳細
+                  </Link>
                 </td>
               </tr>
             ))}
@@ -98,12 +100,18 @@ async function MembersContent({ query }: { query: string }) {
                   {m.nickname.slice(0, 1)}
                 </div>
               )}
-              <div>
+              <div className='min-w-0 flex-1'>
                 <p className='font-semibold text-[#1a1a1a]'>{m.nickname}</p>
                 <p className='text-xs text-[#6b6b6b]'>
                   {m.age ? `${m.age}歳` : '—'} · {m.genderLabel} · {m.area}
                 </p>
               </div>
+              <Link
+                href={`/admin/hanakai/members/${m.id}`}
+                className='shrink-0 rounded-full border border-[#1f5d4f] px-3 py-1 text-[11px] text-[#1f5d4f]'
+              >
+                詳細
+              </Link>
             </div>
             <dl className='mt-3 grid grid-cols-2 gap-2 text-xs'>
               <div>
@@ -137,7 +145,7 @@ export default async function HanakaiAdminMembersPage({ searchParams }: PageProp
       <AdminPageHeader
         kicker='MEMBERS'
         title='会員一覧'
-        description='登録済みメンバーの一覧です。詳細ページは Phase 2 で追加予定です。'
+        description='登録済みメンバーの一覧です。詳細ページでプロフィールと活動履歴を確認できます。'
       />
 
       <Suspense fallback={<div className='h-10 animate-pulse rounded-xl bg-[#ebe7dd]' />}>

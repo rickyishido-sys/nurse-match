@@ -53,7 +53,7 @@ export default async function HanakaiAdminLayout({ children }: { children: React
 
       <footer className='mx-auto w-full max-w-[1180px] px-4 pb-10 pt-4 md:px-8'>
         <p className='text-[11px] leading-6 text-[#9a9a9a]'>
-          HANAKAI Connection 運営管理 Phase 1 — 会員・イベント・参加申請の閲覧
+          HANAKAI Connection 運営管理 Phase 2 — 参加申請処理・会員詳細・通報 inbox
         </p>
       </footer>
     </div>

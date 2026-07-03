@@ -90,13 +90,13 @@ export async function createGroupPhotosFromFiles(
   return mock.createGroupPhotos(groupId, memberId, urls, postId);
 }
 
-export async function reportGroupPost(postId: string) {
-  if (useSupabase) return supa.reportGroupPost(postId);
+export async function reportGroupPost(postId: string, reporterMemberId?: string) {
+  if (useSupabase) return supa.reportGroupPost(postId, reporterMemberId);
   mock.reportGroupPost(postId);
 }
 
-export async function reportGroupPhoto(photoId: string) {
-  if (useSupabase) return supa.reportGroupPhoto(photoId);
+export async function reportGroupPhoto(photoId: string, reporterMemberId?: string) {
+  if (useSupabase) return supa.reportGroupPhoto(photoId, reporterMemberId);
   mock.reportGroupPhoto(photoId);
 }
 

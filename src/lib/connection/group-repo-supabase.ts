@@ -174,16 +174,27 @@ export async function createGroupPhotosFromFiles(
   return (data ?? []).map(photoFromRow);
 }
 
-export async function reportGroupPost(postId: string) {
+export async function reportGroupPost(postId: string, reporterMemberId?: string) {
   const sb = await db();
   if (!sb) return;
   const { data } = await sb.from('hanakai_group_posts').select('report_count').eq('id', postId).maybeSingle();
   if (!data) return;
   const { error } = await sb.from('hanakai_group_posts').update({ report_count: Number(data.report_count ?? 0) + 1 }).eq('id', postId);
   if (error) console.error('HANAKAI_GROUP_POST_REPORT_FAILED', { postId, message: error.message });
+  if (reporterMemberId) {
+    const { error: reportErr } = await sb.from('hanakai_reports').insert({
+      reporter_member_id: reporterMemberId,
+      target_type: 'group_post',
+      target_id: postId,
+      reason: 'user_report',
+      detail: '',
+      status: 'open',
+    });
+    if (reportErr) console.warn('HANAKAI_REPORT_INSERT_SKIP', { postId, message: reportErr.message });
+  }
 }
 
-export async function reportGroupPhoto(photoId: string) {
+export async function reportGroupPhoto(photoId: string, reporterMemberId?: string) {
   const sb = await db();
   if (!sb) return;
   const { data } = await sb.from('hanakai_group_photos').select('report_count').eq('id', photoId).maybeSingle();
@@ -193,6 +204,17 @@ export async function reportGroupPhoto(photoId: string) {
     .update({ report_count: Number(data.report_count ?? 0) + 1, usage_status: 'reported' })
     .eq('id', photoId);
   if (error) console.error('HANAKAI_GROUP_PHOTO_REPORT_FAILED', { photoId, message: error.message });
+  if (reporterMemberId) {
+    const { error: reportErr } = await sb.from('hanakai_reports').insert({
+      reporter_member_id: reporterMemberId,
+      target_type: 'group_photo',
+      target_id: photoId,
+      reason: 'user_report',
+      detail: '',
+      status: 'open',
+    });
+    if (reportErr) console.warn('HANAKAI_REPORT_INSERT_SKIP', { photoId, message: reportErr.message });
+  }
 }
 
 export async function hideGroupPost(postId: string) {

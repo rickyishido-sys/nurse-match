@@ -42,6 +42,78 @@ export type AdminApplicationRow = {
   appliedAt: string;
   status: 'pending' | 'confirmed' | 'rejected';
   decidedAt: string | null;
+  decisionNote?: string | null;
+};
+
+export type AdminReportStatus = 'open' | 'reviewing' | 'resolved' | 'dismissed';
+
+export type AdminReportTargetType =
+  | 'member'
+  | 'event'
+  | 'group_post'
+  | 'group_photo'
+  | 'profile_photo'
+  | 'event_photo';
+
+export type AdminReportRow = {
+  id: string;
+  reporterMemberId: string | null;
+  reporterNickname: string;
+  targetType: AdminReportTargetType;
+  targetId: string;
+  targetLabel: string;
+  reason: string;
+  detail: string;
+  status: AdminReportStatus;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt: string | null;
+  resolvedByMemberId: string | null;
+  resolvedByNickname: string | null;
+};
+
+export type AdminMemberApplicationHistory = {
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  status: 'pending' | 'confirmed' | 'rejected';
+  appliedAt: string;
+  decidedAt: string | null;
+};
+
+export type AdminMemberGroupHistory = {
+  groupId: string;
+  eventId: string;
+  eventTitle: string;
+  role: string;
+  joinedAt: string;
+};
+
+export type AdminMemberDetail = {
+  member: AdminMemberRow;
+  bio: string;
+  occupation: string;
+  purposes: string[];
+  purposeLabels: string[];
+  interestTags: string[];
+  interestLabels: string[];
+  valueTags: string[];
+  valueTagLabels: string[];
+  personalityType: string | null;
+  personalityLabel: string | null;
+  deepAnswers: { label: string; value: string }[];
+  desiredConnection: string;
+  considerations: string;
+  safetyFlags: string[];
+  trustNotes: string | null;
+  adminNotePhase: 'phase3';
+  applicationHistory: AdminMemberApplicationHistory[];
+  confirmedEvents: { id: string; title: string; startAt: string }[];
+  hostedEvents: { id: string; title: string; startAt: string }[];
+  groupHistory: AdminMemberGroupHistory[];
+  postCount: number;
+  photoCount: number;
+  reportCount: number;
 };
 
 export type AdminKpiValue = number | 'unlinked';

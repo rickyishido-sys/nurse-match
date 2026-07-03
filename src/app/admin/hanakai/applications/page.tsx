@@ -1,6 +1,12 @@
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { AdminPageHeader, Badge } from '@/components/admin/ui';
+import {
+  AdminApplicationActions,
+  AdminApplicationProcessed,
+} from '@/components/admin/hanakai/hanakai-admin-application-actions';
 import { AdminSearchBar, AdminSelectFilter } from '@/components/admin/hanakai/hanakai-admin-filters';
+import { AdminFlashBanner, adminFlashMessage } from '@/components/admin/hanakai/hanakai-admin-flash';
 import { AdminEmptyState, formatAdminDate } from '@/components/admin/hanakai/hanakai-admin-shared';
 import {
   listHanakaiAdminApplications,
@@ -67,7 +73,11 @@ async function ApplicationsContent({
             {applications.map((a) => (
               <tr key={a.id} className='border-b border-[#f7f5f0] last:border-b-0'>
                 <td className='max-w-[160px] truncate px-4 py-3'>{a.eventTitle}</td>
-                <td className='px-4 py-3'>{a.memberNickname}</td>
+                <td className='px-4 py-3'>
+                  <Link href={`/admin/hanakai/members/${a.memberId}`} className='text-[#1f5d4f] hover:underline'>
+                    {a.memberNickname}
+                  </Link>
+                </td>
                 <td className='max-w-[200px] truncate px-4 py-3 text-[#6b6b6b]'>{a.reason || '—'}</td>
                 <td className='px-4 py-3 text-[#6b6b6b]'>{formatAdminDate(a.appliedAt)}</td>
                 <td className='px-4 py-3'>
@@ -75,14 +85,15 @@ async function ApplicationsContent({
                 </td>
                 <td className='px-4 py-3 text-[#6b6b6b]'>{formatAdminDate(a.decidedAt)}</td>
                 <td className='px-4 py-3'>
-                  <button
-                    type='button'
-                    disabled
-                    className='cursor-not-allowed rounded-full border border-[#e2ddd2] px-3 py-1 text-[11px] text-[#9a9a9a]'
-                    title='Phase 2で運営操作を追加予定'
-                  >
-                    Phase 2予定
-                  </button>
+                  {a.status === 'pending' ? (
+                    <AdminApplicationActions
+                      applicationId={a.id}
+                      eventTitle={a.eventTitle}
+                      memberNickname={a.memberNickname}
+                    />
+                  ) : (
+                    <AdminApplicationProcessed status={a.status} decidedAt={a.decidedAt} />
+                  )}
                 </td>
               </tr>
             ))}
@@ -96,7 +107,9 @@ async function ApplicationsContent({
             <div className='flex items-start justify-between gap-2'>
               <div>
                 <p className='font-semibold text-[#1a1a1a]'>{a.eventTitle}</p>
-                <p className='text-xs text-[#6b6b6b]'>{a.memberNickname}</p>
+                <Link href={`/admin/hanakai/members/${a.memberId}`} className='text-xs text-[#1f5d4f]'>
+                  {a.memberNickname}
+                </Link>
               </div>
               <Badge tone={statusTone[a.status]}>{statusLabel[a.status]}</Badge>
             </div>
@@ -104,6 +117,15 @@ async function ApplicationsContent({
             <p className='mt-2 text-[11px] text-[#9a9a9a]'>申請: {formatAdminDate(a.appliedAt)}</p>
             {a.decidedAt ? (
               <p className='text-[11px] text-[#9a9a9a]'>処理: {formatAdminDate(a.decidedAt)}</p>
+            ) : null}
+            {a.status === 'pending' ? (
+              <div className='mt-3'>
+                <AdminApplicationActions
+                  applicationId={a.id}
+                  eventTitle={a.eventTitle}
+                  memberNickname={a.memberNickname}
+                />
+              </div>
             ) : null}
           </article>
         ))}
@@ -127,13 +149,17 @@ export default async function HanakaiAdminApplicationsPage({ searchParams }: Pag
     statusRaw === 'pending' || statusRaw === 'confirmed' || statusRaw === 'rejected' ? statusRaw : 'all'
   ) as 'pending' | 'confirmed' | 'rejected' | 'all';
 
+  const flash = adminFlashMessage(param(sp, 'success'), param(sp, 'error'));
+
   return (
     <div className='space-y-6'>
       <AdminPageHeader
         kicker='APPLICATIONS'
         title='参加申請一覧'
-        description='全参加申請の閲覧です。承認・却下操作は Phase 2 で追加予定です（既存の主催者フローはそのまま利用できます）。'
+        description='参加申請の承認・却下を行います。主催者による承認フローも引き続き利用できます。'
       />
+
+      {flash ? <AdminFlashBanner variant={flash.variant} message={flash.message} /> : null}
 
       <div className='grid gap-3 md:grid-cols-[1fr_auto_auto]'>
         <Suspense fallback={<div className='h-10 animate-pulse rounded-xl bg-[#ebe7dd]' />}>

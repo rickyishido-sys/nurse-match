@@ -59,8 +59,8 @@ export async function reportGroupPostAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '').trim();
   const postId = String(formData.get('postId') ?? '').trim();
   if (!eventId || !postId) return;
-  await assertGroupAccess(eventId);
-  await reportGroupPost(postId);
+  const { memberId } = await assertGroupAccess(eventId);
+  await reportGroupPost(postId, memberId);
   revalidateGroup(eventId);
 }
 
@@ -68,8 +68,8 @@ export async function reportGroupPhotoAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '').trim();
   const photoId = String(formData.get('photoId') ?? '').trim();
   if (!eventId || !photoId) return;
-  await assertGroupAccess(eventId);
-  await reportGroupPhoto(photoId);
+  const { memberId } = await assertGroupAccess(eventId);
+  await reportGroupPhoto(photoId, memberId);
   revalidateGroup(eventId);
 }
 
