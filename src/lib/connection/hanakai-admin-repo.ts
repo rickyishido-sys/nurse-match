@@ -46,7 +46,7 @@ function memberToRow(member: ConnectionMember, createdAt = '', updatedAt = ''): 
     avatarUrl: member.avatarUrl,
     createdAt,
     updatedAt,
-    status: memberStatus(member),
+    status: memberStatus(),
   };
 }
 
