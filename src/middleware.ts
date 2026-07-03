@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { getUserById } from '@/lib/mock-data';
+import { isHanakaiAdminPath } from '@/lib/connection/hanakai-admin-path';
 
 const PUBLIC_PATHS = [
   '/',
@@ -85,6 +86,10 @@ export async function middleware(request: NextRequest) {
     if (hasAdminRole && ADMIN_BYPASS_PATHS.includes(pathname)) {
       return NextResponse.redirect(new URL(adminLandingPath(demoUser?.role), request.url));
     }
+    if (isHanakaiAdminPath(pathname)) {
+      console.log('MIDDLEWARE_ALLOW', { pathname, mode: 'mock-hanakai-admin' });
+      return NextResponse.next();
+    }
     if (isAdminPath && !isAdminLogin && !hasAdminRole) return NextResponse.redirect(new URL('/home', request.url));
     if (pathname === '/admin' && demoUser?.role === 'female_admin') return NextResponse.redirect(new URL('/admin/female', request.url));
     if (pathname === '/admin' && demoUser?.role === 'male_admin') return NextResponse.redirect(new URL('/admin/male', request.url));
@@ -122,9 +127,10 @@ export async function middleware(request: NextRequest) {
   });
 
   const { data } = await supabase.auth.getUser();
+  const loginRedirect = isHanakaiAdminPath(pathname) ? '/login' : isAdminPath ? '/admin/login' : '/login';
   if (!data.user) {
     console.log('MIDDLEWARE_REDIRECT_LOGIN', { pathname, redirectReason: 'no-auth-user' });
-    return NextResponse.redirect(new URL(isAdminPath ? '/admin/login' : '/login', request.url));
+    return NextResponse.redirect(new URL(loginRedirect, request.url));
   }
 
   console.log('MIDDLEWARE_AUTH_USER', {
@@ -153,6 +159,11 @@ export async function middleware(request: NextRequest) {
       });
       return NextResponse.redirect(new URL('/pending-review', request.url));
     }
+  }
+
+  if (isAdminPath && isHanakaiAdminPath(pathname)) {
+    console.log('MIDDLEWARE_ALLOW', { pathname, mode: 'supabase-hanakai-admin', userId: data.user.id });
+    return response;
   }
 
   if (isAdminPath) {
