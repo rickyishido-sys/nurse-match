@@ -86,7 +86,9 @@ export default async function CreateEventPage({ searchParams }: PageProps) {
       });
 
       if (!memberId) {
+        console.log('EVENT_CREATE_3_MEMBER_FAIL', { userId: user.id });
         const viewer = await getHanakaiViewer();
+        console.log('EVENT_CREATE_UI_PROFILE_REQUIRED');
         return (
           <ConnectionShell viewer={viewer}>
             <ConnectionPageError
@@ -108,7 +110,11 @@ export default async function CreateEventPage({ searchParams }: PageProps) {
     });
 
     if (categories.length === 0) {
-      console.log('EVENT_CREATE_4_CATEGORIES_EMPTY');
+      console.log('EVENT_CREATE_4_CATEGORIES_EMPTY', {
+        metaKeyCount: Object.keys(EVENT_CATEGORY_META).length,
+        orderLength: EVENT_CATEGORY_CREATE_ORDER.length,
+      });
+      console.log('EVENT_CREATE_UI_CATEGORIES_EMPTY');
       return (
         <ConnectionShell viewer={viewer}>
           <ConnectionPageError
@@ -160,6 +166,7 @@ export default async function CreateEventPage({ searchParams }: PageProps) {
   } catch (error) {
     if (isNextRedirect(error)) throw error;
     logPageError(error);
+    console.log('EVENT_CREATE_UI_CATCH');
     return (
       <ConnectionShell viewer={null}>
         <ConnectionPageError

@@ -10,6 +10,7 @@
 //         ensureHanakaiMemberForAuthUser で hanakai_members 行を get-or-create。
 import { HANAKAI_CONNECTION_BACKEND, HANAKAI_DISABLE_ANONYMOUS_AUTH } from '@/lib/config';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 
 export const MOCK_VIEWER_ID = 'm1';
 
@@ -69,7 +70,39 @@ export async function ensureHanakaiMemberForAuthUser(
       if (error.code === '23505') {
         return findMemberIdByAuthUser(authUserId);
       }
-      console.error('HANAKAI_MEMBER_CREATE_FAILED', { message: error.message, authUserId });
+      console.error('HANAKAI_MEMBER_CREATE_FAILED', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        authUserId,
+      });
+
+      const admin = createAdminSupabaseClient();
+      if (admin) {
+        const { data: adminData, error: adminError } = await admin
+          .from('hanakai_members')
+          .insert({
+            auth_user_id: authUserId,
+            nickname,
+          })
+          .select('id')
+          .single();
+
+        if (!adminError && adminData?.id) {
+          console.log('HANAKAI_MEMBER_CREATE_ADMIN_OK', { authUserId, memberId: adminData.id });
+          return adminData.id;
+        }
+        if (adminError?.code === '23505') {
+          return findMemberIdByAuthUser(authUserId);
+        }
+        console.error('HANAKAI_MEMBER_CREATE_ADMIN_FAILED', {
+          message: adminError?.message,
+          code: adminError?.code,
+          authUserId,
+        });
+      }
+
       return null;
     }
     return data.id;
