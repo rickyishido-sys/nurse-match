@@ -285,9 +285,16 @@ export async function setFemaleSearchPreferenceAction(formData: FormData) {
   revalidatePath('/home/female');
 }
 
+function resolveSafeNextPath(raw: string): string | null {
+  const next = raw.trim();
+  if (!next.startsWith('/') || next.startsWith('//')) return null;
+  return next;
+}
+
 export async function loginAction(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim();
   const password = String(formData.get('password') ?? '').trim();
+  const nextPath = resolveSafeNextPath(String(formData.get('next') ?? ''));
 
   if (USE_MOCK_DATA) {
     const user = getUserByEmail(email);
@@ -352,7 +359,7 @@ export async function loginAction(formData: FormData) {
       });
       if (memberId) {
         console.log('LOGIN_CONNECTION_ONLY', { email, userId: authUser.id, memberId });
-        redirect('/home');
+        redirect(nextPath ?? '/home');
       }
     }
     console.log('LOGIN_USER_ROW_MISSING', {

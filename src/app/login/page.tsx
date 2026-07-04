@@ -23,6 +23,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = searchParams ? await searchParams : {};
   const error = pickFirst(params.error);
   const detail = safeDecode(pickFirst(params.detail));
+  const next = pickFirst(params.next);
 
   return (
     <main className='min-h-screen bg-[#fafaf8] px-5 py-8'>
@@ -58,6 +59,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           ) : null}
 
           <form action={loginAction} className='space-y-4'>
+            {next ? <input type='hidden' name='next' value={next} /> : null}
             <label className='block'>
               <span className='mb-1.5 block text-xs font-medium text-slate-600'>メールアドレス</span>
               <input

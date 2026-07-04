@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { motion } from 'motion/react';
 import { createConnectionEventAction } from '@/lib/connection/actions';
 
 type CategoryOption = { value: string; label: string; emoji: string };
@@ -348,14 +347,13 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
         />
       </section>
 
-      <motion.button
+      <button
         type='submit'
-        whileTap={{ scale: 0.98 }}
-        className='w-full rounded-full py-4 text-sm font-semibold text-white shadow-sm'
+        className='w-full rounded-full py-4 text-sm font-semibold text-white shadow-sm transition active:scale-[0.98]'
         style={{ backgroundColor: ACCENT }}
       >
         この内容でイベントを公開する
-      </motion.button>
+      </button>
       <p className='text-center text-xs leading-6 text-[#9a9a9a]'>
         HANAKAIは「人を集める場」ではなく、
         <br />
