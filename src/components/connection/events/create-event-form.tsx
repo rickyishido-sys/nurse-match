@@ -1,7 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { createConnectionEventAction } from '@/lib/connection/actions';
 import { uploadEventImagesClient } from '@/lib/connection/upload-event-images-client';
 
 type CategoryOption = { value: string; label: string; emoji: string };
@@ -18,6 +18,7 @@ const fieldClass =
 const helpClass = 'mt-1.5 text-xs text-[#9a9a9a]';
 
 export function CreateEventForm({ categories }: { categories: CategoryOption[] }) {
+  const router = useRouter();
   const [category, setCategory] = useState<string>(categories[0]?.value ?? 'flower');
   const [approvalMode, setApprovalMode] = useState<'host_approval' | 'auto'>('host_approval');
   const [description, setDescription] = useState('');
@@ -34,21 +35,53 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
     setSubmitting(true);
     try {
       const form = e.currentTarget;
-      const formData = new FormData(form);
+      const fd = new FormData(form);
       const files = images.map((item) => item.file);
       const imageUrls = files.length > 0 ? await uploadEventImagesClient(files) : [];
-      formData.set('imageUrls', JSON.stringify(imageUrls));
-      await createConnectionEventAction(formData);
-    } catch (err) {
-      if (
-        typeof err === 'object' &&
-        err !== null &&
-        'digest' in err &&
-        typeof (err as { digest?: string }).digest === 'string' &&
-        (err as { digest: string }).digest.startsWith('NEXT_REDIRECT;')
-      ) {
-        throw err;
+
+      const payload = {
+        title: String(fd.get('title') ?? '').trim(),
+        category: String(fd.get('category') ?? 'other'),
+        description: String(fd.get('description') ?? '').trim(),
+        startAt: String(fd.get('startAt') ?? '').trim(),
+        area: String(fd.get('area') ?? '').trim(),
+        venue: String(fd.get('venue') ?? '').trim(),
+        capacity: Number(fd.get('capacity')) || 6,
+        fee: Number(fd.get('fee')) || 0,
+        conditions: String(fd.get('conditions') ?? '').trim(),
+        approvalMode: String(fd.get('approvalMode') ?? 'host_approval'),
+        imageUrls,
+      };
+
+      const res = await fetch('/api/hanakai/events/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      let data: { ok?: boolean; eventId?: string; error?: string; code?: string } = {};
+      try {
+        data = (await res.json()) as typeof data;
+      } catch {
+        setSubmitError('サーバーからの応答を読み取れませんでした。時間をおいて再度お試しください。');
+        return;
       }
+
+      if (!res.ok || !data.ok || !data.eventId) {
+        if (data.code === 'UNAUTHORIZED') {
+          router.push('/login?next=/events/create');
+          return;
+        }
+        if (data.code === 'NO_MEMBER') {
+          router.push('/register/profile');
+          return;
+        }
+        setSubmitError(data.error ?? 'イベントの公開に失敗しました。入力内容を確認して再度お試しください。');
+        return;
+      }
+
+      router.push(`/events/${data.eventId}?created=1`);
+    } catch (err) {
       const message = err instanceof Error ? err.message : 'イベントの公開に失敗しました。';
       setSubmitError(message);
     } finally {

@@ -310,11 +310,19 @@ export async function createEvent(input: CreateEventInput): Promise<ConnectionEv
     payload.image_urls = input.imageUrls;
   }
   if (!sb) {
-    // クライアント不在時もフォーム遷移を壊さない最低限のフォールバック
     return eventFromRow({ id: `ue_${Date.now()}`, ...payload }, []);
   }
-  const { data } = await sb.from('hanakai_events').insert(payload).select('*').single();
-  return eventFromRow(data ?? { id: `ue_${Date.now()}`, ...payload }, []);
+  const { data, error } = await sb.from('hanakai_events').insert(payload).select('*').single();
+  if (error) {
+    console.error('HANAKAI_EVENT_INSERT_FAILED', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
+    throw error;
+  }
+  return eventFromRow(data, []);
 }
 
 export async function confirmMemberForEvent(eventId: string, memberId: string): Promise<void> {
