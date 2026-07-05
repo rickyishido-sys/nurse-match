@@ -1,19 +1,10 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
-
-const AUTH_COMPLETE_ALLOWED_NEXT = new Set(['/register/profile', '/register/details', '/register/continue']);
-
-function resolveSafeNext(nextRaw: string | null): string {
-  if (nextRaw && nextRaw.startsWith('/') && AUTH_COMPLETE_ALLOWED_NEXT.has(nextRaw)) {
-    return nextRaw;
-  }
-  return '/register/profile';
-}
-
-function authCompleteRedirectUrl(origin: string, next: string): URL {
-  return new URL(`/auth/complete?next=${encodeURIComponent(next)}`, origin);
-}
+import {
+  HANAKAI_POST_AUTH_PROFILE_PATH,
+  resolveHanakaiPostAuthPath,
+} from '@/lib/connection/auth-redirect';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -21,9 +12,10 @@ export async function GET(request: Request) {
   const tokenHash = requestUrl.searchParams.get('token_hash');
   const otpType = requestUrl.searchParams.get('type');
   const nextRaw = requestUrl.searchParams.get('next');
-  const safeNext = resolveSafeNext(nextRaw);
-  const callbackSuccessPath = authCompleteRedirectUrl(requestUrl.origin, safeNext);
-  let redirectTo: URL | string = callbackSuccessPath;
+  const safeNext = resolveHanakaiPostAuthPath(nextRaw);
+  const profileUrl = new URL(HANAKAI_POST_AUTH_PROFILE_PATH, requestUrl.origin);
+  let redirectTo: URL | string = profileUrl;
+  let sessionEstablished = false;
 
   console.log('AUTH_CALLBACK_START', {
     requestUrl: request.url,
@@ -37,13 +29,10 @@ export async function GET(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.log('AUTH_CALLBACK_FINAL_REDIRECT', {
-      redirectTo: '/register?error=auth-callback&detail=missing_config',
-    });
     return NextResponse.redirect(new URL('/register?error=auth-callback&detail=missing_config', requestUrl.origin));
   }
 
-  let response = NextResponse.redirect(callbackSuccessPath);
+  let response = NextResponse.redirect(profileUrl);
   const requestCookies = request.headers.get('cookie') ?? '';
   const parsedCookies = requestCookies
     .split(';')
@@ -61,7 +50,7 @@ export async function GET(request: Request) {
         return parsedCookies;
       },
       setAll(cookiesToSet) {
-        response = NextResponse.redirect(callbackSuccessPath);
+        response = NextResponse.redirect(profileUrl);
         cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
       },
     },
@@ -72,20 +61,19 @@ export async function GET(request: Request) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) {
         console.error('AUTH_CALLBACK_EXCHANGE_ERROR', error);
-        console.log('AUTH_CALLBACK_EXCHANGE_RESULT', { success: false, message: error.message });
         if (error.message?.toLowerCase().includes('code verifier')) {
-          redirectTo = callbackSuccessPath;
+          redirectTo = new URL(`/auth/complete?next=${encodeURIComponent(safeNext)}`, requestUrl.origin);
         } else {
           redirectTo = '/register?error=auth-callback&detail=exchange_failed';
         }
       } else {
+        sessionEstablished = true;
         console.log('AUTH_CALLBACK_EXCHANGE_RESULT', { success: true });
       }
     } else if (tokenHash && otpType) {
       const allowedTypes: EmailOtpType[] = ['signup', 'invite', 'magiclink', 'recovery', 'email', 'email_change'];
       const normalizedType = allowedTypes.includes(otpType as EmailOtpType) ? (otpType as EmailOtpType) : null;
       if (!normalizedType) {
-        console.log('AUTH_CALLBACK_VERIFY_RESULT', { success: false, reason: 'invalid_type', otpType });
         redirectTo = '/register?error=auth-callback&detail=verify_failed';
       } else {
         const { error } = await supabase.auth.verifyOtp({
@@ -94,43 +82,30 @@ export async function GET(request: Request) {
         });
         if (error) {
           console.error('AUTH_CALLBACK_VERIFY_OTP_ERROR', error);
-          console.log('AUTH_CALLBACK_VERIFY_RESULT', { success: false, message: error.message });
           redirectTo = '/register?error=auth-callback&detail=verify_failed';
         } else {
+          sessionEstablished = true;
           console.log('AUTH_CALLBACK_VERIFY_RESULT', { success: true, type: normalizedType });
         }
       }
-    } else {
-      redirectTo = callbackSuccessPath;
     }
 
-    if (redirectTo instanceof URL && redirectTo.pathname === '/auth/complete') {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionEstablished) {
+      redirectTo = profileUrl;
+      response = NextResponse.redirect(profileUrl);
+      const { data: sessionData } = await supabase.auth.getSession();
       console.log('AUTH_CALLBACK_GET_SESSION_RESULT', {
-        success: !sessionError,
         hasSession: Boolean(sessionData.session),
-        message: sessionError?.message ?? null,
       });
-
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.error('AUTH_CALLBACK_GET_USER_ERROR', userError);
-      }
-      console.log('AUTH_CALLBACK_GET_USER_RESULT', {
-        success: !userError,
-        hasUser: Boolean(userData.user),
-        message: userError?.message ?? null,
-        userId: userData.user?.id ?? null,
-      });
-
-      redirectTo = callbackSuccessPath;
     }
   } catch (error) {
     console.error('AUTH_CALLBACK_UNEXPECTED_ERROR', error);
     redirectTo = '/register?error=auth-callback&detail=unexpected';
   }
 
-  console.log('AUTH_CALLBACK_FINAL_REDIRECT', { redirectTo: String(redirectTo) });
-  response = NextResponse.redirect(typeof redirectTo === 'string' ? new URL(redirectTo, requestUrl.origin) : redirectTo);
+  console.log('AUTH_CALLBACK_FINAL_REDIRECT', { redirectTo: String(redirectTo), sessionEstablished });
+  if (typeof redirectTo === 'string') {
+    return NextResponse.redirect(new URL(redirectTo, requestUrl.origin));
+  }
   return response;
 }

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
+import { HANAKAI_POST_AUTH_PROFILE_PATH } from '@/lib/connection/auth-redirect';
 import { ensureHanakaiMemberForAuthUser } from '@/lib/connection/identity';
 import { getHanakaiRegistrationStatus, resolveJoinHref } from '@/lib/connection/registration-status';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
@@ -34,6 +35,10 @@ export default async function RegisterContinuePage({ searchParams }: PageProps) 
   const status = await getHanakaiRegistrationStatus();
   if (!status.isAuthenticated) {
     redirect(error ? `/register?error=${encodeURIComponent(error)}` : '/register');
+  }
+
+  if (!status.profileComplete) {
+    redirect(HANAKAI_POST_AUTH_PROFILE_PATH);
   }
 
   redirect(resolveJoinHref(status));

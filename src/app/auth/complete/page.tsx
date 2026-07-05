@@ -1,24 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { HANAKAI_POST_AUTH_PROFILE_PATH } from '@/lib/connection/auth-redirect';
 
-const RETRY_MS = 500;
-const MAX_RETRY = 10;
-const ALLOWED_NEXT = new Set(['/register/profile', '/register/details', '/register/continue']);
-
-function resolveNext(raw: string | null): string {
-  if (raw && raw.startsWith('/') && ALLOWED_NEXT.has(raw)) return raw;
-  return '/register/profile';
-}
+const RETRY_MS = 400;
+const MAX_RETRY = 15;
 
 export default function AuthCompletePage() {
   const router = useRouter();
-  const [nextPath] = useState(() => {
-    if (typeof window === 'undefined') return '/register/profile';
-    return resolveNext(new URLSearchParams(window.location.search).get('next'));
-  });
+  const redirected = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,32 +24,34 @@ export default function AuthCompletePage() {
         const serverHasSession = Boolean(payload?.hasSession);
         const serverHasUser = Boolean(payload?.hasUser);
         let clientHasSession = false;
-        let clientError: string | null = null;
         if (supabase) {
-          const { data, error } = await supabase.auth.getSession();
+          const { data } = await supabase.auth.getSession();
           clientHasSession = Boolean(data.session);
-          clientError = error?.message ?? null;
         }
+
         console.log('AUTH_COMPLETE_SESSION_CHECK', {
           attempt,
-          nextPath,
           serverHasSession,
           serverHasUser,
           clientHasSession,
-          clientError,
         });
-        if (cancelled) return;
+
+        if (cancelled || redirected.current) return;
+
         if ((serverHasSession && serverHasUser) || clientHasSession) {
-          router.replace(nextPath);
+          redirected.current = true;
+          router.replace(HANAKAI_POST_AUTH_PROFILE_PATH);
           return;
         }
+
         if (attempt < MAX_RETRY) {
           await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
         }
       }
 
-      if (!cancelled) {
-        router.replace('/register/continue?error=session_not_found');
+      if (!cancelled && !redirected.current) {
+        redirected.current = true;
+        router.replace('/register?error=session_not_found');
       }
     }
 
@@ -66,13 +60,14 @@ export default function AuthCompletePage() {
     return () => {
       cancelled = true;
     };
-  }, [router, nextPath]);
+  }, [router]);
 
   return (
-    <main className='min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff_0%,_#fdf2f8_45%,_#ffffff_100%)] px-4 py-8'>
+    <main className='min-h-screen bg-[#fafaf8] px-4 py-8'>
       <div className='mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[420px] items-center'>
-        <section className='w-full rounded-[32px] border border-sky-100/80 bg-white/95 p-6 text-center shadow-[0_16px_45px_-35px_rgba(15,23,42,0.3)] backdrop-blur-sm sm:p-7'>
-          <p className='text-sm font-medium text-slate-700'>認証を確認しています…</p>
+        <section className='w-full rounded-2xl border border-[#ebe9e4] bg-white p-6 text-center sm:p-7'>
+          <p className='text-sm font-medium text-[#1a1a1a]'>認証を確認しています…</p>
+          <p className='mt-2 text-xs text-[#6b6b6b]'>プロフィール入力画面へ移動します</p>
         </section>
       </div>
     </main>

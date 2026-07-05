@@ -27,7 +27,8 @@ import {
   updateUserModerationState,
   updateVerification,
 } from '@/lib/data';
-import { USE_MOCK_DATA, HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
+import { USE_MOCK_DATA, HANAKAI_CONNECTION_BACKEND, SITE_URL } from '@/lib/config';
+import { hanakaiEmailRedirectUrl } from '@/lib/connection/auth-redirect';
 import { ensureHanakaiMemberForAuthUser } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
 import { isHanakaiProfileComplete } from '@/lib/connection/registration-status';
@@ -696,7 +697,9 @@ export async function requestRegisterVerificationAction(formData: FormData) {
     const legacyFlow = String(formData.get('legacyFlow') ?? '') === '1';
     const postAuthPath = legacyFlow ? '/register/details' : '/register/profile';
     const emailRedirectTo = redirectBase
-      ? `${redirectBase}/auth/callback?next=${encodeURIComponent(postAuthPath)}`
+      ? legacyFlow
+        ? `${redirectBase}/auth/callback?next=${encodeURIComponent(postAuthPath)}`
+        : hanakaiEmailRedirectUrl(redirectBase)
       : undefined;
 
     if (!siteUrl) {

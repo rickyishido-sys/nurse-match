@@ -4,6 +4,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { SITE_URL } from '@/lib/config';
+import { hanakaiEmailRedirectUrl } from '@/lib/connection/auth-redirect';
 import {
   applyToEvent,
   confirmMemberForEvent,
@@ -18,7 +19,10 @@ import {
 import { VALUE_TAG_LABEL } from '@/lib/connection/data';
 import { TEMPERAMENT_OPTIONS } from '@/lib/connection/onboarding-options';
 import { uploadEventImages } from '@/lib/connection/storage';
-import { ensureViewerMemberId } from '@/lib/connection/identity';
+import { uploadDocument } from '@/lib/upload';
+import { ensureViewerMemberId, getAuthenticatedAuthUserId } from '@/lib/connection/identity';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import type {
   ConnectionEventCategory,
   ConnectionPurpose,
@@ -262,6 +266,31 @@ export async function sendMessageAction(formData: FormData) {
   redirect(`/connections/${eventId}?messaged=${memberId}`);
 }
 
+export async function setRegistrationPasswordAction(formData: FormData) {
+  const password = String(formData.get('password') ?? '');
+  const confirm = String(formData.get('confirmPassword') ?? '');
+
+  if (password.length < 8) return { error: 'short' as const };
+  if (password !== confirm) return { error: 'mismatch' as const };
+
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return { error: 'config' as const };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'auth' as const };
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    console.error('REGISTRATION_PASSWORD_SET_ERROR', { message: error.message, userId: user.id });
+    return { error: 'failed' as const };
+  }
+
+  console.log('REGISTRATION_PASSWORD_SET', { userId: user.id });
+  return { ok: true as const };
+}
+
 export async function saveProfileAction(formData: FormData) {
   const nickname = String(formData.get('nickname') ?? '').trim();
   if (!nickname) redirect('/register/profile?error=nickname');
@@ -277,6 +306,53 @@ export async function saveProfileAction(formData: FormData) {
 
   const ageBand = String(formData.get('ageBand') ?? '').trim();
   if (!ageBand) redirect('/register/profile?error=ageBand');
+
+  const identityFile = formData.get('identityDocument');
+  if (!(identityFile instanceof File) || identityFile.size <= 0) {
+    redirect('/register/profile?error=identity');
+  }
+
+  const authUserId = await getAuthenticatedAuthUserId();
+  if (!authUserId) redirect('/register?hint=auth-required');
+
+  let identityUrl: string | null = null;
+  try {
+    identityUrl = await uploadDocument(identityFile, authUserId, 'identity');
+  } catch (error) {
+    console.error('CONNECTION_IDENTITY_UPLOAD_ERROR', { authUserId, error: String(error) });
+    redirect('/register/profile?error=identity-upload');
+  }
+  if (!identityUrl) redirect('/register/profile?error=identity');
+
+  const adminSupabase = createAdminSupabaseClient();
+  const dbClient = adminSupabase ?? (await createServerSupabaseClient());
+  if (dbClient) {
+    const { data: existingIdentity } = await dbClient
+      .from('identity_documents')
+      .select('id')
+      .eq('user_id', authUserId)
+      .maybeSingle();
+    if (existingIdentity?.id) {
+      await dbClient
+        .from('identity_documents')
+        .update({ document_url: identityUrl, status: 'pending' })
+        .eq('id', existingIdentity.id);
+    } else {
+      await dbClient.from('identity_documents').insert({
+        user_id: authUserId,
+        document_url: identityUrl,
+        status: 'pending',
+      });
+    }
+  }
+
+  await updateMember(memberId, {
+    trustVerificationStatus: 'pending' as TrustVerificationStatus,
+    verificationSource: 'id_only' as VerificationSource,
+    identityVerified: false,
+    trustNotes: identityUrl ? `identity:${identityUrl}` : null,
+    identityVerificationMethod: 'manual_document',
+  });
 
   const purposes = formData.getAll('purposes') as ConnectionPurpose[];
   const interestTags = formData.getAll('interestTags') as InterestTag[];
@@ -471,7 +547,7 @@ export async function requestConnectionMagicLinkAction(formData: FormData) {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
 
-  const emailRedirectTo = `${SITE_URL}/auth/callback?next=${encodeURIComponent('/register/continue')}`;
+  const emailRedirectTo = hanakaiEmailRedirectUrl(SITE_URL);
   const { error } = await otpClient.auth.signInWithOtp({
     email,
     options: {

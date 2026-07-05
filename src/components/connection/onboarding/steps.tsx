@@ -75,7 +75,7 @@ export function OnboardingStepIntro() {
           style={{ borderColor: ONB.border, color: ONB.subtle }}
         >
           <span>⏱</span>
-          <span>必須は性別・年齢層・お住まいの地域だけです</span>
+          <span>必須はパスワード・性別・年齢層・お住まい・本人確認書類です</span>
         </div>
       </div>
     </motion.div>

@@ -3,6 +3,7 @@ import { OnboardingFlow } from '@/components/connection/onboarding/onboarding-fl
 import { HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
 import { ensureHanakaiMemberForAuthUser, getViewerMemberId } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
+import { getHanakaiRegistrationStatus } from '@/lib/connection/registration-status';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
@@ -35,6 +36,11 @@ export default async function RegisterProfilePage({ searchParams }: PageProps) {
 
   const viewerMemberId = await getViewerMemberId();
   const member = viewerMemberId ? await getMember(viewerMemberId) : null;
+
+  const status = await getHanakaiRegistrationStatus();
+  if (status.profileComplete) {
+    redirect('/register/complete');
+  }
 
   return <OnboardingFlow error={error || undefined} member={member} />;
 }

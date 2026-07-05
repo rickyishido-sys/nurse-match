@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { loginAction } from '@/lib/actions';
 import { requestConnectionMagicLinkAction } from '@/lib/connection/actions';
+import { getHanakaiRegistrationStatus } from '@/lib/connection/registration-status';
 
 type LoginPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -22,6 +24,12 @@ function safeDecode(value: string) {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = searchParams ? await searchParams : {};
+  const registration = await getHanakaiRegistrationStatus();
+  if (registration.isAuthenticated) {
+    if (!registration.profileComplete) redirect('/register/profile');
+    redirect('/home');
+  }
+
   const error = pickFirst(params.error);
   const detail = safeDecode(pickFirst(params.detail));
   const next = pickFirst(params.next);
