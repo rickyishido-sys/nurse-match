@@ -52,26 +52,30 @@ export function OnboardingStepIntro() {
 
       <div className='mt-10'>
         <p className='mb-2.5 text-[11px] font-semibold tracking-[0.2em]' style={{ color: ONB.gold }}>
-          WELCOME
+          BLOOM PROFILE LITE
         </p>
         <h1
           className='font-sans text-[27px] leading-[1.4] font-semibold tracking-tight'
           style={{ color: ONB.ink }}
         >
-          HANAKAI Connection
+          あなたらしいプロフィールを
           <br />
-          へようこそ
+          育てていきましょう
         </h1>
         <p className='mt-5 text-[15px] leading-8' style={{ color: ONB.subtle }}>
-          HANAKAIは、プロフィールだけで人を判断するサービスではありません。
-          一緒に過ごす体験を通じて、あなたに合うConnectionを運営が丁寧に設計します。
+          プロフィールは一度完成させるものではありません。
+          HANAKAIでは、あなたの体験やConnectionを通じて、プロフィールが少しずつ育っていきます。
+        </p>
+        <p className='mt-4 text-[15px] leading-8' style={{ color: ONB.subtle }}>
+          まずは基本情報を入力してください。
+          SNSや性格タイプを登録しておくと、将来的にAIがあなたらしい自己紹介文や興味タグの下書きを作成できるようになります。
         </p>
         <div
           className='mt-6 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs'
           style={{ borderColor: ONB.border, color: ONB.subtle }}
         >
           <span>⏱</span>
-          <span>この登録は約3分で完了します</span>
+          <span>必須は性別・年齢層・お住まいの地域だけです</span>
         </div>
       </div>
     </motion.div>

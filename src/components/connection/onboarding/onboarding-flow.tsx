@@ -4,13 +4,19 @@ import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { saveProfileAction } from '@/lib/connection/actions';
 import {
+  AGE_BAND_OPTIONS,
+  inferAgeBandFromAge,
+  SOCIAL_LINK_PLATFORMS,
+  type MbtiType,
+  type SocialLinkPlatform,
+} from '@/lib/connection/bloom-profile-options';
+import {
   DESIRED_CONNECTION_OPTIONS,
   EXPERIENCE_OPTIONS,
   EXPERIENCE_TO_INTEREST,
   LIFE_PHASE_MINDSET_OPTIONS,
   OCCUPATION_OPTIONS,
   PREFECTURES,
-  TEMPERAMENT_OPTIONS,
   VALUE_TAG_ONBOARDING_OPTIONS,
   WEEKEND_OPTIONS,
   type Option,
@@ -22,6 +28,7 @@ import type {
   LifePhase,
   ValueTag,
 } from '@/lib/connection/types';
+import { BioStep, MbtiStep, SocialLinksStep } from './bloom-profile-steps';
 import { BottomNavButtons, OnboardingLayout, ONB, ProgressDots } from './onboarding-ui';
 import {
   AreaSelectStep,
@@ -40,10 +47,9 @@ const GENDER_OPTIONS: Option<'male' | 'female' | 'other'>[] = [
 ];
 
 const VALUE_TAG_MAX = 3;
-const WEEKEND_MIN = 2;
 
 /** 進捗ドットに含めるステップ数（Welcome を除く設問数）。 */
-const QUESTION_COUNT = 16;
+const QUESTION_COUNT = 18;
 
 function toggle<T>(list: T[], value: T, max?: number): T[] {
   if (list.includes(value)) return list.filter((v) => v !== value);
@@ -82,7 +88,9 @@ const STEP_ART: Record<number, string> = {
   13: '/categories/cafe.png',
   14: '/categories/bar.png',
   15: '/flow/continue.png',
-  16: '/onboarding/welcome.png',
+  16: '/categories/cafe.png',
+  17: '/categories/flower.png',
+  18: '/onboarding/welcome.png',
 };
 
 export function OnboardingFlow({ error, member }: { error?: string; member?: ConnectionMember | null }) {
@@ -92,9 +100,20 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
   const [direction, setDirection] = useState(1);
 
   const [nickname, setNickname] = useState(member?.nickname ?? '');
-  const [age, setAge] = useState(member?.age ? String(member.age) : '');
+  const [ageBand, setAgeBand] = useState<string>(
+    member?.ageBand || (member?.age ? inferAgeBandFromAge(member.age) : '') || '',
+  );
   const [gender, setGender] = useState<'male' | 'female' | 'other' | ''>(member?.gender ?? '');
   const [area, setArea] = useState(member?.area ?? '');
+  const [bio, setBio] = useState(member?.bio ?? '');
+  const [socialLinks, setSocialLinks] = useState<Partial<Record<SocialLinkPlatform, string>>>(() => {
+    const initial: Partial<Record<SocialLinkPlatform, string>> = {};
+    for (const link of member?.socialLinks ?? []) {
+      initial[link.platform] = link.url;
+    }
+    return initial;
+  });
+  const [mbtiType, setMbtiType] = useState<MbtiType | ''>(member?.mbtiType ?? '');
   const [occupation, setOccupation] = useState<LifePhase | ''>(member?.lifePhase ?? '');
   const [currentPhase, setCurrentPhase] = useState<string>(v?.mostImportant ?? '');
   const [weekend, setWeekend] = useState<InterestTag[]>(
@@ -116,17 +135,8 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
   const [futureGoal, setFutureGoal] = useState(v?.futureGoal ?? '');
   const [recentInspiration, setRecentInspiration] = useState(v?.recentInspiration ?? '');
   const [howOthersSeeMe, setHowOthersSeeMe] = useState(v?.howOthersSeeMe ?? '');
-  const [temperament, setTemperament] = useState<string>(
-    member?.personality
-      ? (TEMPERAMENT_OPTIONS.find((t) => t.type === member.personality!.type)?.value ?? '')
-      : '',
-  );
-
-  const ageNum = Number(age);
-  const ageValid = age.trim().length > 0 && ageNum >= 18 && ageNum <= 119;
 
   const occupationLabel = OCCUPATION_OPTIONS.find((o) => o.value === occupation)?.label ?? '';
-  const selectedTemperament = TEMPERAMENT_OPTIONS.find((t) => t.value === temperament) ?? null;
 
   // 休日(step7) + 興味のある体験(step8) を既存 interestTags キーへ統合（重複排除）
   const interestTagsToSubmit = useMemo(() => {
@@ -146,36 +156,15 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
       case 1:
         return nickname.trim().length > 0;
       case 2:
-        return ageValid;
+        return ageBand !== '';
       case 3:
         return gender !== '';
       case 4:
         return area !== '';
-      case 5:
-        return occupation !== '';
-      case 6:
-        return currentPhase !== '';
-      case 7:
-        return weekend.length >= WEEKEND_MIN;
-      case 8:
-        return experiences.length >= 1;
-      case 9:
-        return purposes.length >= 1;
-      case 10:
-        return valueTags.length >= 1;
-      case 11:
-      case 12:
-      case 13:
-      case 14:
-        return true; // 深掘り質問は任意
-      case 15:
-        return temperament !== '';
-      case 16:
-        return true; // プロフィール写真は任意
       default:
-        return false;
+        return true;
     }
-  }, [step, nickname, ageValid, gender, area, occupation, currentPhase, weekend, experiences, purposes, valueTags, temperament]);
+  }, [step, nickname, ageBand, gender, area]);
 
   function next() {
     setDirection(1);
@@ -235,17 +224,14 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
         );
       case 2:
         return (
-          <TextInputStep
+          <SingleChoiceStep
             index={2}
             art={STEP_ART[2]}
-            title='あなたの年齢を教えてください'
-            subtitle='Connection設計の参考にします。正確に入力してください。'
-            value={age}
-            onChange={setAge}
-            placeholder='32'
-            inputMode='numeric'
-            suffix='歳'
-            maxLength={3}
+            title='あなたの年齢層を教えてください'
+            subtitle='必須 · Connection設計の参考にします'
+            options={AGE_BAND_OPTIONS}
+            value={ageBand as import('@/lib/connection/bloom-profile-options').AgeBand | ''}
+            onChange={setAgeBand}
           />
         );
       case 3:
@@ -254,6 +240,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
             index={3}
             art={STEP_ART[3]}
             title='あなたの性別を教えてください'
+            subtitle='必須'
             options={GENDER_OPTIONS}
             value={gender}
             onChange={setGender}
@@ -265,7 +252,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
             index={4}
             art={STEP_ART[4]}
             title='お住まいの地域を教えてください'
-            subtitle='近いエリアの体験をご案内する参考にします'
+            subtitle='必須 · 近いエリアの体験をご案内する参考にします'
             value={area}
             onChange={setArea}
             options={PREFECTURES}
@@ -277,6 +264,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
             index={5}
             art={STEP_ART[5]}
             title='今のお仕事に近いものを選んでください'
+            subtitle='任意 · あとから変更できます'
             options={OCCUPATION_OPTIONS}
             value={occupation}
             onChange={setOccupation}
@@ -288,7 +276,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
             index={6}
             art={STEP_ART[6]}
             title='今のあなたに近いものを選んでください'
-            subtitle='Connectionの組み合わせを考える参考にします'
+            subtitle='任意 · Connectionの組み合わせを考える参考にします'
             options={LIFE_PHASE_MINDSET_OPTIONS}
             value={currentPhase}
             onChange={setCurrentPhase}
@@ -299,8 +287,8 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
           <MultiChoiceStep
             index={7}
             art={STEP_ART[7]}
-            title='お休みの日は何をしていますか？'
-            subtitle={`まずは2つ選んでみましょう${weekend.length > 0 ? `（${weekend.length}つ選択中）` : ''}`}
+            title='趣味・興味：お休みの日は何をしていますか？'
+            subtitle={`任意 · 複数選べます${weekend.length > 0 ? `（${weekend.length}つ選択中）` : ''}`}
             options={WEEKEND_OPTIONS}
             values={weekend}
             onToggle={(value) => setWeekend((s) => toggle(s, value))}
@@ -313,7 +301,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
             index={8}
             art={STEP_ART[8]}
             title='参加してみたい体験を選んでください'
-            subtitle='HANAKAIでは、体験を通じて自然なConnectionをつくります'
+            subtitle='任意 · HANAKAIでは、体験を通じて自然なConnectionをつくります'
             options={EXPERIENCE_OPTIONS}
             values={experiences}
             onToggle={(value) => setExperiences((s) => toggle(s, value))}
@@ -326,7 +314,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
             index={9}
             art={STEP_ART[9]}
             title='今、どんなConnectionを求めていますか？'
-            subtitle='複数選べます'
+            subtitle='任意 · 複数選べます'
             options={DESIRED_CONNECTION_OPTIONS}
             values={purposes}
             onToggle={(value) => setPurposes((s) => toggle(s, value))}
@@ -339,7 +327,7 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
             index={10}
             art={STEP_ART[10]}
             title='大切にしている価値観を選んでください'
-            subtitle={`3つまで選べます${valueTags.length > 0 ? `（${valueTags.length}/${VALUE_TAG_MAX}）` : ''}`}
+            subtitle={`任意 · 3つまで選べます${valueTags.length > 0 ? `（${valueTags.length}/${VALUE_TAG_MAX}）` : ''}`}
             options={VALUE_TAG_ONBOARDING_OPTIONS}
             values={valueTags}
             onToggle={(value) => setValueTags((s) => toggle(s, value, VALUE_TAG_MAX))}
@@ -398,20 +386,28 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
           />
         );
       case 15:
-        return (
-          <SingleChoiceStep
-            index={15}
-            art={STEP_ART[15]}
-            title='あなたに近い雰囲気を選んでください'
-            subtitle='評価のためではなく、相互理解のための参考にします'
-            options={TEMPERAMENT_OPTIONS.map((t) => ({ value: t.value, label: t.label }))}
-            value={temperament}
-            onChange={setTemperament}
-          />
-        );
+        return <BioStep index={15} art={STEP_ART[15]} value={bio} onChange={setBio} />;
       case 16:
         return (
-          <ProfilePhotosStep index={16} art={STEP_ART[16]} initialPhotos={member?.photos} />
+          <SocialLinksStep
+            index={16}
+            art={STEP_ART[16]}
+            values={socialLinks}
+            onChange={(platform, url) => setSocialLinks((prev) => ({ ...prev, [platform]: url }))}
+          />
+        );
+      case 17:
+        return (
+          <MbtiStep
+            index={17}
+            art={STEP_ART[17]}
+            value={mbtiType}
+            onChange={setMbtiType}
+          />
+        );
+      case 18:
+        return (
+          <ProfilePhotosStep index={18} art={STEP_ART[18]} initialPhotos={member?.photos} />
         );
       default:
         return null;
@@ -422,9 +418,19 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
     <form action={saveProfileAction}>
       {/* 送信用の隠しフィールド（常時マウント） */}
       <input type='hidden' name='nickname' value={nickname} />
-      <input type='hidden' name='age' value={age} />
-      <input type='hidden' name='gender' value={gender || 'other'} />
+      <input type='hidden' name='ageBand' value={ageBand} />
+      <input type='hidden' name='gender' value={gender || ''} />
       <input type='hidden' name='area' value={area} />
+      <input type='hidden' name='bio' value={bio} />
+      <input type='hidden' name='mbtiType' value={mbtiType} />
+      {SOCIAL_LINK_PLATFORMS.map(({ platform }) => (
+        <input
+          key={platform}
+          type='hidden'
+          name={`socialLink_${platform}`}
+          value={socialLinks[platform] ?? ''}
+        />
+      ))}
       <input type='hidden' name='lifePhase' value={occupation || 'other'} />
       <input type='hidden' name='occupation' value={occupationLabel} />
       <input type='hidden' name='mostImportant' value={currentPhase} />
@@ -441,19 +447,26 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
       {valueTags.map((t) => (
         <input key={t} type='hidden' name='valueTags' value={t} />
       ))}
-      {selectedTemperament ? (
-        <>
-          <input type='hidden' name='personalityType' value={selectedTemperament.type} />
-          <input type='hidden' name='personalityEnergy' value={selectedTemperament.axes.energy} />
-          <input type='hidden' name='personalityThinking' value={selectedTemperament.axes.thinking} />
-          <input type='hidden' name='personalityPlanning' value={selectedTemperament.axes.planning} />
-        </>
-      ) : null}
 
       <OnboardingLayout header={header} footer={footer}>
         {error === 'nickname' ? (
           <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
             表示名を入力してください。
+          </p>
+        ) : null}
+        {error === 'gender' ? (
+          <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
+            性別を選択してください。
+          </p>
+        ) : null}
+        {error === 'area' ? (
+          <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
+            お住まいの地域を選択してください。
+          </p>
+        ) : null}
+        {error === 'ageBand' ? (
+          <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
+            年齢層を選択してください。
           </p>
         ) : null}
 

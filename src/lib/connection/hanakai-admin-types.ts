@@ -101,6 +101,10 @@ export type AdminMemberDetail = {
   valueTagLabels: string[];
   personalityType: string | null;
   personalityLabel: string | null;
+  mbtiType: string | null;
+  mbtiLabel: string | null;
+  socialLinks: { platform: string; platformLabel: string; url: string }[];
+  bloomAiAnalysisPhase: 'planned';
   deepAnswers: { label: string; value: string }[];
   desiredConnection: string;
   considerations: string;

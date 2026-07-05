@@ -1,4 +1,4 @@
-// HANAKAI Connection — profile & grouping data model (mock-backed).
+import type { AgeBand, MbtiType, SocialLinkPlatform } from '@/lib/connection/bloom-profile-options';
 // Designed for future AI-assisted participant selection: values, interests,
 // life phase, and personality type — not just age/gender/occupation.
 
@@ -155,10 +155,19 @@ export type MemberProfilePhoto = {
   category: ProfilePhotoCategory;
 };
 
+export type MemberSocialLink = {
+  id: string;
+  memberId: string;
+  platform: SocialLinkPlatform;
+  url: string;
+};
+
 export type ConnectionMember = {
   id: string;
   nickname: string;
   age: number;
+  /** 年齢層（Bloom Profile Lite） */
+  ageBand: AgeBand | '';
   gender: 'female' | 'male' | 'other';
   area: string;
   occupation: string;
@@ -171,6 +180,10 @@ export type ConnectionMember = {
   interestTags: InterestTag[];
   lifePhase: LifePhase;
   personality: PersonalityProfile | null;
+  /** MBTI / 16タイプ（unknown = 未設定扱い） */
+  mbtiType: MbtiType | '';
+  /** 公開SNS URL */
+  socialLinks: MemberSocialLink[];
   /** Hostバッジ（UIのみ・将来は実績ベースで自動付与） */
   hostBadges?: HostBadge[];
 } & MemberTrustVerificationFields;

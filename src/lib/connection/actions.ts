@@ -267,23 +267,39 @@ export async function saveProfileAction(formData: FormData) {
   const memberId = await ensureViewerMemberId();
   if (!memberId) redirect('/register');
 
+  const gender = String(formData.get('gender') ?? '') as 'female' | 'male' | 'other' | '';
+  if (!gender) redirect('/register/profile?error=gender');
+
+  const area = String(formData.get('area') ?? '').trim();
+  if (!area) redirect('/register/profile?error=area');
+
+  const ageBand = String(formData.get('ageBand') ?? '').trim();
+  if (!ageBand) redirect('/register/profile?error=ageBand');
+
   const purposes = formData.getAll('purposes') as ConnectionPurpose[];
   const interestTags = formData.getAll('interestTags') as InterestTag[];
   const valueTags = formData.getAll('valueTags') as ValueTag[];
   const lifePhase = String(formData.get('lifePhase') ?? 'other') as LifePhase;
+
+  const { AGE_BAND_TO_AGE } = await import('@/lib/connection/bloom-profile-options');
+  const ageFromBand = AGE_BAND_TO_AGE[ageBand as keyof typeof AGE_BAND_TO_AGE] ?? Number(formData.get('age') ?? 0);
 
   // valueTags を coreValues（表示用文字列）にも反映し、既存構造との互換を維持する
   const explicitCoreValues = String(formData.get('coreValues') ?? '').trim();
   const coreValues =
     explicitCoreValues || valueTags.map((tag) => VALUE_TAG_LABEL[tag]).filter(Boolean).join('、');
 
+  const mbtiRaw = String(formData.get('mbtiType') ?? '').trim();
+
   await updateMember(memberId, {
     nickname,
-    age: Number(formData.get('age') ?? 0),
-    gender: String(formData.get('gender') ?? 'other') as 'female' | 'male' | 'other',
-    area: String(formData.get('area') ?? '').trim(),
+    age: ageFromBand,
+    ageBand: ageBand as import('@/lib/connection/bloom-profile-options').AgeBand,
+    gender,
+    area,
     occupation: String(formData.get('occupation') ?? '').trim(),
     bio: String(formData.get('bio') ?? '').trim(),
+    mbtiType: (mbtiRaw || '') as import('@/lib/connection/bloom-profile-options').MbtiType | '',
     values: {
       mostImportant: String(formData.get('mostImportant') ?? '').trim(),
       currentChallenge: String(formData.get('currentChallenge') ?? '').trim(),
@@ -299,7 +315,15 @@ export async function saveProfileAction(formData: FormData) {
     lifePhase,
   });
 
-  // ステップ式ウィザードから性格診断結果も同時に届く場合は保存する
+  const { SOCIAL_LINK_PLATFORMS } = await import('@/lib/connection/bloom-profile-options');
+  const { saveMemberSocialLinks } = await import('@/lib/connection/repo');
+  const socialLinks = SOCIAL_LINK_PLATFORMS.map(({ platform }) => ({
+    platform,
+    url: String(formData.get(`socialLink_${platform}`) ?? '').trim(),
+  }));
+  await saveMemberSocialLinks(memberId, socialLinks);
+
+  // ステップ式ウィザードから性格診断結果も同時に届く場合は保存する（既存 temperament フロー互換）
   const personalityType = String(formData.get('personalityType') ?? '') as PersonalityType | '';
   if (personalityType) {
     await saveMemberPersonality(memberId, {
@@ -313,7 +337,16 @@ export async function saveProfileAction(formData: FormData) {
     });
   }
 
-  console.log('CONNECTION_PROFILE_SAVE', { nickname, purposes, interestTags, valueTags, lifePhase, personalityType });
+  console.log('CONNECTION_PROFILE_SAVE', {
+    nickname,
+    ageBand,
+    purposes,
+    interestTags,
+    valueTags,
+    lifePhase,
+    mbtiType: mbtiRaw,
+    personalityType,
+  });
   await persistProfilePhotos(memberId, formData);
   revalidatePath('/register/profile');
   revalidatePath('/my-profile');

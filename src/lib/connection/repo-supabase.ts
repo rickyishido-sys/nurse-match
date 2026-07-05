@@ -3,20 +3,23 @@
 // true); writes run server-side via the service-role client. Identity is
 // resolved separately (see identity.ts) and passed in as member ids.
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { inferAgeBandFromAge } from '@/lib/connection/bloom-profile-options';
+import type { SocialLinkPlatform } from '@/lib/connection/bloom-profile-options';
+import type { CreateEventInput } from '@/lib/connection/data';
+import { deleteProfilePhotoFile, uploadProfilePhoto } from '@/lib/connection/profile-photo-storage';
 import type {
   ConnectionEvent,
   ConnectionMember,
   EventApplication,
   MemberGroupingProfile,
   MemberProfilePhoto,
+  MemberSocialLink,
   PersonalityProfile,
   ProfilePhotoCategory,
   ProfileValues,
   TrustVerificationStatus,
   VerificationSource,
 } from '@/lib/connection/types';
-import type { CreateEventInput } from '@/lib/connection/data';
-import { deleteProfilePhotoFile, uploadProfilePhoto } from '@/lib/connection/profile-photo-storage';
 
 // --- low-level clients --------------------------------------------------
 
@@ -76,13 +79,44 @@ async function photosForMembers(memberIds: string[]): Promise<Map<string, Member
   return map;
 }
 
-function memberFromRow(row: MemberRow, photos: MemberProfilePhoto[] = []): ConnectionMember {
+function socialLinkFromRow(row: Record<string, unknown>): MemberSocialLink {
+  return {
+    id: String(row.id),
+    memberId: String(row.member_id),
+    platform: row.platform as SocialLinkPlatform,
+    url: String(row.url ?? ''),
+  };
+}
+
+async function socialLinksForMembers(memberIds: string[]): Promise<Map<string, MemberSocialLink[]>> {
+  const map = new Map<string, MemberSocialLink[]>();
+  if (memberIds.length === 0) return map;
+  const sb = await db();
+  if (!sb) return map;
+  const { data } = await sb.from('hanakai_member_social_links').select('*').in('member_id', memberIds);
+  for (const row of data ?? []) {
+    const link = socialLinkFromRow(row);
+    const list = map.get(link.memberId) ?? [];
+    list.push(link);
+    map.set(link.memberId, list);
+  }
+  return map;
+}
+
+function memberFromRow(
+  row: MemberRow,
+  photos: MemberProfilePhoto[] = [],
+  socialLinks: MemberSocialLink[] = [],
+): ConnectionMember {
   const sorted = [...photos].sort((a, b) => a.sortOrder - b.sortOrder);
   const mainUrl = sorted[0]?.url || (row.avatar_url ?? '');
+  const age = row.age ?? 0;
+  const ageBand = (row.age_band as ConnectionMember['ageBand']) || inferAgeBandFromAge(age) || '';
   return {
     id: row.id,
     nickname: row.nickname ?? '',
-    age: row.age ?? 0,
+    age,
+    ageBand,
     gender: (row.gender ?? 'other') as ConnectionMember['gender'],
     area: row.area ?? '',
     occupation: row.occupation ?? '',
@@ -94,6 +128,8 @@ function memberFromRow(row: MemberRow, photos: MemberProfilePhoto[] = []): Conne
     interestTags: row.interest_tags ?? [],
     lifePhase: row.life_phase ?? 'other',
     personality: (row.personality ?? null) as PersonalityProfile | null,
+    mbtiType: (row.mbti_type as ConnectionMember['mbtiType']) ?? '',
+    socialLinks,
     hostBadges: row.host_badges ?? [],
     trustVerificationStatus: row.trust_verification_status ?? 'pending',
     identityVerified: row.identity_verified ?? false,
@@ -171,8 +207,11 @@ export async function listMembers(): Promise<ConnectionMember[]> {
   if (!sb) return [];
   const { data } = await sb.from('hanakai_members').select('*');
   const rows = data ?? [];
-  const photoMap = await photosForMembers(rows.map((r) => r.id as string));
-  return rows.map((r) => memberFromRow(r, photoMap.get(r.id as string) ?? []));
+  const ids = rows.map((r) => r.id as string);
+  const [photoMap, socialMap] = await Promise.all([photosForMembers(ids), socialLinksForMembers(ids)]);
+  return rows.map((r) =>
+    memberFromRow(r, photoMap.get(r.id as string) ?? [], socialMap.get(r.id as string) ?? []),
+  );
 }
 
 export async function getMember(id: string): Promise<ConnectionMember | null> {
@@ -180,8 +219,8 @@ export async function getMember(id: string): Promise<ConnectionMember | null> {
   if (!sb) return null;
   const { data } = await sb.from('hanakai_members').select('*').eq('id', id).maybeSingle();
   if (!data) return null;
-  const photoMap = await photosForMembers([id]);
-  return memberFromRow(data, photoMap.get(id) ?? []);
+  const [photoMap, socialMap] = await Promise.all([photosForMembers([id]), socialLinksForMembers([id])]);
+  return memberFromRow(data, photoMap.get(id) ?? [], socialMap.get(id) ?? []);
 }
 
 export async function listEvents(): Promise<ConnectionEvent[]> {
@@ -361,6 +400,7 @@ function toMemberUpdate(patch: MemberPatch): Record<string, any> {
   const out: Record<string, any> = {};
   if (patch.nickname !== undefined) out.nickname = patch.nickname;
   if (patch.age !== undefined) out.age = patch.age;
+  if (patch.ageBand !== undefined) out.age_band = patch.ageBand || null;
   if (patch.gender !== undefined) out.gender = patch.gender;
   if (patch.area !== undefined) out.area = patch.area;
   if (patch.occupation !== undefined) out.occupation = patch.occupation;
@@ -371,6 +411,7 @@ function toMemberUpdate(patch: MemberPatch): Record<string, any> {
   if (patch.interestTags !== undefined) out.interest_tags = patch.interestTags;
   if (patch.lifePhase !== undefined) out.life_phase = patch.lifePhase;
   if (patch.personality !== undefined) out.personality = patch.personality;
+  if (patch.mbtiType !== undefined) out.mbti_type = patch.mbtiType || null;
   if (patch.hostBadges !== undefined) out.host_badges = patch.hostBadges;
   if (patch.trustVerificationStatus !== undefined) out.trust_verification_status = patch.trustVerificationStatus;
   if (patch.identityVerified !== undefined) out.identity_verified = patch.identityVerified;
@@ -392,8 +433,46 @@ export async function updateMember(id: string, patch: MemberPatch): Promise<Conn
   if (Object.keys(update).length === 0) return getMember(id);
   const { data } = await sb.from('hanakai_members').update(update).eq('id', id).select('*').maybeSingle();
   if (!data) return null;
-  const photoMap = await photosForMembers([id]);
-  return memberFromRow(data, photoMap.get(id) ?? []);
+  const [photoMap, socialMap] = await Promise.all([photosForMembers([id]), socialLinksForMembers([id])]);
+  return memberFromRow(data, photoMap.get(id) ?? [], socialMap.get(id) ?? []);
+}
+
+export async function saveMemberSocialLinks(
+  memberId: string,
+  links: { platform: SocialLinkPlatform; url: string }[],
+): Promise<void> {
+  const sb = await db();
+  if (!sb) return;
+
+  const trimmed = links
+    .map((l) => ({ platform: l.platform, url: l.url.trim() }))
+    .filter((l) => l.url.length > 0);
+
+  const { data: existing } = await sb
+    .from('hanakai_member_social_links')
+    .select('platform')
+    .eq('member_id', memberId);
+
+  const keepPlatforms = new Set(trimmed.map((l) => l.platform));
+  const toDelete = (existing ?? [])
+    .map((r) => String(r.platform))
+    .filter((p) => !keepPlatforms.has(p as SocialLinkPlatform));
+
+  for (const platform of toDelete) {
+    await sb.from('hanakai_member_social_links').delete().eq('member_id', memberId).eq('platform', platform);
+  }
+
+  for (const link of trimmed) {
+    await sb.from('hanakai_member_social_links').upsert(
+      {
+        member_id: memberId,
+        platform: link.platform,
+        url: link.url,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'member_id,platform' },
+    );
+  }
 }
 
 export async function saveMemberPersonality(id: string, personality: PersonalityProfile) {

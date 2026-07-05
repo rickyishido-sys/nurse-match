@@ -87,13 +87,48 @@ export default async function HanakaiAdminMemberDetailPage({ params }: PageProps
             </div>
           </Section>
 
-          <Section title='プロフィール情報'>
+          <Section title='Bloom Profile 情報'>
             <dl className='space-y-4'>
               <Field label='自己紹介' value={detail.bio} />
               <Field label='Connection目的' value={detail.purposeLabels.join('、')} />
-              <Field label='興味関心タグ' value={detail.interestLabels.join('、')} />
+              <Field label='趣味・興味タグ' value={detail.interestLabels.join('、')} />
               <Field label='価値観タグ' value={detail.valueTagLabels.join('、')} />
-              <Field label='性格タイプ' value={detail.personalityLabel} />
+              <Field
+                label='MBTI / 16タイプ'
+                value={detail.mbtiLabel ?? (detail.mbtiType === 'unknown' ? 'わからない / あとで入力' : null)}
+              />
+              <div>
+                <dt className='text-[11px] text-[#9a9a9a]'>SNS URL</dt>
+                <dd className='mt-1 space-y-1.5'>
+                  {detail.socialLinks.length === 0 ? (
+                    <span className='text-sm text-[#9a9a9a]'>未入力</span>
+                  ) : (
+                    detail.socialLinks.map((link) => (
+                      <div key={link.platform} className='text-sm'>
+                        <span className='text-[#6b6b6b]'>{link.platformLabel}: </span>
+                        <a
+                          href={link.url}
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className='text-[#1f5d4f] underline-offset-2 hover:underline break-all'
+                        >
+                          {link.url}
+                        </a>
+                      </div>
+                    ))
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className='text-[11px] text-[#9a9a9a]'>AI分析</dt>
+                <dd className='mt-0.5 text-sm text-[#9a9a9a]'>今後追加予定</dd>
+              </div>
+            </dl>
+          </Section>
+
+          <Section title='その他プロフィール'>
+            <dl className='space-y-4'>
+              <Field label='性格タイプ（従来）' value={detail.personalityLabel} />
               <Field label='希望するConnection' value={detail.desiredConnection} />
               <Field label='配慮事項・安全フラグ' value={detail.considerations} />
             </dl>

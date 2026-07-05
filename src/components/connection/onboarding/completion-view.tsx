@@ -69,13 +69,13 @@ export function CompletionView({
           </motion.h1>
 
           <motion.p className='mt-5 text-[15px] leading-8' style={{ color: ONB.subtle }} {...fadeUp(0.55)}>
-            {nickname ? `${nickname}さん、` : ''}HANAKAIでは、プロフィールだけで人を判断しません。
+            {nickname ? `${nickname}さん、` : ''}Bloom Profile の基本情報を保存しました。
             <br />
-            あなたの価値観、興味、今の状態をもとに、運営が丁寧にConnectionを設計します。
+            体験やConnectionを通じて、あなたらしいプロフィールが少しずつ育っていきます。
           </motion.p>
 
           <motion.p className='mt-4 text-sm leading-7' style={{ color: ONB.subtle }} {...fadeUp(0.65)}>
-            これから始まる新しい体験をお楽しみください。
+            SNSや性格タイプは、あとからいつでも追加・編集できます。
           </motion.p>
 
           {personality ? (

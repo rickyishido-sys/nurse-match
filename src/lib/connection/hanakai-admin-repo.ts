@@ -11,6 +11,7 @@ import {
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { PERSONALITY_TYPE_META } from '@/lib/connection/personality';
+import { MBTI_LABEL, SOCIAL_PLATFORM_LABEL } from '@/lib/connection/bloom-profile-options';
 import type {
   AdminApplicationRow,
   AdminEventRow,
@@ -618,6 +619,16 @@ export async function getHanakaiAdminMemberDetail(memberId: string): Promise<Adm
   const personalityType = member.personality?.type ?? null;
   const personalityLabel = personalityType ? (PERSONALITY_TYPE_META[personalityType]?.label ?? personalityType) : null;
 
+  const mbtiType = member.mbtiType || null;
+  const mbtiLabel =
+    mbtiType && mbtiType !== 'unknown' ? (MBTI_LABEL[mbtiType as keyof typeof MBTI_LABEL] ?? mbtiType) : null;
+
+  const socialLinks = member.socialLinks.map((link) => ({
+    platform: link.platform,
+    platformLabel: SOCIAL_PLATFORM_LABEL[link.platform] ?? link.platform,
+    url: link.url,
+  }));
+
   const purposeLabels = member.purposes.map((p) => PURPOSE_LABEL[p] ?? p);
   const interestLabels = member.interestTags.map((t) => INTEREST_TAG_LABEL[t as InterestTag] ?? t);
   const valueTagLabels = (member.values.valueTags ?? []).map((t) => VALUE_TAG_LABEL[t as ValueTag] ?? t);
@@ -673,6 +684,10 @@ export async function getHanakaiAdminMemberDetail(memberId: string): Promise<Adm
     valueTagLabels,
     personalityType,
     personalityLabel,
+    mbtiType,
+    mbtiLabel,
+    socialLinks,
+    bloomAiAnalysisPhase: 'planned',
     deepAnswers,
     desiredConnection: purposeLabels.join('、') || '',
     considerations,
