@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createConnectionEventAction } from '@/lib/connection/actions';
+import { uploadEventImagesClient } from '@/lib/connection/upload-event-images-client';
 
 type CategoryOption = { value: string; label: string; emoji: string };
 
@@ -24,12 +25,35 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [images, setImages] = useState<{ file: File; url: string }[]>([]);
   const [imageError, setImageError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
-  // 並び替え・削除のたびに、実際に送信される <input type=file> の files を同期する。
-  function syncInput(next: { file: File; url: string }[]) {
-    const dt = new DataTransfer();
-    next.forEach((item) => dt.items.add(item.file));
-    if (fileInputRef.current) fileInputRef.current.files = dt.files;
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSubmitError('');
+    setSubmitting(true);
+    try {
+      const form = e.currentTarget;
+      const formData = new FormData(form);
+      const files = images.map((item) => item.file);
+      const imageUrls = files.length > 0 ? await uploadEventImagesClient(files) : [];
+      formData.set('imageUrls', JSON.stringify(imageUrls));
+      await createConnectionEventAction(formData);
+    } catch (err) {
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'digest' in err &&
+        typeof (err as { digest?: string }).digest === 'string' &&
+        (err as { digest: string }).digest.startsWith('NEXT_REDIRECT;')
+      ) {
+        throw err;
+      }
+      const message = err instanceof Error ? err.message : 'イベントの公開に失敗しました。';
+      setSubmitError(message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function addFiles(fileList: FileList | null) {
@@ -50,9 +74,7 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
     setImages((prev) => {
       const room = MAX_IMAGES - prev.length;
       if (accepted.length > room) err = `写真は最大${MAX_IMAGES}枚までです。`;
-      const next = [...prev, ...accepted.slice(0, Math.max(0, room))];
-      syncInput(next);
-      return next;
+      return [...prev, ...accepted.slice(0, Math.max(0, room))];
     });
     setImageError(err);
   }
@@ -61,9 +83,7 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
     setImages((prev) => {
       const target = prev[index];
       if (target) URL.revokeObjectURL(target.url);
-      const next = prev.filter((_, i) => i !== index);
-      syncInput(next);
-      return next;
+      return prev.filter((_, i) => i !== index);
     });
     setImageError('');
   }
@@ -74,7 +94,6 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
       if (j < 0 || j >= prev.length) return prev;
       const next = [...prev];
       [next[index], next[j]] = [next[j], next[index]];
-      syncInput(next);
       return next;
     });
   }
@@ -88,7 +107,7 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
   }, []);
 
   return (
-    <form action={createConnectionEventAction} className='space-y-7'>
+    <form onSubmit={handleSubmit} className='space-y-7'>
       <input type='hidden' name='category' value={category} />
       <input type='hidden' name='approvalMode' value={approvalMode} />
 
@@ -231,7 +250,6 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
           <input
             ref={fileInputRef}
             type='file'
-            name='images'
             accept='image/jpeg,image/png,image/webp'
             multiple
             className='hidden'
@@ -349,11 +367,15 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
 
       <button
         type='submit'
-        className='w-full rounded-full py-4 text-sm font-semibold text-white shadow-sm transition active:scale-[0.98]'
+        disabled={submitting}
+        className='w-full rounded-full py-4 text-sm font-semibold text-white shadow-sm transition active:scale-[0.98] disabled:opacity-60'
         style={{ backgroundColor: ACCENT }}
       >
-        この内容でイベントを公開する
+        {submitting ? '公開しています…' : 'この内容でイベントを公開する'}
       </button>
+      {submitError ? (
+        <p className='text-center text-xs text-[#c0526b]'>{submitError}</p>
+      ) : null}
       <p className='text-center text-xs leading-6 text-[#9a9a9a]'>
         HANAKAIは「人を集める場」ではなく、
         <br />

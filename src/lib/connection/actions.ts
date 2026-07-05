@@ -74,6 +74,16 @@ function isNextRedirect(error: unknown): boolean {
   );
 }
 
+function parseImageUrlsField(raw: string): string[] {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((u): u is string => typeof u === 'string' && u.length > 0);
+  } catch {
+    return [];
+  }
+}
+
 function logCreateEventError(error: unknown, context?: Record<string, unknown>) {
   console.error('CONNECTION_EVENT_CREATE_ERROR', error, context ?? {});
   if (error instanceof Error) {
@@ -107,6 +117,7 @@ export async function createConnectionEventAction(formData: FormData) {
     const capacity = Math.max(2, Math.min(50, Number(formData.get('capacity')) || 6));
     const fee = Math.max(0, Number(formData.get('fee')) || 0);
     const conditions = String(formData.get('conditions') ?? '').trim();
+    const imageUrlsFromClient = parseImageUrlsField(String(formData.get('imageUrls') ?? '[]'));
     const imageFiles = formData.getAll('images').filter((v): v is File => v instanceof File);
     const approvalMode = (String(formData.get('approvalMode') ?? 'host_approval') === 'auto'
       ? 'auto'
@@ -117,6 +128,7 @@ export async function createConnectionEventAction(formData: FormData) {
       category,
       startAt: startAt || null,
       areaLength: area.length,
+      imageUrlCount: imageUrlsFromClient.length,
       imageFileCount: imageFiles.length,
       approvalMode,
     });
@@ -138,8 +150,14 @@ export async function createConnectionEventAction(formData: FormData) {
     }
     console.log('CONNECTION_EVENT_CREATE_2_MEMBER_OK', { hostId });
 
-    console.log('CONNECTION_EVENT_CREATE_5_IMAGE_START', { fileCount: imageFiles.length });
-    const imageUrls = imageFiles.length > 0 ? await uploadEventImages(imageFiles) : [];
+    console.log('CONNECTION_EVENT_CREATE_5_IMAGE_START', {
+      clientUrlCount: imageUrlsFromClient.length,
+      fileCount: imageFiles.length,
+    });
+    let imageUrls = imageUrlsFromClient;
+    if (imageUrls.length === 0 && imageFiles.length > 0) {
+      imageUrls = await uploadEventImages(imageFiles);
+    }
     console.log('CONNECTION_EVENT_CREATE_6_IMAGE_DONE', { uploadedCount: imageUrls.length });
 
     console.log('CONNECTION_EVENT_CREATE_7_DB_INSERT_START', { hostId, category });
@@ -163,6 +181,7 @@ export async function createConnectionEventAction(formData: FormData) {
     console.log('CONNECTION_EVENT_CREATE', { id: event.id, title, category, approvalMode, images: imageUrls.length });
     revalidatePath('/events');
     revalidatePath('/home');
+    revalidatePath('/admin/hanakai/events');
     console.log('CONNECTION_EVENT_CREATE_9_REDIRECT', { eventId: event.id });
     redirect(`/events/${event.id}?created=1`);
   } catch (error) {
