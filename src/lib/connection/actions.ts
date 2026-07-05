@@ -64,54 +64,112 @@ const VALID_CATEGORIES: ConnectionEventCategory[] = [
   'other',
 ];
 
-export async function createConnectionEventAction(formData: FormData) {
-  const title = String(formData.get('title') ?? '').trim();
-  const rawCategory = String(formData.get('category') ?? 'other');
-  const category = (VALID_CATEGORIES.includes(rawCategory as ConnectionEventCategory)
-    ? rawCategory
-    : 'other') as ConnectionEventCategory;
-  const description = String(formData.get('description') ?? '').trim();
-  const startAt = String(formData.get('startAt') ?? '').trim();
-  const area = String(formData.get('area') ?? '').trim();
-  const venue = String(formData.get('venue') ?? '').trim();
-  const capacity = Math.max(2, Math.min(50, Number(formData.get('capacity')) || 6));
-  const fee = Math.max(0, Number(formData.get('fee')) || 0);
-  const conditions = String(formData.get('conditions') ?? '').trim();
-  const imageFiles = formData.getAll('images').filter((v): v is File => v instanceof File);
-  const approvalMode = (String(formData.get('approvalMode') ?? 'host_approval') === 'auto'
-    ? 'auto'
-    : 'host_approval') as EventApprovalMode;
+function isNextRedirect(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'digest' in error &&
+    typeof (error as { digest?: string }).digest === 'string' &&
+    (error as { digest: string }).digest.startsWith('NEXT_REDIRECT;')
+  );
+}
 
-  if (!title || !startAt || !area) {
-    redirect('/events/create?error=required');
+function logCreateEventError(error: unknown, context?: Record<string, unknown>) {
+  console.error('CONNECTION_EVENT_CREATE_ERROR', error, context ?? {});
+  if (error instanceof Error) {
+    console.error('CONNECTION_EVENT_CREATE_ERROR_MESSAGE', error.message);
+    console.error('CONNECTION_EVENT_CREATE_ERROR_STACK', error.stack);
   }
+  if (typeof error === 'object' && error !== null && ('code' in error || 'details' in error)) {
+    const supa = error as { message?: string; code?: string; details?: string; hint?: string };
+    console.error('CONNECTION_EVENT_CREATE_ERROR_SUPABASE', {
+      message: supa.message ?? null,
+      code: supa.code ?? null,
+      details: supa.details ?? null,
+      hint: supa.hint ?? null,
+    });
+  }
+}
 
-  const hostId = await ensureViewerMemberId();
-  if (!hostId) redirect('/login?next=/events/create');
+export async function createConnectionEventAction(formData: FormData) {
+  try {
+    console.log('CONNECTION_EVENT_CREATE_1_START');
 
-  // 匿名サインイン後のセッションでアップロードできるため、メンバー確定後に実行する。
-  const imageUrls = imageFiles.length > 0 ? await uploadEventImages(imageFiles) : [];
+    const title = String(formData.get('title') ?? '').trim();
+    const rawCategory = String(formData.get('category') ?? 'other');
+    const category = (VALID_CATEGORIES.includes(rawCategory as ConnectionEventCategory)
+      ? rawCategory
+      : 'other') as ConnectionEventCategory;
+    const description = String(formData.get('description') ?? '').trim();
+    const startAt = String(formData.get('startAt') ?? '').trim();
+    const area = String(formData.get('area') ?? '').trim();
+    const venue = String(formData.get('venue') ?? '').trim();
+    const capacity = Math.max(2, Math.min(50, Number(formData.get('capacity')) || 6));
+    const fee = Math.max(0, Number(formData.get('fee')) || 0);
+    const conditions = String(formData.get('conditions') ?? '').trim();
+    const imageFiles = formData.getAll('images').filter((v): v is File => v instanceof File);
+    const approvalMode = (String(formData.get('approvalMode') ?? 'host_approval') === 'auto'
+      ? 'auto'
+      : 'host_approval') as EventApprovalMode;
 
-  const event = await createEvent({
-    title,
-    category,
-    description,
-    startAt,
-    area,
-    venue,
-    capacity,
-    fee,
-    coverUrl: '',
-    conditions,
-    approvalMode,
-    hostId,
-    imageUrls,
-  });
+    console.log('CONNECTION_EVENT_CREATE_3_FORMDATA_OK', {
+      titleLength: title.length,
+      category,
+      startAt: startAt || null,
+      areaLength: area.length,
+      imageFileCount: imageFiles.length,
+      approvalMode,
+    });
 
-  console.log('CONNECTION_EVENT_CREATE', { id: event.id, title, category, approvalMode, images: imageUrls.length });
-  revalidatePath('/events');
-  revalidatePath('/home');
-  redirect(`/events/${event.id}?created=1`);
+    if (!title || !startAt || !area) {
+      console.error('CONNECTION_EVENT_CREATE_VALIDATION_FAIL', {
+        hasTitle: Boolean(title),
+        hasStartAt: Boolean(startAt),
+        hasArea: Boolean(area),
+      });
+      redirect('/events/create?error=required');
+    }
+    console.log('CONNECTION_EVENT_CREATE_4_VALIDATION_OK');
+
+    const hostId = await ensureViewerMemberId();
+    if (!hostId) {
+      console.log('CONNECTION_EVENT_CREATE_2_MEMBER_FAIL');
+      redirect('/login?next=/events/create');
+    }
+    console.log('CONNECTION_EVENT_CREATE_2_MEMBER_OK', { hostId });
+
+    console.log('CONNECTION_EVENT_CREATE_5_IMAGE_START', { fileCount: imageFiles.length });
+    const imageUrls = imageFiles.length > 0 ? await uploadEventImages(imageFiles) : [];
+    console.log('CONNECTION_EVENT_CREATE_6_IMAGE_DONE', { uploadedCount: imageUrls.length });
+
+    console.log('CONNECTION_EVENT_CREATE_7_DB_INSERT_START', { hostId, category });
+    const event = await createEvent({
+      title,
+      category,
+      description,
+      startAt,
+      area,
+      venue,
+      capacity,
+      fee,
+      coverUrl: '',
+      conditions,
+      approvalMode,
+      hostId,
+      imageUrls,
+    });
+    console.log('CONNECTION_EVENT_CREATE_8_DB_INSERT_DONE', { eventId: event.id });
+
+    console.log('CONNECTION_EVENT_CREATE', { id: event.id, title, category, approvalMode, images: imageUrls.length });
+    revalidatePath('/events');
+    revalidatePath('/home');
+    console.log('CONNECTION_EVENT_CREATE_9_REDIRECT', { eventId: event.id });
+    redirect(`/events/${event.id}?created=1`);
+  } catch (error) {
+    if (isNextRedirect(error)) throw error;
+    logCreateEventError(error);
+    throw error;
+  }
 }
 
 export async function applyConnectionEventAction(formData: FormData) {
