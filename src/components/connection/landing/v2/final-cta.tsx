@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
 
-export function LandingFinalCta() {
+export function LandingFinalCta({ joinHref = '/register/continue' }: { joinHref?: string }) {
   return (
     <section className='relative flex min-h-[78svh] items-center justify-center overflow-hidden'>
       <div className='absolute inset-0'>
@@ -36,7 +36,7 @@ export function LandingFinalCta() {
             イベントを探す
           </Link>
           <Link
-            href='/register'
+            href={joinHref}
             className='flex h-12 flex-1 items-center justify-center rounded-full bg-[#1f5d4f] px-6 text-sm font-semibold text-white shadow-lg transition active:scale-[0.98]'
           >
             今すぐ始める

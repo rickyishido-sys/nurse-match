@@ -3,7 +3,15 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-export function LandingNav({ loggedIn = false }: { loggedIn?: boolean }) {
+export function LandingNav({
+  loggedIn = false,
+  profileComplete = false,
+  joinHref = '/register/continue',
+}: {
+  loggedIn?: boolean;
+  profileComplete?: boolean;
+  joinHref?: string;
+}) {
   const [solid, setSolid] = useState(false);
 
   useEffect(() => {
@@ -49,10 +57,10 @@ export function LandingNav({ loggedIn = false }: { loggedIn?: boolean }) {
             イベントを見る
           </Link>
           <Link
-            href={loggedIn ? '/home' : '/register'}
+            href={joinHref}
             className='flex h-9 items-center rounded-full bg-[#1f5d4f] px-4 text-xs font-semibold text-white shadow-sm transition active:scale-[0.97]'
           >
-            {loggedIn ? 'マイページ' : '参加する'}
+            {!loggedIn ? '参加する' : profileComplete ? 'マイページ' : 'プロフィール入力'}
           </Link>
         </nav>
       </div>

@@ -112,7 +112,7 @@ function HeroBackground({ videoSrc, poster }: { videoSrc?: string; poster?: stri
   );
 }
 
-export function LandingHeroV2({ videoSrc }: { videoSrc?: string }) {
+export function LandingHeroV2({ videoSrc, joinHref = '/register/continue' }: { videoSrc?: string; joinHref?: string }) {
   return (
     <section className='relative flex min-h-[100svh] items-center justify-center overflow-hidden'>
       <HeroBackground videoSrc={videoSrc} />
@@ -162,7 +162,7 @@ export function LandingHeroV2({ videoSrc }: { videoSrc?: string }) {
             イベントを見る
           </Link>
           <Link
-            href='/register'
+            href={joinHref}
             className='flex h-12 flex-1 items-center justify-center rounded-full border border-white/70 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/15 active:scale-[0.98]'
           >
             コミュニティに参加する

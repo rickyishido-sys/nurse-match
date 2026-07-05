@@ -1,5 +1,10 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { RegisterEmailForm } from '@/components/register-email-form';
+import { HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
+import { ensureHanakaiMemberForAuthUser } from '@/lib/connection/identity';
+import { getHanakaiRegistrationStatus, resolveJoinHref } from '@/lib/connection/registration-status';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 type RegisterPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -50,12 +55,34 @@ function resolveRegisterErrorMessage(error: string, detail: string) {
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const params = searchParams ? await searchParams : {};
+
+  if (HANAKAI_CONNECTION_BACKEND === 'supabase') {
+    const supabase = await createServerSupabaseClient();
+    if (supabase) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        await ensureHanakaiMemberForAuthUser(user.id, {
+          email: user.email,
+          nickname: (user.user_metadata?.nickname as string | undefined) ?? null,
+        });
+      }
+    }
+  }
+
+  const registration = await getHanakaiRegistrationStatus();
+  if (registration.isAuthenticated) {
+    redirect(resolveJoinHref(registration));
+  }
+
   const sent = pickFirst(params.sent);
   const error = pickFirst(params.error);
   const detail = safeDecode(pickFirst(params.detail));
   const sentEmail = safeDecode(pickFirst(params.sentEmail));
   const burst = true;
   const legacyFlow = pickFirst(params.legacy) === '1';
+  const hint = pickFirst(params.hint);
   const errorMessage = resolveRegisterErrorMessage(error, detail);
 
   return (
@@ -72,8 +99,14 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
           {sent === '1' ? (
             <p className='mb-4 rounded-2xl border border-[#d8e2d3] bg-[#eef4ea] px-4 py-3 text-xs leading-5 text-[#4f7a4a]'>
-              認証メールを送信しました。メール内の「Sign in」を押してください。
+              認証メールを送信しました。メール内のリンクを開くと、プロフィール入力画面へ進みます。
               {sentEmail ? <span className='mt-1 block break-all text-[11px]'>送信先: {sentEmail}</span> : null}
+            </p>
+          ) : null}
+          {hint === 'auth-required' ? (
+            <p className='mb-4 rounded-2xl border border-[#ebe9e4] bg-[#fbfaf7] px-4 py-3 text-xs leading-5 text-[#6b6b6b]'>
+              プロフィール入力にはメール認証が必要です。下のフォームから認証リンクを送信するか、
+              届いたメールのリンクを再度開いてください。
             </p>
           ) : null}
           {errorMessage ? (
@@ -89,11 +122,19 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
           <RegisterEmailForm sent={sent === '1'} allowBurst={burst} legacyFlow={legacyFlow} />
 
-          <div className='mt-5 text-center text-xs text-slate-600'>
-            登録済みの方はこちら{' '}
-            <Link href='/login' className='font-medium text-slate-700 underline underline-offset-2'>
-              ログイン
-            </Link>
+          <div className='mt-5 space-y-2 text-center text-xs text-slate-600'>
+            <p>
+              メール認証済みの方は{' '}
+              <Link href='/register/continue' className='font-medium text-[#1f5d4f] underline underline-offset-2'>
+                プロフィール入力へ
+              </Link>
+            </p>
+            <p>
+              パスワードでログインする方は{' '}
+              <Link href='/login' className='font-medium text-slate-700 underline underline-offset-2'>
+                ログイン
+              </Link>
+            </p>
           </div>
           <div className='mt-3 flex items-center justify-center gap-3 text-[11px] text-slate-500'>
             <Link href='/terms' className='underline underline-offset-2'>利用規約</Link>

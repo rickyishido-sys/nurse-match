@@ -12,18 +12,22 @@ import { LandingVoices } from '@/components/connection/landing/v2/voices';
 import { LandingGallery } from '@/components/connection/landing/v2/gallery';
 import { LandingFaq } from '@/components/connection/landing/v2/faq';
 import { LandingFinalCta } from '@/components/connection/landing/v2/final-cta';
-import { getHanakaiViewer } from '@/lib/hanakai/session';
+import { getHanakaiRegistrationStatus, resolveJoinHref } from '@/lib/connection/registration-status';
 
 export default async function LandingPage() {
-  const viewer = await getHanakaiViewer();
-  const loggedIn = !!viewer;
+  const registration = await getHanakaiRegistrationStatus();
+  const joinHref = resolveJoinHref(registration);
 
   return (
     <div className='min-h-screen bg-[#faf7f2] text-[#1a1a1a]'>
-      <LandingNav loggedIn={loggedIn} />
+      <LandingNav
+        loggedIn={registration.isAuthenticated}
+        profileComplete={registration.profileComplete}
+        joinHref={joinHref}
+      />
 
       <main>
-        <LandingHeroV2 />
+        <LandingHeroV2 joinHref={joinHref} />
         <LandingAbout />
         <LandingCycle />
         <LandingThemes />
@@ -34,7 +38,7 @@ export default async function LandingPage() {
         <LandingVoices />
         <LandingGallery />
         <LandingFaq />
-        <LandingFinalCta />
+        <LandingFinalCta joinHref={joinHref} />
       </main>
 
       <footer className='bg-[#163f35] px-6 py-14 text-center text-white'>
@@ -50,7 +54,7 @@ export default async function LandingPage() {
             <Link href='/events' className='underline-offset-4 hover:underline'>
               イベント
             </Link>
-            <Link href='/register' className='underline-offset-4 hover:underline'>
+            <Link href='/register/continue' className='underline-offset-4 hover:underline'>
               参加登録
             </Link>
             <Link href='/terms' className='underline-offset-4 hover:underline'>

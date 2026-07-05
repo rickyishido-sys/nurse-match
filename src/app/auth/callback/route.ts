@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
 
-const AUTH_COMPLETE_ALLOWED_NEXT = new Set(['/register/profile', '/register/details']);
+const AUTH_COMPLETE_ALLOWED_NEXT = new Set(['/register/profile', '/register/details', '/register/continue']);
 
 function resolveSafeNext(nextRaw: string | null): string {
   if (nextRaw && nextRaw.startsWith('/') && AUTH_COMPLETE_ALLOWED_NEXT.has(nextRaw)) {

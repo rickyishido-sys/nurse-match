@@ -29,6 +29,8 @@ import {
 } from '@/lib/data';
 import { USE_MOCK_DATA, HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
 import { ensureHanakaiMemberForAuthUser } from '@/lib/connection/identity';
+import { getMember } from '@/lib/connection/repo';
+import { isHanakaiProfileComplete } from '@/lib/connection/registration-status';
 import {
   getUserByEmail,
   listProfileImages,
@@ -358,7 +360,11 @@ export async function loginAction(formData: FormData) {
         nickname: (authUser.user_metadata?.nickname as string | undefined) ?? null,
       });
       if (memberId) {
+        const member = await getMember(memberId);
         console.log('LOGIN_CONNECTION_ONLY', { email, userId: authUser.id, memberId });
+        if (!isHanakaiProfileComplete(member)) {
+          redirect('/register/profile');
+        }
         redirect(nextPath ?? '/home');
       }
     }

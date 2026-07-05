@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Noto_Sans_JP, Noto_Serif_JP } from 'next/font/google';
+import { AuthEntryBridge } from '@/components/connection/auth-entry-bridge';
 import { SITE_URL } from '@/lib/config';
 import './globals.css';
 
@@ -83,7 +84,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang='ja' className={`${noto.variable} ${notoSerif.variable} h-full`}>
-      <body className='min-h-full font-sans text-slate-900'>{children}</body>
+      <body className='min-h-full font-sans text-slate-900'>
+        <AuthEntryBridge />
+        {children}
+      </body>
     </html>
   );
 }
