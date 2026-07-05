@@ -23,6 +23,15 @@ const ADMIN_BYPASS_PATHS = ['/register', '/preview', '/onboarding-preview', '/pe
 const MEMBER_ONLY_PATH_PREFIXES = ['/app', '/cards', '/mypage', '/messages', '/discover', '/likes', '/matches', '/chat', '/chats'];
 // HANAKAI community browse routes are public (browse-before-join experience).
 const HANAKAI_PUBLIC_PREFIXES = ['/home', '/events', '/connections', '/groups', '/manage', '/admin/connection', '/register/profile', '/my-profile'];
+// 認証必須のイベント導線（/events は公開のまま、作成・管理のみ保護）
+const HANAKAI_AUTH_REQUIRED_EVENT_PATHS = ['/events/create', '/events/manage'];
+
+function isHanakaiPublicPath(pathname: string): boolean {
+  if (HANAKAI_AUTH_REQUIRED_EVENT_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
+    return false;
+  }
+  return HANAKAI_PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
 
 function isAdminRole(role: string | undefined) {
   return role === 'female_admin' || role === 'male_admin' || role === 'super_admin';
@@ -55,7 +64,7 @@ export async function middleware(request: NextRequest) {
 
   if (
     PUBLIC_PATHS.some((path) => pathname === path) ||
-    HANAKAI_PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) ||
+    isHanakaiPublicPath(pathname) ||
     pathname.startsWith('/register/') ||
     pathname.startsWith('/debug') ||
     pathname.startsWith('/auth') ||
@@ -130,7 +139,11 @@ export async function middleware(request: NextRequest) {
   const loginRedirect = isHanakaiAdminPath(pathname) ? '/login' : isAdminPath ? '/admin/login' : '/login';
   if (!data.user) {
     console.log('MIDDLEWARE_REDIRECT_LOGIN', { pathname, redirectReason: 'no-auth-user' });
-    return NextResponse.redirect(new URL(loginRedirect, request.url));
+    const redirectUrl = new URL(loginRedirect, request.url);
+    if (pathname === '/events/create' || pathname.startsWith('/events/manage/')) {
+      redirectUrl.searchParams.set('next', pathname);
+    }
+    return NextResponse.redirect(redirectUrl);
   }
 
   console.log('MIDDLEWARE_AUTH_USER', {

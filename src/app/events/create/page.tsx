@@ -65,6 +65,8 @@ export default async function CreateEventPage({ searchParams }: PageProps) {
         );
       }
 
+      // /events は middleware 公開のため、ここでセッション更新を試みる
+      await supabase.auth.getSession();
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -74,6 +76,7 @@ export default async function CreateEventPage({ searchParams }: PageProps) {
       });
 
       if (!user) {
+        console.log('EVENT_CREATE_2_SESSION_NO_USER_REDIRECT');
         redirect('/login?next=/events/create');
       }
 

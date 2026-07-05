@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { ConnectionPageError } from '@/components/connection/connection-page-error';
+import { logCreateEventClientError } from '@/lib/connection/client-error-log';
 
 export default function CreateEventError({
   error,
@@ -13,6 +14,10 @@ export default function CreateEventError({
 }) {
   useEffect(() => {
     console.error('EVENTS_CREATE_PAGE_ERROR', {
+      message: error.message,
+      digest: error.digest ?? null,
+    });
+    void logCreateEventClientError({
       message: error.message,
       digest: error.digest ?? null,
     });
