@@ -31,7 +31,7 @@ function SubmitButton({ cooldownRemaining }: { cooldownRemaining: number }) {
 type RegisterEmailFormProps = {
   sent: boolean;
   allowBurst?: boolean;
-  /** Nurse Match Legacy: OTP 後に /register/details へ */
+  /** HANAKAI Connection Legacy: OTP 後に /register/details へ */
   legacyFlow?: boolean;
 };
 

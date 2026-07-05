@@ -45,16 +45,16 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [
-      { url: '/favicon.ico?v=4', sizes: 'any' },
-      { url: '/icon.png?v=4', type: 'image/png' },
+      { url: '/favicon.ico?v=5', sizes: 'any' },
+      { url: '/icon.png?v=5', type: 'image/png', sizes: '512x512' },
     ],
-    shortcut: [{ url: '/favicon.ico?v=4', sizes: 'any' }],
-    apple: [{ url: '/apple-touch-icon.png?v=4', sizes: '180x180', type: 'image/png' }],
+    shortcut: [{ url: '/favicon.ico?v=5', sizes: 'any' }],
+    apple: [{ url: '/apple-touch-icon.png?v=5', sizes: '180x180', type: 'image/png' }],
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'HANAKAI Connection',
+    title: 'HANAKAI',
   },
   formatDetection: {
     telephone: false,
@@ -73,7 +73,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
-  themeColor: '#1a1a1a',
+  themeColor: '#2F6F62',
 };
 
 export default function RootLayout({
