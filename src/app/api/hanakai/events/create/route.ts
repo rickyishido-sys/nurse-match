@@ -34,8 +34,33 @@ type CreateEventBody = {
   imageUrls?: string[];
 };
 
+type SupabaseErrorLike = {
+  message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+};
+
 function jsonError(message: string, status: number, code?: string) {
   return NextResponse.json({ ok: false, error: message, code: code ?? null }, { status });
+}
+
+function logApiEventCreateError(error: unknown) {
+  const supa: SupabaseErrorLike =
+    typeof error === 'object' && error !== null
+      ? (error as SupabaseErrorLike)
+      : { message: String(error) };
+
+  console.error('HANAKAI_API_EVENT_CREATE_ERROR', {
+    message: error instanceof Error ? error.message : supa.message ?? String(error),
+    stack: error instanceof Error ? error.stack ?? null : null,
+    supabase: {
+      code: supa.code ?? null,
+      message: supa.message ?? null,
+      details: supa.details ?? null,
+      hint: supa.hint ?? null,
+    },
+  });
 }
 
 export async function POST(request: Request) {
@@ -43,7 +68,7 @@ export async function POST(request: Request) {
   try {
     const supabase = await createServerSupabaseClient();
     if (!supabase) {
-      console.error('HANAKAI_API_EVENT_CREATE_FAIL', { reason: 'supabase_client_null' });
+      logApiEventCreateError({ message: 'supabase_client_null', code: 'CONFIG' });
       return jsonError('データベース接続の設定が見つかりませんでした。', 500, 'CONFIG');
     }
 
@@ -51,19 +76,31 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      console.log('HANAKAI_API_EVENT_CREATE_2_AUTH_FAIL');
+      console.log('HANAKAI_API_EVENT_CREATE_2_SESSION_FAIL');
       return jsonError('ログインが必要です。', 401, 'UNAUTHORIZED');
     }
-    console.log('HANAKAI_API_EVENT_CREATE_2_AUTH_OK', { userId: user.id });
+    console.log('HANAKAI_API_EVENT_CREATE_2_SESSION_OK', {
+      userId: user.id,
+      email: user.email ?? null,
+    });
+
+    const memberId = await ensureHanakaiMemberForAuthUser(user.id, {
+      email: user.email,
+      nickname: (user.user_metadata?.nickname as string | undefined) ?? null,
+    });
+    if (!memberId) {
+      console.log('HANAKAI_API_EVENT_CREATE_3_MEMBER_FAIL', { userId: user.id });
+      return jsonError('会員プロフィールの準備ができていません。登録を完了してから再度お試しください。', 403, 'NO_MEMBER');
+    }
+    console.log('HANAKAI_API_EVENT_CREATE_3_MEMBER_OK', { memberId });
 
     let body: CreateEventBody;
     try {
       body = (await request.json()) as CreateEventBody;
-    } catch {
-      console.error('HANAKAI_API_EVENT_CREATE_FAIL', { reason: 'invalid_json' });
+    } catch (parseError) {
+      logApiEventCreateError(parseError);
       return jsonError('送信データの形式が正しくありません。', 400, 'INVALID_JSON');
     }
-    console.log('HANAKAI_API_EVENT_CREATE_3_BODY_OK');
 
     const title = String(body.title ?? '').trim();
     const rawCategory = String(body.category ?? 'other');
@@ -83,26 +120,23 @@ export async function POST(request: Request) {
       : [];
 
     if (!title || !startAt || !area) {
-      console.error('HANAKAI_API_EVENT_CREATE_VALIDATION_FAIL', {
+      console.error('HANAKAI_API_EVENT_CREATE_4_VALIDATE_FAIL', {
         hasTitle: Boolean(title),
         hasStartAt: Boolean(startAt),
         hasArea: Boolean(area),
       });
       return jsonError('イベント名・開催日時・エリアは必須です。', 400, 'VALIDATION');
     }
-    console.log('HANAKAI_API_EVENT_CREATE_4_VALIDATION_OK', { imageUrlCount: imageUrls.length });
-
-    const memberId = await ensureHanakaiMemberForAuthUser(user.id, {
-      email: user.email,
-      nickname: (user.user_metadata?.nickname as string | undefined) ?? null,
+    console.log('HANAKAI_API_EVENT_CREATE_4_VALIDATE_OK', {
+      titleLength: title.length,
+      category,
+      startAt,
+      areaLength: area.length,
+      imageUrlCount: imageUrls.length,
+      approvalMode,
     });
-    if (!memberId) {
-      console.log('HANAKAI_API_EVENT_CREATE_5_MEMBER_FAIL', { userId: user.id });
-      return jsonError('会員プロフィールの準備ができていません。登録を完了してから再度お試しください。', 403, 'NO_MEMBER');
-    }
-    console.log('HANAKAI_API_EVENT_CREATE_5_MEMBER_OK', { memberId });
 
-    console.log('HANAKAI_API_EVENT_CREATE_6_DB_INSERT_START');
+    console.log('HANAKAI_API_EVENT_CREATE_5_DB_INSERT_START', { memberId, category });
     const event = await createEvent({
       title,
       category,
@@ -118,10 +152,10 @@ export async function POST(request: Request) {
       hostId: memberId,
       imageUrls,
     });
-    console.log('HANAKAI_API_EVENT_CREATE_7_DB_INSERT_DONE', { eventId: event.id });
+    console.log('HANAKAI_API_EVENT_CREATE_6_DB_INSERT_DONE', { eventId: event.id });
 
     if (event.id.startsWith('ue_')) {
-      console.error('HANAKAI_API_EVENT_CREATE_FAIL', { reason: 'insert_fallback_id', eventId: event.id });
+      logApiEventCreateError({ message: 'insert_fallback_id', code: 'DB_INSERT', details: event.id });
       return jsonError('イベントの保存に失敗しました。時間をおいて再度お試しください。', 500, 'DB_INSERT');
     }
 
@@ -129,27 +163,13 @@ export async function POST(request: Request) {
     revalidatePath('/home');
     revalidatePath('/admin/hanakai/events');
 
-    console.log('HANAKAI_API_EVENT_CREATE_8_OK', { eventId: event.id });
+    console.log('HANAKAI_API_EVENT_CREATE_7_SUCCESS', { eventId: event.id });
     return NextResponse.json({ ok: true, eventId: event.id });
   } catch (error) {
-    console.error('HANAKAI_API_EVENT_CREATE_ERROR', error);
-    if (error instanceof Error) {
-      console.error('HANAKAI_API_EVENT_CREATE_ERROR_MESSAGE', error.message);
-      console.error('HANAKAI_API_EVENT_CREATE_ERROR_STACK', error.stack);
-    }
-    if (typeof error === 'object' && error !== null && ('code' in error || 'details' in error)) {
-      const supa = error as { message?: string; code?: string; details?: string; hint?: string };
-      console.error('HANAKAI_API_EVENT_CREATE_ERROR_SUPABASE', {
-        message: supa.message ?? null,
-        code: supa.code ?? null,
-        details: supa.details ?? null,
-        hint: supa.hint ?? null,
-      });
-      return jsonError(
-        supa.message ?? 'イベントの保存に失敗しました。',
-        500,
-        supa.code ?? 'DB_ERROR',
-      );
+    logApiEventCreateError(error);
+    if (typeof error === 'object' && error !== null && ('code' in error || 'message' in error)) {
+      const supa = error as SupabaseErrorLike;
+      return jsonError(supa.message ?? 'イベントの保存に失敗しました。', 500, supa.code ?? 'DB_ERROR');
     }
     return jsonError('イベントの公開中に問題が発生しました。', 500, 'UNKNOWN');
   }

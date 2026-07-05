@@ -59,15 +59,26 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
         body: JSON.stringify(payload),
       });
 
+      const responseText = await res.text();
       let data: { ok?: boolean; eventId?: string; error?: string; code?: string } = {};
       try {
-        data = (await res.json()) as typeof data;
-      } catch {
+        data = responseText ? (JSON.parse(responseText) as typeof data) : {};
+      } catch (parseError) {
+        console.error('HANAKAI_API_EVENT_CREATE_FETCH_ERROR', parseError);
+        console.error('HANAKAI_API_EVENT_CREATE_FETCH_STATUS', res.status);
+        console.error('HANAKAI_API_EVENT_CREATE_FETCH_BODY', responseText);
         setSubmitError('サーバーからの応答を読み取れませんでした。時間をおいて再度お試しください。');
         return;
       }
 
       if (!res.ok || !data.ok || !data.eventId) {
+        console.error('HANAKAI_API_EVENT_CREATE_FETCH_ERROR', {
+          status: res.status,
+          code: data.code ?? null,
+          error: data.error ?? null,
+        });
+        console.error('HANAKAI_API_EVENT_CREATE_FETCH_STATUS', res.status);
+        console.error('HANAKAI_API_EVENT_CREATE_FETCH_BODY', responseText);
         if (data.code === 'UNAUTHORIZED') {
           router.push('/login?next=/events/create');
           return;
@@ -82,6 +93,7 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
 
       router.push(`/events/${data.eventId}?created=1`);
     } catch (err) {
+      console.error('HANAKAI_API_EVENT_CREATE_FETCH_ERROR', err);
       const message = err instanceof Error ? err.message : 'イベントの公開に失敗しました。';
       setSubmitError(message);
     } finally {
