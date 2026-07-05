@@ -25,7 +25,7 @@ export default async function RegisterProfilePage({ searchParams }: PageProps) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      redirect('/register?hint=auth-required');
+      redirect('/register');
     }
 
     await ensureHanakaiMemberForAuthUser(user.id, {

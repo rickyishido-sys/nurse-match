@@ -33,7 +33,7 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
                 <Link href='/login' className='rounded-full border border-[#d8d6d1] px-3 py-1.5 text-xs font-medium text-[#6b6b6b]'>
                   ログイン
                 </Link>
-                <Link href='/register/continue' className='rounded-full bg-[#1f5d4f] px-3 py-1.5 text-xs font-medium text-white'>
+                <Link href='/register' className='rounded-full bg-[#1f5d4f] px-3 py-1.5 text-xs font-medium text-white'>
                   参加登録する
                 </Link>
               </>

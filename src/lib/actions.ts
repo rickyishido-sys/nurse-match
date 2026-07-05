@@ -695,10 +695,9 @@ export async function requestRegisterVerificationAction(formData: FormData) {
     const siteUrl = resolvePublicSiteUrl();
     const redirectBase = siteUrl ?? requestOrigin;
     const legacyFlow = String(formData.get('legacyFlow') ?? '') === '1';
-    const postAuthPath = legacyFlow ? '/register/details' : '/register/profile';
     const emailRedirectTo = redirectBase
       ? legacyFlow
-        ? `${redirectBase}/auth/callback?next=${encodeURIComponent(postAuthPath)}`
+        ? `${redirectBase}/auth/callback?next=${encodeURIComponent('/register/details')}`
         : hanakaiEmailRedirectUrl(redirectBase)
       : undefined;
 

@@ -112,7 +112,7 @@ function HeroBackground({ videoSrc, poster }: { videoSrc?: string; poster?: stri
   );
 }
 
-export function LandingHeroV2({ videoSrc, joinHref = '/register/continue' }: { videoSrc?: string; joinHref?: string }) {
+export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?: string; joinHref?: string }) {
   return (
     <section className='relative flex min-h-[100svh] items-center justify-center overflow-hidden'>
       <HeroBackground videoSrc={videoSrc} />

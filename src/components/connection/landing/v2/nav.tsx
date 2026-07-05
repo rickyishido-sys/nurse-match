@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 export function LandingNav({
   loggedIn = false,
   profileComplete = false,
-  joinHref = '/register/continue',
+  joinHref = '/register',
 }: {
   loggedIn?: boolean;
   profileComplete?: boolean;

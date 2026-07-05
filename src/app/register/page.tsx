@@ -26,7 +26,7 @@ function safeDecode(value: string) {
 
 function resolveRegisterErrorMessage(error: string, detail: string) {
   if (error === 'duplicate-email') {
-    return 'このメールアドレスはすでに登録されています。ログインしてください。';
+    return 'このメールアドレスはすでに登録されています。届いた認証メールのリンクから続けてください。';
   }
   if (error === 'email-required') {
     return 'メールアドレスを入力してください。';
@@ -82,7 +82,6 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   const sentEmail = safeDecode(pickFirst(params.sentEmail));
   const burst = true;
   const legacyFlow = pickFirst(params.legacy) === '1';
-  const hint = pickFirst(params.hint);
   const errorMessage = resolveRegisterErrorMessage(error, detail);
 
   return (
@@ -103,40 +102,15 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
               {sentEmail ? <span className='mt-1 block break-all text-[11px]'>送信先: {sentEmail}</span> : null}
             </p>
           ) : null}
-          {hint === 'auth-required' ? (
-            <p className='mb-4 rounded-2xl border border-[#ebe9e4] bg-[#fbfaf7] px-4 py-3 text-xs leading-5 text-[#6b6b6b]'>
-              プロフィール入力にはメール認証が必要です。下のフォームから認証リンクを送信するか、
-              届いたメールのリンクを再度開いてください。
-            </p>
-          ) : null}
           {errorMessage ? (
             <div className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
               <p>{errorMessage}</p>
-              {error === 'duplicate-email' ? (
-                <Link href='/login' className='mt-1 inline-block font-semibold underline underline-offset-2'>
-                  ログインする
-                </Link>
-              ) : null}
             </div>
           ) : null}
 
           <RegisterEmailForm sent={sent === '1'} allowBurst={burst} legacyFlow={legacyFlow} />
 
-          <div className='mt-5 space-y-2 text-center text-xs text-slate-600'>
-            <p>
-              メール認証済みの方は{' '}
-              <Link href='/register/continue' className='font-medium text-[#1f5d4f] underline underline-offset-2'>
-                プロフィール入力へ
-              </Link>
-            </p>
-            <p>
-              パスワードでログインする方は{' '}
-              <Link href='/login' className='font-medium text-slate-700 underline underline-offset-2'>
-                ログイン
-              </Link>
-            </p>
-          </div>
-          <div className='mt-3 flex items-center justify-center gap-3 text-[11px] text-slate-500'>
+          <div className='mt-5 flex items-center justify-center gap-3 text-[11px] text-slate-500'>
             <Link href='/terms' className='underline underline-offset-2'>利用規約</Link>
             <Link href='/privacy' className='underline underline-offset-2'>プライバシー</Link>
           </div>

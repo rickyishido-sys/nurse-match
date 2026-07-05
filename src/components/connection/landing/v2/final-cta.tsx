@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
 
-export function LandingFinalCta({ joinHref = '/register/continue' }: { joinHref?: string }) {
+export function LandingFinalCta({ joinHref = '/register' }: { joinHref?: string }) {
   return (
     <section className='relative flex min-h-[78svh] items-center justify-center overflow-hidden'>
       <div className='absolute inset-0'>

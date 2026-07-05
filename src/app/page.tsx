@@ -54,7 +54,7 @@ export default async function LandingPage() {
             <Link href='/events' className='underline-offset-4 hover:underline'>
               イベント
             </Link>
-            <Link href='/register/continue' className='underline-offset-4 hover:underline'>
+            <Link href='/register' className='underline-offset-4 hover:underline'>
               参加登録
             </Link>
             <Link href='/terms' className='underline-offset-4 hover:underline'>

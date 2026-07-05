@@ -1,10 +1,7 @@
 'use server';
 
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { SITE_URL } from '@/lib/config';
-import { hanakaiEmailRedirectUrl } from '@/lib/connection/auth-redirect';
 import {
   applyToEvent,
   confirmMemberForEvent,
@@ -530,36 +527,4 @@ export async function updateTrustVerificationAction(formData: FormData) {
   revalidatePath('/manage');
   revalidatePath('/register/profile');
   redirect(`/manage?event=${eventId}&trustUpdated=${memberId}`);
-}
-
-/** メール認証リンクでログイン（パスワード不要・Connection 向け） */
-export async function requestConnectionMagicLinkAction(formData: FormData) {
-  const email = String(formData.get('email') ?? '').trim().toLowerCase();
-  if (!email) redirect('/login?error=email-required');
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseAnonKey) {
-    redirect('/login?error=config');
-  }
-
-  const otpClient = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-  });
-
-  const emailRedirectTo = hanakaiEmailRedirectUrl(SITE_URL);
-  const { error } = await otpClient.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo,
-      shouldCreateUser: true,
-    },
-  });
-
-  if (error) {
-    console.error('CONNECTION_MAGIC_LINK_ERROR', { email, message: error.message });
-    redirect('/login?error=magic-link-failed');
-  }
-
-  redirect(`/login?magic=sent&sentEmail=${encodeURIComponent(email)}`);
 }

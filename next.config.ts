@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '55mb',
     },
   },
+  async redirects() {
+    return [
+      { source: '/register/continue', destination: '/register', permanent: false },
+      { source: '/auth/complete', destination: '/register/profile', permanent: false },
+    ];
+  },
   images: {
     remotePatterns: [
       {

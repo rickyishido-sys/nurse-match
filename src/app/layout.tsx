@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 import { Noto_Sans_JP, Noto_Serif_JP } from 'next/font/google';
-import { AuthEntryBridge } from '@/components/connection/auth-entry-bridge';
 import { SITE_URL } from '@/lib/config';
 import './globals.css';
 
@@ -77,6 +76,9 @@ export const viewport: Viewport = {
   themeColor: '#2F6F62',
 };
 
+/** Site URL 着地の auth パラメータを /auth/callback へ即時転送（トップを経由させない） */
+const AUTH_HASH_REDIRECT_SCRIPT = `(function(){try{var p=location.pathname,s=location.search,h=location.hash;if(p==='/auth/callback')return;if(s&&(s.indexOf('code=')>-1||s.indexOf('token_hash=')>-1)){location.replace('/auth/callback'+s);return}if(h&&(/access_token|refresh_token/.test(h))){location.replace('/auth/callback'+h)}}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -84,8 +86,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang='ja' className={`${noto.variable} ${notoSerif.variable} h-full`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: AUTH_HASH_REDIRECT_SCRIPT }} />
+      </head>
       <body className='min-h-full font-sans text-slate-900'>
-        <AuthEntryBridge />
         {children}
       </body>
     </html>
