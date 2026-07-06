@@ -320,52 +320,60 @@ export async function saveProfileAction(formData: FormData) {
   const ageBand = String(formData.get('ageBand') ?? '').trim();
   if (!ageBand) redirect('/register/profile?error=ageBand');
 
-  const identityFile = formData.get('identityDocument');
-  if (!(identityFile instanceof File) || identityFile.size <= 0) {
-    redirect('/register/profile?error=identity');
-  }
-
   const authUserId = await getAuthenticatedAuthUserId();
   if (!authUserId) redirect('/register?hint=auth-required');
 
-  let identityUrl: string | null = null;
-  try {
-    identityUrl = await uploadDocument(identityFile, authUserId, 'identity');
-  } catch (error) {
-    console.error('CONNECTION_IDENTITY_UPLOAD_ERROR', { authUserId, error: String(error) });
-    redirect('/register/profile?error=identity-upload');
-  }
-  if (!identityUrl) redirect('/register/profile?error=identity');
+  const identityFile = formData.get('identityDocument');
+  const hasIdentityFile = identityFile instanceof File && identityFile.size > 0;
 
-  const adminSupabase = createAdminSupabaseClient();
-  const dbClient = adminSupabase ?? (await createServerSupabaseClient());
-  if (dbClient) {
-    const { data: existingIdentity } = await dbClient
-      .from('identity_documents')
-      .select('id')
-      .eq('user_id', authUserId)
-      .maybeSingle();
-    if (existingIdentity?.id) {
-      await dbClient
-        .from('identity_documents')
-        .update({ document_url: identityUrl, status: 'pending' })
-        .eq('id', existingIdentity.id);
-    } else {
-      await dbClient.from('identity_documents').insert({
-        user_id: authUserId,
-        document_url: identityUrl,
-        status: 'pending',
-      });
+  let identityUrl: string | null = null;
+  let documentUploadStatus: 'none' | 'pending' = 'none';
+
+  if (hasIdentityFile) {
+    try {
+      identityUrl = await uploadDocument(identityFile, authUserId, 'identity');
+      if (identityUrl) {
+        documentUploadStatus = 'pending';
+        const adminSupabase = createAdminSupabaseClient();
+        const dbClient = adminSupabase ?? (await createServerSupabaseClient());
+        if (dbClient) {
+          const { data: existingIdentity } = await dbClient
+            .from('identity_documents')
+            .select('id')
+            .eq('user_id', authUserId)
+            .maybeSingle();
+          if (existingIdentity?.id) {
+            await dbClient
+              .from('identity_documents')
+              .update({ document_url: identityUrl, status: 'pending' })
+              .eq('id', existingIdentity.id);
+          } else {
+            await dbClient.from('identity_documents').insert({
+              user_id: authUserId,
+              document_url: identityUrl,
+              status: 'pending',
+            });
+          }
+        }
+      } else {
+        console.warn('CONNECTION_IDENTITY_UPLOAD_SKIPPED', { authUserId, reason: 'empty_url' });
+      }
+    } catch (error) {
+      console.error('CONNECTION_IDENTITY_UPLOAD_ERROR', { authUserId, error: String(error) });
+      // 初回登録は本人確認書類なし・アップロード失敗でも完了させる
     }
   }
 
-  await updateMember(memberId, {
-    trustVerificationStatus: 'pending' as TrustVerificationStatus,
-    verificationSource: 'id_only' as VerificationSource,
-    identityVerified: false,
-    trustNotes: identityUrl ? `identity:${identityUrl}` : null,
-    identityVerificationMethod: 'manual_document',
-  });
+  const trustPatch: Partial<import('@/lib/connection/types').ConnectionMember> = {
+    documentUploadStatus,
+  };
+  if (identityUrl) {
+    trustPatch.trustVerificationStatus = 'pending' as TrustVerificationStatus;
+    trustPatch.verificationSource = 'id_only' as VerificationSource;
+    trustPatch.identityVerified = false;
+    trustPatch.trustNotes = `identity:${identityUrl}`;
+    trustPatch.identityVerificationMethod = 'manual_document';
+  }
 
   const purposes = formData.getAll('purposes') as ConnectionPurpose[];
   const interestTags = formData.getAll('interestTags') as InterestTag[];
@@ -383,6 +391,7 @@ export async function saveProfileAction(formData: FormData) {
   const mbtiRaw = String(formData.get('mbtiType') ?? '').trim();
 
   await updateMember(memberId, {
+    ...trustPatch,
     nickname,
     age: ageFromBand,
     ageBand: ageBand as import('@/lib/connection/bloom-profile-options').AgeBand,
@@ -437,6 +446,8 @@ export async function saveProfileAction(formData: FormData) {
     lifePhase,
     mbtiType: mbtiRaw,
     personalityType,
+    documentUploadStatus,
+    identityUploaded: Boolean(identityUrl),
   });
   await persistProfilePhotos(memberId, formData);
   revalidatePath('/register/profile');

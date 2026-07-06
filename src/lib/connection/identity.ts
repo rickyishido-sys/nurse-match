@@ -32,10 +32,9 @@ async function findMemberIdByAuthUser(authUserId: string): Promise<string | null
   return data?.id ?? null;
 }
 
-function fallbackNickname(email: string | null | undefined, metadataNickname?: string | null): string {
+function fallbackNickname(metadataNickname?: string | null): string {
   if (metadataNickname?.trim()) return metadataNickname.trim();
-  if (email?.trim()) return email.split('@')[0] ?? 'ゲスト';
-  return 'ゲスト';
+  return '';
 }
 
 /**
@@ -55,7 +54,7 @@ export async function ensureHanakaiMemberForAuthUser(
     const sb = await createServerSupabaseClient();
     if (!sb) return null;
 
-    const nickname = fallbackNickname(options?.email, options?.nickname);
+    const nickname = fallbackNickname(options?.nickname);
     const { data, error } = await sb
       .from('hanakai_members')
       .insert({

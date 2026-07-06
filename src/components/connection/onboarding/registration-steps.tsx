@@ -165,10 +165,10 @@ export function IdentityDocumentStep({
         index={index}
         art={art}
         title='本人確認書類をアップロードしてください'
-        subtitle='必須 · 運転免許証・マイナンバーカード・パスポートなど'
+        subtitle='任意 · 運転免許証・マイナンバーカード・パスポートなど'
       />
       <p className='mt-4 text-[14px] leading-7' style={{ color: ONB.subtle }}>
-        なりすまし防止のため、本人確認書類の提出をお願いしています。提出いただいた書類は運営が確認し、審査完了後に本人確認済みバッジが付与されます。
+        任意の提出です。書類をアップロードいただくと運営が確認し、審査完了後に本人確認済みバッジが付与されます。後からマイページでも提出できます。
       </p>
       <div className='mt-6'>
         <input

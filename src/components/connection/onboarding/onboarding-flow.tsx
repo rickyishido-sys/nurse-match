@@ -49,6 +49,18 @@ const GENDER_OPTIONS: Option<'male' | 'female' | 'other'>[] = [
   { value: 'other', label: 'その他 / 回答しない' },
 ];
 
+function initialDisplayNickname(member?: ConnectionMember | null): string {
+  const nickname = member?.nickname?.trim() ?? '';
+  if (!nickname) return '';
+  const profileStarted =
+    member?.gender === 'male' ||
+    member?.gender === 'female' ||
+    member?.gender === 'other' ||
+    Boolean(member?.area?.trim()) ||
+    Boolean(member?.ageBand);
+  return profileStarted ? nickname : '';
+}
+
 function toggle<T>(list: T[], value: T): T[] {
   if (list.includes(value)) return list.filter((v) => v !== value);
   return [...list, value];
@@ -98,7 +110,7 @@ export function OnboardingFlow({
   const [identityFile, setIdentityFile] = useState<File | null>(null);
   const identityFileName = identityFile?.name ?? '';
 
-  const [nickname, setNickname] = useState(member?.nickname ?? '');
+  const [nickname, setNickname] = useState(() => initialDisplayNickname(member));
   const [ageBand, setAgeBand] = useState<string>(
     member?.ageBand || (member?.age ? inferAgeBandFromAge(member.age) : '') || '',
   );
@@ -171,11 +183,11 @@ export function OnboardingFlow({
       case 'area':
         return area !== '';
       case 'identity':
-        return identityFileName.length > 0;
+        return true;
       default:
         return true;
     }
-  }, [step, passwordDone, nickname, gender, ageBand, area, identityFileName]);
+  }, [step, passwordDone, nickname, gender, ageBand, area]);
 
   function goTo(next: OnboardingStepId) {
     setStep(next);
@@ -408,11 +420,6 @@ export function OnboardingFlow({
         {error === 'ageBand' ? (
           <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
             年齢層を選択してください。
-          </p>
-        ) : null}
-        {error === 'identity' || error === 'identity-upload' ? (
-          <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
-            本人確認書類をアップロードしてください。
           </p>
         ) : null}
 
