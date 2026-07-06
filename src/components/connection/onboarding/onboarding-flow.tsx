@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { saveProfileAction } from '@/lib/connection/actions';
 import {
@@ -66,10 +66,34 @@ const STEP_ART: Record<number, string> = {
   11: '/flow/matching.png',
 };
 
-export function OnboardingFlow({ error, member }: { error?: string; member?: ConnectionMember | null }) {
+const STEP_STORAGE_KEY = 'hanakai:onboarding-step';
+const PASSWORD_STORAGE_KEY = 'hanakai:password-set';
+
+function readStoredStep(): number | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(STEP_STORAGE_KEY);
+    if (!raw) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= 0 && n <= QUESTION_COUNT ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+export function OnboardingFlow({
+  error,
+  member,
+  hasPasswordSet = false,
+}: {
+  error?: string;
+  member?: ConnectionMember | null;
+  hasPasswordSet?: boolean;
+}) {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
-  const [passwordSet, setPasswordSet] = useState(false);
+  const [passwordSet, setPasswordSet] = useState(hasPasswordSet);
+  const [hydrated, setHydrated] = useState(false);
   const [identityFile, setIdentityFile] = useState<File | null>(null);
   const identityFileName = identityFile?.name ?? '';
 
@@ -94,6 +118,35 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
   const [purposes, setPurposes] = useState<ConnectionPurpose[]>(
     (member?.purposes ?? []).filter((p) => DESIRED_CONNECTION_OPTIONS.some((o) => o.value === p)),
   );
+
+  useEffect(() => {
+    const storedStep = readStoredStep();
+    const storedPassword = sessionStorage.getItem(PASSWORD_STORAGE_KEY) === '1';
+    if (storedPassword || hasPasswordSet) setPasswordSet(true);
+    if (storedStep !== null && storedStep > 0) {
+      setStep(storedStep);
+    }
+    setHydrated(true);
+  }, [hasPasswordSet]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      sessionStorage.setItem(STEP_STORAGE_KEY, String(step));
+    } catch {
+      // noop
+    }
+  }, [step, hydrated]);
+
+  useEffect(() => {
+    if (passwordSet) {
+      try {
+        sessionStorage.setItem(PASSWORD_STORAGE_KEY, '1');
+      } catch {
+        // noop
+      }
+    }
+  }, [passwordSet]);
 
   const isLast = step === QUESTION_COUNT;
   const isPasswordStep = step === 1;
@@ -121,7 +174,11 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
 
   function next() {
     setDirection(1);
-    setStep((s) => Math.min(QUESTION_COUNT, s + 1));
+    setStep((s) => {
+      let n = Math.min(QUESTION_COUNT, s + 1);
+      if (n === 1 && (passwordSet || hasPasswordSet)) n = 2;
+      return n;
+    });
   }
   function back() {
     setDirection(-1);
@@ -169,7 +226,8 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
             art={STEP_ART[1]}
             onComplete={() => {
               setPasswordSet(true);
-              next();
+              setDirection(1);
+              setStep(2);
             }}
           />
         );
@@ -279,6 +337,12 @@ export function OnboardingFlow({ error, member }: { error?: string; member?: Con
     <form
       action={async (formData) => {
         if (identityFile) formData.set('identityDocument', identityFile);
+        try {
+          sessionStorage.removeItem(STEP_STORAGE_KEY);
+          sessionStorage.removeItem(PASSWORD_STORAGE_KEY);
+        } catch {
+          // noop
+        }
         await saveProfileAction(formData);
       }}
     >

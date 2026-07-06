@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { setRegistrationPasswordAction } from '@/lib/connection/actions';
 import { ONB, StepHeading } from './onboarding-ui';
 
@@ -20,11 +20,16 @@ export function PasswordStep({
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [pending, startTransition] = useTransition();
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  useEffect(() => {
+    console.log('BLOOM_PASSWORD_STEP_START');
+  }, []);
+
+  function handleNext() {
     setError('');
+    setSuccess('');
     if (password.length < 8) {
       setError('パスワードは8文字以上で入力してください。');
       return;
@@ -39,21 +44,30 @@ export function PasswordStep({
     startTransition(async () => {
       const result = await setRegistrationPasswordAction(fd);
       if (result?.error) {
-        setError(
+        const message =
           result.error === 'mismatch'
             ? 'パスワードが一致しません。'
             : result.error === 'short'
               ? 'パスワードは8文字以上で入力してください。'
-              : 'パスワードの設定に失敗しました。もう一度お試しください。',
-        );
+              : result.detail
+                ? `パスワードの設定に失敗しました: ${result.detail}`
+                : 'パスワードの設定に失敗しました。もう一度お試しください。';
+        setError(message);
         return;
+      }
+      setSuccess('パスワードを設定しました。');
+      console.log('BLOOM_PASSWORD_STEP_NEXT');
+      try {
+        sessionStorage.setItem('hanakai:password-set', '1');
+      } catch {
+        // noop
       }
       onComplete();
     });
   }
 
   return (
-    <form onSubmit={handleSubmit} className='flex flex-1 flex-col'>
+    <div className='flex flex-1 flex-col'>
       <StepHeading
         index={index}
         art={art}
@@ -94,16 +108,20 @@ export function PasswordStep({
         {error ? (
           <p className='rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>{error}</p>
         ) : null}
+        {success ? (
+          <p className='rounded-2xl border border-[#d8e2d3] bg-[#eef4ea] px-4 py-3 text-xs text-[#4f7a4a]'>{success}</p>
+        ) : null}
       </div>
       <button
-        type='submit'
+        type='button'
         disabled={pending}
+        onClick={handleNext}
         className='mt-auto rounded-2xl px-4 py-3.5 text-sm font-semibold text-white transition disabled:opacity-60'
         style={{ backgroundColor: ONB.accent }}
       >
         {pending ? '設定中…' : '次へ'}
       </button>
-    </form>
+    </div>
   );
 }
 

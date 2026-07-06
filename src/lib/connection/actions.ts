@@ -264,27 +264,43 @@ export async function sendMessageAction(formData: FormData) {
 }
 
 export async function setRegistrationPasswordAction(formData: FormData) {
+  console.log('BLOOM_PASSWORD_UPDATE_START');
   const password = String(formData.get('password') ?? '');
   const confirm = String(formData.get('confirmPassword') ?? '');
 
-  if (password.length < 8) return { error: 'short' as const };
-  if (password !== confirm) return { error: 'mismatch' as const };
+  if (password.length < 8) {
+    console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: 'password_too_short' });
+    return { error: 'short' as const };
+  }
+  if (password !== confirm) {
+    console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: 'password_mismatch' });
+    return { error: 'mismatch' as const };
+  }
 
   const supabase = await createServerSupabaseClient();
-  if (!supabase) return { error: 'config' as const };
+  if (!supabase) {
+    console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: 'missing_supabase_client' });
+    return { error: 'config' as const };
+  }
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: 'auth' as const };
-
-  const { error } = await supabase.auth.updateUser({ password });
-  if (error) {
-    console.error('REGISTRATION_PASSWORD_SET_ERROR', { message: error.message, userId: user.id });
-    return { error: 'failed' as const };
+  if (!user) {
+    console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: 'auth_user_missing' });
+    return { error: 'auth' as const };
   }
 
-  console.log('REGISTRATION_PASSWORD_SET', { userId: user.id });
+  const { error } = await supabase.auth.updateUser({
+    password,
+    data: { hanakai_password_set: true },
+  });
+  if (error) {
+    console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: error.message, userId: user.id });
+    return { error: 'failed' as const, detail: error.message };
+  }
+
+  console.log('BLOOM_PASSWORD_UPDATE_SUCCESS', { userId: user.id });
   return { ok: true as const };
 }
 

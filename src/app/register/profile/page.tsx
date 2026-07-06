@@ -17,6 +17,8 @@ export default async function RegisterProfilePage({ searchParams }: PageProps) {
   const sp = searchParams ? await searchParams : {};
   const error = pickFirst(sp.error);
 
+  let hasPasswordSet = false;
+
   if (HANAKAI_CONNECTION_BACKEND === 'supabase') {
     const supabase = await createServerSupabaseClient();
     if (!supabase) redirect('/register?error=config');
@@ -27,6 +29,8 @@ export default async function RegisterProfilePage({ searchParams }: PageProps) {
     if (!user) {
       redirect('/register');
     }
+
+    hasPasswordSet = Boolean(user.user_metadata?.hanakai_password_set);
 
     await ensureHanakaiMemberForAuthUser(user.id, {
       email: user.email,
@@ -42,5 +46,5 @@ export default async function RegisterProfilePage({ searchParams }: PageProps) {
     redirect('/register/complete');
   }
 
-  return <OnboardingFlow error={error || undefined} member={member} />;
+  return <OnboardingFlow error={error || undefined} member={member} hasPasswordSet={hasPasswordSet} />;
 }
