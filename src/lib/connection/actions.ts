@@ -19,6 +19,7 @@ import { TEMPERAMENT_OPTIONS } from '@/lib/connection/onboarding-options';
 import { uploadEventImages } from '@/lib/connection/storage';
 import { uploadDocument } from '@/lib/upload';
 import { ensureViewerMemberId, getAuthenticatedAuthUserId } from '@/lib/connection/identity';
+import { requireHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import type {
@@ -248,6 +249,7 @@ export async function rejectApplicationAction(formData: FormData) {
 }
 
 export async function confirmMemberAction(formData: FormData) {
+  await requireHanakaiAdminAccess('/manage');
   const eventId = String(formData.get('eventId') ?? '');
   const memberId = String(formData.get('memberId') ?? '');
   console.log('CONNECTION_CONFIRM', { eventId, memberId });
@@ -257,6 +259,7 @@ export async function confirmMemberAction(formData: FormData) {
 }
 
 export async function removeMemberAction(formData: FormData) {
+  await requireHanakaiAdminAccess('/manage');
   const eventId = String(formData.get('eventId') ?? '');
   const memberId = String(formData.get('memberId') ?? '');
   console.log('CONNECTION_REMOVE', { eventId, memberId });
@@ -550,6 +553,7 @@ export async function savePersonalityAction(formData: FormData) {
 }
 
 export async function updateTrustVerificationAction(formData: FormData) {
+  await requireHanakaiAdminAccess('/manage');
   const memberId = String(formData.get('memberId') ?? '');
   const eventId = String(formData.get('eventId') ?? '');
   const trustVerificationStatus = String(formData.get('trustVerificationStatus') ?? 'pending') as TrustVerificationStatus;

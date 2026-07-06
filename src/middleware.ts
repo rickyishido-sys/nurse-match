@@ -22,7 +22,7 @@ const PUBLIC_PATHS = [
 const ADMIN_BYPASS_PATHS = ['/register', '/preview', '/onboarding-preview', '/pending-review'];
 const MEMBER_ONLY_PATH_PREFIXES = ['/app', '/cards', '/mypage', '/messages', '/discover', '/likes', '/matches', '/chat', '/chats'];
 // HANAKAI community browse routes are public (browse-before-join experience).
-const HANAKAI_PUBLIC_PREFIXES = ['/home', '/events', '/connections', '/groups', '/manage', '/admin/connection', '/register/profile', '/my-profile'];
+const HANAKAI_PUBLIC_PREFIXES = ['/home', '/events', '/connections', '/groups', '/admin/connection', '/register/profile', '/my-profile'];
 // 認証必須のイベント導線（/events は公開のまま、作成・管理のみ保護）
 const HANAKAI_AUTH_REQUIRED_EVENT_PATHS = ['/events/create', '/events/manage'];
 
@@ -88,7 +88,11 @@ export async function middleware(request: NextRequest) {
     const demo = request.cookies.get('demo_user_id');
     if (!demo) {
       console.log('MIDDLEWARE_REDIRECT_LOGIN', { pathname, redirectReason: 'mock-no-demo-cookie' });
-      return NextResponse.redirect(new URL(isAdminPath ? '/admin/login' : '/login', request.url));
+      const loginUrl = new URL(isAdminPath ? '/admin/login' : '/login', request.url);
+      if (pathname === '/manage' || pathname.startsWith('/manage/')) {
+        loginUrl.searchParams.set('next', pathname);
+      }
+      return NextResponse.redirect(loginUrl);
     }
     const demoUser = getUserById(demo.value);
     const hasAdminRole = isAdminRole(demoUser?.role);
@@ -140,7 +144,12 @@ export async function middleware(request: NextRequest) {
   if (!data.user) {
     console.log('MIDDLEWARE_REDIRECT_LOGIN', { pathname, redirectReason: 'no-auth-user' });
     const redirectUrl = new URL(loginRedirect, request.url);
-    if (pathname === '/events/create' || pathname.startsWith('/events/manage/')) {
+    if (
+      pathname === '/events/create' ||
+      pathname.startsWith('/events/manage/') ||
+      pathname === '/manage' ||
+      pathname.startsWith('/manage/')
+    ) {
       redirectUrl.searchParams.set('next', pathname);
     }
     return NextResponse.redirect(redirectUrl);
