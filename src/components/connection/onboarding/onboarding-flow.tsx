@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { saveProfileAction } from '@/lib/connection/actions';
 import {
@@ -10,6 +10,17 @@ import {
   type MbtiType,
   type SocialLinkPlatform,
 } from '@/lib/connection/bloom-profile-options';
+import {
+  clearOnboardingProgress,
+  nextStepId,
+  persistOnboardingStarted,
+  persistOnboardingStep,
+  prevStepId,
+  progressDotIndex,
+  QUESTION_STEP_IDS,
+  resolveInitialOnboardingStep,
+  type OnboardingStepId,
+} from '@/lib/connection/onboarding-progress';
 import {
   DESIRED_CONNECTION_OPTIONS,
   PREFECTURES,
@@ -38,9 +49,6 @@ const GENDER_OPTIONS: Option<'male' | 'female' | 'other'>[] = [
   { value: 'other', label: 'その他 / 回答しない' },
 ];
 
-/** Welcome を除く設問数 */
-const QUESTION_COUNT = 11;
-
 function toggle<T>(list: T[], value: T): T[] {
   if (list.includes(value)) return list.filter((v) => v !== value);
   return [...list, value];
@@ -52,33 +60,22 @@ const stepVariants = {
   exit: (dir: number) => ({ opacity: 0, x: dir >= 0 ? -26 : 26, transition: { duration: 0.16, ease: 'easeIn' as const } }),
 };
 
-const STEP_ART: Record<number, string> = {
-  1: '/flow/register.png',
-  2: '/flow/register.png',
-  3: '/flow/register.png',
-  4: '/flow/register.png',
-  5: '/categories/stroll.png',
-  6: '/categories/cafe.png',
-  7: '/categories/flower.png',
-  8: '/categories/cafe.png',
-  9: '/categories/flower.png',
-  10: '/categories/fitness.png',
-  11: '/flow/matching.png',
+const STEP_ART: Partial<Record<OnboardingStepId, string>> = {
+  password: '/flow/register.png',
+  nickname: '/flow/register.png',
+  gender: '/flow/register.png',
+  ageBand: '/flow/register.png',
+  area: '/categories/stroll.png',
+  identity: '/categories/cafe.png',
+  bio: '/categories/flower.png',
+  sns: '/categories/cafe.png',
+  mbti: '/categories/flower.png',
+  interests: '/categories/fitness.png',
+  purposes: '/flow/matching.png',
 };
 
-const STEP_STORAGE_KEY = 'hanakai:onboarding-step';
-const PASSWORD_STORAGE_KEY = 'hanakai:password-set';
-
-function readStoredStep(): number | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = sessionStorage.getItem(STEP_STORAGE_KEY);
-    if (!raw) return null;
-    const n = Number(raw);
-    return Number.isFinite(n) && n >= 0 && n <= QUESTION_COUNT ? n : null;
-  } catch {
-    return null;
-  }
+function stepDisplayIndex(step: OnboardingStepId): number {
+  return progressDotIndex(step) + 1;
 }
 
 export function OnboardingFlow({
@@ -90,10 +87,14 @@ export function OnboardingFlow({
   member?: ConnectionMember | null;
   hasPasswordSet?: boolean;
 }) {
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState<OnboardingStepId>('intro');
   const [direction, setDirection] = useState(1);
-  const [passwordSet, setPasswordSet] = useState(hasPasswordSet);
-  const [hydrated, setHydrated] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [passwordDone, setPasswordDone] = useState(hasPasswordSet);
+  const [submitting, startSubmit] = useTransition();
+  const initLogged = useRef(false);
+  const initDone = useRef(false);
+
   const [identityFile, setIdentityFile] = useState<File | null>(null);
   const identityFileName = identityFile?.name ?? '';
 
@@ -119,74 +120,121 @@ export function OnboardingFlow({
     (member?.purposes ?? []).filter((p) => DESIRED_CONNECTION_OPTIONS.some((o) => o.value === p)),
   );
 
-  useEffect(() => {
-    const storedStep = readStoredStep();
-    const storedPassword = sessionStorage.getItem(PASSWORD_STORAGE_KEY) === '1';
-    if (storedPassword || hasPasswordSet) setPasswordSet(true);
-    if (storedStep !== null && storedStep > 0) {
-      setStep(storedStep);
-    }
-    setHydrated(true);
-  }, [hasPasswordSet]);
+  const skipPassword = passwordDone || hasPasswordSet;
 
   useEffect(() => {
-    if (!hydrated) return;
-    try {
-      sessionStorage.setItem(STEP_STORAGE_KEY, String(step));
-    } catch {
-      // noop
+    if (initDone.current) return;
+    initDone.current = true;
+    const initial = resolveInitialOnboardingStep(member, hasPasswordSet);
+    if (!initLogged.current) {
+      console.log('BLOOM_ONBOARDING_INIT', {
+        initial,
+        hasPasswordSet,
+        error: error ?? null,
+      });
+      initLogged.current = true;
     }
-  }, [step, hydrated]);
+    setStep(initial);
+    if (hasPasswordSet) setPasswordDone(true);
+    setReady(true);
+  }, [member, hasPasswordSet, error]);
 
   useEffect(() => {
-    if (passwordSet) {
-      try {
-        sessionStorage.setItem(PASSWORD_STORAGE_KEY, '1');
-      } catch {
-        // noop
-      }
-    }
-  }, [passwordSet]);
+    if (!ready) return;
+    if (step === 'intro') return;
+    persistOnboardingStep(step);
+  }, [step, ready]);
 
-  const isLast = step === QUESTION_COUNT;
-  const isPasswordStep = step === 1;
+  useEffect(() => {
+    if (!ready) return;
+    if (step === 'intro' && (passwordDone || hasPasswordSet)) {
+      console.error('BLOOM_ONBOARDING_UNEXPECTED_INTRO_RETURN', { passwordDone, hasPasswordSet });
+      setStep('nickname');
+    }
+  }, [step, ready, passwordDone, hasPasswordSet]);
+
+  const isLast = step === 'purposes';
+  const isPasswordStep = step === 'password';
 
   const canProceed = useMemo(() => {
     switch (step) {
-      case 0:
+      case 'intro':
         return true;
-      case 1:
-        return passwordSet;
-      case 2:
+      case 'password':
+        return passwordDone;
+      case 'nickname':
         return nickname.trim().length > 0;
-      case 3:
+      case 'gender':
         return gender !== '';
-      case 4:
+      case 'ageBand':
         return ageBand !== '';
-      case 5:
+      case 'area':
         return area !== '';
-      case 6:
+      case 'identity':
         return identityFileName.length > 0;
       default:
         return true;
     }
-  }, [step, passwordSet, nickname, gender, ageBand, area, identityFileName]);
+  }, [step, passwordDone, nickname, gender, ageBand, area, identityFileName]);
 
-  function next() {
-    setDirection(1);
-    setStep((s) => {
-      let n = Math.min(QUESTION_COUNT, s + 1);
-      if (n === 1 && (passwordSet || hasPasswordSet)) n = 2;
-      return n;
-    });
+  function goTo(next: OnboardingStepId) {
+    setStep(next);
+    if (next !== 'intro') persistOnboardingStep(next);
   }
-  function back() {
+
+  function handleStart() {
+    console.log('BLOOM_ONBOARDING_STARTED');
+    const first: OnboardingStepId = skipPassword ? 'nickname' : 'password';
+    persistOnboardingStarted(first);
+    setDirection(1);
+    goTo(first);
+  }
+
+  function handleNext() {
+    const next = nextStepId(step, skipPassword);
+    if (!next) return;
+    setDirection(1);
+    goTo(next);
+  }
+
+  function handleBack() {
+    const prev = prevStepId(step, skipPassword);
+    if (!prev) return;
     setDirection(-1);
-    setStep((s) => Math.max(0, s - 1));
+    goTo(prev);
+  }
+
+  function handlePasswordComplete() {
+    setPasswordDone(true);
+    console.log('BLOOM_ONBOARDING_MOVE_TO_NICKNAME');
+    persistOnboardingStep('nickname');
+    setDirection(1);
+    goTo('nickname');
+  }
+
+  function handleFinalSubmit() {
+    startSubmit(async () => {
+      const formData = new FormData();
+      formData.set('nickname', nickname);
+      formData.set('ageBand', ageBand);
+      formData.set('gender', gender || '');
+      formData.set('area', area);
+      formData.set('bio', bio);
+      formData.set('mbtiType', mbtiType);
+      formData.set('lifePhase', 'other');
+      for (const { platform } of SOCIAL_LINK_PLATFORMS) {
+        formData.set(`socialLink_${platform}`, socialLinks[platform] ?? '');
+      }
+      for (const t of weekend) formData.append('interestTags', t);
+      for (const p of purposes) formData.append('purposes', p);
+      if (identityFile) formData.set('identityDocument', identityFile);
+      clearOnboardingProgress();
+      await saveProfileAction(formData);
+    });
   }
 
   const header =
-    step === 0 ? (
+    step === 'intro' ? (
       <div className='space-y-4'>
         <div className='flex flex-col'>
           <span className='text-[14px] font-semibold tracking-[0.14em]' style={{ color: ONB.ink }}>
@@ -196,46 +244,42 @@ export function OnboardingFlow({
             CONNECTION
           </span>
         </div>
-        <ProgressDots total={QUESTION_COUNT} current={-1} />
+        <ProgressDots total={QUESTION_STEP_IDS.length} current={-1} />
       </div>
     ) : (
-      <ProgressDots total={QUESTION_COUNT} current={step - 1} />
+      <ProgressDots total={QUESTION_STEP_IDS.length} current={progressDotIndex(step)} />
     );
 
   const footer =
-    step === 0 ? (
-      <BottomNavButtons onNext={next} nextLabel='はじめる' />
+    step === 'intro' ? (
+      <BottomNavButtons onNext={handleStart} nextLabel='はじめる' />
     ) : isPasswordStep ? null : (
       <BottomNavButtons
-        onBack={back}
-        onNext={isLast ? undefined : next}
-        nextLabel={isLast ? '登録する' : '次へ'}
-        nextDisabled={!canProceed}
-        nextType={isLast ? 'submit' : 'button'}
+        onBack={handleBack}
+        onNext={isLast ? handleFinalSubmit : handleNext}
+        nextLabel={isLast ? (submitting ? '保存中…' : '登録する') : '次へ'}
+        nextDisabled={isLast ? submitting : !canProceed}
+        nextType='button'
       />
     );
 
   function renderStep() {
     switch (step) {
-      case 0:
+      case 'intro':
         return <OnboardingStepIntro />;
-      case 1:
+      case 'password':
         return (
           <PasswordStep
-            index={1}
-            art={STEP_ART[1]}
-            onComplete={() => {
-              setPasswordSet(true);
-              setDirection(1);
-              setStep(2);
-            }}
+            index={stepDisplayIndex(step)}
+            art={STEP_ART.password}
+            onComplete={handlePasswordComplete}
           />
         );
-      case 2:
+      case 'nickname':
         return (
           <TextInputStep
-            index={2}
-            art={STEP_ART[2]}
+            index={stepDisplayIndex(step)}
+            art={STEP_ART.nickname}
             title='あなたの表示名を決めましょう'
             subtitle='必須 · あとから変更できます'
             value={nickname}
@@ -244,11 +288,11 @@ export function OnboardingFlow({
             maxLength={20}
           />
         );
-      case 3:
+      case 'gender':
         return (
           <SingleChoiceStep
-            index={3}
-            art={STEP_ART[3]}
+            index={stepDisplayIndex(step)}
+            art={STEP_ART.gender}
             title='あなたの性別を教えてください'
             subtitle='必須'
             options={GENDER_OPTIONS}
@@ -256,11 +300,11 @@ export function OnboardingFlow({
             onChange={setGender}
           />
         );
-      case 4:
+      case 'ageBand':
         return (
           <SingleChoiceStep
-            index={4}
-            art={STEP_ART[4]}
+            index={stepDisplayIndex(step)}
+            art={STEP_ART.ageBand}
             title='あなたの年齢層を教えてください'
             subtitle='必須 · Connection設計の参考にします'
             options={AGE_BAND_OPTIONS}
@@ -268,11 +312,11 @@ export function OnboardingFlow({
             onChange={setAgeBand}
           />
         );
-      case 5:
+      case 'area':
         return (
           <AreaSelectStep
-            index={5}
-            art={STEP_ART[5]}
+            index={stepDisplayIndex(step)}
+            art={STEP_ART.area}
             title='お住まいの地域を教えてください'
             subtitle='必須 · 近いエリアの体験をご案内する参考にします'
             value={area}
@@ -280,33 +324,35 @@ export function OnboardingFlow({
             options={PREFECTURES}
           />
         );
-      case 6:
+      case 'identity':
         return (
           <IdentityDocumentStep
-            index={6}
-            art={STEP_ART[6]}
+            index={stepDisplayIndex(step)}
+            art={STEP_ART.identity}
             fileName={identityFileName}
             onFileChange={setIdentityFile}
           />
         );
-      case 7:
-        return <BioStep index={7} art={STEP_ART[7]} value={bio} onChange={setBio} />;
-      case 8:
+      case 'bio':
+        return <BioStep index={stepDisplayIndex(step)} art={STEP_ART.bio} value={bio} onChange={setBio} />;
+      case 'sns':
         return (
           <SocialLinksStep
-            index={8}
-            art={STEP_ART[8]}
+            index={stepDisplayIndex(step)}
+            art={STEP_ART.sns}
             values={socialLinks}
             onChange={(platform, url) => setSocialLinks((prev) => ({ ...prev, [platform]: url }))}
           />
         );
-      case 9:
-        return <MbtiStep index={9} art={STEP_ART[9]} value={mbtiType} onChange={setMbtiType} />;
-      case 10:
+      case 'mbti':
+        return (
+          <MbtiStep index={stepDisplayIndex(step)} art={STEP_ART.mbti} value={mbtiType} onChange={setMbtiType} />
+        );
+      case 'interests':
         return (
           <MultiChoiceStep
-            index={10}
-            art={STEP_ART[10]}
+            index={stepDisplayIndex(step)}
+            art={STEP_ART.interests}
             title='趣味・興味：お休みの日は何をしていますか？'
             subtitle={`任意 · 複数選べます${weekend.length > 0 ? `（${weekend.length}つ選択中）` : ''}`}
             options={WEEKEND_OPTIONS}
@@ -315,11 +361,11 @@ export function OnboardingFlow({
             variant='chip'
           />
         );
-      case 11:
+      case 'purposes':
         return (
           <MultiChoiceStep
-            index={11}
-            art={STEP_ART[11]}
+            index={stepDisplayIndex(step)}
+            art={STEP_ART.purposes}
             title='今、どんなConnectionを求めていますか？'
             subtitle='任意 · 複数選べます'
             options={DESIRED_CONNECTION_OPTIONS}
@@ -333,41 +379,16 @@ export function OnboardingFlow({
     }
   }
 
-  return (
-    <form
-      action={async (formData) => {
-        if (identityFile) formData.set('identityDocument', identityFile);
-        try {
-          sessionStorage.removeItem(STEP_STORAGE_KEY);
-          sessionStorage.removeItem(PASSWORD_STORAGE_KEY);
-        } catch {
-          // noop
-        }
-        await saveProfileAction(formData);
-      }}
-    >
-      <input type='hidden' name='nickname' value={nickname} />
-      <input type='hidden' name='ageBand' value={ageBand} />
-      <input type='hidden' name='gender' value={gender || ''} />
-      <input type='hidden' name='area' value={area} />
-      <input type='hidden' name='bio' value={bio} />
-      <input type='hidden' name='mbtiType' value={mbtiType} />
-      {SOCIAL_LINK_PLATFORMS.map(({ platform }) => (
-        <input
-          key={platform}
-          type='hidden'
-          name={`socialLink_${platform}`}
-          value={socialLinks[platform] ?? ''}
-        />
-      ))}
-      <input type='hidden' name='lifePhase' value='other' />
-      {weekend.map((t) => (
-        <input key={t} type='hidden' name='interestTags' value={t} />
-      ))}
-      {purposes.map((p) => (
-        <input key={p} type='hidden' name='purposes' value={p} />
-      ))}
+  if (!ready) {
+    return (
+      <main className='flex min-h-[50vh] items-center justify-center'>
+        <p className='text-sm text-[#6b6b6b]'>読み込み中…</p>
+      </main>
+    );
+  }
 
+  return (
+    <div>
       <OnboardingLayout header={header} footer={footer}>
         {error === 'nickname' ? (
           <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
@@ -409,6 +430,6 @@ export function OnboardingFlow({
           </motion.div>
         </AnimatePresence>
       </OnboardingLayout>
-    </form>
+    </div>
   );
 }

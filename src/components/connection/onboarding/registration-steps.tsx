@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
-import { setRegistrationPasswordAction } from '@/lib/connection/actions';
+import { useEffect, useRef, useState } from 'react';
 import { ONB, StepHeading } from './onboarding-ui';
+import { persistOnboardingStep } from '@/lib/connection/onboarding-progress';
 
 const inputClass =
   'w-full rounded-2xl border bg-white px-5 py-[18px] text-base leading-relaxed outline-none transition focus:border-current';
@@ -21,13 +21,18 @@ export function PasswordStep({
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
+  const submitting = useRef(false);
 
   useEffect(() => {
     console.log('BLOOM_PASSWORD_STEP_START');
   }, []);
 
-  function handleNext() {
+  async function handleNext(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (submitting.current || pending) return;
+
     setError('');
     setSuccess('');
     if (password.length < 8) {
@@ -38,12 +43,21 @@ export function PasswordStep({
       setError('パスワードが一致しません。');
       return;
     }
-    const fd = new FormData();
-    fd.set('password', password);
-    fd.set('confirmPassword', confirm);
-    startTransition(async () => {
-      const result = await setRegistrationPasswordAction(fd);
-      if (result?.error) {
+
+    submitting.current = true;
+    setPending(true);
+    console.log('BLOOM_PASSWORD_UPDATE_START');
+
+    try {
+      const response = await fetch('/api/auth/set-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ password, confirmPassword: confirm }),
+      });
+      const result = (await response.json()) as { ok?: boolean; error?: string; detail?: string };
+
+      if (!response.ok || result.error) {
         const message =
           result.error === 'mismatch'
             ? 'パスワードが一致しません。'
@@ -52,22 +66,34 @@ export function PasswordStep({
               : result.detail
                 ? `パスワードの設定に失敗しました: ${result.detail}`
                 : 'パスワードの設定に失敗しました。もう一度お試しください。';
+        console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: result.detail ?? result.error });
         setError(message);
         return;
       }
+
+      console.log('BLOOM_PASSWORD_UPDATE_SUCCESS');
       setSuccess('パスワードを設定しました。');
-      console.log('BLOOM_PASSWORD_STEP_NEXT');
-      try {
-        sessionStorage.setItem('hanakai:password-set', '1');
-      } catch {
-        // noop
-      }
+      persistOnboardingStep('nickname');
+      console.log('BLOOM_ONBOARDING_MOVE_TO_NICKNAME');
       onComplete();
-    });
+    } catch (err) {
+      console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: String(err) });
+      setError('パスワードの設定に失敗しました。通信環境を確認して再度お試しください。');
+    } finally {
+      submitting.current = false;
+      setPending(false);
+    }
+  }
+
+  function blockEnter(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+    }
   }
 
   return (
-    <div className='flex flex-1 flex-col'>
+    <div className='flex flex-1 flex-col' onKeyDown={blockEnter}>
       <StepHeading
         index={index}
         art={art}
@@ -84,8 +110,6 @@ export function PasswordStep({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete='new-password'
-            minLength={8}
-            required
             className={inputClass}
             style={{ borderColor: ONB.border, color: ONB.ink }}
           />
@@ -99,8 +123,6 @@ export function PasswordStep({
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             autoComplete='new-password'
-            minLength={8}
-            required
             className={inputClass}
             style={{ borderColor: ONB.border, color: ONB.ink }}
           />
@@ -152,7 +174,6 @@ export function IdentityDocumentStep({
         <input
           type='file'
           accept='image/*,.pdf'
-          required
           className='w-full rounded-2xl border border-dashed bg-white px-4 py-4 text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-[#edf3ef] file:px-4 file:py-2 file:text-sm file:font-medium file:text-[#1f5d4f]'
           style={{ borderColor: ONB.border, color: ONB.ink }}
           onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
