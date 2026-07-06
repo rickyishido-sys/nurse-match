@@ -216,13 +216,16 @@ export type ConnectionEvent = {
   isUserCreated?: boolean;
 };
 
+export const EVENT_APPLICATION_REASON_MIN = 10;
+export const EVENT_APPLICATION_REASON_MAX = 300;
+
 export type EventApplication = {
   id: string;
   eventId: string;
   memberId: string;
   appliedAt: string;
   status: 'pending' | 'confirmed' | 'rejected';
-  /** 参加理由（100〜300文字） */
+  /** 参加理由（10〜300文字） */
   reason?: string;
 };
 

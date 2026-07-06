@@ -27,6 +27,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
   const viewer = await getHanakaiViewer();
   const viewerMemberId = await getViewerMemberId();
   const applied = sp.applied === '1';
+  const reasonError = sp.error === 'reason';
   const created = sp.created === '1';
   const existingApp = viewerMemberId ? await getApplication(event.id, viewerMemberId) : null;
   const confirmedMembers = await getEventMembers(event.id);
@@ -160,17 +161,43 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
         ) : (
           <Card>
             {applied || existingApp ? (
-              <p className='text-sm leading-7 text-[#4a4a4a]'>
-                {existingApp?.status === 'rejected'
-                  ? '今回はご縁がありませんでしたが、ほかのConnectionでお会いできますように。'
-                  : approvalMode === 'auto'
-                    ? '参加を受け付けました。当日お会いできるのを楽しみにしています。'
-                    : '参加申請を受け付けました。主催者が参加理由を読んで参加者を選びます。'}
-              </p>
+              <div className='space-y-2'>
+                {existingApp?.status === 'rejected' ? (
+                  <>
+                    <p className='text-sm font-semibold text-[#1a1a1a]'>却下されました</p>
+                    <p className='text-sm leading-7 text-[#4a4a4a]'>
+                      今回はご縁がありませんでしたが、ほかのConnectionでお会いできますように。
+                    </p>
+                  </>
+                ) : existingApp?.status === 'pending' || (applied && approvalMode === 'host_approval') ? (
+                  <>
+                    <p className='inline-flex rounded-full bg-[#eef4f0] px-3 py-1 text-xs font-semibold text-[#1f5d4f]'>
+                      承認待ち
+                    </p>
+                    <p className='text-sm leading-7 text-[#4a4a4a]'>
+                      参加申請を受け付けました。主催者が参加理由を読んで参加者を選びます。
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className='inline-flex rounded-full bg-[#eef4f0] px-3 py-1 text-xs font-semibold text-[#1f5d4f]'>
+                      申請済み
+                    </p>
+                    <p className='text-sm leading-7 text-[#4a4a4a]'>
+                      参加を受け付けました。当日お会いできるのを楽しみにしています。
+                    </p>
+                  </>
+                )}
+              </div>
             ) : isFull ? (
               <p className='text-sm text-[#9a9a9a]'>このイベントは満席です。</p>
             ) : (
               <>
+                {reasonError ? (
+                  <p className='mb-3 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
+                    参加理由は10文字以上300文字以内で入力してください。
+                  </p>
+                ) : null}
                 <p className='mb-3 text-sm leading-7 text-[#6b6b6b]'>
                   {approvalMode === 'auto'
                     ? 'あなたの想いを添えて参加できます。'

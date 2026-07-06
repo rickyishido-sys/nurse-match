@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { applyConnectionEventAction } from '@/lib/connection/actions';
-
-const MIN = 100;
-const MAX = 300;
+import {
+  EVENT_APPLICATION_REASON_MAX,
+  EVENT_APPLICATION_REASON_MIN,
+} from '@/lib/connection/types';
 
 export function ApplyForm({
   eventId,
@@ -15,8 +16,8 @@ export function ApplyForm({
   approvalMode: 'host_approval' | 'auto';
 }) {
   const [reason, setReason] = useState('');
-  const valid = reason.trim().length >= MIN && reason.trim().length <= MAX;
-  const count = reason.length;
+  const count = reason.trim().length;
+  const valid = count >= EVENT_APPLICATION_REASON_MIN && count <= EVENT_APPLICATION_REASON_MAX;
 
   return (
     <form action={applyConnectionEventAction} className='space-y-3'>
@@ -30,9 +31,7 @@ export function ApplyForm({
           id='reason'
           name='reason'
           rows={5}
-          minLength={MIN}
-          maxLength={MAX}
-          required
+          maxLength={EVENT_APPLICATION_REASON_MAX}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder='「最近花に興味を持ちました。」&#10;「色々な方と話してみたいと思っています。」'
@@ -44,8 +43,15 @@ export function ApplyForm({
               ? 'この想いを添えて参加できます。'
               : '主催者がこの想いを読んで参加者を選びます。'}
           </span>
-          <span className={count > MAX || (count > 0 && count < MIN) ? 'text-[#c0526b]' : 'text-[#9a9a9a]'}>
-            {count} / {MIN}〜{MAX}
+          <span
+            className={
+              count > EVENT_APPLICATION_REASON_MAX ||
+              (count > 0 && count < EVENT_APPLICATION_REASON_MIN)
+                ? 'text-[#c0526b]'
+                : 'text-[#9a9a9a]'
+            }
+          >
+            {count} / {EVENT_APPLICATION_REASON_MIN}〜{EVENT_APPLICATION_REASON_MAX}
           </span>
         </div>
       </div>

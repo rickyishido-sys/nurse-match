@@ -6,6 +6,7 @@ import {
   applyToEvent,
   confirmMemberForEvent,
   createEvent,
+  getApplication,
   rejectApplication,
   removeMemberFromEvent,
   saveMemberPersonality,
@@ -30,6 +31,10 @@ import type {
   TrustVerificationStatus,
   ValueTag,
   VerificationSource,
+} from '@/lib/connection/types';
+import {
+  EVENT_APPLICATION_REASON_MAX,
+  EVENT_APPLICATION_REASON_MIN,
 } from '@/lib/connection/types';
 import type { PhotoManifestEntry } from '@/lib/connection/repo-supabase';
 
@@ -199,12 +204,26 @@ export async function applyConnectionEventAction(formData: FormData) {
   const reason = String(formData.get('reason') ?? '').trim();
   const memberId = await ensureViewerMemberId();
   if (!memberId) redirect(`/login?next=${encodeURIComponent(`/events/${eventId}`)}`);
+
+  if (eventId) {
+    const existing = await getApplication(eventId, memberId);
+    if (existing && existing.status !== 'rejected') {
+      redirect(`/events/${eventId}?applied=1`);
+    }
+  }
+
+  if (reason.length < EVENT_APPLICATION_REASON_MIN || reason.length > EVENT_APPLICATION_REASON_MAX) {
+    redirect(`/events/${eventId}?error=reason`);
+  }
+
   console.log('CONNECTION_APPLY', { eventId, memberId, reasonLength: reason.length });
   if (eventId) await applyToEvent(eventId, memberId, reason);
   revalidatePath(`/events/${eventId}`);
   revalidatePath('/events');
   revalidatePath('/manage');
   revalidatePath(`/events/manage/${eventId}`);
+  revalidatePath('/admin/hanakai/applications');
+  revalidatePath('/admin/hanakai');
   redirect(`/events/${eventId}?applied=1`);
 }
 
