@@ -29,7 +29,7 @@ import {
 } from '@/lib/data';
 import { USE_MOCK_DATA, HANAKAI_CONNECTION_BACKEND, SITE_URL } from '@/lib/config';
 import { hanakaiEmailRedirectUrl } from '@/lib/connection/auth-redirect';
-import { ensureHanakaiMemberForAuthUser } from '@/lib/connection/identity';
+import { ensureHanakaiMemberForAuthUser, getHanakaiMemberIdForAuthUser } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
 import { isHanakaiProfileComplete } from '@/lib/connection/registration-status';
 import {
@@ -388,6 +388,18 @@ export async function loginAction(formData: FormData) {
   if (isAdminRole(me.role)) {
     await supabase.auth.signOut();
     redirect('/admin/login?error=use-admin-login');
+  }
+
+  // HANAKAI 会員行があるユーザーは Connection 導線を優先（legacy users 行の審査ゲートを回避）
+  if (HANAKAI_CONNECTION_BACKEND === 'supabase') {
+    const hanakaiMemberId = await getHanakaiMemberIdForAuthUser(authUser.id);
+    if (hanakaiMemberId) {
+      const member = await getMember(hanakaiMemberId);
+      if (!isHanakaiProfileComplete(member)) {
+        redirect('/register/profile');
+      }
+      redirect(nextPath ?? '/home');
+    }
   }
 
   if (me.role === 'user') {

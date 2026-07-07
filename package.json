@@ -6,13 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "seed:news": "tsx scripts/seed-news-snapshot.ts"
+    "lint": "eslint"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.0",
-    "@vercel/blob": "^2.5.0",
     "clsx": "^2.1.1",
     "motion": "^12.42.0",
     "next": "16.2.6",

@@ -11,7 +11,6 @@ import {
   type SocialLinkPlatform,
 } from '@/lib/connection/bloom-profile-options';
 import {
-  clearOnboardingProgress,
   nextStepId,
   persistOnboardingStarted,
   persistOnboardingStep,
@@ -240,7 +239,6 @@ export function OnboardingFlow({
       for (const t of weekend) formData.append('interestTags', t);
       for (const p of purposes) formData.append('purposes', p);
       if (identityFile) formData.set('identityDocument', identityFile);
-      clearOnboardingProgress();
       await saveProfileAction(formData);
     });
   }

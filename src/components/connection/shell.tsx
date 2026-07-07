@@ -50,7 +50,9 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
         <div className='mt-3 flex flex-wrap items-center justify-center gap-4'>
           <Link href='/terms' className='underline-offset-2 hover:underline'>利用規約</Link>
           <Link href='/privacy' className='underline-offset-2 hover:underline'>プライバシー</Link>
-          <Link href='/manage' className='underline-offset-2 hover:underline text-[#9a9a9a]'>運営</Link>
+          {viewer?.isConnectionAdmin ? (
+            <Link href='/manage' className='underline-offset-2 hover:underline text-[#9a9a9a]'>運営</Link>
+          ) : null}
         </div>
       </footer>
 

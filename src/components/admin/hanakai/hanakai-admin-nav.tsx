@@ -12,6 +12,7 @@ const items = [
   { href: `${BASE}/events`, label: 'イベント' },
   { href: `${BASE}/applications`, label: '参加申請' },
   { href: `${BASE}/reports`, label: '通報' },
+  { href: '/manage', label: '参加者選定' },
 ];
 
 export function HanakaiAdminNav() {

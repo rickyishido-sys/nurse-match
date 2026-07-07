@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { motion } from 'motion/react';
+import { clearOnboardingProgress } from '@/lib/connection/onboarding-progress';
 import { ONB } from './onboarding-ui';
 
 function SuccessMark() {
@@ -51,6 +53,10 @@ export function CompletionView({
   nickname?: string;
   personality?: { label: string; description: string } | null;
 }) {
+  useEffect(() => {
+    clearOnboardingProgress();
+  }, []);
+
   return (
     <div className='flex min-h-[100dvh] w-full justify-center' style={{ backgroundColor: ONB.bgOuter }}>
       <div
@@ -99,9 +105,16 @@ export function CompletionView({
 
         <motion.div className='mt-8 grid gap-3' {...fadeUp(0.85)}>
           <Link
-            href='/events'
+            href='/home'
             className='flex h-13 items-center justify-center rounded-full text-sm font-semibold text-white transition active:scale-[0.99]'
             style={{ height: 52, backgroundColor: ONB.accent }}
+          >
+            ホームへ
+          </Link>
+          <Link
+            href='/events'
+            className='flex items-center justify-center rounded-full border text-sm font-medium transition active:scale-[0.99]'
+            style={{ height: 52, borderColor: ONB.border, color: ONB.subtle }}
           >
             イベントを見る
           </Link>

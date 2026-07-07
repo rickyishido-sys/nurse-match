@@ -1,9 +1,12 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getHanakaiMemberIdForAuthUser } from '@/lib/connection/identity';
+import { isConnectionAdminMember } from '@/lib/connection/group-access';
 
 export type HanakaiViewer = {
   id: string;
   email: string | null;
   displayName: string;
+  isConnectionAdmin: boolean;
 };
 
 // Lightweight auth read for the HANAKAI shell. Decoupled from the legacy
@@ -18,10 +21,12 @@ export async function getHanakaiViewer(): Promise<HanakaiViewer | null> {
     if (!user) return null;
     const email = user.email ?? null;
     const metaName = (user.user_metadata?.nickname as string | undefined) ?? null;
+    const memberId = await getHanakaiMemberIdForAuthUser(user.id);
     return {
       id: user.id,
       email,
       displayName: metaName ?? (email ? email.split('@')[0] : 'ゲスト'),
+      isConnectionAdmin: isConnectionAdminMember(memberId),
     };
   } catch {
     return null;

@@ -1,6 +1,9 @@
+import { redirect } from 'next/navigation';
 import { getApplication, getEvent } from '@/lib/connection/repo';
+import { getViewerMemberId } from '@/lib/connection/identity';
 import { HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
 import * as mock from '@/lib/connection/group-data';
+import type { ConnectionEvent } from '@/lib/connection/types';
 
 /** 運営管理者としてグループにアクセスできるメンバーID */
 export function isConnectionAdminMember(memberId: string | null): boolean {
@@ -32,4 +35,23 @@ export async function canAccessGroup(
   const app = await getApplication(eventId, viewerMemberId);
   if (app?.status === 'confirmed') return { ok: true, isAdmin: false };
   return { ok: false, isAdmin: false };
+}
+
+/** /events/manage の主催者専用アクション用 — 未認証・非主催者はリダイレクト */
+export async function requireEventHostAccess(eventId: string): Promise<{
+  viewerMemberId: string;
+  event: ConnectionEvent;
+}> {
+  const viewerMemberId = await getViewerMemberId();
+  if (!viewerMemberId) {
+    redirect(`/login?next=${encodeURIComponent(`/events/manage/${eventId}`)}`);
+  }
+
+  const event = await getEvent(eventId);
+  if (!event) redirect('/events');
+  if (event.hostId !== viewerMemberId) {
+    redirect(`/events/${eventId}?error=host-only`);
+  }
+
+  return { viewerMemberId, event };
 }

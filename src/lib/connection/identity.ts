@@ -32,6 +32,12 @@ async function findMemberIdByAuthUser(authUserId: string): Promise<string | null
   return data?.id ?? null;
 }
 
+/** 既存の hanakai_members 行を検索する（新規作成しない） */
+export async function getHanakaiMemberIdForAuthUser(authUserId: string): Promise<string | null> {
+  if (!useSupabase) return null;
+  return findMemberIdByAuthUser(authUserId);
+}
+
 function fallbackNickname(metadataNickname?: string | null): string {
   if (metadataNickname?.trim()) return metadataNickname.trim();
   return '';

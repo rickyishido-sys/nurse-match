@@ -80,7 +80,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   const error = pickFirst(params.error);
   const detail = safeDecode(pickFirst(params.detail));
   const sentEmail = safeDecode(pickFirst(params.sentEmail));
-  const burst = true;
+  const burst = process.env.HANAKAI_REGISTER_DEV_BYPASS === 'true';
   const legacyFlow = pickFirst(params.legacy) === '1';
   const errorMessage = resolveRegisterErrorMessage(error, detail);
 

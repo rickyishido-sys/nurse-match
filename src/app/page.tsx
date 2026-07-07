@@ -12,12 +12,13 @@ import { LandingVoices } from '@/components/connection/landing/v2/voices';
 import { LandingGallery } from '@/components/connection/landing/v2/gallery';
 import { LandingFaq } from '@/components/connection/landing/v2/faq';
 import { LandingFinalCta } from '@/components/connection/landing/v2/final-cta';
-import { NewsBoard } from '@/components/news/news-board';
 import { getHanakaiRegistrationStatus, resolveJoinHref } from '@/lib/connection/registration-status';
+import { getHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access';
 
 export default async function LandingPage() {
   const registration = await getHanakaiRegistrationStatus();
   const joinHref = resolveJoinHref(registration);
+  const adminAccess = await getHanakaiAdminAccess();
 
   return (
     <div className='min-h-screen bg-[#faf7f2] text-[#1a1a1a]'>
@@ -38,7 +39,6 @@ export default async function LandingPage() {
         <LandingSupport />
         <LandingVoices />
         <LandingGallery />
-        <NewsBoard />
         <LandingFaq />
         <LandingFinalCta joinHref={joinHref} />
       </main>
@@ -65,9 +65,11 @@ export default async function LandingPage() {
             <Link href='/privacy' className='underline-offset-4 hover:underline'>
               プライバシー
             </Link>
-            <Link href='/manage' className='text-white/50 underline-offset-4 hover:underline'>
-              運営
-            </Link>
+            {adminAccess.allowed ? (
+              <Link href='/manage' className='text-white/50 underline-offset-4 hover:underline'>
+                運営
+              </Link>
+            ) : null}
           </div>
           <p className='mt-8 text-[10px] tracking-wide text-white/40'>© {new Date().getFullYear()} HANAKAI</p>
         </div>

@@ -7,6 +7,7 @@ import {
   confirmMemberForEvent,
   createEvent,
   getApplication,
+  getMember,
   rejectApplication,
   removeMemberFromEvent,
   saveMemberPersonality,
@@ -20,6 +21,8 @@ import { uploadEventImages } from '@/lib/connection/storage';
 import { uploadDocument } from '@/lib/upload';
 import { ensureViewerMemberId, getAuthenticatedAuthUserId } from '@/lib/connection/identity';
 import { requireHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access';
+import { requireEventHostAccess } from '@/lib/connection/group-access';
+import { isHanakaiProfileComplete } from '@/lib/connection/registration-status';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import type {
@@ -206,6 +209,11 @@ export async function applyConnectionEventAction(formData: FormData) {
   const memberId = await ensureViewerMemberId();
   if (!memberId) redirect(`/login?next=${encodeURIComponent(`/events/${eventId}`)}`);
 
+  const member = await getMember(memberId);
+  if (!isHanakaiProfileComplete(member)) {
+    redirect('/register/profile');
+  }
+
   if (eventId) {
     const existing = await getApplication(eventId, memberId);
     if (existing && existing.status !== 'rejected') {
@@ -231,8 +239,10 @@ export async function applyConnectionEventAction(formData: FormData) {
 export async function approveApplicationAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '');
   const memberId = String(formData.get('memberId') ?? '');
+  if (!eventId || !memberId) redirect('/events');
+  await requireEventHostAccess(eventId);
   console.log('CONNECTION_HOST_APPROVE', { eventId, memberId });
-  if (eventId && memberId) await confirmMemberForEvent(eventId, memberId);
+  await confirmMemberForEvent(eventId, memberId);
   revalidatePath(`/events/manage/${eventId}`);
   revalidatePath(`/events/${eventId}`);
   redirect(`/events/manage/${eventId}?approved=${memberId}`);
@@ -241,8 +251,10 @@ export async function approveApplicationAction(formData: FormData) {
 export async function rejectApplicationAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '');
   const memberId = String(formData.get('memberId') ?? '');
+  if (!eventId || !memberId) redirect('/events');
+  await requireEventHostAccess(eventId);
   console.log('CONNECTION_HOST_REJECT', { eventId, memberId });
-  if (eventId && memberId) await rejectApplication(eventId, memberId);
+  await rejectApplication(eventId, memberId);
   revalidatePath(`/events/manage/${eventId}`);
   revalidatePath(`/events/${eventId}`);
   redirect(`/events/manage/${eventId}?rejected=${memberId}`);
