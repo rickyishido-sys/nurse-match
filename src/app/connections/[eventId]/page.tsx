@@ -9,7 +9,10 @@ import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { ReportButton } from '@/components/connection/report-button';
 import { Card, Chip } from '@/components/connection/ui';
 import { followMemberAction } from '@/lib/connection/actions';
+import { BloomMemoryForm } from '@/components/connection/bloom-memory-form';
 import { canViewConnectionPage, getEvent, getEventMembers, getMember } from '@/lib/connection/repo';
+import { getBloomMemoryForEvent, recordEventJoinedTimeline } from '@/lib/connection/bloom-phase4';
+import { getBloomMemorySkipCookie } from '@/lib/connection/bloom-phase4-actions';
 import { getVisibleSocialLinks } from '@/lib/connection/social-links';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
@@ -31,8 +34,19 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
   const members = await getEventMembers(eventId);
   const followedId = typeof sp.followed === 'string' ? sp.followed : null;
   const messagedId = typeof sp.messaged === 'string' ? sp.messaged : null;
+  const memorySaved = typeof sp.memorySaved === 'string';
   const followedMember = followedId ? await getMember(followedId) : null;
   const messagedMember = messagedId ? await getMember(messagedId) : null;
+
+  if (canView && event.isPast && viewerMemberId) {
+    await recordEventJoinedTimeline(viewerMemberId, eventId, event.title);
+  }
+
+  const existingMemory =
+    canView && viewerMemberId ? await getBloomMemoryForEvent(viewerMemberId, eventId) : null;
+  const memorySkipped = canView ? await getBloomMemorySkipCookie(eventId) : true;
+  const showMemoryPrompt =
+    canView && event.isPast && !existingMemory && !memorySkipped && !memorySaved;
 
   if (!canView) {
     return (
@@ -73,10 +87,20 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
           </p>
         ) : null}
 
+        {memorySaved ? (
+          <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-xs text-[#1f5d4f]'>
+            Bloom Memory を保存しました。マイプロフィールでも確認できます。
+          </p>
+        ) : null}
+
         {messagedId ? (
           <p className='rounded-2xl border border-[#ebe9e4] bg-white px-4 py-3 text-xs text-[#4a4a4a]'>
             {messagedMember?.nickname ?? 'メンバー'}さんにメッセージを送りました。
           </p>
+        ) : null}
+
+        {showMemoryPrompt ? (
+          <BloomMemoryForm eventId={eventId} eventTitle={event.title} variant='prompt' />
         ) : null}
 
         <div className='space-y-4'>

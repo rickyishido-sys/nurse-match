@@ -7,9 +7,16 @@ import { MemberVisibleSocialLinks } from '@/components/connection/member-visible
 import { ReportButton } from '@/components/connection/report-button';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { BloomCardPublic } from '@/components/connection/bloom-card';
+import { BloomPhase4Panel } from '@/components/connection/bloom-phase4-panel';
 import { Card } from '@/components/connection/ui';
 import { getBloomProfile } from '@/lib/connection/bloom-profile';
 import { toPublicBloomProfile } from '@/lib/connection/bloom-profile-types';
+import {
+  getBloomPhase4Settings,
+  listBloomMemories,
+  listBloomTimeline,
+} from '@/lib/connection/bloom-phase4';
+import { filterPublicMemories, filterPublicTimeline } from '@/lib/connection/bloom-phase4-types';
 import { LIFE_PHASE_LABEL, PURPOSE_LABEL, INTEREST_TAG_LABEL } from '@/lib/connection/data';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
@@ -36,6 +43,15 @@ export default async function MemberProfilePage({ params }: PageProps) {
   const canReport = !!viewerMemberId;
   const bloomRaw = await getBloomProfile(memberId);
   const publicBloom = toPublicBloomProfile(bloomRaw, false);
+  const phase4Settings = await getBloomPhase4Settings(memberId);
+  const timelineRaw = await listBloomTimeline(memberId);
+  const memoriesRaw = await listBloomMemories(memberId);
+  const publicTimeline = phase4Settings.showTimeline ? filterPublicTimeline(timelineRaw) : undefined;
+  const publicMemories = phase4Settings.showMemories ? filterPublicMemories(memoriesRaw) : undefined;
+  const publicReflection =
+    phase4Settings.showReflection && phase4Settings.aiReflection.trim()
+      ? phase4Settings.aiReflection
+      : undefined;
 
   return (
     <ConnectionShell viewer={viewer}>
@@ -74,6 +90,13 @@ export default async function MemberProfilePage({ params }: PageProps) {
         </Card>
 
         {publicBloom ? <BloomCardPublic profile={publicBloom} /> : null}
+
+        <BloomPhase4Panel
+          mode='public'
+          timeline={publicTimeline}
+          memories={publicMemories}
+          aiReflection={publicReflection}
+        />
 
         {visibleSocialLinks.length > 0 ? (
           <Card>

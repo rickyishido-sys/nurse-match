@@ -5,6 +5,13 @@ import { AdminEmptyState, formatAdminDate } from '@/components/admin/hanakai/han
 import { TrustAdminPanel } from '@/components/connection/trust-admin-panel';
 import { getHanakaiAdminMemberDetail } from '@/lib/connection/hanakai-admin-repo';
 import { getBloomProfile } from '@/lib/connection/bloom-profile';
+import {
+  getBloomPhase4Settings,
+  listBloomMemories,
+  listBloomTimeline,
+  listBloomVersions,
+} from '@/lib/connection/bloom-phase4';
+import { BloomPhase4Panel } from '@/components/connection/bloom-phase4-panel';
 import { getMember } from '@/lib/connection/repo';
 
 type PageProps = { params: Promise<{ memberId: string }> };
@@ -49,6 +56,10 @@ export default async function HanakaiAdminMemberDetailPage({ params, searchParam
   if (!detail) notFound();
   const memberRecord = await getMember(memberId);
   const bloomProfile = await getBloomProfile(memberId);
+  const phase4Settings = await getBloomPhase4Settings(memberId);
+  const bloomTimeline = await listBloomTimeline(memberId);
+  const bloomMemories = await listBloomMemories(memberId);
+  const bloomVersions = await listBloomVersions(memberId);
 
   const { member } = detail;
 
@@ -153,6 +164,16 @@ export default async function HanakaiAdminMemberDetailPage({ params, searchParam
                 }
               />
             </dl>
+          </Section>
+
+          <Section title='Bloom Profile Phase 4'>
+            <BloomPhase4Panel
+              mode='admin'
+              timeline={bloomTimeline}
+              memories={bloomMemories}
+              versions={bloomVersions}
+              aiReflection={phase4Settings.aiReflection}
+            />
           </Section>
 
           <Section title='Bloom Profile Phase 3'>

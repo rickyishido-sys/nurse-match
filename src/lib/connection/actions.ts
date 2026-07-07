@@ -512,19 +512,20 @@ export async function updateMyProfileAction(formData: FormData) {
   const memberId = await ensureViewerMemberId();
   if (!memberId) redirect('/login?next=/my-profile');
 
+  const beforeMember = await getMember(memberId);
+
   const purposes = formData.getAll('purposes') as ConnectionPurpose[];
   const interestTags = formData.getAll('interestTags') as InterestTag[];
   const lifePhase = String(formData.get('lifePhase') ?? 'other') as LifePhase;
   const mbtiRaw = String(formData.get('mbtiType') ?? '').trim();
   const markAiIntro = formData.get('introductionAiGenerated') === '1';
+  const nextBio = String(formData.get('bio') ?? '').trim();
 
   await updateMember(memberId, {
     nickname,
     age: Number(formData.get('age') ?? 0),
     gender: String(formData.get('gender') ?? 'other') as 'female' | 'male' | 'other',
-    area: String(formData.get('area') ?? '').trim(),
-    bio: String(formData.get('bio') ?? '').trim(),
-    purposes,
+    bio: nextBio,
     interestTags,
     lifePhase,
     mbtiType: (mbtiRaw || 'unknown') as import('@/lib/connection/bloom-profile-options').MbtiType,
@@ -566,6 +567,15 @@ export async function updateMyProfileAction(formData: FormData) {
   }
 
   await persistProfilePhotos(memberId, formData);
+
+  if (beforeMember) {
+    const { recordProfileChangeTimeline } = await import('@/lib/connection/bloom-phase4-actions');
+    await recordProfileChangeTimeline(
+      memberId,
+      { bio: beforeMember.bio, interestTags: beforeMember.interestTags },
+      { bio: nextBio, interestTags },
+    );
+  }
 
   console.log('CONNECTION_PROFILE_UPDATE', { memberId, nickname, purposes, interestTags, lifePhase });
   revalidatePath('/my-profile');

@@ -7,10 +7,17 @@ import { LegalLinks } from '@/components/connection/legal-links';
 import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { BloomCardOwner } from '@/components/connection/bloom-card';
+import { BloomPhase4Panel } from '@/components/connection/bloom-phase4-panel';
 import { BloomProfileUpdateButton, BloomVisibilityForm } from '@/components/connection/bloom-profile-panel';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { isBloomAiEnabled } from '@/lib/connection/bloom-profile-ai';
 import { getBloomProfileOrEmpty } from '@/lib/connection/bloom-profile';
+import {
+  getBloomPhase4Settings,
+  listBloomMemories,
+  listBloomTimeline,
+  listBloomVersions,
+} from '@/lib/connection/bloom-phase4';
 import { MBTI_LABEL } from '@/lib/connection/bloom-profile-options';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
@@ -133,6 +140,13 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
   const member = viewerMemberId ? await getMember(viewerMemberId) : null;
   const bloomProfile = viewerMemberId ? await getBloomProfileOrEmpty(viewerMemberId) : null;
   const bloomSaved = param(sp, 'bloomSaved') === '1';
+  const phase4Saved = param(sp, 'phase4Saved') === '1';
+  const memorySaved = param(sp, 'memorySaved') === '1';
+  const reflectionUpdated = param(sp, 'reflectionUpdated') === '1';
+  const phase4Settings = viewerMemberId ? await getBloomPhase4Settings(viewerMemberId) : null;
+  const bloomTimeline = viewerMemberId ? await listBloomTimeline(viewerMemberId) : [];
+  const bloomMemories = viewerMemberId ? await listBloomMemories(viewerMemberId) : [];
+  const bloomVersions = viewerMemberId ? await listBloomVersions(viewerMemberId) : [];
 
   if (!member || !member.nickname.trim()) {
     return <EmptyProfile viewer={viewer} />;
@@ -188,6 +202,21 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
         {bloomSaved ? (
           <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
             Bloom Profile の公開設定を保存しました
+          </p>
+        ) : null}
+        {phase4Saved ? (
+          <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
+            Bloom Phase 4 の公開設定を保存しました
+          </p>
+        ) : null}
+        {memorySaved ? (
+          <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
+            Bloom Memory を保存しました
+          </p>
+        ) : null}
+        {reflectionUpdated ? (
+          <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
+            AI Reflection を更新しました
           </p>
         ) : null}
 
@@ -270,6 +299,22 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
             <BloomProfileUpdateButton aiEnabled={isBloomAiEnabled()} hasProfile={hasBloomProfile} />
             <BloomVisibilityForm profile={bloomProfile} />
           </section>
+        ) : null}
+
+        {phase4Settings ? (
+          <BloomPhase4Panel
+            mode='owner'
+            timeline={bloomTimeline}
+            memories={bloomMemories}
+            versions={bloomVersions}
+            aiReflection={phase4Settings.aiReflection}
+            settings={{
+              showTimeline: phase4Settings.showTimeline,
+              showMemories: phase4Settings.showMemories,
+              showReflection: phase4Settings.showReflection,
+            }}
+            aiEnabled={isBloomAiEnabled()}
+          />
         ) : null}
 
         {/* 編集 */}
