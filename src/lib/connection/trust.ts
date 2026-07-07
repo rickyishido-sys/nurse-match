@@ -56,11 +56,36 @@ export type PublicTrustBadge = {
   tone: 'verified' | 'identity' | 'reviewing' | 'muted';
 };
 
+/** 本人確認済みか（公開バッジ用） */
+export function isIdentityVerified(member: ConnectionMember): boolean {
+  return member.identityVerified || member.documentUploadStatus === 'approved';
+}
+
+/** 管理画面用の本人確認ステータス */
+export function getAdminIdentityStatus(member: ConnectionMember): 'verified' | 'reviewing' | 'unverified' {
+  if (isIdentityVerified(member) || member.trustVerificationStatus === 'verified') {
+    return 'verified';
+  }
+  if (
+    member.trustVerificationStatus === 'reviewing' ||
+    member.documentUploadStatus === 'pending'
+  ) {
+    return 'reviewing';
+  }
+  return 'unverified';
+}
+
+export const ADMIN_IDENTITY_STATUS_LABEL = {
+  verified: '確認済み',
+  reviewing: '確認中',
+  unverified: '未確認',
+} as const;
+
 /** 公開向けバッジ（プロフィール・参加者一覧） */
 export function getPublicTrustBadges(member: ConnectionMember): PublicTrustBadge[] {
   const badges: PublicTrustBadge[] = [];
 
-  if (member.identityVerified) {
+  if (isIdentityVerified(member)) {
     badges.push({ key: 'identity', label: '本人確認済み', tone: 'identity' });
   }
 

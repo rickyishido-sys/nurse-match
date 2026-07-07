@@ -5,6 +5,7 @@ import { MemberAvatar, MemberPhotoGallery } from '@/components/connection/member
 import { ProfileEditForm } from '@/components/connection/profile-edit-form';
 import { LegalLinks } from '@/components/connection/legal-links';
 import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
+import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { isBloomAiEnabled } from '@/lib/connection/bloom-introduction-ai';
 import { MBTI_LABEL } from '@/lib/connection/bloom-profile-options';
@@ -185,6 +186,7 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
             <h1 className='truncate text-[1.5rem] font-semibold leading-tight tracking-tight text-[#1a1a1a]'>
               {member.nickname}
             </h1>
+            <TrustBadgeList member={member} className='mt-1' />
             <p className='text-xs text-[#6b6b6b]'>
               {member.age ? `${member.age}歳` : ''}
               {member.area ? ` · ${member.area}` : ''}

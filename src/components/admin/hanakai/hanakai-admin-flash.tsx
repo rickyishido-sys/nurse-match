@@ -28,6 +28,7 @@ export function adminFlashMessage(
   if (success === 'resolved') return { variant: 'success', message: '通報を対応済みにしました。' };
   if (success === 'inquiry_resolved') return { variant: 'success', message: 'お問い合わせを対応済みにしました。' };
   if (success === 'dismissed') return { variant: 'success', message: '通報を却下（dismissed）しました。' };
+  if (success === 'note_saved') return { variant: 'success', message: '管理メモを保存しました。' };
   if (error === 'note_required') return { variant: 'error', message: '理由の入力が必要です。' };
   if (error === 'missing_id') return { variant: 'error', message: '対象 ID が見つかりません。' };
   if (error === 'invalid_status') return { variant: 'error', message: '無効なステータスです。' };

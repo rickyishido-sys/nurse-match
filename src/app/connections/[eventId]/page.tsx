@@ -6,6 +6,7 @@ import { MemberAvatar } from '@/components/connection/member-avatar';
 import { MemberInsights } from '@/components/connection/member-insights';
 import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
+import { ReportButton } from '@/components/connection/report-button';
 import { Card, Chip } from '@/components/connection/ui';
 import { followMemberAction } from '@/lib/connection/actions';
 import { canViewConnectionPage, getEvent, getEventMembers, getMember } from '@/lib/connection/repo';
@@ -88,7 +89,9 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
                   <MemberAvatar member={member} size={64} />
                   <div className='min-w-0 flex-1'>
                     <div className='flex items-center gap-2'>
-                      <p className='text-sm font-semibold text-[#1a1a1a]'>{member.nickname}</p>
+                      <Link href={`/profile/${member.id}`} className='text-sm font-semibold text-[#1a1a1a] hover:underline'>
+                        {member.nickname}
+                      </Link>
                       {isSelf ? <Chip tone='muted'>あなた</Chip> : null}
                     </div>
                     <TrustBadgeList member={member} className='mt-1.5' />
@@ -106,15 +109,28 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
                 </div>
 
                 {!isSelf ? (
-                  <div className='mt-4 grid grid-cols-2 gap-2'>
-                    <form action={followMemberAction}>
-                      <input type='hidden' name='memberId' value={member.id} />
-                      <input type='hidden' name='eventId' value={eventId} />
-                      <button type='submit' className='h-10 w-full rounded-full border border-[#1a1a1a] text-xs font-semibold text-[#1a1a1a]'>
-                        フォロー
-                      </button>
-                    </form>
-                    <ConnectionMessageButton memberId={member.id} memberName={member.nickname} eventId={eventId} />
+                  <div className='mt-4 space-y-3'>
+                    <div className='grid grid-cols-2 gap-2'>
+                      <form action={followMemberAction}>
+                        <input type='hidden' name='memberId' value={member.id} />
+                        <input type='hidden' name='eventId' value={eventId} />
+                        <button type='submit' className='h-10 w-full rounded-full border border-[#1a1a1a] text-xs font-semibold text-[#1a1a1a]'>
+                          フォロー
+                        </button>
+                      </form>
+                      <ConnectionMessageButton memberId={member.id} memberName={member.nickname} eventId={eventId} />
+                    </div>
+                    <div className='text-right'>
+                      <ReportButton
+                        target={{
+                          targetType: 'member',
+                          targetMemberId: member.id,
+                          label: `${member.nickname}（参加者）`,
+                        }}
+                        canReport={!!viewerMemberId}
+                        loginNext={`/connections/${eventId}`}
+                      />
+                    </div>
                   </div>
                 ) : null}
               </Card>

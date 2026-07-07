@@ -45,6 +45,7 @@ async function MembersContent({ query }: { query: string }) {
               <th className='px-4 py-3 font-medium'>性別</th>
               <th className='px-4 py-3 font-medium'>居住エリア</th>
               <th className='px-4 py-3 font-medium'>ライフフェーズ</th>
+              <th className='px-4 py-3 font-medium'>本人確認</th>
               <th className='px-4 py-3 font-medium'>登録日時</th>
               <th className='px-4 py-3 font-medium'>更新日時</th>
               <th className='px-4 py-3 font-medium'>ステータス</th>
@@ -69,6 +70,19 @@ async function MembersContent({ query }: { query: string }) {
                 <td className='px-4 py-3'>{m.genderLabel}</td>
                 <td className='px-4 py-3'>{m.area}</td>
                 <td className='px-4 py-3'>{m.lifePhaseLabel}</td>
+                <td className='px-4 py-3'>
+                  <Badge
+                    tone={
+                      m.identityStatus === 'verified'
+                        ? 'green'
+                        : m.identityStatus === 'reviewing'
+                          ? 'amber'
+                          : 'gray'
+                    }
+                  >
+                    {m.identityStatusLabel}
+                  </Badge>
+                </td>
                 <td className='px-4 py-3 text-[#6b6b6b]'>{formatAdminDate(m.createdAt)}</td>
                 <td className='px-4 py-3 text-[#6b6b6b]'>{formatAdminDate(m.updatedAt)}</td>
                 <td className='px-4 py-3'>
@@ -122,6 +136,22 @@ async function MembersContent({ query }: { query: string }) {
                 <dt className='text-[#9a9a9a]'>ステータス</dt>
                 <dd>
                   <Badge tone={statusTone[m.status]}>{statusLabel[m.status]}</Badge>
+                </dd>
+              </div>
+              <div>
+                <dt className='text-[#9a9a9a]'>本人確認</dt>
+                <dd className='mt-0.5'>
+                  <Badge
+                    tone={
+                      m.identityStatus === 'verified'
+                        ? 'green'
+                        : m.identityStatus === 'reviewing'
+                          ? 'amber'
+                          : 'gray'
+                    }
+                  >
+                    {m.identityStatusLabel}
+                  </Badge>
                 </dd>
               </div>
               <div className='col-span-2'>

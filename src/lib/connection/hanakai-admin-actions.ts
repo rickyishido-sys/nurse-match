@@ -6,6 +6,7 @@ import { getHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access';
 import {
   adminApproveApplication,
   adminRejectApplication,
+  adminSaveReportNote,
   adminUpdateReportStatus,
 } from '@/lib/connection/hanakai-admin-repo';
 import { adminResolveInquiry } from '@/lib/connection/contact-inquiry';
@@ -80,6 +81,21 @@ export async function adminUpdateReportStatusAction(formData: FormData) {
   revalidatePath('/admin/hanakai/reports');
   revalidatePath('/admin/hanakai');
   redirect(`/admin/hanakai/reports?success=${status}`);
+}
+
+export async function adminSaveReportNoteAction(formData: FormData) {
+  await requireAdminAction();
+  const reportId = String(formData.get('reportId') ?? '').trim();
+  const note = String(formData.get('note') ?? '').trim();
+  if (!reportId) redirect('/admin/hanakai/reports?error=missing_id');
+
+  const result = await adminSaveReportNote(reportId, note);
+  if (!result.ok) {
+    redirect(`/admin/hanakai/reports?error=${encodeURIComponent(result.error)}`);
+  }
+
+  revalidatePath('/admin/hanakai/reports');
+  redirect('/admin/hanakai/reports?success=note_saved');
 }
 
 export async function adminResolveInquiryAction(formData: FormData) {

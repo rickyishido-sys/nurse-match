@@ -2,7 +2,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AdminPageHeader, Badge } from '@/components/admin/ui';
 import { AdminEmptyState, formatAdminDate } from '@/components/admin/hanakai/hanakai-admin-shared';
+import { TrustAdminPanel } from '@/components/connection/trust-admin-panel';
 import { getHanakaiAdminMemberDetail } from '@/lib/connection/hanakai-admin-repo';
+import { getMember } from '@/lib/connection/repo';
 
 type PageProps = { params: Promise<{ memberId: string }> };
 
@@ -39,10 +41,12 @@ const statusLabel = {
   deleted: '退会済み',
 } as const;
 
-export default async function HanakaiAdminMemberDetailPage({ params }: PageProps) {
+export default async function HanakaiAdminMemberDetailPage({ params, searchParams }: PageProps & { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const { memberId } = await params;
+  const sp = searchParams ? await searchParams : {};
   const detail = await getHanakaiAdminMemberDetail(memberId);
   if (!detail) notFound();
+  const memberRecord = await getMember(memberId);
 
   const { member } = detail;
 
@@ -149,6 +153,35 @@ export default async function HanakaiAdminMemberDetailPage({ params }: PageProps
             </dl>
           </Section>
 
+          <Section title='本人確認・運営確認'>
+            <dl className='grid gap-3 sm:grid-cols-2'>
+              <Field
+                label='本人確認ステータス'
+                value={
+                  detail.identityVerified
+                    ? '本人確認済み'
+                    : detail.documentUploadStatus === 'approved'
+                      ? '書類承認済み'
+                      : detail.documentUploadStatus === 'pending'
+                        ? '書類確認中'
+                        : '未確認'
+                }
+              />
+              <Field label='書類アップロード' value={detail.documentUploadStatus} />
+              <Field label='運営確認ステータス' value={detail.trustVerificationStatus} />
+              <Field label='確認ソース' value={detail.verificationSource} />
+            </dl>
+            <p className='mt-3 text-[10px] text-[#9a9a9a]'>
+              ※ 本人確認書類の画像・URLは公開画面には表示されません。
+            </p>
+            {memberRecord ? (
+              <TrustAdminPanel
+                member={memberRecord}
+                returnPath={`/admin/hanakai/members/${memberId}`}
+              />
+            ) : null}
+          </Section>
+
           <Section title='その他プロフィール'>
             <dl className='space-y-4'>
               <Field label='性格タイプ（従来）' value={detail.personalityLabel} />
@@ -243,21 +276,26 @@ export default async function HanakaiAdminMemberDetailPage({ params }: PageProps
             )}
           </Section>
 
-          <Section title='運営用'>
-            <p className='text-sm text-[#6b6b6b]'>管理メモ欄は Phase 3 予定です。</p>
+          <Section title='運営用メモ'>
             {detail.trustNotes ? (
-              <div className='mt-3'>
-                <p className='text-[11px] text-[#9a9a9a]'>信頼確認メモ（既存フィールド）</p>
+              <div>
+                <p className='text-[11px] text-[#9a9a9a]'>信頼確認メモ</p>
                 <p className='mt-1 text-sm text-[#1a1a1a]'>{detail.trustNotes}</p>
               </div>
+            ) : (
+              <p className='text-sm text-[#9a9a9a]'>メモはありません。</p>
+            )}
+            {sp.trustUpdated === '1' ? (
+              <p className='mt-3 rounded-xl border border-[#c8e6d9] bg-[#eef8f3] px-3 py-2 text-xs text-[#1f5d4f]'>
+                本人確認・運営確認ステータスを更新しました。
+              </p>
             ) : null}
-            <button
-              type='button'
-              disabled
-              className='mt-4 cursor-not-allowed rounded-full border border-[#e2ddd2] px-4 py-2 text-xs text-[#9a9a9a]'
+            <Link
+              href='/admin/hanakai/reports'
+              className='mt-4 inline-block text-xs text-[#1f5d4f] hover:underline'
             >
-              ステータス変更（Phase 3）
-            </button>
+              通報管理を見る →
+            </Link>
           </Section>
         </div>
       </div>

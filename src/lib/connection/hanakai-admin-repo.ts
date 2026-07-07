@@ -12,6 +12,12 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { PERSONALITY_TYPE_META } from '@/lib/connection/personality';
 import { MBTI_LABEL, SOCIAL_PLATFORM_LABEL } from '@/lib/connection/bloom-profile-options';
+import {
+  ADMIN_IDENTITY_STATUS_LABEL,
+  getAdminIdentityStatus,
+  VERIFICATION_SOURCE_LABEL,
+} from '@/lib/connection/trust';
+import { REPORT_CATEGORY_LABEL, REPORT_TARGET_TYPE_LABEL } from '@/lib/connection/report-constants';
 import type {
   AdminApplicationRow,
   AdminEventRow,
@@ -44,6 +50,7 @@ function visibilityLabel(status: string, isPast: boolean): string {
 }
 
 function memberToRow(member: ConnectionMember, createdAt = '', updatedAt = ''): AdminMemberRow {
+  const identityStatus = getAdminIdentityStatus(member);
   return {
     id: member.id,
     nickname: member.nickname || '（未設定）',
@@ -58,6 +65,8 @@ function memberToRow(member: ConnectionMember, createdAt = '', updatedAt = ''): 
     updatedAt,
     status: memberStatus(member),
     deletedAt: member.deletedAt,
+    identityStatus,
+    identityStatusLabel: ADMIN_IDENTITY_STATUS_LABEL[identityStatus],
   };
 }
 
@@ -338,7 +347,7 @@ async function countOpenReports(): Promise<number | 'unlinked'> {
     const { count, error } = await admin
       .from('hanakai_reports')
       .select('*', { count: 'exact', head: true })
-      .in('status', ['open', 'reviewing']);
+      .in('status', ['open', 'new', 'reviewing']);
     if (error) {
       console.warn('HANAKAI_ADMIN_REPORTS_COUNT_SKIP', { message: error.message });
       return 'unlinked';
@@ -470,6 +479,7 @@ export async function adminRejectApplication(
 }
 
 const REPORT_STATUS_LABEL: Record<AdminReportStatus, string> = {
+  new: '未対応',
   open: '未対応',
   reviewing: '確認中',
   resolved: '対応済み',
@@ -477,8 +487,11 @@ const REPORT_STATUS_LABEL: Record<AdminReportStatus, string> = {
 };
 
 const REPORT_TARGET_LABEL: Record<string, string> = {
-  member: '会員',
+  member: 'ユーザー',
   event: 'イベント',
+  profile: 'プロフィール',
+  message_future: 'メッセージ',
+  other: 'その他',
   group_post: 'グループ投稿',
   group_photo: 'グループ写真',
   profile_photo: 'プロフィール写真',
@@ -499,7 +512,7 @@ export async function listHanakaiAdminReports(options?: {
     let q = admin.from('hanakai_reports').select('*').order('created_at', { ascending: false });
     const statusFilter = options?.status ?? 'active';
     if (statusFilter === 'active') {
-      q = q.in('status', ['open', 'reviewing']);
+      q = q.in('status', ['open', 'new', 'reviewing']);
     } else if (statusFilter !== 'all') {
       q = q.eq('status', statusFilter);
     }
@@ -511,9 +524,12 @@ export async function listHanakaiAdminReports(options?: {
     }
 
     const memberIds = new Set<string>();
+    const eventIds = new Set<string>();
     for (const row of data) {
       if (row.reporter_member_id) memberIds.add(String(row.reporter_member_id));
       if (row.resolved_by_member_id) memberIds.add(String(row.resolved_by_member_id));
+      if (row.target_member_id) memberIds.add(String(row.target_member_id));
+      if (row.target_event_id) eventIds.add(String(row.target_event_id));
     }
     const nicknameMap = new Map<string, string>();
     if (memberIds.size > 0) {
@@ -525,9 +541,37 @@ export async function listHanakaiAdminReports(options?: {
         nicknameMap.set(String(m.id), String(m.nickname || '（未設定）'));
       }
     }
+    const eventTitleMap = new Map<string, string>();
+    if (eventIds.size > 0) {
+      const { data: events } = await admin
+        .from('hanakai_events')
+        .select('id, title')
+        .in('id', [...eventIds]);
+      for (const e of events ?? []) {
+        eventTitleMap.set(String(e.id), String(e.title || '（無題）'));
+      }
+    }
 
     return data.map((row) => {
       const targetType = String(row.target_type ?? 'group_post') as AdminReportRow['targetType'];
+      const targetMemberId = row.target_member_id ? String(row.target_member_id) : null;
+      const targetEventId = row.target_event_id ? String(row.target_event_id) : null;
+      const category = String(row.category ?? row.reason ?? '');
+      const categoryLabel =
+        (REPORT_CATEGORY_LABEL[category as keyof typeof REPORT_CATEGORY_LABEL] ?? category) || '—';
+      const description = String(row.description ?? row.detail ?? '');
+      const targetMemberNickname = targetMemberId
+        ? (nicknameMap.get(targetMemberId) ?? '（不明）')
+        : null;
+      const targetEventTitle = targetEventId
+        ? (eventTitleMap.get(targetEventId) ?? '（不明）')
+        : null;
+
+      let targetLabel = `${REPORT_TARGET_LABEL[targetType] ?? REPORT_TARGET_TYPE_LABEL[targetType as keyof typeof REPORT_TARGET_TYPE_LABEL] ?? targetType}`;
+      if (targetMemberNickname) targetLabel += ` · ${targetMemberNickname}`;
+      else if (targetEventTitle) targetLabel += ` · ${targetEventTitle}`;
+      else targetLabel += ` · ${String(row.target_id).slice(0, 8)}…`;
+
       return {
         id: String(row.id),
         reporterMemberId: row.reporter_member_id ? String(row.reporter_member_id) : null,
@@ -536,10 +580,18 @@ export async function listHanakaiAdminReports(options?: {
           : '（匿名）',
         targetType,
         targetId: String(row.target_id),
-        targetLabel: `${REPORT_TARGET_LABEL[targetType] ?? targetType} · ${String(row.target_id).slice(0, 8)}…`,
+        targetMemberId,
+        targetMemberNickname,
+        targetEventId,
+        targetEventTitle,
+        targetLabel,
+        category,
+        categoryLabel,
         reason: String(row.reason ?? ''),
+        description,
         detail: String(row.detail ?? ''),
-        status: row.status as AdminReportStatus,
+        status: (row.status === 'open' ? 'new' : row.status) as AdminReportStatus,
+        adminNote: row.admin_note ? String(row.admin_note) : null,
         createdAt: String(row.created_at),
         updatedAt: String(row.updated_at ?? row.created_at),
         resolvedAt: row.resolved_at ? String(row.resolved_at) : null,
@@ -574,11 +626,11 @@ export async function adminUpdateReportStatus(
 
   if (fetchErr || !report) return { ok: false, error: '通報が見つかりません' };
 
-  const current = report.status as AdminReportStatus;
+  const current = (report.status === 'open' ? 'new' : report.status) as AdminReportStatus;
   const allowed =
-    (status === 'reviewing' && current === 'open') ||
+    (status === 'reviewing' && (current === 'new' || current === 'open')) ||
     (status === 'resolved' && current === 'reviewing') ||
-    (status === 'dismissed' && (current === 'open' || current === 'reviewing'));
+    (status === 'dismissed' && (current === 'new' || current === 'open' || current === 'reviewing'));
 
   if (!allowed) return { ok: false, error: 'このステータス変更はできません' };
 
@@ -591,11 +643,32 @@ export async function adminUpdateReportStatus(
     payload.resolved_at = now;
     payload.resolved_by_member_id = adminMemberId;
   }
-  if (note && status === 'dismissed') {
-    payload.detail = note;
+  if (note) {
+    if (status === 'dismissed') {
+      payload.detail = note;
+    }
+    payload.admin_note = note;
   }
 
   const { error: updateErr } = await admin.from('hanakai_reports').update(payload).eq('id', reportId);
+  if (updateErr) return { ok: false, error: updateErr.message };
+  return { ok: true };
+}
+
+export async function adminSaveReportNote(
+  reportId: string,
+  note: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!useSupabase) return { ok: false, error: '通報管理は Supabase 環境でのみ利用できます' };
+
+  const admin = await adminDb();
+  if (!admin) return { ok: false, error: 'データベースに接続できません' };
+
+  const { error: updateErr } = await admin
+    .from('hanakai_reports')
+    .update({ admin_note: note.trim(), updated_at: new Date().toISOString() })
+    .eq('id', reportId);
+
   if (updateErr) return { ok: false, error: updateErr.message };
   return { ok: true };
 }
@@ -697,6 +770,10 @@ export async function getHanakaiAdminMemberDetail(memberId: string): Promise<Adm
     considerations,
     safetyFlags: member.safetyFlags,
     trustNotes: member.trustNotes,
+    identityVerified: member.identityVerified,
+    documentUploadStatus: member.documentUploadStatus ?? 'none',
+    trustVerificationStatus: member.trustVerificationStatus,
+    verificationSource: VERIFICATION_SOURCE_LABEL[member.verificationSource] ?? member.verificationSource,
     adminNotePhase: 'phase3',
     applicationHistory,
     confirmedEvents,

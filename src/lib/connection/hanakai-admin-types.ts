@@ -14,6 +14,8 @@ export type AdminMemberRow = {
   updatedAt: string;
   status: AdminMemberStatus;
   deletedAt: string | null;
+  identityStatus: 'verified' | 'reviewing' | 'unverified';
+  identityStatusLabel: string;
 };
 
 export type AdminEventRow = {
@@ -46,11 +48,14 @@ export type AdminApplicationRow = {
   decisionNote?: string | null;
 };
 
-export type AdminReportStatus = 'open' | 'reviewing' | 'resolved' | 'dismissed';
+export type AdminReportStatus = 'new' | 'open' | 'reviewing' | 'resolved' | 'dismissed';
 
 export type AdminReportTargetType =
   | 'member'
   | 'event'
+  | 'profile'
+  | 'message_future'
+  | 'other'
   | 'group_post'
   | 'group_photo'
   | 'profile_photo'
@@ -62,10 +67,18 @@ export type AdminReportRow = {
   reporterNickname: string;
   targetType: AdminReportTargetType;
   targetId: string;
+  targetMemberId: string | null;
+  targetMemberNickname: string | null;
+  targetEventId: string | null;
+  targetEventTitle: string | null;
   targetLabel: string;
+  category: string;
+  categoryLabel: string;
   reason: string;
+  description: string;
   detail: string;
   status: AdminReportStatus;
+  adminNote: string | null;
   createdAt: string;
   updatedAt: string;
   resolvedAt: string | null;
@@ -112,6 +125,10 @@ export type AdminMemberDetail = {
   considerations: string;
   safetyFlags: string[];
   trustNotes: string | null;
+  identityVerified: boolean;
+  documentUploadStatus: string;
+  trustVerificationStatus: string;
+  verificationSource: string;
   adminNotePhase: 'phase3';
   applicationHistory: AdminMemberApplicationHistory[];
   confirmedEvents: { id: string; title: string; startAt: string }[];

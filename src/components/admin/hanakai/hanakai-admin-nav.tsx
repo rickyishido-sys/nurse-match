@@ -11,7 +11,7 @@ const items = [
   { href: `${BASE}/members`, label: '会員' },
   { href: `${BASE}/events`, label: 'イベント' },
   { href: `${BASE}/applications`, label: '参加申請' },
-  { href: `${BASE}/reports`, label: '通報' },
+  { href: `${BASE}/reports`, label: '通報管理' },
   { href: `${BASE}/inquiries`, label: 'お問い合わせ' },
   { href: '/manage', label: '参加者選定' },
 ];

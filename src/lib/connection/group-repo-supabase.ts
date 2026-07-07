@@ -188,7 +188,7 @@ export async function reportGroupPost(postId: string, reporterMemberId?: string)
       target_id: postId,
       reason: 'user_report',
       detail: '',
-      status: 'open',
+      status: 'new',
     });
     if (reportErr) console.warn('HANAKAI_REPORT_INSERT_SKIP', { postId, message: reportErr.message });
   }
@@ -211,7 +211,7 @@ export async function reportGroupPhoto(photoId: string, reporterMemberId?: strin
       target_id: photoId,
       reason: 'user_report',
       detail: '',
-      status: 'open',
+      status: 'new',
     });
     if (reportErr) console.warn('HANAKAI_REPORT_INSERT_SKIP', { photoId, message: reportErr.message });
   }

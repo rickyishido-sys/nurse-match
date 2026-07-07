@@ -601,6 +601,7 @@ export async function updateTrustVerificationAction(formData: FormData) {
   await requireHanakaiAdminAccess('/manage');
   const memberId = String(formData.get('memberId') ?? '');
   const eventId = String(formData.get('eventId') ?? '');
+  const returnPath = String(formData.get('returnPath') ?? '').trim();
   const trustVerificationStatus = String(formData.get('trustVerificationStatus') ?? 'pending') as TrustVerificationStatus;
   const verificationSource = String(formData.get('verificationSource') ?? 'none') as VerificationSource;
   const identityVerified = formData.get('identityVerified') === '1';
@@ -621,6 +622,13 @@ export async function updateTrustVerificationAction(formData: FormData) {
 
   revalidatePath('/manage');
   revalidatePath('/register/profile');
+  revalidatePath('/my-profile');
+  revalidatePath(`/profile/${memberId}`);
+  revalidatePath(`/admin/hanakai/members/${memberId}`);
+  revalidatePath('/admin/hanakai/members');
+  if (returnPath) {
+    redirect(`${returnPath}?trustUpdated=1`);
+  }
   redirect(`/manage?event=${eventId}&trustUpdated=${memberId}`);
 }
 

@@ -11,14 +11,15 @@ import type { ConnectionMember, TrustVerificationStatus, VerificationSource } fr
 
 type TrustAdminPanelProps = {
   member: ConnectionMember;
-  eventId: string;
+  eventId?: string;
+  returnPath?: string;
 };
 
 const STATUS_OPTIONS: TrustVerificationStatus[] = ['pending', 'reviewing', 'verified', 'rejected'];
 const SOURCE_OPTIONS: VerificationSource[] = ['none', 'id_only', 'id_plus_public_info'];
 
 /** 管理画面専用 — 運営確認 運用パネル（非公開） */
-export function TrustAdminPanel({ member, eventId }: TrustAdminPanelProps) {
+export function TrustAdminPanel({ member, eventId = '', returnPath }: TrustAdminPanelProps) {
   return (
     <div className='mt-4 space-y-3 rounded-2xl border border-dashed border-[#d8d6d1] bg-[#fafaf8] p-4'>
       <div>
@@ -29,6 +30,7 @@ export function TrustAdminPanel({ member, eventId }: TrustAdminPanelProps) {
       <form action={updateTrustVerificationAction} className='space-y-3'>
         <input type='hidden' name='memberId' value={member.id} />
         <input type='hidden' name='eventId' value={eventId} />
+        {returnPath ? <input type='hidden' name='returnPath' value={returnPath} /> : null}
 
         <label className='grid gap-1 text-xs'>
           <span className='font-medium text-[#4a4a4a]'>運営確認ステータス</span>

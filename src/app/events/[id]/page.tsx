@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { HostBadgeList } from '@/components/connection/host-badge';
+import { ReportButton } from '@/components/connection/report-button';
 import { ApplyForm } from '@/components/connection/events/apply-form';
 import { formatFee } from '@/components/connection/events/event-card';
 import { EventGallery } from '@/components/connection/events/event-gallery';
@@ -53,7 +54,18 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
             {event.isUserCreated ? <Chip tone='muted'>ユーザー主催</Chip> : null}
             <Chip tone='muted'>{approvalMode === 'auto' ? '自動承認' : '主催者承認制'}</Chip>
           </div>
-          <h1 className='text-xl font-semibold text-[#1a1a1a]'>{event.title}</h1>
+          <div className='flex items-start justify-between gap-3'>
+            <h1 className='text-xl font-semibold text-[#1a1a1a]'>{event.title}</h1>
+            <ReportButton
+              target={{
+                targetType: 'event',
+                targetEventId: event.id,
+                label: `イベント「${event.title}」`,
+              }}
+              canReport={!!viewerMemberId}
+              loginNext={`/events/${event.id}`}
+            />
+          </div>
           <p className='whitespace-pre-line text-sm leading-7 text-[#6b6b6b]'>{event.description}</p>
         </div>
 
@@ -78,9 +90,29 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                 ✿
               </span>
             )}
-            <div className='space-y-1.5'>
-              <p className='text-sm font-medium text-[#1a1a1a]'>{event.hostName}</p>
+            <div className='min-w-0 flex-1 space-y-1.5'>
+              <div className='flex items-start justify-between gap-2'>
+                {host ? (
+                  <Link href={`/profile/${host.id}`} className='text-sm font-medium text-[#1a1a1a] hover:underline'>
+                    {event.hostName}
+                  </Link>
+                ) : (
+                  <p className='text-sm font-medium text-[#1a1a1a]'>{event.hostName}</p>
+                )}
+                {host && viewerMemberId && host.id !== viewerMemberId ? (
+                  <ReportButton
+                    target={{
+                      targetType: 'member',
+                      targetMemberId: host.id,
+                      label: `${host.nickname}（主催者）`,
+                    }}
+                    canReport={!!viewerMemberId}
+                    loginNext={`/events/${event.id}`}
+                  />
+                ) : null}
+              </div>
               {host ? <p className='text-xs text-[#6b6b6b]'>{host.occupation} · {host.area}</p> : null}
+              {host ? <TrustBadgeList member={host} /> : null}
               {host ? <HostBadgeList badges={host.hostBadges} /> : null}
             </div>
           </div>
@@ -97,11 +129,26 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                   <div className='flex items-center gap-3'>
                     <MemberAvatar member={m} size={40} />
                     <div>
-                      <p className='text-sm font-medium text-[#1a1a1a]'>{m.nickname}</p>
+                      <Link href={`/profile/${m.id}`} className='text-sm font-medium text-[#1a1a1a] hover:underline'>
+                        {m.nickname}
+                      </Link>
                       <p className='text-[11px] text-[#6b6b6b]'>{m.occupation}</p>
                     </div>
                   </div>
-                  <TrustBadgeList member={m} />
+                  <div className='flex flex-col items-end gap-1'>
+                    <TrustBadgeList member={m} />
+                    {viewerMemberId && m.id !== viewerMemberId ? (
+                      <ReportButton
+                        target={{
+                          targetType: 'member',
+                          targetMemberId: m.id,
+                          label: `${m.nickname}（参加者）`,
+                        }}
+                        canReport={!!viewerMemberId}
+                        loginNext={`/events/${event.id}`}
+                      />
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </div>
