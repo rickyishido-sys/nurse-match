@@ -114,7 +114,11 @@ export async function saveMemberPersonality(id: string, personality: Personality
 
 export async function saveMemberSocialLinks(
   memberId: string,
-  links: { platform: import('@/lib/connection/bloom-profile-options').SocialLinkPlatform; url: string }[],
+  links: {
+    platform: import('@/lib/connection/bloom-profile-options').SocialLinkPlatform;
+    url: string;
+    isVisibleOnProfile?: boolean;
+  }[],
 ) {
   if (useSupabase) return supa.saveMemberSocialLinks(memberId, links);
 }

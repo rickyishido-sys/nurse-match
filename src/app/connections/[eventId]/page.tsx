@@ -4,10 +4,12 @@ import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
 import { ConnectionMessageButton } from '@/components/connection/message-button';
 import { MemberInsights } from '@/components/connection/member-insights';
+import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { Card, Chip } from '@/components/connection/ui';
 import { followMemberAction } from '@/lib/connection/actions';
 import { canViewConnectionPage, getEvent, getEventMembers, getMember } from '@/lib/connection/repo';
+import { getVisibleSocialLinks } from '@/lib/connection/social-links';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
@@ -79,6 +81,7 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
         <div className='space-y-4'>
           {members.map((member) => {
             const isSelf = member.id === viewerMemberId;
+            const visibleSocialLinks = getVisibleSocialLinks(member, viewerMemberId);
             return (
               <Card key={member.id}>
                 <div className='flex gap-4'>
@@ -93,6 +96,11 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
                     <TrustBadgeList member={member} className='mt-1.5' />
                     <p className='text-xs text-[#6b6b6b]'>{member.age}歳 · {member.area} · {member.occupation}</p>
                     <p className='mt-2 text-xs leading-6 text-[#4a4a4a]'>{member.bio}</p>
+                    {visibleSocialLinks.length > 0 ? (
+                      <div className='mt-3'>
+                        <MemberVisibleSocialLinks links={visibleSocialLinks} />
+                      </div>
+                    ) : null}
                     <div className='mt-3'>
                       <MemberInsights member={member} variant='compact' />
                     </div>

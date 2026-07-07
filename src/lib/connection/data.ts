@@ -302,7 +302,10 @@ function seedTrust(partial: Partial<MemberTrustVerificationFields>): MemberTrust
   };
 }
 
-const memberSeeds: Omit<ConnectionMember, 'ageBand' | 'mbtiType' | 'socialLinks'>[] = [
+const memberSeeds: Omit<
+  ConnectionMember,
+  'ageBand' | 'mbtiType' | 'socialLinks' | 'introductionAiGenerated' | 'introductionGeneratedAt'
+>[] = [
   {
     id: 'm1',
     nickname: 'あやか',
@@ -601,6 +604,8 @@ const members: ConnectionMember[] = memberSeeds.map((m) => ({
   ageBand: '',
   mbtiType: '',
   socialLinks: [],
+  introductionAiGenerated: false,
+  introductionGeneratedAt: null,
 }));
 
 const events: ConnectionEvent[] = [

@@ -106,6 +106,15 @@ export default async function HanakaiAdminMemberDetailPage({ params }: PageProps
                     detail.socialLinks.map((link) => (
                       <div key={link.platform} className='text-sm'>
                         <span className='text-[#6b6b6b]'>{link.platformLabel}: </span>
+                        <span
+                          className={`mr-2 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            link.isVisibleOnProfile
+                              ? 'bg-[#eef4f1] text-[#1f5d4f]'
+                              : 'bg-[#f3f2ef] text-[#9a9a9a]'
+                          }`}
+                        >
+                          {link.isVisibleOnProfile ? '公開' : '非公開'}
+                        </span>
                         <a
                           href={link.url}
                           target='_blank'
@@ -119,10 +128,14 @@ export default async function HanakaiAdminMemberDetailPage({ params }: PageProps
                   )}
                 </dd>
               </div>
-              <div>
-                <dt className='text-[11px] text-[#9a9a9a]'>AI分析</dt>
-                <dd className='mt-0.5 text-sm text-[#9a9a9a]'>今後追加予定</dd>
-              </div>
+              <Field
+                label='AI自己紹介'
+                value={
+                  detail.introductionAiGenerated
+                    ? `AI下書きを使用${detail.introductionGeneratedAt ? `（${formatAdminDate(detail.introductionGeneratedAt)}）` : ''}`
+                    : '未使用'
+                }
+              />
             </dl>
           </Section>
 

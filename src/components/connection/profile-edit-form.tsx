@@ -3,7 +3,10 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { updateMyProfileAction } from '@/lib/connection/actions';
+import { BioAiDraftPanel } from '@/components/connection/bio-ai-draft-panel';
+import { MemberSocialLinksEditor } from '@/components/connection/member-social-links-editor';
 import { ProfilePhotoUploader } from '@/components/connection/profile-photo-uploader';
+import { MBTI_OPTIONS } from '@/lib/connection/bloom-profile-options';
 import { INTEREST_TAG_OPTIONS, LIFE_PHASE_OPTIONS } from '@/lib/connection/data';
 import {
   DESIRED_CONNECTION_OPTIONS,
@@ -98,15 +101,19 @@ function initialTemperament(member: ConnectionMember): string {
 type ProfileEditFormProps = {
   member: ConnectionMember;
   error?: string;
+  aiEnabled?: boolean;
 };
 
-export function ProfileEditForm({ member, error }: ProfileEditFormProps) {
+export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEditFormProps) {
   const [purposes, setPurposes] = useState<ConnectionPurpose[]>(member.purposes);
   const [interestTags, setInterestTags] = useState<InterestTag[]>(member.interestTags);
   const [gender, setGender] = useState(member.gender);
   const [lifePhase, setLifePhase] = useState<LifePhase>(member.lifePhase);
   const [temperament, setTemperament] = useState(initialTemperament(member));
   const [area, setArea] = useState(member.area);
+  const [mbtiType, setMbtiType] = useState(member.mbtiType || 'unknown');
+  const [bio, setBio] = useState(member.bio);
+  const [introductionAiGenerated, setIntroductionAiGenerated] = useState(member.introductionAiGenerated);
 
   const purposeFields = useMemo(
     () => purposes.map((p) => <input key={p} type='hidden' name='purposes' value={p} />),
@@ -241,16 +248,38 @@ export function ProfileEditForm({ member, error }: ProfileEditFormProps) {
             </div>
           </div>
           <div>
+            <FieldLabel>MBTI / 16タイプ</FieldLabel>
+            <input type='hidden' name='mbtiType' value={mbtiType} />
+            <div className='flex flex-wrap gap-2'>
+              {MBTI_OPTIONS.map((opt) => (
+                <ChipButton key={opt.value} active={mbtiType === opt.value} onClick={() => setMbtiType(opt.value)}>
+                  {opt.label}
+                </ChipButton>
+              ))}
+            </div>
+          </div>
+          <div>
             <FieldLabel>自己紹介</FieldLabel>
-            <textarea
-              name='bio'
-              rows={5}
-              defaultValue={member.bio}
-              placeholder='あなたについて、自由に書いてください。'
-              className={`${fieldClass} resize-none leading-7`}
+            <BioAiDraftPanel
+              aiEnabled={aiEnabled}
+              bio={bio}
+              onBioChange={setBio}
+              onAiAdopted={() => setIntroductionAiGenerated(true)}
             />
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              rows={5}
+              placeholder='あなたについて、自由に書いてください。'
+              className={`${fieldClass} mt-4 resize-none leading-7`}
+            />
+            <input type='hidden' name='introductionAiGenerated' value={introductionAiGenerated ? '1' : '0'} />
           </div>
         </div>
+      </SectionCard>
+
+      <SectionCard kicker='SNS' title='SNSリンク'>
+        <MemberSocialLinksEditor initialLinks={member.socialLinks} />
       </SectionCard>
 
       <div className='flex flex-col gap-3 sm:flex-row'>

@@ -76,8 +76,7 @@ export function BioStep({
           </button>
         </div>
         <p className='mt-3 text-xs leading-6' style={{ color: ONB.subtle }}>
-          AIプロフィール下書きは今後追加予定です。
-          SNS URLや性格タイプを登録しておくと、あなたらしい自己紹介文の下書きを作れるようになります。
+          登録完了後は /my-profile から、MBTIやSNSをもとにしたAI自己紹介下書きも利用できます。
         </p>
       </div>
     </div>

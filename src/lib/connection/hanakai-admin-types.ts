@@ -103,8 +103,9 @@ export type AdminMemberDetail = {
   personalityLabel: string | null;
   mbtiType: string | null;
   mbtiLabel: string | null;
-  socialLinks: { platform: string; platformLabel: string; url: string }[];
-  bloomAiAnalysisPhase: 'planned';
+  socialLinks: { platform: string; platformLabel: string; url: string; isVisibleOnProfile: boolean }[];
+  introductionAiGenerated: boolean;
+  introductionGeneratedAt: string | null;
   deepAnswers: { label: string; value: string }[];
   desiredConnection: string;
   considerations: string;

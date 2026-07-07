@@ -627,6 +627,7 @@ export async function getHanakaiAdminMemberDetail(memberId: string): Promise<Adm
     platform: link.platform,
     platformLabel: SOCIAL_PLATFORM_LABEL[link.platform] ?? link.platform,
     url: link.url,
+    isVisibleOnProfile: link.isVisibleOnProfile,
   }));
 
   const purposeLabels = member.purposes.map((p) => PURPOSE_LABEL[p] ?? p);
@@ -687,7 +688,8 @@ export async function getHanakaiAdminMemberDetail(memberId: string): Promise<Adm
     mbtiType,
     mbtiLabel,
     socialLinks,
-    bloomAiAnalysisPhase: 'planned',
+    introductionAiGenerated: member.introductionAiGenerated,
+    introductionGeneratedAt: member.introductionGeneratedAt,
     deepAnswers,
     desiredConnection: purposeLabels.join('、') || '',
     considerations,

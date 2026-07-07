@@ -85,6 +85,7 @@ function socialLinkFromRow(row: Record<string, unknown>): MemberSocialLink {
     memberId: String(row.member_id),
     platform: row.platform as SocialLinkPlatform,
     url: String(row.url ?? ''),
+    isVisibleOnProfile: Boolean(row.is_visible_on_profile),
   };
 }
 
@@ -130,6 +131,8 @@ function memberFromRow(
     personality: (row.personality ?? null) as PersonalityProfile | null,
     mbtiType: (row.mbti_type as ConnectionMember['mbtiType']) ?? '',
     socialLinks,
+    introductionAiGenerated: Boolean(row.introduction_ai_generated),
+    introductionGeneratedAt: row.introduction_generated_at ?? null,
     hostBadges: row.host_badges ?? [],
     trustVerificationStatus: row.trust_verification_status ?? 'pending',
     identityVerified: row.identity_verified ?? false,
@@ -412,6 +415,8 @@ function toMemberUpdate(patch: MemberPatch): Record<string, any> {
   if (patch.lifePhase !== undefined) out.life_phase = patch.lifePhase;
   if (patch.personality !== undefined) out.personality = patch.personality;
   if (patch.mbtiType !== undefined) out.mbti_type = patch.mbtiType || null;
+  if (patch.introductionAiGenerated !== undefined) out.introduction_ai_generated = patch.introductionAiGenerated;
+  if (patch.introductionGeneratedAt !== undefined) out.introduction_generated_at = patch.introductionGeneratedAt;
   if (patch.hostBadges !== undefined) out.host_badges = patch.hostBadges;
   if (patch.trustVerificationStatus !== undefined) out.trust_verification_status = patch.trustVerificationStatus;
   if (patch.identityVerified !== undefined) out.identity_verified = patch.identityVerified;
@@ -439,13 +444,17 @@ export async function updateMember(id: string, patch: MemberPatch): Promise<Conn
 
 export async function saveMemberSocialLinks(
   memberId: string,
-  links: { platform: SocialLinkPlatform; url: string }[],
+  links: { platform: SocialLinkPlatform; url: string; isVisibleOnProfile?: boolean }[],
 ): Promise<void> {
   const sb = await db();
   if (!sb) return;
 
   const trimmed = links
-    .map((l) => ({ platform: l.platform, url: l.url.trim() }))
+    .map((l) => ({
+      platform: l.platform,
+      url: l.url.trim(),
+      isVisibleOnProfile: Boolean(l.isVisibleOnProfile),
+    }))
     .filter((l) => l.url.length > 0);
 
   const { data: existing } = await sb
@@ -468,6 +477,7 @@ export async function saveMemberSocialLinks(
         member_id: memberId,
         platform: link.platform,
         url: link.url,
+        is_visible_on_profile: link.isVisibleOnProfile,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'member_id,platform' },

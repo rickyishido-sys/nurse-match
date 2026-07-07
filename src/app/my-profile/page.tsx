@@ -3,7 +3,10 @@ import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
 import { MemberAvatar, MemberPhotoGallery } from '@/components/connection/member-avatar';
 import { ProfileEditForm } from '@/components/connection/profile-edit-form';
+import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
+import { isBloomAiEnabled } from '@/lib/connection/bloom-introduction-ai';
+import { MBTI_LABEL } from '@/lib/connection/bloom-profile-options';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
 import {
@@ -143,7 +146,7 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
               内容を変更したら「保存する」を押してください。
             </p>
           </section>
-          <ProfileEditForm member={member} error={editError} />
+          <ProfileEditForm member={member} error={editError} aiEnabled={isBloomAiEnabled()} />
         </div>
       </ConnectionShell>
     );
@@ -152,6 +155,10 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
   const personality = member.personality ? PERSONALITY_TYPE_META[member.personality.type] : null;
   const purposeLabels = member.purposes.map((p) => PURPOSE_LABEL[p]).filter(Boolean);
   const interestLabels = member.interestTags.map((t) => INTEREST_TAG_LABEL[t]).filter(Boolean);
+  const mbtiLabel =
+    member.mbtiType && member.mbtiType !== 'unknown'
+      ? (MBTI_LABEL[member.mbtiType] ?? member.mbtiType)
+      : '';
 
   return (
     <ConnectionShell viewer={viewer}>
@@ -220,7 +227,21 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
             ) : (
               <p className='text-sm text-[#c4c0b8]'>未登録</p>
             )}
+            {member.introductionAiGenerated ? (
+              <p className='mt-2 text-[11px] text-[#1f5d4f]'>AI下書きをもとに作成</p>
+            ) : null}
           </div>
+          {mbtiLabel ? (
+            <div className='border-b border-[#f1efe9] py-4 last:border-b-0'>
+              <p className='mb-2 text-xs font-medium tracking-wide text-[#9a9a9a]'>MBTI / 16タイプ</p>
+              <p className='text-sm font-medium text-[#1a1a1a]'>{mbtiLabel}</p>
+            </div>
+          ) : null}
+          {member.socialLinks.length > 0 ? (
+            <div className='py-4'>
+              <MemberVisibleSocialLinks links={member.socialLinks} variant='owner' />
+            </div>
+          ) : null}
         </SectionCard>
 
         {/* 編集 */}

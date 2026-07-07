@@ -160,6 +160,7 @@ export type MemberSocialLink = {
   memberId: string;
   platform: SocialLinkPlatform;
   url: string;
+  isVisibleOnProfile: boolean;
 };
 
 export type ConnectionMember = {
@@ -184,6 +185,9 @@ export type ConnectionMember = {
   mbtiType: MbtiType | '';
   /** 公開SNS URL */
   socialLinks: MemberSocialLink[];
+  /** AI下書きを採用して自己紹介を保存したか */
+  introductionAiGenerated: boolean;
+  introductionGeneratedAt: string | null;
   /** Hostバッジ（UIのみ・将来は実績ベースで自動付与） */
   hostBadges?: HostBadge[];
 } & MemberTrustVerificationFields;

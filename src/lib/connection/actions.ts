@@ -12,6 +12,7 @@ import {
   removeMemberFromEvent,
   saveMemberPersonality,
   saveMemberPhotos,
+  saveMemberSocialLinks,
   updateMember,
   updateMemberTrust,
 } from '@/lib/connection/repo';
@@ -450,10 +451,10 @@ export async function saveProfileAction(formData: FormData) {
   });
 
   const { SOCIAL_LINK_PLATFORMS } = await import('@/lib/connection/bloom-profile-options');
-  const { saveMemberSocialLinks } = await import('@/lib/connection/repo');
   const socialLinks = SOCIAL_LINK_PLATFORMS.map(({ platform }) => ({
     platform,
     url: String(formData.get(`socialLink_${platform}`) ?? '').trim(),
+    isVisibleOnProfile: false,
   }));
   await saveMemberSocialLinks(memberId, socialLinks);
 
@@ -512,6 +513,8 @@ export async function updateMyProfileAction(formData: FormData) {
   const purposes = formData.getAll('purposes') as ConnectionPurpose[];
   const interestTags = formData.getAll('interestTags') as InterestTag[];
   const lifePhase = String(formData.get('lifePhase') ?? 'other') as LifePhase;
+  const mbtiRaw = String(formData.get('mbtiType') ?? '').trim();
+  const markAiIntro = formData.get('introductionAiGenerated') === '1';
 
   await updateMember(memberId, {
     nickname,
@@ -522,7 +525,22 @@ export async function updateMyProfileAction(formData: FormData) {
     purposes,
     interestTags,
     lifePhase,
+    mbtiType: (mbtiRaw || 'unknown') as import('@/lib/connection/bloom-profile-options').MbtiType,
+    ...(markAiIntro
+      ? {
+          introductionAiGenerated: true,
+          introductionGeneratedAt: new Date().toISOString(),
+        }
+      : {}),
   });
+
+  const { SOCIAL_LINK_PLATFORMS } = await import('@/lib/connection/bloom-profile-options');
+  const socialLinks = SOCIAL_LINK_PLATFORMS.map(({ platform }) => ({
+    platform,
+    url: String(formData.get(`socialLink_${platform}`) ?? '').trim(),
+    isVisibleOnProfile: formData.get(`socialVisible_${platform}`) === '1',
+  }));
+  await saveMemberSocialLinks(memberId, socialLinks);
 
   const temperamentValue = String(formData.get('temperament') ?? '');
   const temp = TEMPERAMENT_OPTIONS.find((t) => t.value === temperamentValue);
@@ -540,6 +558,8 @@ export async function updateMyProfileAction(formData: FormData) {
   revalidatePath('/my-profile');
   revalidatePath('/events');
   revalidatePath('/posts');
+  revalidatePath('/connections');
+  revalidatePath('/admin/hanakai/members');
   redirect('/my-profile?saved=1');
 }
 
