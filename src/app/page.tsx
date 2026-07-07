@@ -12,6 +12,7 @@ import { LandingVoices } from '@/components/connection/landing/v2/voices';
 import { LandingGallery } from '@/components/connection/landing/v2/gallery';
 import { LandingFaq } from '@/components/connection/landing/v2/faq';
 import { LandingFinalCta } from '@/components/connection/landing/v2/final-cta';
+import { NewsBoard } from '@/components/news/news-board';
 import { getHanakaiRegistrationStatus, resolveJoinHref } from '@/lib/connection/registration-status';
 
 export default async function LandingPage() {
@@ -37,6 +38,7 @@ export default async function LandingPage() {
         <LandingSupport />
         <LandingVoices />
         <LandingGallery />
+        <NewsBoard />
         <LandingFaq />
         <LandingFinalCta joinHref={joinHref} />
       </main>
