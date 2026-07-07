@@ -542,6 +542,17 @@ export async function updateMyProfileAction(formData: FormData) {
     url: String(formData.get(`socialLink_${platform}`) ?? '').trim(),
     isVisibleOnProfile: formData.get(`socialVisible_${platform}`) === '1',
   }));
+  console.error('HANAKAI_SOCIAL_LINK_SAVE_PAYLOAD', {
+    memberId,
+    links: socialLinks
+      .filter((l) => l.url.length > 0)
+      .map((l) => ({
+        member_id: memberId,
+        platform: l.platform,
+        url: l.url,
+        is_visible_on_profile: l.isVisibleOnProfile,
+      })),
+  });
   await saveMemberSocialLinks(memberId, socialLinks);
 
   const temperamentValue = String(formData.get('temperament') ?? '');

@@ -237,9 +237,11 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
               <p className='text-sm font-medium text-[#1a1a1a]'>{mbtiLabel}</p>
             </div>
           ) : null}
-          {member.socialLinks.length > 0 ? (
+          {member.socialLinks.some((l) => l.url.trim() && l.isVisibleOnProfile) ? (
             <div className='py-4'>
-              <MemberVisibleSocialLinks links={member.socialLinks} variant='owner' />
+              <MemberVisibleSocialLinks
+                links={member.socialLinks.filter((l) => l.url.trim() && l.isVisibleOnProfile)}
+              />
             </div>
           ) : null}
         </SectionCard>

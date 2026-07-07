@@ -446,12 +446,61 @@ export async function updateMember(id: string, patch: MemberPatch): Promise<Conn
   return memberFromRow(data, photoMap.get(id) ?? [], socialMap.get(id) ?? []);
 }
 
+function isMissingVisibilityColumnError(message: string | undefined): boolean {
+  if (!message) return false;
+  return (
+    message.includes('is_visible_on_profile') ||
+    message.includes('PGRST204')
+  );
+}
+
+async function upsertSocialLinkRow(
+  sb: NonNullable<Awaited<ReturnType<typeof db>>>,
+  memberId: string,
+  link: { platform: SocialLinkPlatform; url: string; isVisibleOnProfile: boolean },
+): Promise<void> {
+  const now = new Date().toISOString();
+  const base = {
+    member_id: memberId,
+    platform: link.platform,
+    url: link.url,
+    updated_at: now,
+  };
+
+  const withVisibility = {
+    ...base,
+    is_visible_on_profile: link.isVisibleOnProfile,
+  };
+
+  let result = await sb
+    .from('hanakai_member_social_links')
+    .upsert(withVisibility, { onConflict: 'member_id,platform' });
+
+  if (result.error && isMissingVisibilityColumnError(result.error.message)) {
+    result = await sb
+      .from('hanakai_member_social_links')
+      .upsert(base, { onConflict: 'member_id,platform' });
+  }
+
+  if (result.error) {
+    console.error('HANAKAI_SOCIAL_LINK_UPSERT_FAILED', {
+      memberId,
+      platform: link.platform,
+      url: link.url,
+      isVisibleOnProfile: link.isVisibleOnProfile,
+      message: result.error.message,
+      code: result.error.code,
+    });
+    throw new Error(`SNSリンクの保存に失敗しました (${link.platform})`);
+  }
+}
+
 export async function saveMemberSocialLinks(
   memberId: string,
   links: { platform: SocialLinkPlatform; url: string; isVisibleOnProfile?: boolean }[],
 ): Promise<void> {
   const sb = await db();
-  if (!sb) return;
+  if (!sb) throw new Error('Supabase client unavailable');
 
   const trimmed = links
     .map((l) => ({
@@ -461,31 +510,45 @@ export async function saveMemberSocialLinks(
     }))
     .filter((l) => l.url.length > 0);
 
-  const { data: existing } = await sb
+  const { data: existing, error: existingError } = await sb
     .from('hanakai_member_social_links')
     .select('platform')
     .eq('member_id', memberId);
+
+  if (existingError) {
+    console.error('HANAKAI_SOCIAL_LINK_READ_FAILED', {
+      memberId,
+      message: existingError.message,
+      code: existingError.code,
+    });
+    throw new Error('SNSリンクの読み込みに失敗しました');
+  }
 
   const keepPlatforms = new Set(trimmed.map((l) => l.platform));
   const toDelete = (existing ?? [])
     .map((r) => String(r.platform))
     .filter((p) => !keepPlatforms.has(p as SocialLinkPlatform));
 
-  for (const platform of toDelete) {
-    await sb.from('hanakai_member_social_links').delete().eq('member_id', memberId).eq('platform', platform);
+  // 先に upsert してから削除（upsert 失敗時に既存データを消さない）
+  for (const link of trimmed) {
+    await upsertSocialLinkRow(sb, memberId, link);
   }
 
-  for (const link of trimmed) {
-    await sb.from('hanakai_member_social_links').upsert(
-      {
-        member_id: memberId,
-        platform: link.platform,
-        url: link.url,
-        is_visible_on_profile: link.isVisibleOnProfile,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'member_id,platform' },
-    );
+  for (const platform of toDelete) {
+    const { error } = await sb
+      .from('hanakai_member_social_links')
+      .delete()
+      .eq('member_id', memberId)
+      .eq('platform', platform);
+    if (error) {
+      console.error('HANAKAI_SOCIAL_LINK_DELETE_FAILED', {
+        memberId,
+        platform,
+        message: error.message,
+        code: error.code,
+      });
+      throw new Error(`SNSリンクの削除に失敗しました (${platform})`);
+    }
   }
 }
 

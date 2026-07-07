@@ -55,9 +55,9 @@ export function MemberSocialLinksEditor({ initialLinks }: { initialLinks: Member
         return (
           <div key={platform} className='rounded-2xl border border-[#f1efe9] bg-[#fbf9f5] p-4'>
             <label className='mb-2 block text-xs font-medium tracking-wide text-[#9a9a9a]'>{label}</label>
+            <input type='hidden' name={`socialLink_${platform}`} value={draft.url} />
             <input
               type='url'
-              name={`socialLink_${platform}`}
               value={draft.url}
               onChange={(e) => updateUrl(platform, e.target.value)}
               placeholder={placeholder}

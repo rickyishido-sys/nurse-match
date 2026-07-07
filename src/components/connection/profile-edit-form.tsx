@@ -266,6 +266,7 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
               onBioChange={setBio}
               onAiAdopted={() => setIntroductionAiGenerated(true)}
             />
+            <input type='hidden' name='bio' value={bio} />
             <textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
