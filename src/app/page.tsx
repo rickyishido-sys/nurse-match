@@ -14,19 +14,19 @@ import { LandingFaq } from '@/components/connection/landing/v2/faq';
 import { LandingFinalCta } from '@/components/connection/landing/v2/final-cta';
 import { getHanakaiRegistrationStatus, resolveJoinHref } from '@/lib/connection/registration-status';
 import { getHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access';
+import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 export default async function LandingPage() {
-  const registration = await getHanakaiRegistrationStatus();
+  const [registration, adminAccess, viewer] = await Promise.all([
+    getHanakaiRegistrationStatus(),
+    getHanakaiAdminAccess(),
+    getHanakaiViewer(),
+  ]);
   const joinHref = resolveJoinHref(registration);
-  const adminAccess = await getHanakaiAdminAccess();
 
   return (
     <div className='min-h-screen bg-[#faf7f2] text-[#1a1a1a]'>
-      <LandingNav
-        loggedIn={registration.isAuthenticated}
-        profileComplete={registration.profileComplete}
-        joinHref={joinHref}
-      />
+      <LandingNav joinHref={joinHref} viewer={viewer} />
 
       <main>
         <LandingHeroV2 joinHref={joinHref} />

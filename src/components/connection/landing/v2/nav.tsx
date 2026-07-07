@@ -2,15 +2,15 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { HeaderUserMenu } from '@/components/connection/header-user-menu';
+import type { HanakaiViewer } from '@/lib/hanakai/session';
 
 export function LandingNav({
-  loggedIn = false,
-  profileComplete = false,
   joinHref = '/register',
+  viewer = null,
 }: {
-  loggedIn?: boolean;
-  profileComplete?: boolean;
   joinHref?: string;
+  viewer?: HanakaiViewer | null;
 }) {
   const [solid, setSolid] = useState(false);
 
@@ -56,12 +56,16 @@ export function LandingNav({
           >
             イベントを見る
           </Link>
-          <Link
-            href={joinHref}
-            className='flex h-9 items-center rounded-full bg-[#1f5d4f] px-4 text-xs font-semibold text-white shadow-sm transition active:scale-[0.97]'
-          >
-            {!loggedIn ? '参加する' : profileComplete ? 'マイページ' : 'プロフィール入力'}
-          </Link>
+          {viewer ? (
+            <HeaderUserMenu user={viewer} />
+          ) : (
+            <Link
+              href={joinHref}
+              className='flex h-9 items-center rounded-full bg-[#1f5d4f] px-4 text-xs font-semibold text-white shadow-sm transition active:scale-[0.97]'
+            >
+              参加する
+            </Link>
+          )}
         </nav>
       </div>
     </header>

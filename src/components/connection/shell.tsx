@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ConnectionBottomNav } from '@/components/connection/bottom-nav';
-import { logoutAction } from '@/lib/actions';
+import { HeaderUserMenu } from '@/components/connection/header-user-menu';
 import { CONNECTION_SHELL_CLASS } from '@/lib/connection/layout-width';
 import type { HanakaiViewer } from '@/lib/hanakai/session';
 
@@ -23,11 +23,7 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
           </Link>
           <div className='flex items-center gap-2'>
             {viewer ? (
-              <form action={logoutAction}>
-                <button className='rounded-full border border-[#d8d6d1] px-3 py-1.5 text-xs font-medium text-[#6b6b6b]'>
-                  ログアウト
-                </button>
-              </form>
+              <HeaderUserMenu user={viewer} />
             ) : (
               <>
                 <Link href='/login' className='rounded-full border border-[#d8d6d1] px-3 py-1.5 text-xs font-medium text-[#6b6b6b]'>

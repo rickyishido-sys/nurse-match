@@ -1,12 +1,16 @@
 import Link from 'next/link';
 import { AdminNav } from '@/components/admin/admin-nav';
+import { HeaderUserMenu } from '@/components/connection/header-user-menu';
+import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 export const metadata = {
   title: 'HANAKAI Connection 運営管理',
   robots: { index: false, follow: false },
 };
 
-export default function ConnectionAdminLayout({ children }: { children: React.ReactNode }) {
+export default async function ConnectionAdminLayout({ children }: { children: React.ReactNode }) {
+  const viewer = await getHanakaiViewer();
+
   return (
     <div className='min-h-screen bg-[#f7f5f0] text-[#1a1a1a]'>
       <header className='sticky top-0 z-20 border-b border-[#ebe7dd] bg-[#f7f5f0]/95 backdrop-blur'>
@@ -16,12 +20,15 @@ export default function ConnectionAdminLayout({ children }: { children: React.Re
               <p className='text-[11px] font-semibold tracking-[0.2em] text-[#1f5d4f]'>HANAKAI ADMIN</p>
               <p className='text-sm font-semibold text-[#1a1a1a]'>運営管理コンソール</p>
             </div>
-            <Link
-              href='/home'
-              className='rounded-full border border-[#e2ddd2] bg-white px-3.5 py-1.5 text-xs font-medium text-[#6b6b6b] transition hover:text-[#1a1a1a]'
-            >
-              サービスへ戻る
-            </Link>
+            <div className='flex shrink-0 items-center gap-2'>
+              <Link
+                href='/home'
+                className='rounded-full border border-[#e2ddd2] bg-white px-3.5 py-1.5 text-xs font-medium text-[#6b6b6b] transition hover:text-[#1a1a1a]'
+              >
+                サービスへ戻る
+              </Link>
+              {viewer ? <HeaderUserMenu user={viewer} /> : null}
+            </div>
           </div>
           <div className='mt-3'>
             <AdminNav />

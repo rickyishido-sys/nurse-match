@@ -1,8 +1,10 @@
 import Link from 'next/link';
-import { logoutAction, setDemoUserAction } from '@/lib/actions';
+import { setDemoUserAction } from '@/lib/actions';
 import { BottomNav } from '@/components/bottom-nav';
+import { HeaderUserMenu } from '@/components/connection/header-user-menu';
 import { HanakaiWordmark } from '@/components/hanakai/wordmark';
 import { USE_MOCK_DATA } from '@/lib/config';
+import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { listUsers } from '@/lib/mock-data';
 import type { AppUser } from '@/lib/types/domain';
 import { headers } from 'next/headers';
@@ -16,6 +18,7 @@ export async function AppShell({ user, children }: AppShellProps) {
   const showBottomNav = user !== null;
   const isAdmin = user?.role === 'female_admin' || user?.role === 'male_admin' || user?.role === 'super_admin';
   const adminHref = user?.role === 'female_admin' ? '/admin/female' : user?.role === 'male_admin' ? '/admin/male' : '/admin';
+  const headerViewer = await getHanakaiViewer();
   const headerStore = await headers();
   const host = (headerStore.get('x-forwarded-host') ?? headerStore.get('host') ?? '').toLowerCase();
   const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1') || host.includes('::1');
@@ -39,11 +42,7 @@ export async function AppShell({ user, children }: AppShellProps) {
                 イベント
               </Link>
             )}
-            {user ? (
-              <form action={logoutAction}>
-                <button className='rounded-full bg-[#1f5d4f] px-3 py-1 text-xs font-semibold text-white'>ログアウト</button>
-              </form>
-            ) : null}
+            {headerViewer ? <HeaderUserMenu user={headerViewer} /> : null}
           </div>
         </div>
 

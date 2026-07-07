@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { HanakaiAdminNav } from '@/components/admin/hanakai/hanakai-admin-nav';
 import { HanakaiAdminForbidden } from '@/components/admin/hanakai/hanakai-admin-forbidden';
+import { HeaderUserMenu } from '@/components/connection/header-user-menu';
 import { getHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access';
+import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 export const metadata = {
   title: 'HANAKAI 運営管理',
@@ -10,14 +12,18 @@ export const metadata = {
 
 export default async function HanakaiAdminLayout({ children }: { children: React.ReactNode }) {
   const access = await getHanakaiAdminAccess();
+  const viewer = await getHanakaiViewer();
 
   if (!access.allowed) {
     return (
       <div className='min-h-screen bg-[#f7f5f0] text-[#1a1a1a]'>
         <header className='border-b border-[#ebe7dd] bg-[#f7f5f0]'>
-          <div className='mx-auto w-full max-w-[1180px] px-4 py-4 md:px-8'>
-            <p className='text-[11px] font-semibold tracking-[0.2em] text-[#1f5d4f]'>HANAKAI ADMIN</p>
-            <p className='text-sm font-semibold text-[#1a1a1a]'>運営管理コンソール</p>
+          <div className='mx-auto flex w-full max-w-[1180px] items-center justify-between gap-4 px-4 py-4 md:px-8'>
+            <div>
+              <p className='text-[11px] font-semibold tracking-[0.2em] text-[#1f5d4f]'>HANAKAI ADMIN</p>
+              <p className='text-sm font-semibold text-[#1a1a1a]'>運営管理コンソール</p>
+            </div>
+            {viewer ? <HeaderUserMenu user={viewer} /> : null}
           </div>
         </header>
         <main className='mx-auto w-full max-w-[1180px] px-4 py-6 md:px-8'>
@@ -36,12 +42,15 @@ export default async function HanakaiAdminLayout({ children }: { children: React
               <p className='text-[11px] font-semibold tracking-[0.2em] text-[#1f5d4f]'>HANAKAI ADMIN</p>
               <p className='text-sm font-semibold text-[#1a1a1a]'>運営管理コンソール</p>
             </div>
-            <Link
-              href='/home'
-              className='rounded-full border border-[#e2ddd2] bg-white px-3.5 py-1.5 text-xs font-medium text-[#6b6b6b] transition hover:text-[#1a1a1a]'
-            >
-              サービスへ戻る
-            </Link>
+            <div className='flex shrink-0 items-center gap-2'>
+              <Link
+                href='/home'
+                className='rounded-full border border-[#e2ddd2] bg-white px-3.5 py-1.5 text-xs font-medium text-[#6b6b6b] transition hover:text-[#1a1a1a]'
+              >
+                サービスへ戻る
+              </Link>
+              {viewer ? <HeaderUserMenu user={viewer} /> : null}
+            </div>
           </div>
           <div className='mt-3'>
             <HanakaiAdminNav />
