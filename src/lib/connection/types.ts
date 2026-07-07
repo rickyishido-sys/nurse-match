@@ -190,7 +190,12 @@ export type ConnectionMember = {
   introductionGeneratedAt: string | null;
   /** Hostバッジ（UIのみ・将来は実績ベースで自動付与） */
   hostBadges?: HostBadge[];
+  /** active | deleted（論理削除） */
+  status: HanakaiMemberStatus;
+  deletedAt: string | null;
 } & MemberTrustVerificationFields;
+
+export type HanakaiMemberStatus = 'active' | 'deleted';
 
 export type ConnectionEvent = {
   id: string;

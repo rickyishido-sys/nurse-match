@@ -252,6 +252,13 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
         >
           プロフィールを編集する
         </Link>
+
+        <Link
+          href='/account/delete'
+          className='block text-center text-xs text-[#9a9a9a] underline-offset-2 hover:text-[#b42318] hover:underline'
+        >
+          アカウントを削除する
+        </Link>
       </div>
     </ConnectionShell>
   );

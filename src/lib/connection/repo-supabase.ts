@@ -144,6 +144,8 @@ function memberFromRow(
     identityVerificationMethod: row.identity_verification_method ?? 'none',
     externalVerificationRef: row.external_verification_ref ?? null,
     documentUploadStatus: row.document_upload_status ?? 'none',
+    status: (row.status === 'deleted' ? 'deleted' : 'active') as ConnectionMember['status'],
+    deletedAt: row.deleted_at ?? null,
   };
 }
 
@@ -417,6 +419,8 @@ function toMemberUpdate(patch: MemberPatch): Record<string, any> {
   if (patch.mbtiType !== undefined) out.mbti_type = patch.mbtiType || null;
   if (patch.introductionAiGenerated !== undefined) out.introduction_ai_generated = patch.introductionAiGenerated;
   if (patch.introductionGeneratedAt !== undefined) out.introduction_generated_at = patch.introductionGeneratedAt;
+  if (patch.status !== undefined) out.status = patch.status;
+  if (patch.deletedAt !== undefined) out.deleted_at = patch.deletedAt;
   if (patch.hostBadges !== undefined) out.host_badges = patch.hostBadges;
   if (patch.trustVerificationStatus !== undefined) out.trust_verification_status = patch.trustVerificationStatus;
   if (patch.identityVerified !== undefined) out.identity_verified = patch.identityVerified;

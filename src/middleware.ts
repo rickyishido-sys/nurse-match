@@ -3,6 +3,15 @@ import { createServerClient } from '@supabase/ssr';
 import { getUserById } from '@/lib/mock-data';
 import { isHanakaiAdminPath } from '@/lib/connection/hanakai-admin-path';
 
+const DELETED_MEMBER_EXEMPT_PATHS = [
+  '/',
+  '/login',
+  '/register',
+  '/terms',
+  '/privacy',
+  '/community-guidelines',
+];
+
 const PUBLIC_PATHS = [
   '/',
   '/login',
@@ -43,6 +52,53 @@ function adminLandingPath(role: string | undefined) {
   return '/admin';
 }
 
+function isDeletedMemberExemptPath(pathname: string): boolean {
+  if (DELETED_MEMBER_EXEMPT_PATHS.includes(pathname)) return true;
+  return pathname.startsWith('/auth/') || pathname.startsWith('/onboarding/');
+}
+
+async function redirectIfDeletedHanakaiMember(
+  request: NextRequest,
+): Promise<NextResponse | null> {
+  if (process.env.NEXT_PUBLIC_USE_MOCK !== 'false') return null;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnon) return null;
+
+  let response = NextResponse.next({ request });
+  const supabase = createServerClient(supabaseUrl, supabaseAnon, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+      },
+    },
+  });
+
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return null;
+
+  const { data: member } = await supabase
+    .from('hanakai_members')
+    .select('status')
+    .eq('auth_user_id', data.user.id)
+    .maybeSingle();
+
+  if (member?.status !== 'deleted') return null;
+
+  await supabase.auth.signOut();
+  const redirectResponse = NextResponse.redirect(new URL('/?account=deleted', request.url));
+  response.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie.name, cookie.value);
+  });
+  return redirectResponse;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAdminPath = pathname.startsWith('/admin');
@@ -61,6 +117,18 @@ export async function middleware(request: NextRequest) {
     hasSbCookie: sbCookieNames.length > 0,
     sbCookieNames,
   });
+
+  if (
+    process.env.NEXT_PUBLIC_USE_MOCK === 'false' &&
+    sbCookieNames.length > 0 &&
+    !isDeletedMemberExemptPath(pathname)
+  ) {
+    const deletedRedirect = await redirectIfDeletedHanakaiMember(request);
+    if (deletedRedirect) {
+      console.log('MIDDLEWARE_REDIRECT_DELETED_ACCOUNT', { pathname });
+      return deletedRedirect;
+    }
+  }
 
   if (
     PUBLIC_PATHS.some((path) => pathname === path) ||

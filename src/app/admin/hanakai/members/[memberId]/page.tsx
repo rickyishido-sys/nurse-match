@@ -32,6 +32,13 @@ const statusTone = {
   deleted: 'gray' as const,
 };
 
+const statusLabel = {
+  active: 'active',
+  warning: 'warning',
+  suspended: 'suspended',
+  deleted: '退会済み',
+} as const;
+
 export default async function HanakaiAdminMemberDetailPage({ params }: PageProps) {
   const { memberId } = await params;
   const detail = await getHanakaiAdminMemberDetail(memberId);
@@ -76,10 +83,13 @@ export default async function HanakaiAdminMemberDetailPage({ params }: PageProps
                 <Field label='職業' value={detail.occupation} />
                 <Field label='登録日時' value={formatAdminDate(member.createdAt)} />
                 <Field label='最終更新' value={formatAdminDate(member.updatedAt)} />
+                {member.deletedAt ? (
+                  <Field label='退会日時' value={formatAdminDate(member.deletedAt)} />
+                ) : null}
                 <div>
                   <dt className='text-[11px] text-[#9a9a9a]'>ステータス</dt>
                   <dd className='mt-1'>
-                    <Badge tone={statusTone[member.status]}>{member.status}</Badge>
+                    <Badge tone={statusTone[member.status]}>{statusLabel[member.status]}</Badge>
                     <p className='mt-1 text-[10px] text-[#9a9a9a]'>ステータス変更は Phase 3 予定</p>
                   </dd>
                 </div>

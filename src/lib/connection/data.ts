@@ -304,7 +304,13 @@ function seedTrust(partial: Partial<MemberTrustVerificationFields>): MemberTrust
 
 const memberSeeds: Omit<
   ConnectionMember,
-  'ageBand' | 'mbtiType' | 'socialLinks' | 'introductionAiGenerated' | 'introductionGeneratedAt'
+  | 'ageBand'
+  | 'mbtiType'
+  | 'socialLinks'
+  | 'introductionAiGenerated'
+  | 'introductionGeneratedAt'
+  | 'status'
+  | 'deletedAt'
 >[] = [
   {
     id: 'm1',
@@ -606,6 +612,8 @@ const members: ConnectionMember[] = memberSeeds.map((m) => ({
   socialLinks: [],
   introductionAiGenerated: false,
   introductionGeneratedAt: null,
+  status: 'active',
+  deletedAt: null,
 }));
 
 const events: ConnectionEvent[] = [

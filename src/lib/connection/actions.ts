@@ -20,7 +20,9 @@ import { VALUE_TAG_LABEL } from '@/lib/connection/data';
 import { TEMPERAMENT_OPTIONS } from '@/lib/connection/onboarding-options';
 import { uploadEventImages } from '@/lib/connection/storage';
 import { uploadDocument } from '@/lib/upload';
-import { ensureViewerMemberId, getAuthenticatedAuthUserId } from '@/lib/connection/identity';
+import { ensureViewerMemberId, getAuthenticatedAuthUserId, getViewerMemberId } from '@/lib/connection/identity';
+import { softDeleteHanakaiAccount } from '@/lib/connection/account-deletion';
+import { isDeletedMember } from '@/lib/connection/member-status';
 import { requireHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access';
 import { requireEventHostAccess } from '@/lib/connection/group-access';
 import { isHanakaiProfileComplete } from '@/lib/connection/registration-status';
@@ -609,4 +611,35 @@ export async function updateTrustVerificationAction(formData: FormData) {
   revalidatePath('/manage');
   revalidatePath('/register/profile');
   redirect(`/manage?event=${eventId}&trustUpdated=${memberId}`);
+}
+
+export async function deleteHanakaiAccountAction(formData: FormData) {
+  if (formData.get('confirmed') !== '1') {
+    throw new Error('確認チェックが必要です');
+  }
+
+  const authUserId = await getAuthenticatedAuthUserId();
+  if (!authUserId) {
+    redirect('/login?next=/account/delete');
+  }
+
+  const memberId = await getViewerMemberId();
+  if (!memberId) {
+    throw new Error('会員情報が見つかりません');
+  }
+
+  const member = await getMember(memberId);
+  if (isDeletedMember(member)) {
+    redirect('/?account=deleted');
+  }
+
+  const reason = String(formData.get('reason') ?? '').trim();
+  await softDeleteHanakaiAccount({ memberId, authUserId, reason: reason || null });
+
+  const supabase = await createServerSupabaseClient();
+  if (supabase) {
+    await supabase.auth.signOut();
+  }
+
+  redirect('/?account=deleted');
 }

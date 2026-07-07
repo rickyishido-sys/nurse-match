@@ -13,6 +13,7 @@ export type AdminMemberRow = {
   createdAt: string;
   updatedAt: string;
   status: AdminMemberStatus;
+  deletedAt: string | null;
 };
 
 export type AdminEventRow = {

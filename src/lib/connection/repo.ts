@@ -8,6 +8,7 @@
 // part of this layer — import those directly from '@/lib/connection/data'.
 import { HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
 import * as mock from '@/lib/connection/data';
+import { toPublicMemberView } from '@/lib/connection/member-status';
 import * as supa from '@/lib/connection/repo-supabase';
 import type {
   ConnectionEvent,
@@ -29,7 +30,8 @@ export async function listMembers(): Promise<ConnectionMember[]> {
 }
 
 export async function getMember(id: string): Promise<ConnectionMember | null> {
-  return useSupabase ? supa.getMember(id) : mock.getMember(id);
+  const member = useSupabase ? await supa.getMember(id) : mock.getMember(id);
+  return member ? toPublicMemberView(member) : null;
 }
 
 export async function listEvents(): Promise<ConnectionEvent[]> {
@@ -61,7 +63,8 @@ export async function getApplication(eventId: string, memberId: string): Promise
 }
 
 export async function getEventMembers(eventId: string): Promise<ConnectionMember[]> {
-  return useSupabase ? supa.getEventMembers(eventId) : mock.getEventMembers(eventId);
+  const members = useSupabase ? await supa.getEventMembers(eventId) : mock.getEventMembers(eventId);
+  return members.map(toPublicMemberView);
 }
 
 export async function canViewConnectionPage(eventId: string, viewerMemberId: string): Promise<boolean> {

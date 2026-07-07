@@ -23,7 +23,7 @@ const statusLabel = {
   active: 'active',
   warning: 'warning',
   suspended: 'suspended',
-  deleted: 'deleted',
+  deleted: '退会済み',
 };
 
 async function MembersContent({ query }: { query: string }) {

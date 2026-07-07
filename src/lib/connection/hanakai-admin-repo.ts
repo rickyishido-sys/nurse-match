@@ -32,7 +32,8 @@ const GENDER_LABEL: Record<string, string> = {
   other: 'その他',
 };
 
-function memberStatus(): AdminMemberStatus {
+function memberStatus(member: ConnectionMember): AdminMemberStatus {
+  if (member.status === 'deleted') return 'deleted';
   return 'active';
 }
 
@@ -55,7 +56,8 @@ function memberToRow(member: ConnectionMember, createdAt = '', updatedAt = ''): 
     avatarUrl: member.avatarUrl,
     createdAt,
     updatedAt,
-    status: memberStatus(),
+    status: memberStatus(member),
+    deletedAt: member.deletedAt,
   };
 }
 

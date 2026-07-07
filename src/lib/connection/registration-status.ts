@@ -1,4 +1,5 @@
 import { getAuthenticatedAuthUserId, getViewerMemberId } from '@/lib/connection/identity';
+import { isDeletedMember } from '@/lib/connection/member-status';
 import { getMember } from '@/lib/connection/repo';
 import type { ConnectionMember } from '@/lib/connection/types';
 
@@ -27,6 +28,9 @@ export async function getHanakaiRegistrationStatus(): Promise<HanakaiRegistratio
 
   const memberId = await getViewerMemberId();
   const member = memberId ? await getMember(memberId) : null;
+  if (isDeletedMember(member)) {
+    return { isAuthenticated: false, profileComplete: false, member: null };
+  }
   return {
     isAuthenticated: true,
     profileComplete: isHanakaiProfileComplete(member),

@@ -31,6 +31,7 @@ import { USE_MOCK_DATA, HANAKAI_CONNECTION_BACKEND, SITE_URL } from '@/lib/confi
 import { hanakaiEmailRedirectUrl } from '@/lib/connection/auth-redirect';
 import { ensureHanakaiMemberForAuthUser, getHanakaiMemberIdForAuthUser } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
+import { isDeletedMember } from '@/lib/connection/member-status';
 import { isHanakaiProfileComplete } from '@/lib/connection/registration-status';
 import {
   getUserByEmail,
@@ -363,6 +364,10 @@ export async function loginAction(formData: FormData) {
       if (memberId) {
         const member = await getMember(memberId);
         console.log('LOGIN_CONNECTION_ONLY', { email, userId: authUser.id, memberId });
+        if (isDeletedMember(member)) {
+          await supabase.auth.signOut();
+          redirect('/login?error=account-deleted');
+        }
         if (!isHanakaiProfileComplete(member)) {
           redirect('/register/profile');
         }
@@ -395,6 +400,10 @@ export async function loginAction(formData: FormData) {
     const hanakaiMemberId = await getHanakaiMemberIdForAuthUser(authUser.id);
     if (hanakaiMemberId) {
       const member = await getMember(hanakaiMemberId);
+      if (isDeletedMember(member)) {
+        await supabase.auth.signOut();
+        redirect('/login?error=account-deleted');
+      }
       if (!isHanakaiProfileComplete(member)) {
         redirect('/register/profile');
       }

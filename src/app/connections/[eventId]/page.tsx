@@ -1,8 +1,8 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
 import { ConnectionMessageButton } from '@/components/connection/message-button';
+import { MemberAvatar } from '@/components/connection/member-avatar';
 import { MemberInsights } from '@/components/connection/member-insights';
 import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
@@ -85,9 +85,7 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
             return (
               <Card key={member.id}>
                 <div className='flex gap-4'>
-                  <div className='relative h-16 w-16 shrink-0 overflow-hidden rounded-full'>
-                    <Image src={member.avatarUrl} alt={member.nickname} fill className='object-cover' />
-                  </div>
+                  <MemberAvatar member={member} size={64} />
                   <div className='min-w-0 flex-1'>
                     <div className='flex items-center gap-2'>
                       <p className='text-sm font-semibold text-[#1a1a1a]'>{member.nickname}</p>
