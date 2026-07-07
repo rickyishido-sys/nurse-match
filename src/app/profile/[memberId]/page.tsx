@@ -6,7 +6,10 @@ import { MemberInsights } from '@/components/connection/member-insights';
 import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
 import { ReportButton } from '@/components/connection/report-button';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
+import { BloomCardPublic } from '@/components/connection/bloom-card';
 import { Card } from '@/components/connection/ui';
+import { getBloomProfile } from '@/lib/connection/bloom-profile';
+import { toPublicBloomProfile } from '@/lib/connection/bloom-profile-types';
 import { LIFE_PHASE_LABEL, PURPOSE_LABEL, INTEREST_TAG_LABEL } from '@/lib/connection/data';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
@@ -31,6 +34,8 @@ export default async function MemberProfilePage({ params }: PageProps) {
   const purposeLabels = member.purposes.map((p) => PURPOSE_LABEL[p]).filter(Boolean);
   const interestLabels = member.interestTags.map((t) => INTEREST_TAG_LABEL[t]).filter(Boolean);
   const canReport = !!viewerMemberId;
+  const bloomRaw = await getBloomProfile(memberId);
+  const publicBloom = toPublicBloomProfile(bloomRaw, false);
 
   return (
     <ConnectionShell viewer={viewer}>
@@ -67,6 +72,8 @@ export default async function MemberProfilePage({ params }: PageProps) {
             </div>
           </div>
         </Card>
+
+        {publicBloom ? <BloomCardPublic profile={publicBloom} /> : null}
 
         {visibleSocialLinks.length > 0 ? (
           <Card>

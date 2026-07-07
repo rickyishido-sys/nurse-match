@@ -4,6 +4,7 @@ import { AdminPageHeader, Badge } from '@/components/admin/ui';
 import { AdminEmptyState, formatAdminDate } from '@/components/admin/hanakai/hanakai-admin-shared';
 import { TrustAdminPanel } from '@/components/connection/trust-admin-panel';
 import { getHanakaiAdminMemberDetail } from '@/lib/connection/hanakai-admin-repo';
+import { getBloomProfile } from '@/lib/connection/bloom-profile';
 import { getMember } from '@/lib/connection/repo';
 
 type PageProps = { params: Promise<{ memberId: string }> };
@@ -47,6 +48,7 @@ export default async function HanakaiAdminMemberDetailPage({ params, searchParam
   const detail = await getHanakaiAdminMemberDetail(memberId);
   if (!detail) notFound();
   const memberRecord = await getMember(memberId);
+  const bloomProfile = await getBloomProfile(memberId);
 
   const { member } = detail;
 
@@ -151,6 +153,35 @@ export default async function HanakaiAdminMemberDetailPage({ params, searchParam
                 }
               />
             </dl>
+          </Section>
+
+          <Section title='Bloom Profile Phase 3'>
+            {bloomProfile &&
+            (bloomProfile.bloomSummary ||
+              bloomProfile.aiIntroduction ||
+              bloomProfile.conversationStarters.length > 0) ? (
+              <dl className='space-y-4'>
+                <Field label='Bloom Summary タイトル' value={bloomProfile.bloomSummaryTitle} />
+                <Field label='Bloom Summary' value={bloomProfile.bloomSummary} />
+                <Field label='AI自己紹介（Bloom）' value={bloomProfile.aiIntroduction} />
+                <Field
+                  label='Conversation Starters'
+                  value={bloomProfile.conversationStarters.map((s) => `・${s}`).join('\n')}
+                />
+                <Field label='Connection Style' value={bloomProfile.connectionStyle} />
+                <Field
+                  label='この人と話すなら'
+                  value={bloomProfile.talkTopics.map((t) => `・${t}`).join('\n')}
+                />
+                <Field label='Bloom Tags（AI）' value={bloomProfile.aiTags.join('、')} />
+                <Field
+                  label='最終生成'
+                  value={bloomProfile.generatedAt ? formatAdminDate(bloomProfile.generatedAt) : null}
+                />
+              </dl>
+            ) : (
+              <p className='text-sm text-[#9a9a9a]'>Bloom Profile は未生成です</p>
+            )}
           </Section>
 
           <Section title='本人確認・運営確認'>

@@ -6,8 +6,11 @@ import { ProfileEditForm } from '@/components/connection/profile-edit-form';
 import { LegalLinks } from '@/components/connection/legal-links';
 import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
+import { BloomCardOwner } from '@/components/connection/bloom-card';
+import { BloomProfileUpdateButton, BloomVisibilityForm } from '@/components/connection/bloom-profile-panel';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
-import { isBloomAiEnabled } from '@/lib/connection/bloom-introduction-ai';
+import { isBloomAiEnabled } from '@/lib/connection/bloom-profile-ai';
+import { getBloomProfileOrEmpty } from '@/lib/connection/bloom-profile';
 import { MBTI_LABEL } from '@/lib/connection/bloom-profile-options';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
@@ -128,6 +131,8 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
   const editError = param(sp, 'error');
   const viewerMemberId = await getViewerMemberId();
   const member = viewerMemberId ? await getMember(viewerMemberId) : null;
+  const bloomProfile = viewerMemberId ? await getBloomProfileOrEmpty(viewerMemberId) : null;
+  const bloomSaved = param(sp, 'bloomSaved') === '1';
 
   if (!member || !member.nickname.trim()) {
     return <EmptyProfile viewer={viewer} />;
@@ -161,6 +166,11 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
     member.mbtiType && member.mbtiType !== 'unknown'
       ? (MBTI_LABEL[member.mbtiType] ?? member.mbtiType)
       : '';
+  const hasBloomProfile = Boolean(
+    bloomProfile?.bloomSummary.trim() ||
+      bloomProfile?.aiIntroduction.trim() ||
+      (bloomProfile?.conversationStarters.length ?? 0) > 0,
+  );
 
   return (
     <ConnectionShell viewer={viewer}>
@@ -173,6 +183,11 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
         {photosSaved ? (
           <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
             プロフィール写真を保存しました。
+          </p>
+        ) : null}
+        {bloomSaved ? (
+          <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
+            Bloom Profile の公開設定を保存しました
           </p>
         ) : null}
 
@@ -248,6 +263,14 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
             </div>
           ) : null}
         </SectionCard>
+
+        {bloomProfile ? (
+          <section className='space-y-4'>
+            <BloomCardOwner profile={bloomProfile} />
+            <BloomProfileUpdateButton aiEnabled={isBloomAiEnabled()} hasProfile={hasBloomProfile} />
+            <BloomVisibilityForm profile={bloomProfile} />
+          </section>
+        ) : null}
 
         {/* 編集 */}
         <Link
