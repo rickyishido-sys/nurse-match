@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { loginAction } from '@/lib/actions';
+import { LegalLinks } from '@/components/connection/legal-links';
 import { getHanakaiRegistrationStatus } from '@/lib/connection/registration-status';
 
 type LoginPageProps = {
@@ -99,7 +100,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </button>
           </form>
 
-          <div className='mt-5 flex flex-col items-center gap-2 text-xs'>
+          <div className='mt-5'>
+            <LegalLinks className='text-slate-500' />
+          </div>
+          <div className='mt-3 flex flex-col items-center gap-2 text-xs'>
             <Link href='/register' className='font-medium text-[#1f5d4f] underline underline-offset-2'>
               はじめての方は参加登録へ
             </Link>

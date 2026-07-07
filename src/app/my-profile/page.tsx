@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
 import { MemberAvatar, MemberPhotoGallery } from '@/components/connection/member-avatar';
 import { ProfileEditForm } from '@/components/connection/profile-edit-form';
+import { LegalLinks } from '@/components/connection/legal-links';
 import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { isBloomAiEnabled } from '@/lib/connection/bloom-introduction-ai';
@@ -261,6 +262,8 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
         >
           アカウントを削除する
         </Link>
+
+        <LegalLinks className='text-[#9a9a9a]' />
       </div>
     </ConnectionShell>
   );

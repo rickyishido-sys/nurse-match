@@ -63,7 +63,10 @@ export default async function LandingPage() {
               利用規約
             </Link>
             <Link href='/privacy' className='underline-offset-4 hover:underline'>
-              プライバシー
+              プライバシーポリシー
+            </Link>
+            <Link href='/contact' className='underline-offset-4 hover:underline'>
+              お問い合わせ
             </Link>
             {adminAccess.allowed ? (
               <Link href='/manage' className='text-white/50 underline-offset-4 hover:underline'>

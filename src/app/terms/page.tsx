@@ -1,49 +1,91 @@
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
+import { LegalLinks } from '@/components/connection/legal-links';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 const GOLD = '#b8956a';
+const REVISED_AT = '2026年7月8日';
 
 const SECTIONS: { heading: string; body?: string; items?: string[] }[] = [
   {
-    heading: '利用条件',
+    heading: 'はじめに',
+    body: '本利用規約（以下「本規約」）は、HANAKAI Connection（以下「本サービス」）の利用条件を定めるものです。本サービスをご利用いただく前に、本規約をご確認ください。本規約はストア申請およびサービス運営を目的として作成しており、最終的な法的判断については専門家の確認を推奨します。',
+  },
+  {
+    heading: 'サービス概要',
+    body: '本サービスは、リアルな体験（イベント）を通じて、参加者同士のつながり（Connection）を育むコミュニティプラットフォームです。運営は、安全で信頼できる場づくりのため、参加承認・本人確認・通報対応等を行う場合があります。',
+  },
+  {
+    heading: '登録条件',
     items: [
-      '本サービスは18歳以上の方のみご利用いただけます。',
-      'プロフィールに虚偽の内容を登録することは禁止します。',
+      '18歳以上であること',
+      '本規約およびプライバシーポリシーに同意すること',
+      '虚偽の情報を登録しないこと',
+      '一人につき一つのアカウントを原則とすること（運営が認める場合を除く）',
     ],
   },
   {
-    heading: 'リアルイベントへの参加',
-    body: 'HANAKAI Connectionは、リアルな体験を通じてつながりを育む場です。参加者が安心して過ごせるよう、次のマナーをお守りください。',
+    heading: '禁止行為',
+    body: '利用者は、以下の行為を行ってはなりません。',
     items: [
-      '他の参加者を尊重し、節度ある態度で参加してください。',
-      '迷惑行為・勧誘・営業・ハラスメントは固く禁止します。',
-      '集合時間・場所などイベントごとのルールに従ってください。',
+      '法令または公序良俗に反する行為',
+      '他の利用者への迷惑行為、ハラスメント、脅迫、差別的言動',
+      '営業・勧誘・スパム行為',
+      '虚偽のプロフィール登録、なりすまし',
+      '本人確認書類の偽造・不正利用',
+      '本サービスの運営を妨害する行為、不正アクセス',
+      'その他、運営が不適切と判断する行為',
     ],
   },
   {
-    heading: '運営による参加管理',
-    body: '安心できる場を保つため、運営は以下を行う場合があります。',
+    heading: 'イベント参加ルール',
     items: [
-      'イベントごとの参加承認、および参加の制限。',
-      'ユーザーが作成したイベントの内容確認（審査）。',
-      '規約違反が確認された場合の、利用停止・強制退会などの措置。',
+      'イベントごとに定める集合時間・場所・参加条件に従うこと',
+      '他の参加者を尊重し、節度ある態度で参加すること',
+      '無断キャンセル・直前キャンセルは、今後の参加制限の対象となる場合があります',
+      '参加費・キャンセル条件は各イベントの案内に従います',
     ],
   },
   {
-    heading: '参加費・キャンセルについて',
-    items: [
-      '参加費はイベントごとに定められ、申込時にご確認いただけます。',
-      'キャンセルは各イベントに定めるポリシーに従います。直前のキャンセルや無断不参加は、今後の参加が制限される場合があります。',
-    ],
+    heading: '本人確認',
+    body: '運営は、安全確認のため、本人確認書類の提出を求める場合があります。提出いただいた情報は、プライバシーポリシーに従い取り扱います。確認が完了しない場合、参加が制限されることがあります。',
+  },
+  {
+    heading: '通報・利用停止',
+    body: '利用者は、迷惑行為や安全上の懸念を運営に通報できます。運営は、通報内容の確認、参加制限、利用停止、アカウント削除等の措置を行う場合があります。措置の内容・期間は、個別の状況に応じて判断します。',
+  },
+  {
+    heading: '免責事項',
+    body: '本サービスは現状有姿で提供されます。運営は、本サービスの完全性・正確性・特定目的への適合性等について、明示または黙示を問わず保証しません。利用者間のトラブルについて、運営に故意または重過失がある場合を除き、責任を負わないものとします（法令上免責が認められない場合はこの限りではありません）。',
+  },
+  {
+    heading: '退会',
+    body: '利用者は、所定の方法によりアカウントを削除（退会）できます。ログイン後、/account/delete から手続きが可能です。退会後のデータ取扱いは、プライバシーポリシーに従います。',
+  },
+  {
+    heading: '規約の変更',
+    body: '運営は、必要に応じて本規約を変更することがあります。重要な変更がある場合は、本サービス上でお知らせします。変更後に本サービスを利用した場合、変更後の規約に同意したものとみなす場合があります。',
+  },
+  {
+    heading: '準拠法・管轄',
+    body: '本規約は日本法に準拠するものとします。本サービスに関して紛争が生じた場合、運営者の所在地を管轄する裁判所を第一審の専属的合意管轄裁判所とする場合があります（法令上認められない場合はこの限りではありません）。',
+  },
+  {
+    heading: 'お問い合わせ',
+    body: '本規約に関するお問い合わせは、お問い合わせフォーム（/contact）よりご連絡ください。',
   },
 ];
+
+export const metadata = {
+  title: '利用規約',
+  description: 'HANAKAI Connection 利用規約',
+};
 
 export default async function TermsPage() {
   const viewer = await getHanakaiViewer();
 
   return (
-    <ConnectionShell viewer={viewer}>
+    <ConnectionShell viewer={viewer} showNav={false}>
       <div className='mx-auto max-w-[680px] space-y-8'>
         <div className='space-y-2'>
           <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
@@ -55,6 +97,7 @@ export default async function TermsPage() {
           <p className='text-sm leading-7 text-[#6b6b6b]'>
             HANAKAI Connectionを安心してご利用いただくための基本的なルールです。ご参加の前にご確認ください。
           </p>
+          <p className='text-xs text-[#9a9a9a]'>最終改定日: {REVISED_AT}</p>
         </div>
 
         <div className='space-y-4'>
@@ -79,6 +122,8 @@ export default async function TermsPage() {
           ))}
         </div>
 
+        <LegalLinks className='text-[#6b6b6b]' />
+
         <div className='flex flex-wrap gap-3'>
           <Link
             href='/privacy'
@@ -87,10 +132,10 @@ export default async function TermsPage() {
             プライバシーポリシーを見る
           </Link>
           <Link
-            href='/'
+            href='/contact'
             className='inline-flex h-11 items-center justify-center rounded-full border border-[#d8d6d1] px-6 text-sm font-medium text-[#6b6b6b] transition active:scale-[0.98]'
           >
-            トップへ戻る
+            お問い合わせ
           </Link>
         </div>
       </div>

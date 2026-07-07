@@ -26,6 +26,7 @@ export function adminFlashMessage(
   if (success === 'rejected') return { variant: 'success', message: '参加申請を却下しました。' };
   if (success === 'reviewing') return { variant: 'success', message: '通報を確認中に更新しました。' };
   if (success === 'resolved') return { variant: 'success', message: '通報を対応済みにしました。' };
+  if (success === 'inquiry_resolved') return { variant: 'success', message: 'お問い合わせを対応済みにしました。' };
   if (success === 'dismissed') return { variant: 'success', message: '通報を却下（dismissed）しました。' };
   if (error === 'note_required') return { variant: 'error', message: '理由の入力が必要です。' };
   if (error === 'missing_id') return { variant: 'error', message: '対象 ID が見つかりません。' };

@@ -9,6 +9,7 @@ const DELETED_MEMBER_EXEMPT_PATHS = [
   '/register',
   '/terms',
   '/privacy',
+  '/contact',
   '/community-guidelines',
 ];
 
@@ -18,6 +19,7 @@ const PUBLIC_PATHS = [
   '/register',
   '/terms',
   '/privacy',
+  '/contact',
   '/community-guidelines',
   '/preview',
   '/onboarding',

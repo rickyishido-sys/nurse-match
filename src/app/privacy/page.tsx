@@ -1,45 +1,86 @@
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
+import { LegalLinks } from '@/components/connection/legal-links';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 const GOLD = '#b8956a';
+const REVISED_AT = '2026年7月8日';
 
-const SECTIONS: { heading: string; body: string; items?: string[] }[] = [
+const SECTIONS: { heading: string; body?: string; items?: string[] }[] = [
+  {
+    heading: 'はじめに',
+    body: 'HANAKAI Connection（以下「本サービス」）は、体験を通じて人と人のつながりを育むコミュニティサービスです。本プライバシーポリシーは、本サービスにおける個人情報等の取扱いについて定めるものです。本ポリシーは、ストア申請および法令遵守を目的として作成しており、最終的な法的判断については専門家の確認を推奨します。',
+  },
   {
     heading: '取得する情報',
-    body: 'HANAKAI Connection（以下「本サービス」）では、安心してつながれる場を提供するために、必要最小限の情報のみを取得します。',
+    body: '本サービスでは、以下の情報を、サービス提供に必要な範囲で取得する場合があります。',
     items: [
-      'プロフィール情報（ニックネーム・年代・お住まいの地域・価値観・興味関心など）',
-      'イベント申請情報（参加希望・申請理由など）',
-      '参加履歴（参加したConnection Eventの記録）',
-      'Connection履歴（イベントを通じて生まれたつながりの記録）',
+      'メールアドレス（会員登録・ログイン・お問い合わせ対応のため）',
+      'プロフィール情報（ニックネーム、年代、居住エリア、価値観、興味関心、自己紹介、写真など）',
+      'SNS URL（プロフィールに任意で登録いただくリンク）',
+      '本人確認書類（安全確認のため、任意または運営が求める場合）',
+      'イベント申込情報（参加希望、申請理由、参加履歴など）',
+      '端末情報・ログ情報（アクセス日時、IPアドレス、ブラウザ種別、エラーログなど）',
     ],
   },
   {
     heading: '利用目的',
-    body: '取得した情報は、以下の目的の範囲内でのみ利用します。',
+    body: '取得した情報は、以下の目的の範囲内で利用します。',
     items: [
-      '運営確認・安全確認（安心して参加できる環境づくり）',
-      '参加者選定およびConnection設計（より良い出会いの組み合わせの検討）',
-      '通報対応（迷惑行為・ハラスメント等への対応）',
-      'サービス改善（体験品質の向上）',
+      '会員登録およびアカウント管理',
+      '本人確認および安全確認',
+      'イベントの企画・運営・参加管理',
+      'Connection設計（より良い出会いの組み合わせの検討）',
+      '安全管理（迷惑行為・ハラスメント等への対応、通報対応）',
+      'お問い合わせ対応',
+      'サービス改善および不具合対応',
     ],
   },
   {
-    heading: '第三者提供について',
-    body: 'ご本人の同意がある場合、または法令に基づく場合を除き、取得した情報を権限のない第三者へ開示・提供することはありません。',
+    heading: '第三者提供',
+    body: 'ご本人の同意がある場合、または法令に基づき開示が求められた場合を除き、取得した情報を権限のない第三者へ開示・提供することはありません。ただし、人命や身体の安全を保護するために必要と判断される場合など、やむを得ない事由があるときは、この限りではありません。',
   },
   {
-    heading: '保管と削除',
-    body: '退会時にはデータを論理削除し、法令順守に必要な期間のみ保持します。安全確認・通報対応のために、利用履歴を確認する場合があります。',
+    heading: '外部サービスの利用',
+    body: '本サービスは、以下の外部サービスを利用しています。各サービスのプライバシーポリシーもあわせてご確認ください。',
+    items: [
+      'Supabase（認証・データベース基盤）',
+      'Vercel（ホスティング・配信基盤）',
+      'OpenAI（自己紹介文の下書き生成など、AI機能を利用する場合）',
+    ],
+  },
+  {
+    heading: '保管期間・削除',
+    body: '退会（アカウント削除）時には、アカウントを論理削除し、公開表示上の個人情報をマスクします。安全確認・通報対応・法令順守のため、一定期間データを保持する場合があります。詳細は利用規約およびアカウント削除画面をご確認ください。',
+    items: [
+      'アカウント削除は /account/delete から手続きできます（ログインが必要です）',
+      '削除後も、運営管理および法令対応のための記録が保持される場合があります',
+    ],
+  },
+  {
+    heading: 'お問い合わせ窓口',
+    body: '本ポリシーに関するお問い合わせは、お問い合わせフォームよりご連絡ください。',
+    items: [
+      'お問い合わせフォーム: /contact',
+      'アカウント削除に関するご相談も同フォームで受け付けます',
+    ],
+  },
+  {
+    heading: '改定',
+    body: `本ポリシーは、必要に応じて改定されることがあります。重要な変更がある場合は、本サービス上でお知らせします。最終改定日: ${REVISED_AT}`,
   },
 ];
+
+export const metadata = {
+  title: 'プライバシーポリシー',
+  description: 'HANAKAI Connection プライバシーポリシー',
+};
 
 export default async function PrivacyPage() {
   const viewer = await getHanakaiViewer();
 
   return (
-    <ConnectionShell viewer={viewer}>
+    <ConnectionShell viewer={viewer} showNav={false}>
       <div className='mx-auto max-w-[680px] space-y-8'>
         <div className='space-y-2'>
           <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
@@ -51,6 +92,7 @@ export default async function PrivacyPage() {
           <p className='text-sm leading-7 text-[#6b6b6b]'>
             本サービスは、あなたのプライバシーを尊重し、信頼できる体験のために情報を丁寧に取り扱います。
           </p>
+          <p className='text-xs text-[#9a9a9a]'>最終改定日: {REVISED_AT}</p>
         </div>
 
         <div className='space-y-4'>
@@ -60,7 +102,7 @@ export default async function PrivacyPage() {
               className='space-y-3 rounded-3xl border border-[#ebe5dc] bg-white p-6 shadow-[0_2px_12px_rgba(26,26,26,0.04)]'
             >
               <h2 className='text-base font-semibold text-[#1a1a1a]'>{section.heading}</h2>
-              <p className='text-sm leading-7 text-[#5a5247]'>{section.body}</p>
+              {section.body ? <p className='text-sm leading-7 text-[#5a5247]'>{section.body}</p> : null}
               {section.items ? (
                 <ul className='space-y-2 text-sm leading-7 text-[#6b6b6b]'>
                   {section.items.map((item) => (
@@ -75,6 +117,8 @@ export default async function PrivacyPage() {
           ))}
         </div>
 
+        <LegalLinks className='text-[#6b6b6b]' />
+
         <div className='flex flex-wrap gap-3'>
           <Link
             href='/terms'
@@ -83,10 +127,10 @@ export default async function PrivacyPage() {
             利用規約を見る
           </Link>
           <Link
-            href='/'
+            href='/contact'
             className='inline-flex h-11 items-center justify-center rounded-full border border-[#d8d6d1] px-6 text-sm font-medium text-[#6b6b6b] transition active:scale-[0.98]'
           >
-            トップへ戻る
+            お問い合わせ
           </Link>
         </div>
       </div>

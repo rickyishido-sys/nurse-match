@@ -8,6 +8,7 @@ import {
   adminRejectApplication,
   adminUpdateReportStatus,
 } from '@/lib/connection/hanakai-admin-repo';
+import { adminResolveInquiry } from '@/lib/connection/contact-inquiry';
 
 async function requireAdminAction(): Promise<string> {
   const access = await getHanakaiAdminAccess();
@@ -79,4 +80,19 @@ export async function adminUpdateReportStatusAction(formData: FormData) {
   revalidatePath('/admin/hanakai/reports');
   revalidatePath('/admin/hanakai');
   redirect(`/admin/hanakai/reports?success=${status}`);
+}
+
+export async function adminResolveInquiryAction(formData: FormData) {
+  await requireAdminAction();
+  const inquiryId = String(formData.get('inquiryId') ?? '').trim();
+  if (!inquiryId) redirect('/admin/hanakai/inquiries?error=missing_id');
+
+  const result = await adminResolveInquiry(inquiryId);
+  if (!result.ok) {
+    redirect(`/admin/hanakai/inquiries?error=${encodeURIComponent(result.error ?? 'resolve_failed')}`);
+  }
+
+  revalidatePath('/admin/hanakai/inquiries');
+  revalidatePath('/admin/hanakai');
+  redirect('/admin/hanakai/inquiries?success=inquiry_resolved');
 }

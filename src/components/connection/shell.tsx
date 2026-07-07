@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ConnectionBottomNav } from '@/components/connection/bottom-nav';
 import { HeaderUserMenu } from '@/components/connection/header-user-menu';
+import { LegalLinks } from '@/components/connection/legal-links';
 import { CONNECTION_SHELL_CLASS } from '@/lib/connection/layout-width';
 import type { HanakaiViewer } from '@/lib/hanakai/session';
 
@@ -43,13 +44,16 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
       <footer className={`border-t border-[#ebe9e4] px-5 py-6 text-center text-[11px] text-[#9a9a9a] ${showNav ? 'mb-16' : ''}`}>
         <p className='mb-1 font-medium tracking-[0.12em] text-[#1a1a1a]'>HANAKAI Connection</p>
         <p>人と人との新しいConnectionを生み出す、リアル体験プラットフォーム。</p>
-        <div className='mt-3 flex flex-wrap items-center justify-center gap-4'>
-          <Link href='/terms' className='underline-offset-2 hover:underline'>利用規約</Link>
-          <Link href='/privacy' className='underline-offset-2 hover:underline'>プライバシー</Link>
-          {viewer?.isConnectionAdmin ? (
-            <Link href='/manage' className='underline-offset-2 hover:underline text-[#9a9a9a]'>運営</Link>
-          ) : null}
+        <div className='mt-3'>
+          <LegalLinks className='text-[#9a9a9a]' />
         </div>
+        {viewer?.isConnectionAdmin ? (
+          <p className='mt-2'>
+            <Link href='/manage' className='text-[#9a9a9a] underline-offset-2 hover:underline'>
+              運営
+            </Link>
+          </p>
+        ) : null}
       </footer>
 
       {showNav ? <ConnectionBottomNav /> : null}

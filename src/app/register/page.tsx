@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { RegisterEmailForm } from '@/components/register-email-form';
+import { LegalLinks } from '@/components/connection/legal-links';
 import { HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
 import { ensureHanakaiMemberForAuthUser } from '@/lib/connection/identity';
 import { getHanakaiRegistrationStatus, resolveJoinHref } from '@/lib/connection/registration-status';
@@ -110,9 +111,8 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
           <RegisterEmailForm sent={sent === '1'} allowBurst={burst} legacyFlow={legacyFlow} />
 
-          <div className='mt-5 flex items-center justify-center gap-3 text-[11px] text-slate-500'>
-            <Link href='/terms' className='underline underline-offset-2'>利用規約</Link>
-            <Link href='/privacy' className='underline underline-offset-2'>プライバシー</Link>
+          <div className='mt-5'>
+            <LegalLinks className='text-slate-500' />
           </div>
         </section>
       </div>
