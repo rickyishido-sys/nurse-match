@@ -27,10 +27,10 @@ export default async function EventsPage({ searchParams }: PageProps) {
             CONNECTION EVENT
           </p>
           <h1 className='text-[1.6rem] font-semibold leading-tight tracking-tight text-[#1a1a1a]'>
-            気になる世界観を選ぶ
+            参加したいConnectionを見つける
           </h1>
           <p className='text-sm leading-7 text-[#6b6b6b]'>
-            テーマごとに、知らない誰かとリアルで出会う。心が動くイベントを見つけてください。
+            花・コーヒー・食事・散歩など、興味のある体験から新しいConnectionを見つけてください。
           </p>
         </div>
 
