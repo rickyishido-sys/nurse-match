@@ -1,15 +1,30 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
-import { TrustBadgeList } from '@/components/connection/trust-badge';
-import { HostBadgeList } from '@/components/connection/host-badge';
-import { ReportButton } from '@/components/connection/report-button';
 import { ApplyForm } from '@/components/connection/events/apply-form';
+import { EventDetailCta } from '@/components/connection/events/event-detail-cta';
+import { EventDetailGallery } from '@/components/connection/events/event-detail-gallery';
+import {
+  EventBloomAfterCard,
+  EventBloomIntroCard,
+  EventDayTimeline,
+  EventHostSection,
+  EventParticipantPreview,
+  EventRecommendedCards,
+  EventSafetyStrip,
+  EventSectionShell,
+} from '@/components/connection/events/event-detail-sections';
 import { formatFee } from '@/components/connection/events/event-card';
-import { EventGallery } from '@/components/connection/events/event-gallery';
-import { MemberAvatar } from '@/components/connection/member-avatar';
-import { Card, Chip } from '@/components/connection/ui';
+import { ReportButton } from '@/components/connection/report-button';
+import { Chip } from '@/components/connection/ui';
+import { getBloomProfile } from '@/lib/connection/bloom-profile';
 import { EVENT_CATEGORY_LABEL, formatEventDate } from '@/lib/connection/data';
+import {
+  anonymizeParticipants,
+  buildEventTimeline,
+  getExperienceTagline,
+  getRecommendedFor,
+} from '@/lib/connection/event-detail-ux';
 import { getApplication, getEvent, getEventMembers, getMember } from '@/lib/connection/repo';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
@@ -33,14 +48,20 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
   const existingApp = viewerMemberId ? await getApplication(event.id, viewerMemberId) : null;
   const confirmedMembers = await getEventMembers(event.id);
   const host = event.hostId ? await getMember(event.hostId) : null;
+  const hostBloom = event.hostId ? await getBloomProfile(event.hostId) : null;
   const isHost = !!viewerMemberId && event.hostId === viewerMemberId;
   const approvalMode = event.approvalMode ?? 'host_approval';
   const isFull = event.status === 'full' || event.reservedCount >= event.capacity;
+  const showApplyCta = !event.isPast && !isHost && existingApp?.status !== 'confirmed';
+  const loginHref = `/login?next=/events/${event.id}`;
+  const useScrollCta = !!viewerMemberId;
+  const participantCards = anonymizeParticipants(confirmedMembers);
+  const isPlaceholderParticipants = confirmedMembers.length === 0;
 
   return (
     <ConnectionShell viewer={viewer}>
-      <article className='space-y-5'>
-        <EventGallery event={event} />
+      <article className='mx-auto max-w-3xl space-y-10 lg:max-w-4xl'>
+        <EventDetailGallery event={event} />
 
         {created ? (
           <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
@@ -48,14 +69,23 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
           </p>
         ) : null}
 
-        <div className='space-y-2'>
+        <header className='space-y-4'>
           <div className='flex flex-wrap items-center gap-2'>
             <Chip tone='accent'>{EVENT_CATEGORY_LABEL[event.category]}</Chip>
             {event.isUserCreated ? <Chip tone='muted'>ユーザー主催</Chip> : null}
             <Chip tone='muted'>{approvalMode === 'auto' ? '自動承認' : '主催者承認制'}</Chip>
+            {event.capacity <= 8 ? <Chip tone='muted'>少人数</Chip> : null}
           </div>
+
           <div className='flex items-start justify-between gap-3'>
-            <h1 className='text-xl font-semibold text-[#1a1a1a]'>{event.title}</h1>
+            <div className='min-w-0 space-y-3'>
+              <h1 className='text-2xl font-semibold leading-tight tracking-tight text-[#1a1a1a] sm:text-[1.75rem] lg:text-3xl'>
+                {event.title}
+              </h1>
+              <p className='text-sm leading-8 text-[#4a4a4a] sm:text-base'>
+                {getExperienceTagline(event)}
+              </p>
+            </div>
             <ReportButton
               target={{
                 targetType: 'event',
@@ -66,205 +96,182 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
               loginNext={`/events/${event.id}`}
             />
           </div>
-          <p className='whitespace-pre-line text-sm leading-7 text-[#6b6b6b]'>{event.description}</p>
-        </div>
 
-        <Card>
-          <dl className='space-y-3 text-sm'>
-            <Row label='開催日時'>{formatEventDate(event.startAt)}</Row>
-            <Row label='場所'>{event.area}{event.venue ? ` · ${event.venue}` : ''}</Row>
-            <Row label='定員'>{event.capacity}名</Row>
-            <Row label='参加予定'>{event.reservedCount}名</Row>
-            <Row label='参加費'>{formatFee(event.fee)}</Row>
-            {event.conditions ? <Row label='参加条件'>{event.conditions}</Row> : null}
+          <dl className='grid gap-2 rounded-2xl border border-[#ebe9e4] bg-white px-4 py-4 text-sm sm:grid-cols-2 sm:gap-x-6'>
+            <MetaRow label='開催日時' value={formatEventDate(event.startAt)} />
+            <MetaRow label='場所' value={`${event.area}${event.venue ? ` · ${event.venue}` : ''}`} />
+            <MetaRow label='参加費' value={formatFee(event.fee)} />
+            <MetaRow label='定員' value={`${event.reservedCount} / ${event.capacity}名`} />
           </dl>
-        </Card>
 
-        <Card>
-          <h2 className='mb-3 text-sm font-semibold text-[#1a1a1a]'>主催者</h2>
-          <div className='flex items-start gap-3'>
-            {host ? (
-              <MemberAvatar member={host} size={48} />
-            ) : (
-              <span className='flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f0eeea] text-lg' aria-hidden>
-                ✿
-              </span>
-            )}
-            <div className='min-w-0 flex-1 space-y-1.5'>
-              <div className='flex items-start justify-between gap-2'>
-                {host ? (
-                  <Link href={`/profile/${host.id}`} className='text-sm font-medium text-[#1a1a1a] hover:underline'>
-                    {event.hostName}
+          {showApplyCta ? (
+            <EventDetailCta
+              applySectionId='event-apply'
+              loginHref={loginHref}
+              canApply={useScrollCta}
+            />
+          ) : null}
+        </header>
+
+        <EventSectionShell kicker='SCHEDULE' title='当日の流れ'>
+          <EventDayTimeline steps={buildEventTimeline(event.startAt)} />
+        </EventSectionShell>
+
+        <EventSectionShell kicker='FOR YOU' title='こんな方におすすめ'>
+          <EventRecommendedCards items={getRecommendedFor(event)} />
+        </EventSectionShell>
+
+        {event.description.trim() ? (
+          <EventSectionShell kicker='ABOUT' title='イベントについて'>
+            <p className='whitespace-pre-line text-sm leading-8 text-[#4a4a4a]'>{event.description}</p>
+            {event.conditions ? (
+              <p className='mt-3 rounded-xl bg-[#fafaf8] px-4 py-3 text-xs leading-7 text-[#6b6b6b]'>
+                <span className='font-semibold text-[#4a4a4a]'>参加条件: </span>
+                {event.conditions}
+              </p>
+            ) : null}
+          </EventSectionShell>
+        ) : null}
+
+        <EventSectionShell kicker='COMMUNITY' title='参加予定者のイメージ'>
+          <EventParticipantPreview cards={participantCards} isPlaceholder={isPlaceholderParticipants} />
+        </EventSectionShell>
+
+        <EventSectionShell kicker='HOST' title='主催者について'>
+          <EventHostSection
+            host={host}
+            hostName={event.hostName}
+            bloomProfile={hostBloom}
+            eventId={event.id}
+            viewerMemberId={viewerMemberId}
+          />
+        </EventSectionShell>
+
+        <EventBloomAfterCard />
+        <EventBloomIntroCard />
+        <EventSafetyStrip />
+
+        <section id='event-apply' className='scroll-mt-24 space-y-4'>
+          <h2 className='text-lg font-semibold text-[#1a1a1a]'>参加する</h2>
+
+          {event.isPast ? (
+            <div className='rounded-2xl border border-[#ebe9e4] bg-[#f5f4f2] px-5 py-5'>
+              <p className='text-sm text-[#4a4a4a]'>このイベントは終了しました。</p>
+              <div className='mt-3 flex flex-col gap-2'>
+                <Link href={`/connections/${event.id}`} className='text-xs font-semibold text-[#1a1a1a] underline-offset-2 hover:underline'>
+                  Connectionページを見る →
+                </Link>
+                {(existingApp?.status === 'confirmed' || isHost) && viewerMemberId ? (
+                  <Link href={`/groups/${event.id}`} className='text-xs font-semibold text-[#1f5d4f] underline-offset-2 hover:underline'>
+                    参加者グループを見る →
                   </Link>
-                ) : (
-                  <p className='text-sm font-medium text-[#1a1a1a]'>{event.hostName}</p>
-                )}
-                {host && viewerMemberId && host.id !== viewerMemberId ? (
-                  <ReportButton
-                    target={{
-                      targetType: 'member',
-                      targetMemberId: host.id,
-                      label: `${host.nickname}（主催者）`,
-                    }}
-                    canReport={!!viewerMemberId}
-                    loginNext={`/events/${event.id}`}
-                  />
                 ) : null}
               </div>
-              {host ? <p className='text-xs text-[#6b6b6b]'>{host.occupation} · {host.area}</p> : null}
-              {host ? <TrustBadgeList member={host} /> : null}
-              {host ? <HostBadgeList badges={host.hostBadges} /> : null}
             </div>
-          </div>
-        </Card>
-
-        <Card>
-          <h2 className='mb-3 text-sm font-semibold text-[#1a1a1a]'>
-            参加予定者 {confirmedMembers.length}名 <span className='font-normal text-[#9a9a9a]'>/ 定員{event.capacity}名</span>
-          </h2>
-          {confirmedMembers.length > 0 ? (
-            <div className='space-y-3'>
-              {confirmedMembers.map((m) => (
-                <div key={m.id} className='flex items-center justify-between gap-3'>
-                  <div className='flex items-center gap-3'>
-                    <MemberAvatar member={m} size={40} />
-                    <div>
-                      <Link href={`/profile/${m.id}`} className='text-sm font-medium text-[#1a1a1a] hover:underline'>
-                        {m.nickname}
-                      </Link>
-                      <p className='text-[11px] text-[#6b6b6b]'>{m.occupation}</p>
-                    </div>
-                  </div>
-                  <div className='flex flex-col items-end gap-1'>
-                    <TrustBadgeList member={m} />
-                    {viewerMemberId && m.id !== viewerMemberId ? (
-                      <ReportButton
-                        target={{
-                          targetType: 'member',
-                          targetMemberId: m.id,
-                          label: `${m.nickname}（参加者）`,
-                        }}
-                        canReport={!!viewerMemberId}
-                        loginNext={`/events/${event.id}`}
-                      />
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className='text-sm text-[#9a9a9a]'>まだ参加者は確定していません。最初のひとりになりませんか。</p>
-          )}
-        </Card>
-
-        {event.isPast ? (
-          <Card className='bg-[#f5f4f2]'>
-            <p className='text-sm text-[#4a4a4a]'>このイベントは終了しました。</p>
-            <div className='mt-3 flex flex-col gap-2'>
-              <Link href={`/connections/${event.id}`} className='text-xs font-semibold text-[#1a1a1a] underline-offset-2 hover:underline'>
-                Connectionページを見る →
-              </Link>
-              {(existingApp?.status === 'confirmed' || isHost) && viewerMemberId ? (
-                <Link href={`/groups/${event.id}`} className='text-xs font-semibold text-[#1f5d4f] underline-offset-2 hover:underline'>
-                  参加者グループを見る →
+          ) : isHost ? (
+            <div className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-5 py-5'>
+              <p className='text-sm font-semibold text-[#1a1a1a]'>あなたが主催するイベントです</p>
+              <p className='mt-1 text-xs leading-6 text-[#5b6f67]'>
+                申請者の参加理由を読み、参加する方を選びましょう。
+              </p>
+              <div className='mt-4 space-y-2'>
+                <Link
+                  href={`/events/manage/${event.id}`}
+                  className='inline-flex h-11 w-full items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white'
+                >
+                  申請者を管理する
                 </Link>
-              ) : null}
+                <Link
+                  href={`/groups/${event.id}`}
+                  className='inline-flex h-11 w-full items-center justify-center rounded-full border border-[#1f5d4f] text-sm font-semibold text-[#1f5d4f]'
+                >
+                  参加者グループを開く
+                </Link>
+              </div>
             </div>
-          </Card>
-        ) : isHost ? (
-          <Card className='border-[#cfe3da] bg-[#f3f7f5]'>
-            <p className='text-sm font-semibold text-[#1a1a1a]'>あなたが主催するイベントです</p>
-            <p className='mt-1 text-xs leading-6 text-[#5b6f67]'>
-              申請者の参加理由を読み、参加する方を選びましょう。
-            </p>
-            <div className='mt-3 space-y-2'>
-              <Link
-                href={`/events/manage/${event.id}`}
-                className='inline-flex h-11 w-full items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white'
-              >
-                申請者を管理する
-              </Link>
+          ) : existingApp?.status === 'confirmed' ? (
+            <div className='rounded-2xl border border-[#dfe9e4] bg-[#faf9f6] px-5 py-5'>
+              <p className='text-sm font-semibold text-[#1a1a1a]'>参加が確定しました</p>
+              <p className='mt-1 text-xs leading-6 text-[#6b6b6b]'>
+                当日お会いできるのを楽しみにしています。参加者同士で感想や写真を共有できます。
+              </p>
               <Link
                 href={`/groups/${event.id}`}
-                className='inline-flex h-11 w-full items-center justify-center rounded-full border border-[#1f5d4f] text-sm font-semibold text-[#1f5d4f]'
+                className='mt-4 inline-flex h-11 w-full items-center justify-center rounded-full border border-[#1f5d4f] text-sm font-semibold text-[#1f5d4f]'
               >
-                参加者グループを開く
+                グループを開く
               </Link>
             </div>
-          </Card>
-        ) : existingApp?.status === 'confirmed' ? (
-          <Card className='border-[#dfe9e4] bg-[#faf9f6]'>
-            <p className='text-sm font-semibold text-[#1a1a1a]'>参加が確定しました</p>
-            <p className='mt-1 text-xs leading-6 text-[#6b6b6b]'>
-              参加者同士で感想や写真を共有できます。
-            </p>
-            <Link
-              href={`/groups/${event.id}`}
-              className='mt-3 inline-flex h-11 w-full items-center justify-center rounded-full border border-[#1f5d4f] text-sm font-semibold text-[#1f5d4f]'
-            >
-              グループを開く
-            </Link>
-          </Card>
-        ) : (
-          <Card>
-            {applied || existingApp ? (
-              <div className='space-y-2'>
-                {existingApp?.status === 'rejected' ? (
-                  <>
-                    <p className='text-sm font-semibold text-[#1a1a1a]'>却下されました</p>
-                    <p className='text-sm leading-7 text-[#4a4a4a]'>
-                      今回はご縁がありませんでしたが、ほかのConnectionでお会いできますように。
+          ) : (
+            <div className='rounded-2xl border border-[#ebe9e4] bg-white px-5 py-5'>
+              {applied || existingApp ? (
+                <div className='space-y-2'>
+                  {existingApp?.status === 'rejected' ? (
+                    <>
+                      <p className='text-sm font-semibold text-[#1a1a1a]'>却下されました</p>
+                      <p className='text-sm leading-7 text-[#4a4a4a]'>
+                        今回はご縁がありませんでしたが、ほかのConnectionでお会いできますように。
+                      </p>
+                    </>
+                  ) : existingApp?.status === 'pending' || (applied && approvalMode === 'host_approval') ? (
+                    <>
+                      <p className='inline-flex rounded-full bg-[#eef4f0] px-3 py-1 text-xs font-semibold text-[#1f5d4f]'>
+                        承認待ち
+                      </p>
+                      <p className='text-sm leading-7 text-[#4a4a4a]'>
+                        参加申請を受け付けました。主催者が参加理由を読んで参加者を選びます。
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className='inline-flex rounded-full bg-[#eef4f0] px-3 py-1 text-xs font-semibold text-[#1f5d4f]'>
+                        申請済み
+                      </p>
+                      <p className='text-sm leading-7 text-[#4a4a4a]'>
+                        参加を受け付けました。当日お会いできるのを楽しみにしています。
+                      </p>
+                    </>
+                  )}
+                </div>
+              ) : isFull ? (
+                <p className='text-sm text-[#9a9a9a]'>このイベントは満席です。</p>
+              ) : (
+                <>
+                  {reasonError ? (
+                    <p className='mb-3 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
+                      参加理由は10文字以上300文字以内で入力してください。
                     </p>
-                  </>
-                ) : existingApp?.status === 'pending' || (applied && approvalMode === 'host_approval') ? (
-                  <>
-                    <p className='inline-flex rounded-full bg-[#eef4f0] px-3 py-1 text-xs font-semibold text-[#1f5d4f]'>
-                      承認待ち
-                    </p>
-                    <p className='text-sm leading-7 text-[#4a4a4a]'>
-                      参加申請を受け付けました。主催者が参加理由を読んで参加者を選びます。
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className='inline-flex rounded-full bg-[#eef4f0] px-3 py-1 text-xs font-semibold text-[#1f5d4f]'>
-                      申請済み
-                    </p>
-                    <p className='text-sm leading-7 text-[#4a4a4a]'>
-                      参加を受け付けました。当日お会いできるのを楽しみにしています。
-                    </p>
-                  </>
-                )}
-              </div>
-            ) : isFull ? (
-              <p className='text-sm text-[#9a9a9a]'>このイベントは満席です。</p>
-            ) : (
-              <>
-                {reasonError ? (
-                  <p className='mb-3 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
-                    参加理由は10文字以上300文字以内で入力してください。
+                  ) : null}
+                  <p className='mb-4 text-sm leading-7 text-[#6b6b6b]'>
+                    {approvalMode === 'auto'
+                      ? 'あなたの想いを添えて参加できます。主催者と参加者が、心地よいConnectionを育てます。'
+                      : 'あなたの想いを添えて申請してください。主催者が読んで、参加者を選びます。'}
                   </p>
-                ) : null}
-                <p className='mb-3 text-sm leading-7 text-[#6b6b6b]'>
-                  {approvalMode === 'auto'
-                    ? 'あなたの想いを添えて参加できます。'
-                    : 'あなたの想いを添えて申請してください。主催者が読んで参加者を選びます。'}
-                </p>
-                <ApplyForm eventId={event.id} approvalMode={approvalMode} />
-              </>
-            )}
-          </Card>
-        )}
+                  <ApplyForm eventId={event.id} approvalMode={approvalMode} />
+                </>
+              )}
+            </div>
+          )}
+        </section>
+
+        {showApplyCta ? (
+          <EventDetailCta
+            applySectionId='event-apply'
+            loginHref={loginHref}
+            canApply={useScrollCta}
+            variant='sticky'
+          />
+        ) : null}
       </article>
     </ConnectionShell>
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function MetaRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className='flex justify-between gap-4'>
-      <dt className='shrink-0 text-xs text-[#9a9a9a]'>{label}</dt>
-      <dd className='text-right text-[#1a1a1a]'>{children}</dd>
+    <div className='flex justify-between gap-3 sm:block'>
+      <dt className='text-xs text-[#9a9a9a]'>{label}</dt>
+      <dd className='text-right font-medium text-[#1a1a1a] sm:mt-0.5 sm:text-left'>{value}</dd>
     </div>
   );
 }
