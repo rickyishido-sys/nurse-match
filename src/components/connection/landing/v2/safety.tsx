@@ -1,14 +1,14 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
-import { SnapCarousel } from '@/components/connection/landing/v2/carousel';
 
 function Line({ children }: { children: ReactNode }) {
   return (
     <svg
       viewBox='0 0 48 48'
-      className='h-14 w-14'
+      className='h-12 w-12'
       fill='none'
       stroke={HK.gold}
       strokeWidth={1.4}
@@ -42,10 +42,11 @@ const ICONS: Record<string, ReactNode> = {
       <path d='M11 8h22l-3 6 3 6H11' />
     </Line>
   ),
-  block: (
+  admin: (
     <Line>
-      <circle cx='24' cy='24' r='15' />
-      <path d='M13.5 13.5l21 21' />
+      <circle cx='24' cy='14' r='5' />
+      <path d='M10 40c2-8 8-12 14-12s12 4 14 12' />
+      <path d='M32 22l4 4-4 4' />
     </Line>
   ),
   guideline: (
@@ -55,63 +56,72 @@ const ICONS: Record<string, ReactNode> = {
       <path d='M18 24h12M18 30h12M18 18h6' />
     </Line>
   ),
-  noSales: (
+  block: (
     <Line>
       <circle cx='24' cy='24' r='15' />
       <path d='M13.5 13.5l21 21' />
-      <path d='M20 28c0-6 8-6 8-11 0-2.2-1.8-4-4-4' />
-    </Line>
-  ),
-  rating: (
-    <Line>
-      <path d='M24 7l5.2 10.5L41 19l-8.5 8.3L34.5 39 24 33.4 13.5 39l2-11.7L7 19l11.8-1.5z' />
     </Line>
   ),
 };
 
 const ITEMS = [
-  { icon: 'review', title: '運営による参加審査', body: 'すべての参加者を運営が確認し、安心できる場を保ちます。' },
-  { icon: 'identity', title: '本人確認制度', body: '本人確認を通じて、なりすましや不審な参加を防ぎます。' },
-  { icon: 'report', title: '通報機能', body: '気になる言動はいつでも運営へ通報できます。' },
-  { icon: 'block', title: 'ブロック機能', body: '苦手な相手とは、つながらない自由があります。' },
-  { icon: 'guideline', title: 'コミュニティガイドライン', body: '心地よい交流のための共通のルールを定めています。' },
-  { icon: 'noSales', title: '勧誘・営業行為の禁止', body: '勧誘やビジネス目的の参加は固く禁止しています。' },
-  { icon: 'rating', title: 'イベント評価システム', body: '参加後の評価で、安心の循環を育てていきます。' },
-];
+  { icon: 'review', title: '参加審査', body: '運営が参加申請を確認し、心地よい場を保ちます。' },
+  { icon: 'identity', title: '本人確認', body: '本人確認バッジで、なりすましへの不安を減らします。' },
+  { icon: 'report', title: '通報機能', body: '気になる言動は、アプリからいつでも運営へ通報できます。' },
+  { icon: 'admin', title: '運営管理体制', body: '通報・問い合わせに運営が対応し、必要に応じて利用制限を行います。' },
+  { icon: 'guideline', title: 'コミュニティガイドライン', body: '尊重と安心のための共通ルールを定めています。' },
+  { icon: 'block', title: 'ブロック機能', body: 'つながりたくない相手とは、自分で距離を取れます。' },
+] as const;
 
 export function LandingSafety() {
   return (
-    <Section tone='white'>
+    <Section tone='cream'>
       <div className='flex flex-col items-center text-center'>
         <Reveal>
-          <Kicker>Point 05</Kicker>
+          <Kicker>Safety</Kicker>
         </Reveal>
         <Reveal delay={0.05}>
           <Heading className='mt-5'>安心して参加できる仕組み</Heading>
         </Reveal>
         <Reveal delay={0.1}>
-          <Lead className='mt-6 max-w-[40ch]'>
-            はじめての方も、一人での参加も。安心して花会に集えるよう、いくつもの仕組みを用意しています。
+          <Lead className='mt-6 max-w-[42ch]'>
+            はじめての方も、一人参加も大歓迎。
+            本人確認・通報・運営対応で、安心して体験に集中できます。
           </Lead>
         </Reveal>
       </div>
 
-      <Reveal delay={0.15} className='mx-auto mt-12 max-w-[620px]'>
-        <SnapCarousel
-          ariaLabel='安心して参加できる仕組み'
-          items={ITEMS.map((item) => (
+      <Reveal delay={0.12}>
+        <div className='mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5'>
+          {ITEMS.map((item) => (
             <div
               key={item.title}
-              className='flex min-h-[280px] flex-col items-center justify-center rounded-3xl border border-[#ece3d4] bg-[#faf7f2] px-8 py-12 text-center'
+              className='flex flex-col rounded-[1.75rem] border border-[#e8dfd0] bg-white px-6 py-7 shadow-[0_6px_24px_rgba(26,26,26,0.04)]'
             >
-              <div className='flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-[0_6px_20px_rgba(184,149,106,0.18)]'>
+              <div className='flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f3f7f5]'>
                 {ICONS[item.icon]}
               </div>
-              <p className='mt-7 text-lg font-semibold text-[#1a1a1a]'>{item.title}</p>
-              <p className='mt-3 max-w-[26ch] text-sm leading-[1.9] text-[#6b6b6b]'>{item.body}</p>
+              <p className='mt-5 text-base font-semibold text-[#1a1a1a]'>{item.title}</p>
+              <p className='mt-2 text-sm leading-[1.85] text-[#6b6b6b]'>{item.body}</p>
             </div>
           ))}
-        />
+        </div>
+      </Reveal>
+
+      <Reveal delay={0.18}>
+        <div className='mt-10 flex flex-wrap items-center justify-center gap-4 text-xs text-[#6b6b6b]'>
+          <Link href='/community-guidelines' className='font-semibold text-[#1f5d4f] underline-offset-2 hover:underline'>
+            コミュニティガイドライン
+          </Link>
+          <span aria-hidden>·</span>
+          <Link href='/privacy' className='font-semibold text-[#1f5d4f] underline-offset-2 hover:underline'>
+            プライバシーポリシー
+          </Link>
+          <span aria-hidden>·</span>
+          <Link href='/contact' className='font-semibold text-[#1f5d4f] underline-offset-2 hover:underline'>
+            お問い合わせ
+          </Link>
+        </div>
       </Reveal>
     </Section>
   );

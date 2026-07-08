@@ -27,17 +27,17 @@ export function LandingNav({
         solid ? 'border-b border-[#ece6da] bg-[#faf7f2]/92 backdrop-blur' : 'bg-transparent'
       }`}
     >
-      <div className='mx-auto flex w-full max-w-[1080px] items-center justify-between px-6 py-4'>
-        <Link href='/' className='flex flex-col leading-none'>
+      <div className='mx-auto flex w-full max-w-[1080px] items-center justify-between gap-3 px-4 py-3.5 sm:px-6 sm:py-4'>
+        <Link href='/' className='flex min-w-0 flex-col leading-none'>
           <span
-            className={`text-[16px] font-semibold tracking-[0.18em] transition-colors ${
+            className={`text-[15px] font-semibold tracking-[0.16em] transition-colors sm:text-[16px] sm:tracking-[0.18em] ${
               solid ? 'text-[#1a1a1a]' : 'text-white'
             }`}
           >
             HANAKAI
           </span>
           <span
-            className={`mt-0.5 text-[10px] font-medium tracking-[0.32em] transition-colors ${
+            className={`mt-0.5 text-[9px] font-medium tracking-[0.28em] transition-colors sm:text-[10px] sm:tracking-[0.32em] ${
               solid ? 'text-[#8a8378]' : 'text-white/70'
             }`}
           >
@@ -45,26 +45,34 @@ export function LandingNav({
           </span>
         </Link>
 
-        <nav className='flex items-center gap-2.5'>
+        <nav className='flex shrink-0 items-center gap-1.5 sm:gap-2.5'>
           <Link
             href='/events'
-            className={`hidden h-9 items-center rounded-full px-4 text-xs font-semibold transition sm:flex ${
-              solid
-                ? 'text-[#1a1a1a] hover:bg-black/5'
-                : 'text-white hover:bg-white/10'
+            className={`flex h-9 items-center rounded-full px-3 text-[11px] font-semibold transition sm:px-4 sm:text-xs ${
+              solid ? 'text-[#1a1a1a] hover:bg-black/5' : 'text-white hover:bg-white/10'
             }`}
           >
-            イベントを見る
+            イベント
           </Link>
           {viewer ? (
             <HeaderUserMenu user={viewer} />
           ) : (
-            <Link
-              href={joinHref}
-              className='flex h-9 items-center rounded-full bg-[#1f5d4f] px-4 text-xs font-semibold text-white shadow-sm transition active:scale-[0.97]'
-            >
-              参加する
-            </Link>
+            <>
+              <Link
+                href='/login'
+                className={`hidden h-9 items-center rounded-full px-3 text-xs font-semibold transition sm:flex ${
+                  solid ? 'text-[#6b6b6b] hover:bg-black/5' : 'text-white/90 hover:bg-white/10'
+                }`}
+              >
+                ログイン
+              </Link>
+              <Link
+                href={joinHref}
+                className='flex h-9 items-center rounded-full bg-[#1f5d4f] px-3.5 text-[11px] font-semibold text-white shadow-sm transition active:scale-[0.97] sm:px-4 sm:text-xs'
+              >
+                参加登録
+              </Link>
+            </>
           )}
         </nav>
       </div>

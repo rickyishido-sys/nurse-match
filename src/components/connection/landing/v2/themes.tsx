@@ -30,12 +30,12 @@ export function LandingThemes() {
           <Kicker>Point 03</Kicker>
         </Reveal>
         <Reveal delay={0.05}>
-          <Heading className='mt-5'>選べるイベントテーマ</Heading>
+          <Heading className='mt-5'>体験から選ぶ</Heading>
         </Reveal>
         <Reveal delay={0.1}>
           <Lead className='mt-6 max-w-[42ch]'>
-            気分や興味に合わせて、テーマを選んで参加できます。
-            どのテーマでも、普段出会わない人と自然につながれます。
+            花、カフェ、食事、散歩、運動など。
+            気分に合った体験を選んで、新しいConnectionを見つけてください。
           </Lead>
         </Reveal>
       </div>
@@ -72,9 +72,9 @@ export function LandingThemes() {
         <div className='mt-12 flex justify-center'>
           <Link
             href='/events'
-            className='flex h-11 items-center justify-center rounded-full border border-[#1a1a1a]/80 px-6 text-xs font-semibold text-[#1a1a1a] transition active:scale-[0.98]'
+            className='flex h-12 min-w-[220px] items-center justify-center rounded-full bg-[#1f5d4f] px-8 text-sm font-semibold text-white shadow-md transition active:scale-[0.98]'
           >
-            すべてのイベントを見る ›
+            イベントを見る
           </Link>
         </div>
       </Reveal>

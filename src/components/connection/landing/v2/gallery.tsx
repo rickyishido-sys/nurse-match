@@ -5,24 +5,24 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { Heading, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
 
-// カフェ・散歩・バー・運動・花など、多様な体験の雰囲気が伝わる並び。
-const PHOTOS = [
-  '/hero/mobile/cafe.png',
-  '/hero/mobile/Stroll.png',
+const FEATURED = [
+  { src: '/hero/desktop/cafe.png', mobile: '/hero/mobile/cafe.png', alt: 'カフェで話す様子' },
+  { src: '/hero/desktop/flower.png', mobile: '/hero/mobile/flower.png', alt: '花の体験イベント' },
+  { src: '/hero/desktop/Stroll.png', mobile: '/hero/mobile/Stroll.png', alt: '街を歩く様子' },
+] as const;
+
+const GRID = [
   '/hero/mobile/bar.png',
   '/hero/mobile/fitness.png',
-  '/hero/mobile/flower.png',
   '/categories/cafe.png',
   '/categories/stroll.png',
-  '/categories/fitness.png',
-  '/categories/bar.png',
-];
+] as const;
 
 export function LandingGallery() {
-  const [open, setOpen] = useState<number | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open === null) return;
+    if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(null);
     window.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
@@ -43,52 +43,96 @@ export function LandingGallery() {
         </Reveal>
         <Reveal delay={0.1}>
           <Lead className='mt-6 max-w-[42ch]'>
-            カフェで話す、食卓を囲む、街を歩く、一杯を傾ける、体を動かす、花をつくる。
-            さまざまな体験の中で、自然な出会いが生まれています。
+            楽しそうな体験の写真を、大きく見せています。
+            カフェ、食事、散歩、運動——どの場でも、自然な会話が生まれます。
           </Lead>
         </Reveal>
       </div>
 
-      <Reveal delay={0.1}>
-        <div className='mt-12 grid grid-cols-3 gap-1.5 sm:gap-2.5'>
-          {PHOTOS.map((src, i) => (
+      <Reveal delay={0.12}>
+        <div className='mt-12 grid gap-3 sm:gap-4 lg:grid-cols-12 lg:grid-rows-2 lg:gap-5'>
+          <button
+            type='button'
+            onClick={() => setOpen(FEATURED[0].src)}
+            className='group relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#f1efe9] lg:col-span-7 lg:row-span-2 lg:aspect-auto lg:min-h-[420px]'
+            aria-label='イベント写真を拡大'
+          >
+            <Image
+              src={FEATURED[0].src}
+              alt={FEATURED[0].alt}
+              fill
+              sizes='(max-width: 1024px) 100vw, 58vw'
+              className='hidden object-cover transition duration-700 group-hover:scale-[1.03] lg:block'
+            />
+            <Image
+              src={FEATURED[0].mobile}
+              alt={FEATURED[0].alt}
+              fill
+              sizes='100vw'
+              className='object-cover transition duration-700 group-hover:scale-[1.03] lg:hidden'
+            />
+            <div className='absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent' />
+            <p className='absolute bottom-4 left-4 text-sm font-semibold text-white'>カフェで話す</p>
+          </button>
+
+          {FEATURED.slice(1).map((photo) => (
             <button
-              key={src}
+              key={photo.src}
               type='button'
-              onClick={() => setOpen(i)}
-              className='group relative aspect-square overflow-hidden rounded-md bg-[#f1efe9] sm:rounded-lg'
-              aria-label={`イベント写真 ${i + 1} を拡大`}
+              onClick={() => setOpen(photo.src)}
+              className='group relative hidden aspect-[16/10] overflow-hidden rounded-2xl bg-[#f1efe9] lg:col-span-5 lg:block'
+              aria-label='イベント写真を拡大'
             >
               <Image
-                src={src}
-                alt={`イベント風景 ${i + 1}`}
+                src={photo.src}
+                alt={photo.alt}
                 fill
-                sizes='(max-width: 640px) 33vw, 340px'
-                className='object-cover transition duration-500 group-hover:scale-105'
+                sizes='42vw'
+                className='object-cover transition duration-700 group-hover:scale-[1.03]'
               />
             </button>
           ))}
+
+          <div className='grid grid-cols-2 gap-3 sm:grid-cols-4 lg:col-span-5 lg:grid-cols-2 lg:gap-4'>
+            {GRID.map((src, i) => (
+              <button
+                key={src}
+                type='button'
+                onClick={() => setOpen(src)}
+                className='group relative aspect-square overflow-hidden rounded-xl bg-[#f1efe9] sm:rounded-2xl'
+                aria-label={`イベント写真 ${i + 1} を拡大`}
+              >
+                <Image
+                  src={src}
+                  alt={`イベント風景 ${i + 1}`}
+                  fill
+                  sizes='(max-width: 640px) 45vw, 220px'
+                  className='object-cover transition duration-500 group-hover:scale-105'
+                />
+              </button>
+            ))}
+          </div>
         </div>
       </Reveal>
 
       <AnimatePresence>
-        {open !== null ? (
+        {open ? (
           <motion.div
-            className='fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4'
+            className='fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-4'
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setOpen(null)}
           >
             <motion.div
-              className='relative aspect-square w-full max-w-[560px] overflow-hidden rounded-2xl'
+              className='relative aspect-[4/3] w-full max-w-[720px] overflow-hidden rounded-2xl'
               initial={{ scale: 0.92, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.92, opacity: 0 }}
               transition={{ duration: 0.3 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <Image src={PHOTOS[open]} alt='' fill sizes='560px' className='object-cover' />
+              <Image src={open} alt='' fill sizes='720px' className='object-cover' />
             </motion.div>
             <button
               type='button'
