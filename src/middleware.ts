@@ -36,12 +36,51 @@ const MEMBER_ONLY_PATH_PREFIXES = ['/app', '/cards', '/mypage', '/messages', '/d
 const HANAKAI_PUBLIC_PREFIXES = ['/home', '/events', '/connections', '/groups', '/admin/connection', '/register/profile', '/my-profile'];
 // 認証必須のイベント導線（/events は公開のまま、作成・管理のみ保護）
 const HANAKAI_AUTH_REQUIRED_EVENT_PATHS = ['/events/create', '/events/manage'];
+/** Explicit auth-required routes; unknown paths fall through to Next.js (404). */
+const HANAKAI_AUTH_REQUIRED_PREFIXES = [
+  '/manage',
+  '/events/create',
+  '/events/manage',
+  '/account/delete',
+  '/my-profile',
+  '/my',
+  '/mypage',
+  '/profile',
+  '/settings',
+  '/pending-review',
+  '/rejected',
+  '/review-rejected',
+  '/suspended',
+  '/verification',
+  '/activity',
+  '/blocked-users',
+  '/delete-account',
+  '/support',
+  '/posts',
+  '/favorites',
+  '/members',
+  '/instructor',
+  '/lives',
+  '/datefi',
+  '/concept',
+];
 
 function isHanakaiPublicPath(pathname: string): boolean {
   if (HANAKAI_AUTH_REQUIRED_EVENT_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
     return false;
   }
   return HANAKAI_PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+function isAuthRequiredPath(pathname: string, isAdminPath: boolean, isAdminLogin: boolean): boolean {
+  if (MEMBER_ONLY_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
+    return true;
+  }
+  if (isAdminPath && !isAdminLogin) return true;
+  if (isHanakaiAdminPath(pathname)) return true;
+  return HANAKAI_AUTH_REQUIRED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 }
 
 function isAdminRole(role: string | undefined) {
@@ -151,6 +190,10 @@ export async function middleware(request: NextRequest) {
     pathname === '/robots.txt' ||
     pathname === '/sitemap.xml'
   ) {
+    return NextResponse.next();
+  }
+
+  if (!isAuthRequiredPath(pathname, isAdminPath, isAdminLogin)) {
     return NextResponse.next();
   }
 
