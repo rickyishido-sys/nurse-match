@@ -6,6 +6,10 @@ import { updateMyProfileAction } from '@/lib/connection/actions';
 import { BioAiDraftPanel } from '@/components/connection/bio-ai-draft-panel';
 import { MemberSocialLinksEditor } from '@/components/connection/member-social-links-editor';
 import { ProfilePhotoUploader } from '@/components/connection/profile-photo-uploader';
+import {
+  PROFILE_PHOTO_GUIDE,
+  PROFILE_PHOTO_GUIDE_NOTE,
+} from '@/lib/connection/bloom-ui-labels';
 import { MBTI_OPTIONS } from '@/lib/connection/bloom-profile-options';
 import { INTEREST_TAG_OPTIONS, LIFE_PHASE_OPTIONS } from '@/lib/connection/data';
 import {
@@ -133,6 +137,8 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
       ) : null}
 
       <SectionCard kicker='PHOTOS' title='プロフィール写真'>
+        <p className='mb-3 text-xs leading-6 text-[#6b6b6b]'>{PROFILE_PHOTO_GUIDE}</p>
+        <p className='mb-4 text-xs text-[#9a9a9a]'>{PROFILE_PHOTO_GUIDE_NOTE}</p>
         <p className='mb-4 text-xs leading-6 text-[#6b6b6b]'>
           最大6枚まで。1枚目がメインプロフィールになります。
         </p>

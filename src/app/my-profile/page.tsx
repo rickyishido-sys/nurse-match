@@ -1,7 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
-import { MemberAvatar, MemberPhotoGallery } from '@/components/connection/member-avatar';
+import { MemberAvatar } from '@/components/connection/member-avatar';
+import { ProfilePhotoSection } from '@/components/connection/profile-photo-section';
 import { ProfileEditForm } from '@/components/connection/profile-edit-form';
 import { LegalLinks } from '@/components/connection/legal-links';
 import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
@@ -21,6 +22,7 @@ import {
 import { MBTI_LABEL } from '@/lib/connection/bloom-profile-options';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
+import { memberHasProfilePhotos } from '@/lib/connection/member-photo';
 import {
   INTEREST_TAG_LABEL,
   LIFE_PHASE_LABEL,
@@ -201,7 +203,7 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
         ) : null}
         {bloomSaved ? (
           <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
-            Bloom Profile の公開設定を保存しました
+            公開設定を保存しました
           </p>
         ) : null}
         {phase4Saved ? (
@@ -222,7 +224,13 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
 
         {/* ヘッダー */}
         <section className='flex items-center gap-5'>
-          <MemberAvatar member={member} size={80} priority />
+          <MemberAvatar
+            member={member}
+            size={80}
+            priority
+            showEmptyPlaceholder={!memberHasProfilePhotos(member)}
+            editHref='/my-profile?mode=edit'
+          />
           <div className='min-w-0 space-y-1.5'>
             <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
               MY PROFILE
@@ -240,7 +248,7 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
 
         {/* プロフィール写真 */}
         <SectionCard kicker='PHOTOS' title='プロフィール写真'>
-          <MemberPhotoGallery member={member} />
+          <ProfilePhotoSection member={member} />
         </SectionCard>
 
         {/* 基本情報 */}

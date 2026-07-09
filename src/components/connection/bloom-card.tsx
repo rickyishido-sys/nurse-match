@@ -1,4 +1,5 @@
 import type { BloomProfile, PublicBloomProfile } from '@/lib/connection/bloom-profile-types';
+import { BLOOM_SECTION_LABELS } from '@/lib/connection/bloom-ui-labels';
 
 type BloomCardProps = {
   profile: BloomProfile | PublicBloomProfile;
@@ -39,7 +40,7 @@ export function BloomCard({ profile, mode, className = '' }: BloomCardProps) {
         <span className='text-lg' aria-hidden>
           🌸
         </span>
-        <h2 className='text-sm font-semibold text-[#1a1a1a]'>Bloom Profile</h2>
+        <h2 className='text-sm font-semibold text-[#1a1a1a]'>あなたの紹介</h2>
       </div>
 
       {!hasContent ? (
@@ -47,7 +48,7 @@ export function BloomCard({ profile, mode, className = '' }: BloomCardProps) {
       ) : (
         <div>
           {profile.bloomSummaryTitle || profile.bloomSummary ? (
-            <Section title='Bloom Summary'>
+            <Section title={BLOOM_SECTION_LABELS.summary}>
               {profile.bloomSummaryTitle ? (
                 <p className='text-sm font-semibold text-[#1f5d4f]'>{profile.bloomSummaryTitle}</p>
               ) : null}
@@ -58,19 +59,19 @@ export function BloomCard({ profile, mode, className = '' }: BloomCardProps) {
           ) : null}
 
           {isOwner && profile.aiIntroduction ? (
-            <Section title='AI自己紹介'>
+            <Section title={BLOOM_SECTION_LABELS.aiIntro}>
               <p className='whitespace-pre-wrap text-sm leading-7 text-[#3a3a3a]'>{profile.aiIntroduction}</p>
             </Section>
           ) : null}
 
           {!isOwner && profile.aiIntroduction ? (
-            <Section title='AI自己紹介'>
+            <Section title={BLOOM_SECTION_LABELS.aiIntro}>
               <p className='whitespace-pre-wrap text-sm leading-7 text-[#3a3a3a]'>{profile.aiIntroduction}</p>
             </Section>
           ) : null}
 
           {profile.conversationStarters && profile.conversationStarters.length > 0 ? (
-            <Section title='Conversation Starters'>
+            <Section title={BLOOM_SECTION_LABELS.conversationStarters}>
               <ul className='space-y-1.5'>
                 {profile.conversationStarters.map((starter) => (
                   <li key={starter} className='text-sm text-[#4a4a4a]'>
@@ -82,7 +83,7 @@ export function BloomCard({ profile, mode, className = '' }: BloomCardProps) {
           ) : null}
 
           {profile.aiTags && profile.aiTags.length > 0 ? (
-            <Section title='Bloom Tags'>
+            <Section title={BLOOM_SECTION_LABELS.tags}>
               <div className='flex flex-wrap gap-1.5'>
                 {profile.aiTags.map((tag) => (
                   <span
@@ -97,7 +98,7 @@ export function BloomCard({ profile, mode, className = '' }: BloomCardProps) {
           ) : null}
 
           {profile.connectionStyle ? (
-            <Section title='Connection Style'>
+            <Section title={BLOOM_SECTION_LABELS.connectionStyle}>
               <p className='text-sm leading-7 text-[#4a4a4a]'>{profile.connectionStyle}</p>
             </Section>
           ) : null}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { BloomVersion } from '@/lib/connection/bloom-phase4-types';
+import { BLOOM_SECTION_LABELS } from '@/lib/connection/bloom-ui-labels';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('ja-JP', {
@@ -79,7 +80,7 @@ export function BloomHistoryCard({ versions, mode }: Props) {
                 ) : null}
                 {version.conversationStarters.length > 0 ? (
                   <div>
-                    <p className='text-[10px] font-medium text-[#9a9a9a]'>Conversation Starters</p>
+                    <p className='text-[10px] font-medium text-[#9a9a9a]'>{BLOOM_SECTION_LABELS.conversationStarters}</p>
                     <ul className='mt-1 space-y-1'>
                       {version.conversationStarters.map((s) => (
                         <li key={s} className='text-[#4a4a4a]'>

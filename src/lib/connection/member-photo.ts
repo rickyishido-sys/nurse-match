@@ -10,3 +10,7 @@ export function memberMainPhotoUrl(member: Pick<ConnectionMember, 'avatarUrl' | 
   const sorted = sortMemberPhotos(member.photos ?? []);
   return sorted[0]?.url || member.avatarUrl || '';
 }
+
+export function memberHasProfilePhotos(member: Pick<ConnectionMember, 'avatarUrl' | 'photos'>): boolean {
+  return Boolean(memberMainPhotoUrl(member).trim());
+}
