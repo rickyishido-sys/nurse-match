@@ -161,18 +161,18 @@ export function EventsListCard({ item }: { item: EnrichedEventListItem }) {
         </div>
       </Link>
 
-      <div className='mt-auto flex flex-col gap-2 border-t border-[#f1efe9] px-5 py-4 sm:flex-row'>
+      <div className='mt-auto flex flex-col gap-2.5 border-t border-[#f1efe9] px-5 py-4 sm:flex-row sm:items-stretch sm:gap-3'>
         <Link
           href={detailHref}
-          className='flex h-11 flex-1 items-center justify-center rounded-full border border-[#d8d6d1] text-sm font-semibold text-[#4a4a4a] transition active:scale-[0.98]'
+          className='inline-flex h-11 min-h-11 w-full items-center justify-center whitespace-nowrap rounded-full border border-[#d8d6d1] bg-white px-6 text-sm font-semibold text-[#4a4a4a] transition hover:border-[#1f5d4f]/35 hover:bg-[#f7faf8] active:scale-[0.98] sm:min-w-0 sm:flex-1'
         >
           詳しく見る
         </Link>
         <Link
           href={applyHref}
-          className='flex h-11 flex-1 items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white transition active:scale-[0.98]'
+          className='inline-flex h-11 min-h-11 w-full items-center justify-center whitespace-nowrap rounded-full bg-[#1f5d4f] px-6 text-sm font-semibold text-white transition hover:bg-[#1a4f44] active:scale-[0.98] sm:min-w-0 sm:flex-1'
         >
-          このConnectionに参加する
+          参加する
         </Link>
       </div>
     </article>
