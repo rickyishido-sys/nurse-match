@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useRef } from 'react';
+import { BrandCharacter } from '@/components/connection/brand/brand-character';
 import { EVENT_CATEGORY_DEFAULT_IMAGE, EVENT_CATEGORY_META } from '@/lib/connection/data';
 import { getGalleryImages } from '@/lib/connection/event-detail-ux';
 import type { ConnectionEvent } from '@/lib/connection/types';
@@ -13,29 +14,36 @@ export function EventDetailGallery({ event }: { event: ConnectionEvent }) {
   const hasUploads = (event.imageUrls ?? []).filter(Boolean).length > 0;
 
   return (
-    <section className='-mx-5 lg:-mx-10'>
+    <section className='relative -mx-5 lg:-mx-10'>
+      <div className='pointer-events-none absolute -right-2 top-8 z-10 hidden sm:block'>
+        <BrandCharacter id='Y' size='md' variant='peek' />
+      </div>
       <div
         ref={scrollRef}
-        className='flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:none] lg:px-10 [&::-webkit-scrollbar]:hidden'
+        className='flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-1 [scrollbar-width:none] lg:gap-5 lg:px-10 [&::-webkit-scrollbar]:hidden'
       >
         {images.map((src, i) => (
           <div
             key={`${src}-${i}`}
-            className={`relative shrink-0 snap-center overflow-hidden rounded-2xl bg-[#f1efe9] ${
-              i === 0 ? 'h-[240px] w-[88vw] sm:h-[320px] sm:w-[72vw] lg:h-[400px] lg:w-[58vw]' : 'h-[200px] w-[72vw] sm:h-[280px] sm:w-[52vw] lg:h-[360px] lg:w-[42vw]'
+            className={`relative shrink-0 snap-center overflow-visible ${
+              i === 0
+                ? 'h-[260px] w-[90vw] sm:h-[340px] sm:w-[74vw] lg:h-[420px] lg:w-[60vw]'
+                : 'mt-8 h-[200px] w-[70vw] sm:mt-12 sm:h-[280px] sm:w-[50vw] lg:h-[360px] lg:w-[40vw]'
             }`}
           >
-            <Image
-              src={src}
-              alt={i === 0 ? event.title : `${event.title} ${i + 1}`}
-              fill
-              priority={i === 0}
-              sizes='(max-width: 768px) 88vw, 58vw'
-              className='object-cover'
-            />
-            {i === 0 ? (
-              <div className='absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent' />
-            ) : null}
+            <div className='absolute inset-0 overflow-hidden rounded-[1.5rem] shadow-[0_16px_48px_rgba(26,26,26,0.12)]'>
+              <Image
+                src={src}
+                alt={i === 0 ? event.title : `${event.title} ${i + 1}`}
+                fill
+                priority={i === 0}
+                sizes='(max-width: 768px) 90vw, 60vw'
+                className='object-cover transition duration-700 hover:scale-[1.03]'
+              />
+              {i === 0 ? (
+                <div className='absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent' />
+              ) : null}
+            </div>
           </div>
         ))}
       </div>

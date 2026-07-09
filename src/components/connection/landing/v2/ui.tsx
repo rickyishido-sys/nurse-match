@@ -2,18 +2,10 @@
 
 import { motion, type Variants } from 'motion/react';
 import type { ReactNode } from 'react';
+import { HK } from '@/lib/connection/brand/tokens';
 
-// ── HANAKAI 花会 ブランドトークン ───────────────────────────────
-export const HK = {
-  green: '#1f5d4f',
-  greenDeep: '#163f35',
-  gold: '#b8956a',
-  goldSoft: '#c5a66f',
-  cream: '#faf7f2',
-  creamWarm: '#f3ebe0',
-  ink: '#1a1a1a',
-  muted: '#6b6b6b',
-} as const;
+// Re-export brand tokens for LP compatibility
+export { HK } from '@/lib/connection/brand/tokens';
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 28 },

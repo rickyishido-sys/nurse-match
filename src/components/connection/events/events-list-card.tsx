@@ -56,8 +56,8 @@ export function EventsListCard({
   const hasParticipation = viewerApplicationStatus && ['pending', 'awaiting_confirmation', 'confirmed'].includes(viewerApplicationStatus);
 
   return (
-    <article className={`flex h-full flex-col overflow-hidden rounded-3xl border bg-white shadow-[0_4px_24px_rgba(26,26,26,0.05)] transition hover:shadow-[0_8px_32px_rgba(31,93,79,0.08)] ${
-      variant === 'additional' ? 'border-[#e8a0a8]/50' : 'border-[#ebe9e4]'
+    <article className={`hk-brand-card group flex h-full flex-col overflow-hidden rounded-[1.75rem] border bg-white/90 shadow-[0_8px_40px_rgba(26,26,26,0.07)] backdrop-blur-sm transition duration-500 hover:shadow-[0_20px_50px_rgba(31,93,79,0.12)] ${
+      variant === 'additional' ? 'border-[#e8a0a8]/50' : 'border-white/80'
     }`}>
       <Link href={detailHref} className='group block flex-1'>
         <div className={`relative aspect-[5/3] w-full bg-gradient-to-br ${meta.gradient}`}>

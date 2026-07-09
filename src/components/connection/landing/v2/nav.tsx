@@ -34,14 +34,14 @@ export function LandingNav({
               solid ? 'text-[#1a1a1a]' : 'text-white'
             }`}
           >
-            HANAKAI
+            華会
           </span>
           <span
-            className={`mt-0.5 text-[9px] font-medium tracking-[0.28em] transition-colors sm:text-[10px] sm:tracking-[0.32em] ${
-              solid ? 'text-[#8a8378]' : 'text-white/70'
+            className={`mt-0.5 font-serif text-[9px] font-medium tracking-[0.28em] transition-colors sm:text-[10px] sm:tracking-[0.32em] ${
+              solid ? 'text-[#b8956a]' : 'text-white/70'
             }`}
           >
-            花 会
+            HANAKAI
           </span>
         </Link>
 

@@ -18,8 +18,62 @@
 
 body {
   margin: 0;
-  background: #fafaf8;
+  background: #faf7f2;
   color: #1a1a1a;
+}
+
+/* ── HANAKAI 華会 ブランドアニメーション ── */
+@keyframes hk-bg-drift {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate(-50%, -50%) translate3d(1.5%, -1%, 0);
+  }
+}
+
+@keyframes hk-kenburns {
+  from {
+    transform: scale(1.02);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+
+.hk-kenburns {
+  animation: hk-kenburns 7s ease-out forwards;
+  transform-origin: center;
+}
+
+.hk-brand-btn {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.25s ease,
+    box-shadow 0.35s ease;
+}
+
+.hk-brand-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(31, 93, 79, 0.18);
+}
+
+.hk-brand-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.hk-brand-card {
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-kenburns {
+    animation: none;
+  }
+  .hk-brand-btn:hover:not(:disabled) {
+    transform: none;
+  }
 }
 
 input,

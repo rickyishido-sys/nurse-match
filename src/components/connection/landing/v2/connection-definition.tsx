@@ -1,38 +1,41 @@
 'use client';
 
 import { motion } from 'motion/react';
+import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BgTypography } from '@/components/connection/brand/bg-typography';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
+import { BRAND_TAGLINE } from '@/lib/connection/brand/tokens';
 
 const CYCLE_STEPS = ['リアルイベント', 'アプリで交流', '応援する', '再会する', '再びイベントへ'];
 
 export function LandingConnectionDefinition() {
   return (
-    <Section tone='white' id='hanakai-connection'>
-      <div className='flex flex-col items-center text-center'>
+    <Section tone='white' id='hanakai-connection' className='relative overflow-hidden'>
+      <BgTypography text='華会' className='!opacity-60' />
+      <div className='pointer-events-none absolute -right-2 top-[15%] hidden sm:block'>
+        <BrandCharacter id='D1' size='lg' variant='peek' />
+      </div>
+      <div className='pointer-events-none absolute -left-4 bottom-[10%]'>
+        <BrandCharacter id='N' size='md' variant='float' />
+      </div>
+      <div className='relative z-10 flex flex-col items-center text-center'>
         <Reveal>
-          <Kicker>HANAKAI Connection</Kicker>
+          <Kicker>華会</Kicker>
         </Reveal>
         <Reveal delay={0.05}>
-          <Heading className='mt-5'>HANAKAI Connectionとは</Heading>
+          <Heading className='mt-5'>体験をデザインする、華会とは</Heading>
         </Reveal>
         <Reveal delay={0.1}>
           <Lead className='mt-6 max-w-[48ch] text-left sm:text-center'>
-            HANAKAIでは、一度きりのイベントではなく、人とのつながりが育っていく仕組みを大切にしています。
+            {BRAND_TAGLINE}
             <br className='hidden sm:block' />
             <br className='hidden sm:block' />
-            イベントで出会い、
-            <br className='sm:hidden' />
-            コミュニティで交流し、
-            <br className='sm:hidden' />
-            また次のイベントで再会する。
+            イベントで出会い、コミュニティで交流し、また次の体験で再会する。
             <br className='hidden sm:block' />
             <br className='hidden sm:block' />
-            この循環そのものを、
-            <br className='sm:hidden' />
-            私たちは「HANAKAI Connection」と呼んでいます。
+            この循環そのものが、HANAKAI Connectionの体験です。
             <br className='hidden sm:block' />
-            <br className='hidden sm:block' />
-            イベントは、その最初のきっかけです。
+            体験は、その最初のきっかけです。
           </Lead>
         </Reveal>
       </div>

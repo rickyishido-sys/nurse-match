@@ -4,6 +4,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
+import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BgTypography } from '@/components/connection/brand/bg-typography';
+import { BRAND_SUBLINE, BRAND_TAGLINE } from '@/lib/connection/brand/tokens';
 
 const SLIDES = [
   { src: '/hero/desktop/cafe.png', mobile: '/hero/mobile/cafe.png', label: 'カフェで話す' },
@@ -37,6 +40,7 @@ function HeroBackground({ videoSrc, poster }: { videoSrc?: string; poster?: stri
   return (
     <div className='absolute inset-0 overflow-hidden' aria-hidden>
       <div className='absolute inset-0 bg-gradient-to-br from-[#24463b] via-[#1f5d4f] to-[#13261f]' />
+      <BgTypography text='華会' dark animate />
 
       {videoSrc ? (
         <video className='absolute inset-0 h-full w-full object-cover' autoPlay muted loop playsInline poster={poster}>
@@ -70,29 +74,8 @@ function HeroBackground({ videoSrc, poster }: { videoSrc?: string; poster?: stri
         ))
       )}
 
-      <div className='absolute inset-0 bg-black/50' />
-      <div className='absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/45' />
-
-      <style jsx global>{`
-        @keyframes hk-kenburns {
-          from {
-            transform: scale(1.02);
-          }
-          to {
-            transform: scale(1.12);
-          }
-        }
-        .hk-kenburns {
-          animation: hk-kenburns ${ROTATE_MS + 1800}ms ease-out forwards;
-          transform-origin: center;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .hk-kenburns {
-            animation: none;
-            transform: none;
-          }
-        }
-      `}</style>
+      <div className='absolute inset-0 bg-black/45' />
+      <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40' />
     </div>
   );
 }
@@ -102,47 +85,56 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
     <section className='relative flex min-h-[100svh] items-center justify-center overflow-hidden'>
       <HeroBackground videoSrc={videoSrc} />
 
+      {/* キャラクター — 枠から飛び出す */}
+      <div className='pointer-events-none absolute bottom-[18%] left-[4%] z-[5] sm:left-[8%]'>
+        <BrandCharacter id='W' size='xl' variant='peek' />
+      </div>
+      <div className='pointer-events-none absolute right-[6%] top-[22%] z-[5] hidden sm:block'>
+        <BrandCharacter id='E1' size='lg' variant='float' />
+      </div>
+      <div className='pointer-events-none absolute bottom-[28%] right-[12%] z-[5] sm:hidden'>
+        <BrandCharacter id='S' size='md' variant='float' />
+      </div>
+
       <div className='relative z-10 mx-auto flex w-full max-w-[1080px] flex-col items-center px-6 pt-20 text-center sm:pt-24'>
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-          className='inline-flex items-center rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-[11px] font-semibold tracking-[0.12em] text-white/90 backdrop-blur'
+          className='inline-flex items-center rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-[11px] font-semibold tracking-[0.2em] text-white/90 backdrop-blur-md'
         >
-          リアルで出会う HANAKAI Connection
+          華会 — HANAKAI
         </motion.p>
 
         <motion.h1
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-          className='mt-6 font-serif text-[1.85rem] font-semibold leading-[1.45] tracking-tight text-white sm:text-[2.5rem] lg:text-[3rem]'
+          className='mt-6 font-serif text-[2rem] font-semibold leading-[1.4] tracking-tight text-white sm:text-[2.6rem] lg:text-[3.2rem]'
         >
-          体験を通じて、
-          <br />
-          知らない人とつながる
+          {BRAND_TAGLINE}
         </motion.h1>
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          className='mt-5 max-w-[40ch] text-sm leading-[1.95] text-white/88 sm:text-base'
+          className='mt-5 max-w-[42ch] text-sm leading-[2] text-white/88 sm:text-base'
         >
-          花・コーヒー・食事・散歩など、興味のある体験に参加。
+          {BRAND_SUBLINE}
           <br className='hidden sm:block' />
-          スワイプ不要。一人参加OK。運営が見守る、安心の場です。
+          花・コーヒー・散歩——知らない人との体験が、日常を華やかにします。
         </motion.p>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.34, ease: [0.22, 1, 0.36, 1] }}
-          className='mt-9 flex w-full max-w-[400px] flex-col gap-3 sm:max-w-[460px] sm:flex-row sm:justify-center'
+          className='mt-10 flex w-full max-w-[400px] flex-col gap-3 sm:max-w-[460px] sm:flex-row sm:justify-center'
         >
           <Link
             href='/events'
-            className='flex h-[3.25rem] flex-1 items-center justify-center rounded-full bg-white px-6 text-sm font-semibold text-[#1a1a1a] shadow-lg transition active:scale-[0.98]'
+            className='hk-brand-btn flex h-[3.25rem] flex-1 items-center justify-center rounded-full bg-white px-6 text-sm font-semibold text-[#1a1a1a] shadow-lg'
           >
             イベントを見る
           </Link>
@@ -152,9 +144,9 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.9, delay: 0.48 }}
-          className='mt-6 text-[11px] tracking-wide text-white/65'
+          className='mt-6 text-[11px] tracking-wide text-white/60'
         >
-          プロフィール作成 → イベント参加 → つながりが育つ
+          プロフィール作成 → 体験に参加 → つながりが育つ
         </motion.p>
       </div>
 

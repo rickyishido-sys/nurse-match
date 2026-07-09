@@ -1,7 +1,6 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { RegisterEmailForm } from '@/components/register-email-form';
-import { LegalLinks } from '@/components/connection/legal-links';
+import { BrandAuthFrame, BrandAuthLinks } from '@/components/connection/brand/brand-auth-frame';
 import { HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
 import { ensureHanakaiMemberForAuthUser } from '@/lib/connection/identity';
 import { getHanakaiRegistrationStatus, resolveJoinHref } from '@/lib/connection/registration-status';
@@ -86,36 +85,21 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   const errorMessage = resolveRegisterErrorMessage(error, detail);
 
   return (
-    <main className='min-h-screen bg-[#fafaf8] px-5 py-8'>
-      <div className='mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[420px] items-center'>
-        <section className='w-full rounded-2xl border border-[#ebe9e4] bg-white p-6 sm:p-7'>
-          <div className='mb-6 flex flex-col items-center'>
-            <span className='text-[15px] font-semibold tracking-[0.12em] text-[#1a1a1a]'>HANAKAI</span>
-            <span className='text-[11px] font-medium tracking-[0.2em] text-[#6b6b6b]'>CONNECTION</span>
-          </div>
+    <BrandAuthFrame title='新規登録' subtitle='まずはメール認証から始めます' characterId='W'>
+      {sent === '1' ? (
+        <p className='mb-4 rounded-2xl border border-[#d8e2d3] bg-[#eef4ea]/90 px-4 py-3 text-xs leading-5 text-[#4f7a4a]'>
+          認証メールを送信しました。メール内のリンクを開くと、プロフィール入力画面へ進みます。
+          {sentEmail ? <span className='mt-1 block break-all text-[11px]'>送信先: {sentEmail}</span> : null}
+        </p>
+      ) : null}
+      {errorMessage ? (
+        <div className='mb-4 rounded-2xl border border-rose-100 bg-rose-50/80 px-4 py-3 text-xs leading-5 text-rose-700'>
+          <p>{errorMessage}</p>
+        </div>
+      ) : null}
 
-          <h1 className='mb-1 text-center text-2xl font-semibold tracking-tight text-[#1a1a1a]'>新規登録</h1>
-          <p className='mb-6 text-center text-sm text-[#6b6b6b]'>まずはメール認証から始めます</p>
-
-          {sent === '1' ? (
-            <p className='mb-4 rounded-2xl border border-[#d8e2d3] bg-[#eef4ea] px-4 py-3 text-xs leading-5 text-[#4f7a4a]'>
-              認証メールを送信しました。メール内のリンクを開くと、プロフィール入力画面へ進みます。
-              {sentEmail ? <span className='mt-1 block break-all text-[11px]'>送信先: {sentEmail}</span> : null}
-            </p>
-          ) : null}
-          {errorMessage ? (
-            <div className='mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700'>
-              <p>{errorMessage}</p>
-            </div>
-          ) : null}
-
-          <RegisterEmailForm sent={sent === '1'} allowBurst={burst} legacyFlow={legacyFlow} />
-
-          <div className='mt-5'>
-            <LegalLinks className='text-slate-500' />
-          </div>
-        </section>
-      </div>
-    </main>
+      <RegisterEmailForm sent={sent === '1'} allowBurst={burst} legacyFlow={legacyFlow} />
+      <BrandAuthLinks register />
+    </BrandAuthFrame>
   );
 }

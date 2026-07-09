@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { BrandFooter } from '@/components/connection/brand/brand-footer';
 import { LandingConnectionDefinition } from '@/components/connection/landing/v2/connection-definition';
 import { LandingNav } from '@/components/connection/landing/v2/nav';
 import { LandingHeroV2 } from '@/components/connection/landing/v2/hero';
@@ -49,40 +49,7 @@ export default async function LandingPage() {
         <LandingFinalCta joinHref={joinHref} />
       </main>
 
-      <footer className='bg-[#163f35] px-6 py-14 text-center text-white'>
-        <div className='mx-auto w-full max-w-[1080px]'>
-          <p className='text-[15px] font-semibold tracking-[0.2em]'>HANAKAI</p>
-          <p className='mt-1 text-[10px] font-medium tracking-[0.34em] text-white/60'>花 会</p>
-          <p className='mx-auto mt-5 max-w-[34ch] text-xs leading-[1.9] text-white/70'>
-            体験を通じて、人と出会い、人生を豊かにする。
-            <br />
-            普段出会わない人とつながる、新しいコミュニティ。
-          </p>
-          <div className='mt-7 flex flex-wrap items-center justify-center gap-5 text-xs text-white/80'>
-            <Link href='/events' className='underline-offset-4 hover:underline'>
-              イベント
-            </Link>
-            <Link href='/login' className='underline-offset-4 hover:underline'>
-              ログイン
-            </Link>
-            <Link href='/terms' className='underline-offset-4 hover:underline'>
-              利用規約
-            </Link>
-            <Link href='/privacy' className='underline-offset-4 hover:underline'>
-              プライバシーポリシー
-            </Link>
-            <Link href='/contact' className='underline-offset-4 hover:underline'>
-              お問い合わせ
-            </Link>
-            {adminAccess.allowed ? (
-              <Link href='/manage' className='text-white/50 underline-offset-4 hover:underline'>
-                運営
-              </Link>
-            ) : null}
-          </div>
-          <p className='mt-8 text-[10px] tracking-wide text-white/40'>© {new Date().getFullYear()} HANAKAI</p>
-        </div>
-      </footer>
+      <BrandFooter adminHref={adminAccess.allowed ? '/manage' : null} />
     </div>
   );
 }

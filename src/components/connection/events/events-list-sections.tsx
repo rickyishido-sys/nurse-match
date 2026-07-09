@@ -1,7 +1,8 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { EventsEmptyState } from '@/components/connection/events/events-empty-state';
 import { EventsListCard } from '@/components/connection/events/events-list-card';
+import { EventsListHero } from '@/components/connection/events/events-list-hero';
+import { BrandFloatCard } from '@/components/connection/brand/brand-motion';
 import type { EnrichedEventListItem } from '@/lib/connection/events-list-data';
 import type { EventsListFilterSlug } from '@/lib/connection/events-list-ux';
 
@@ -39,36 +40,14 @@ export function EventsListGrid({ items, activeFilter, totalCount }: Props) {
   }
 
   return (
-    <div className='grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3'>
-      {items.map((item) => (
-        <EventsListCard key={item.event.id} item={item} />
+    <div className='grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3'>
+      {items.map((item, i) => (
+        <BrandFloatCard key={item.event.id} offset={i % 3 === 1 ? 12 : i % 3 === 2 ? 24 : 0}>
+          <EventsListCard item={item} />
+        </BrandFloatCard>
       ))}
     </div>
   );
 }
 
-export function EventsListHero() {
-  return (
-    <div className='relative overflow-hidden rounded-3xl border border-[#e8dfd0] bg-gradient-to-br from-[#fbf8f3] via-[#f6f3ec] to-[#eef3ef] px-6 py-8 sm:px-8'>
-      <div
-        className='pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#f3e8dc] opacity-50'
-        aria-hidden
-      />
-      <div className='relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between'>
-        <div className='max-w-xl space-y-3'>
-          <p className='text-[11px] font-semibold tracking-[0.2em] text-[#b8956a]'>HANAKAI</p>
-          <h1 className='text-[1.65rem] font-semibold leading-tight tracking-tight text-[#1a1a1a] sm:text-[1.85rem]'>
-            体験からはじまる、新しい出会い
-          </h1>
-          <p className='text-sm leading-8 text-[#5a5a5a]'>
-            花・コーヒー・散歩——興味のある体験を選んで、知らない人とのイベントに参加してみませんか。
-            理解から始まる、HANAKAIらしい出会いがここにあります。
-          </p>
-        </div>
-        <div className='relative mx-auto h-28 w-28 shrink-0 sm:mx-0'>
-          <Image src='/categories/flower.png' alt='' fill sizes='112px' className='object-contain' />
-        </div>
-      </div>
-    </div>
-  );
-}
+export { EventsListHero };
