@@ -183,7 +183,7 @@ export function EventHostSection({
           {host ? <HostBadgeList badges={host.hostBadges} /> : null}
           {bloomProfile?.bloomSummaryTitle || bloomProfile?.bloomSummary ? (
             <div className='rounded-xl border border-[#ebe9e4] bg-[#fafaf8] px-4 py-3'>
-              <p className='text-[10px] font-medium tracking-wide text-[#9a9a9a]'>Bloom Summary</p>
+              <p className='text-[10px] font-medium tracking-wide text-[#9a9a9a]'>あなたらしさ</p>
               {bloomProfile.bloomSummaryTitle ? (
                 <p className='mt-1 text-sm font-semibold text-[#1f5d4f]'>{bloomProfile.bloomSummaryTitle}</p>
               ) : null}
@@ -202,18 +202,18 @@ export function EventBloomAfterCard() {
   return (
     <Card className='border-[#e8dfd0] bg-gradient-to-br from-[#fbf8f3] to-[#f3f7f5]'>
       <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
-        AFTER THE EVENT
+        イベントのあと
       </p>
       <h3 className='mt-3 text-base font-semibold text-[#1a1a1a]'>
-        イベント終了後、Bloom Profileに思い出が残ります
+        イベント終了後、プロフィールに思い出が残ります
       </h3>
       <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>
-        参加したConnectionは、あなたのプロフィールに記録として育っていきます。
+        参加した体験は、あなたの記録として少しずつ積み重なっていきます。
       </p>
       <div className='mt-5 grid gap-3 sm:grid-cols-3'>
         {[
-          { title: 'Bloom Timeline', body: '参加や更新の履歴' },
-          { title: 'Bloom Memory', body: '印象に残ったこと' },
+          { title: 'あなたの記録', body: '参加や更新の履歴' },
+          { title: '思い出のメモ', body: '印象に残ったこと' },
           { title: '最近のあなた', body: 'つながりの振り返り' },
         ].map((item) => (
           <div key={item.title} className='rounded-xl border border-[#ebe9e4] bg-white px-3 py-3 text-center'>
@@ -230,10 +230,10 @@ export function EventBloomIntroCard() {
   return (
     <Card>
       <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
-        BLOOM PROFILE
+        プロフィール
       </p>
       <h3 className='mt-3 text-base font-semibold text-[#1a1a1a]'>
-        参加後は、あなたのBloom Profileに新しいConnectionの記録が追加されます
+        参加後は、あなたのプロフィールに新しい記録が追加されます
       </h3>
       <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>
         一度きりの出会いで終わらせません。体験を重ねるほど、あなたらしさが少しずつ育っていきます。

@@ -89,7 +89,7 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
 
         {memorySaved ? (
           <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-xs text-[#1f5d4f]'>
-            Bloom Memory を保存しました。マイプロフィールでも確認できます。
+            思い出のメモを保存しました。マイプロフィールでも確認できます。
           </p>
         ) : null}
 

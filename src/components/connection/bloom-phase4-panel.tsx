@@ -3,6 +3,7 @@ import { BloomMemoriesList } from '@/components/connection/bloom-memory-form';
 import { BloomReflectionCard } from '@/components/connection/bloom-reflection-card';
 import { BloomTimelineCard } from '@/components/connection/bloom-timeline-card';
 import { updatePhase4VisibilityAction } from '@/lib/connection/bloom-phase4-actions';
+import { PROFILE_TIMELINE_DESCRIPTION, PROFILE_TIMELINE_TITLE } from '@/lib/connection/bloom-ui-labels';
 import type {
   BloomMemory,
   BloomTimelineEntry,
@@ -44,14 +45,27 @@ type AdminProps = {
 
 type Props = OwnerProps | PublicProps | AdminProps;
 
-function SectionShell({ kicker, title, children }: { kicker: string; title: string; children: React.ReactNode }) {
+function SectionShell({
+  kicker,
+  title,
+  description,
+  id,
+  children,
+}: {
+  kicker: string;
+  title: string;
+  description?: string;
+  id?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <section className='space-y-3'>
+    <section id={id} className='scroll-mt-24 space-y-3'>
       <div className='space-y-1'>
         <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
           {kicker}
         </p>
         <h2 className='text-lg font-semibold tracking-tight text-[#1a1a1a]'>{title}</h2>
+        {description ? <p className='text-sm leading-7 text-[#6b6b6b]'>{description}</p> : null}
       </div>
       <div className='rounded-3xl border border-[#ebe9e4] bg-white px-6 py-4'>{children}</div>
     </section>
@@ -63,20 +77,24 @@ export function BloomPhase4Panel(props: Props) {
     const { timeline, memories, versions, aiReflection, settings, aiEnabled } = props;
     return (
       <div className='space-y-10'>
-        <SectionShell kicker='BLOOM' title='Bloom Timeline'>
+        <SectionShell
+          id='profile-section-timeline'
+          kicker='RECORD'
+          title={PROFILE_TIMELINE_TITLE}
+          description={PROFILE_TIMELINE_DESCRIPTION}
+        >
           <BloomTimelineCard entries={timeline} mode='owner' />
         </SectionShell>
 
-        <SectionShell kicker='BLOOM' title='Bloom Memories'>
+        <SectionShell kicker='MEMORIES' title='思い出のメモ'>
           <BloomMemoriesList memories={memories} mode='owner' />
         </SectionShell>
 
-        <SectionShell kicker='BLOOM' title='Bloom History'>
+        <SectionShell kicker='HISTORY' title='紹介の履歴'>
           <BloomHistoryCard versions={versions} mode='owner' />
         </SectionShell>
 
-        <SectionShell kicker='BLOOM' title='AI Reflection'>
-          <p className='mb-3 text-xs text-[#6b6b6b]'>現在のあなた</p>
+        <SectionShell kicker='REFLECTION' title='最近のあなた'>
           <BloomReflectionCard reflection={aiReflection} aiEnabled={aiEnabled} mode='owner' />
         </SectionShell>
 
@@ -84,14 +102,14 @@ export function BloomPhase4Panel(props: Props) {
           action={updatePhase4VisibilityAction}
           className='space-y-2 rounded-2xl border border-[#ebe9e4] bg-[#fafaf8] p-4'
         >
-          <p className='text-xs font-semibold text-[#4a4a4a]'>Phase 4 公開設定</p>
+          <p className='text-xs font-semibold text-[#4a4a4a]'>記録の公開設定</p>
           <label className='flex items-center gap-2 text-xs text-[#6b6b6b]'>
             <input type='checkbox' name='showTimeline' value='1' defaultChecked={settings.showTimeline} className='rounded' />
-            Bloom Timelineを公開
+            あなたの記録を公開
           </label>
           <label className='flex items-center gap-2 text-xs text-[#6b6b6b]'>
             <input type='checkbox' name='showMemories' value='1' defaultChecked={settings.showMemories} className='rounded' />
-            Bloom Memoriesを公開
+            思い出のメモを公開
           </label>
           <label className='flex items-center gap-2 text-xs text-[#6b6b6b]'>
             <input
@@ -101,7 +119,7 @@ export function BloomPhase4Panel(props: Props) {
               defaultChecked={settings.showReflection}
               className='rounded'
             />
-            AI Reflectionを公開
+            最近のあなたを公開
           </label>
           <button
             type='submit'
@@ -149,13 +167,14 @@ export function BloomPhase4Panel(props: Props) {
     <div className='space-y-4'>
       {hasTimeline ? (
         <div className='rounded-2xl border border-[#ebe9e4] bg-white p-5'>
-          <h2 className='mb-3 text-sm font-semibold text-[#1a1a1a]'>Bloom Timeline</h2>
+          <h2 className='mb-1 text-sm font-semibold text-[#1a1a1a]'>{PROFILE_TIMELINE_TITLE}</h2>
+          <p className='mb-3 text-xs leading-6 text-[#6b6b6b]'>{PROFILE_TIMELINE_DESCRIPTION}</p>
           <BloomTimelineCard entries={timeline!} mode='public' />
         </div>
       ) : null}
       {hasMemories ? (
         <div className='rounded-2xl border border-[#ebe9e4] bg-white p-5'>
-          <h2 className='mb-3 text-sm font-semibold text-[#1a1a1a]'>Bloom Memories</h2>
+          <h2 className='mb-3 text-sm font-semibold text-[#1a1a1a]'>思い出のメモ</h2>
           <BloomMemoriesList memories={memories!} mode='public' />
         </div>
       ) : null}

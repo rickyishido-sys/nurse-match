@@ -75,9 +75,9 @@ export function CompletionView({
           </motion.h1>
 
           <motion.p className='mt-5 text-[15px] leading-8' style={{ color: ONB.subtle }} {...fadeUp(0.55)}>
-            {nickname ? `${nickname}さん、` : ''}Bloom Profile の基本情報を保存しました。
+            {nickname ? `${nickname}さん、` : ''}プロフィールの基本情報を保存しました。
             <br />
-            体験やConnectionを通じて、あなたらしいプロフィールが少しずつ育っていきます。
+            体験を通じて、あなたらしいプロフィールが少しずつ育っていきます。
           </motion.p>
 
           <motion.p className='mt-4 text-sm leading-7' style={{ color: ONB.subtle }} {...fadeUp(0.65)}>

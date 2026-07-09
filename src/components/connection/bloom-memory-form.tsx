@@ -20,7 +20,7 @@ export function BloomMemoryForm({ eventId, eventTitle, existing, variant, return
   if (variant === 'prompt') {
     return (
       <div className='rounded-2xl border border-[#e8dfd0] bg-[#fbf8f3] p-5'>
-        <p className='text-sm font-semibold text-[#1a1a1a]'>Bloom Memoryを書きませんか？</p>
+        <p className='text-sm font-semibold text-[#1a1a1a]'>思い出のメモを書きませんか？</p>
         <p className='mt-1 text-xs leading-6 text-[#6b6b6b]'>
           「{eventTitle}」で印象に残ったことを、あなただけの記録として残せます（100〜300文字）。
         </p>

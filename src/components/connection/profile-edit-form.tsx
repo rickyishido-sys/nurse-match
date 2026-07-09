@@ -11,6 +11,7 @@ import {
   PROFILE_PHOTO_GUIDE_NOTE,
 } from '@/lib/connection/bloom-ui-labels';
 import { MBTI_OPTIONS } from '@/lib/connection/bloom-profile-options';
+import { PROFILE_SECTION_IDS } from '@/lib/connection/profile-completion';
 import { INTEREST_TAG_OPTIONS, LIFE_PHASE_OPTIONS } from '@/lib/connection/data';
 import {
   DESIRED_CONNECTION_OPTIONS,
@@ -39,14 +40,16 @@ const fieldClass =
 function SectionCard({
   kicker,
   title,
+  id,
   children,
 }: {
   kicker: string;
   title: string;
+  id?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className='space-y-4'>
+    <section id={id} className='scroll-mt-24 space-y-4'>
       <div className='space-y-1'>
         <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
           {kicker}
@@ -136,7 +139,7 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
         </p>
       ) : null}
 
-      <SectionCard kicker='PHOTOS' title='プロフィール写真'>
+      <SectionCard kicker='写真' title='プロフィール写真' id={PROFILE_SECTION_IDS.photos}>
         <p className='mb-3 text-xs leading-6 text-[#6b6b6b]'>{PROFILE_PHOTO_GUIDE}</p>
         <p className='mb-4 text-xs text-[#9a9a9a]'>{PROFILE_PHOTO_GUIDE_NOTE}</p>
         <p className='mb-4 text-xs leading-6 text-[#6b6b6b]'>
@@ -145,7 +148,7 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
         <ProfilePhotoUploader initialPhotos={member.photos} />
       </SectionCard>
 
-      <SectionCard kicker='BASIC' title='基本情報'>
+      <SectionCard kicker='基本' title='基本情報'>
         <div className='space-y-5'>
           <div>
             <FieldLabel>表示名</FieldLabel>
@@ -206,10 +209,10 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
         </div>
       </SectionCard>
 
-      <SectionCard kicker='CONNECTION' title='Connection情報'>
+      <SectionCard kicker='つながり' title='参加について'>
         <div className='space-y-6'>
-          <div>
-            <FieldLabel>Connectionの目的</FieldLabel>
+          <div id={PROFILE_SECTION_IDS.purposes} className='scroll-mt-24'>
+            <FieldLabel>参加の目的</FieldLabel>
             {purposeFields}
             <div className='flex flex-wrap gap-2'>
               {DESIRED_CONNECTION_OPTIONS.map((opt) => (
@@ -223,7 +226,7 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
               ))}
             </div>
           </div>
-          <div>
+          <div id={PROFILE_SECTION_IDS.interests} className='scroll-mt-24'>
             <FieldLabel>興味・関心</FieldLabel>
             {interestFields}
             <div className='flex flex-wrap gap-2'>
@@ -238,7 +241,7 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
               ))}
             </div>
           </div>
-          <div>
+          <div id={PROFILE_SECTION_IDS.personality} className='scroll-mt-24'>
             <FieldLabel>性格タイプ</FieldLabel>
             <input type='hidden' name='temperament' value={temperament} />
             <div className='flex flex-wrap gap-2'>
@@ -264,7 +267,7 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
               ))}
             </div>
           </div>
-          <div>
+          <div id={PROFILE_SECTION_IDS.bio} className='scroll-mt-24'>
             <FieldLabel>自己紹介</FieldLabel>
             <BioAiDraftPanel
               aiEnabled={aiEnabled}
@@ -285,8 +288,18 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
         </div>
       </SectionCard>
 
-      <SectionCard kicker='SNS' title='SNSリンク'>
+      <SectionCard kicker='SNS' title='SNS' id={PROFILE_SECTION_IDS.sns}>
         <MemberSocialLinksEditor initialLinks={member.socialLinks} />
+      </SectionCard>
+
+      <SectionCard kicker='安心' title='本人確認' id={PROFILE_SECTION_IDS.identity}>
+        <p className='text-sm text-[#6b6b6b]'>
+          {member.identityVerified
+            ? '本人確認が完了しています。'
+            : member.documentUploadStatus === 'pending'
+              ? '提出いただいた書類を確認しています。'
+              : '本人確認書類は登録時に提出できます。再提出が必要な場合は運営までお問い合わせください。'}
+        </p>
       </SectionCard>
 
       <div className='flex flex-col gap-3 sm:flex-row'>

@@ -4,6 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { updateBloomVisibilityAction } from '@/lib/connection/bloom-profile-actions';
 import {
+  BLOOM_GENERATE_BUTTON_DESCRIPTION,
+  BLOOM_GENERATE_BUTTON_LABEL,
+  BLOOM_GENERATE_BUTTON_UPDATE_LABEL,
   BLOOM_VISIBILITY_NOTE,
   BLOOM_VISIBILITY_OPTIONS,
 } from '@/lib/connection/bloom-ui-labels';
@@ -50,10 +53,15 @@ export function BloomProfileUpdateButton({ aiEnabled, hasProfile }: Props) {
         onClick={() => void handleUpdate()}
         className='h-11 w-full rounded-full bg-[#1f5d4f] text-sm font-semibold text-white transition enabled:hover:bg-[#1a4f44] disabled:cursor-not-allowed disabled:opacity-50'
       >
-        {loading ? '生成中…' : hasProfile ? 'プロフィール紹介を更新する' : 'プロフィール紹介を生成する'}
+        {loading
+          ? '整理中…'
+          : hasProfile
+            ? BLOOM_GENERATE_BUTTON_UPDATE_LABEL
+            : BLOOM_GENERATE_BUTTON_LABEL}
       </button>
+      <p className='text-center text-xs leading-6 text-[#6b6b6b]'>{BLOOM_GENERATE_BUTTON_DESCRIPTION}</p>
       {!aiEnabled ? (
-        <p className='text-center text-xs text-[#9a9a9a]'>準備中（OpenAI未設定）</p>
+        <p className='text-center text-xs text-[#9a9a9a]'>現在ご利用いただけません</p>
       ) : null}
       {error ? <p className='text-center text-xs text-rose-600'>{error}</p> : null}
     </div>

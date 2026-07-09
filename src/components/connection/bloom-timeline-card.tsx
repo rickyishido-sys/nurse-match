@@ -20,7 +20,7 @@ export function BloomTimelineCard({ entries, mode }: Props) {
     }
     return (
       <p className='text-sm text-[#c4c0b8]'>
-        {mode === 'owner' ? 'まだ記録がありません。Connectionに参加すると育っていきます。' : null}
+        {mode === 'owner' ? 'まだ記録がありません。イベントに参加すると、ここに体験が積み重なっていきます。' : null}
       </p>
     );
   }
