@@ -28,7 +28,7 @@ import {
   updateVerification,
 } from '@/lib/data';
 import { USE_MOCK_DATA, HANAKAI_CONNECTION_BACKEND, SITE_URL } from '@/lib/config';
-import { hanakaiEmailRedirectUrl } from '@/lib/connection/auth-redirect';
+import { hanakaiEmailRedirectUrl, resolveHanakaiSiteOrigin } from '@/lib/connection/auth-redirect';
 import { ensureHanakaiMemberForAuthUser, getHanakaiMemberIdForAuthUser } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
 import { isDeletedMember } from '@/lib/connection/member-status';
@@ -567,16 +567,6 @@ function resolveRequestOrigin(hostname: string | null, proto: string | null) {
   return `${scheme}://${hostname}`;
 }
 
-function resolvePublicSiteUrl() {
-  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (!raw) return null;
-  const normalized = raw.replace(/\/+$/, '');
-  if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
-    return normalized;
-  }
-  return `https://${normalized}`;
-}
-
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
 }
@@ -713,18 +703,16 @@ export async function requestRegisterVerificationAction(formData: FormData) {
       headerStore.get('x-forwarded-host') ?? headerStore.get('host'),
       headerStore.get('x-forwarded-proto'),
     );
-    const siteUrl = resolvePublicSiteUrl();
-    const redirectBase = siteUrl ?? requestOrigin;
+    const authSiteOrigin = resolveHanakaiSiteOrigin(requestOrigin);
     const legacyFlow = String(formData.get('legacyFlow') ?? '') === '1';
-    const emailRedirectTo = redirectBase
-      ? legacyFlow
-        ? `${redirectBase}/auth/callback?next=${encodeURIComponent('/register/details')}`
-        : hanakaiEmailRedirectUrl(redirectBase)
-      : undefined;
+    const emailRedirectTo = legacyFlow
+      ? `${hanakaiEmailRedirectUrl(requestOrigin)}?next=${encodeURIComponent('/register/details')}`
+      : hanakaiEmailRedirectUrl(requestOrigin);
 
-    if (!siteUrl) {
-      console.warn('[requestRegisterVerificationAction] NEXT_PUBLIC_SITE_URL is not set. Falling back to request origin.', {
+    if (requestOrigin && requestOrigin !== authSiteOrigin) {
+      console.warn('[requestRegisterVerificationAction] Auth redirect uses canonical HANAKAI origin.', {
         requestOrigin,
+        authSiteOrigin,
         vercelEnv: process.env.VERCEL_ENV ?? null,
       });
     }
