@@ -2,16 +2,18 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
+import { ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
+import { HK } from '@/lib/connection/brand/tokens';
+import { Heading, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
 
-function Line({ children }: { children: ReactNode }) {
+function Line({ children, color }: { children: ReactNode; color: string }) {
   return (
     <svg
       viewBox='0 0 48 48'
       className='h-12 w-12'
       fill='none'
-      stroke={HK.gold}
-      strokeWidth={1.4}
+      stroke={color}
+      strokeWidth={1.6}
       strokeLinecap='round'
       strokeLinejoin='round'
       aria-hidden
@@ -23,13 +25,13 @@ function Line({ children }: { children: ReactNode }) {
 
 const ICONS: Record<string, ReactNode> = {
   review: (
-    <Line>
+    <Line color={HK.coral}>
       <path d='M24 5l15 6v9c0 10-6.4 16.8-15 19-8.6-2.2-15-9-15-19v-9l15-6z' />
       <path d='M17 23l5 5 9-10' />
     </Line>
   ),
   identity: (
-    <Line>
+    <Line color={HK.violet}>
       <rect x='7' y='11' width='34' height='26' rx='3' />
       <circle cx='18' cy='23' r='4' />
       <path d='M12 32c1-3.2 4-5 6-5s5 1.8 6 5' />
@@ -37,27 +39,27 @@ const ICONS: Record<string, ReactNode> = {
     </Line>
   ),
   report: (
-    <Line>
+    <Line color={HK.sky}>
       <path d='M11 6v36' />
       <path d='M11 8h22l-3 6 3 6H11' />
     </Line>
   ),
   admin: (
-    <Line>
+    <Line color={HK.amber}>
       <circle cx='24' cy='14' r='5' />
       <path d='M10 40c2-8 8-12 14-12s12 4 14 12' />
       <path d='M32 22l4 4-4 4' />
     </Line>
   ),
   guideline: (
-    <Line>
+    <Line color={HK.lime}>
       <path d='M13 6h16l6 6v30H13z' />
       <path d='M29 6v6h6' />
       <path d='M18 24h12M18 30h12M18 18h6' />
     </Line>
   ),
   block: (
-    <Line>
+    <Line color={HK.coral}>
       <circle cx='24' cy='24' r='15' />
       <path d='M13.5 13.5l21 21' />
     </Line>
@@ -65,18 +67,21 @@ const ICONS: Record<string, ReactNode> = {
 };
 
 const ITEMS = [
-  { icon: 'review', title: '参加審査', body: '運営が参加申請を確認し、心地よい場を保ちます。' },
-  { icon: 'identity', title: '本人確認', body: '本人確認バッジで、なりすましへの不安を減らします。' },
-  { icon: 'report', title: '通報機能', body: '気になる言動は、アプリからいつでも運営へ通報できます。' },
-  { icon: 'admin', title: '運営管理体制', body: '通報・問い合わせに運営が対応し、必要に応じて利用制限を行います。' },
-  { icon: 'guideline', title: 'コミュニティガイドライン', body: '尊重と安心のための共通ルールを定めています。' },
-  { icon: 'block', title: 'ブロック機能', body: 'つながりたくない相手とは、自分で距離を取れます。' },
+  { icon: 'review', title: '参加審査', body: '運営が参加申請を確認し、心地よい場を保ちます。', accent: HK.coral, tilt: -3 },
+  { icon: 'identity', title: '本人確認', body: '本人確認バッジで、なりすましへの不安を減らします。', accent: HK.violet, tilt: 4 },
+  { icon: 'report', title: '通報機能', body: '気になる言動は、アプリからいつでも運営へ通報できます。', accent: HK.sky, tilt: -2 },
+  { icon: 'admin', title: '運営管理体制', body: '通報・問い合わせに運営が対応し、必要に応じて利用制限を行います。', accent: HK.amber, tilt: 5 },
+  { icon: 'guideline', title: 'コミュニティガイドライン', body: '尊重と安心のための共通ルールを定めています。', accent: HK.lime, tilt: -4 },
+  { icon: 'block', title: 'ブロック機能', body: 'つながりたくない相手とは、自分で距離を取れます。', accent: HK.coral, tilt: 3 },
 ] as const;
 
 export function LandingSafety() {
   return (
-    <Section tone='cream'>
-      <div className='flex flex-col items-center text-center'>
+    <Section tone='cream' className='relative overflow-hidden !bg-gradient-to-b from-[#f5f0ff] via-[#faf7f2] to-[#fff8f5]'>
+      <ColorBlob color={HK.limeSoft} className='left-[-5%] top-[15%]' />
+      <ColorBlob color={HK.coralSoft} className='right-[-4%] bottom-[8%]' />
+
+      <div className='relative z-10 flex flex-col items-center text-center'>
         <Reveal>
           <Kicker>Safety</Kicker>
         </Reveal>
@@ -91,34 +96,42 @@ export function LandingSafety() {
         </Reveal>
       </div>
 
-      <Reveal delay={0.12}>
-        <div className='mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5'>
-          {ITEMS.map((item) => (
-            <div
-              key={item.title}
-              className='flex flex-col rounded-[1.75rem] border border-[#e8dfd0] bg-white px-6 py-7 shadow-[0_6px_24px_rgba(26,26,26,0.04)]'
-            >
-              <div className='flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f3f7f5]'>
-                {ICONS[item.icon]}
+      <div className='relative z-10 mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8'>
+        {ITEMS.map((item, i) => (
+          <Reveal key={item.title} delay={0.04 * i}>
+            <TiltFrame tilt={item.tilt}>
+              <div
+                className='flex flex-col rounded-[1.75rem] px-6 py-7 shadow-[0_16px_40px_rgba(0,0,0,0.08)]'
+                style={{
+                  background: `linear-gradient(150deg, ${item.accent}12 0%, white 60%)`,
+                  borderBottom: `3px solid ${item.accent}`,
+                }}
+              >
+                <div
+                  className='flex h-14 w-14 items-center justify-center rounded-2xl'
+                  style={{ backgroundColor: `${item.accent}22` }}
+                >
+                  {ICONS[item.icon]}
+                </div>
+                <p className='mt-5 text-base font-bold text-[#1a1a1a]'>{item.title}</p>
+                <p className='mt-2 text-sm leading-[1.85] text-[#5a5247]'>{item.body}</p>
               </div>
-              <p className='mt-5 text-base font-semibold text-[#1a1a1a]'>{item.title}</p>
-              <p className='mt-2 text-sm leading-[1.85] text-[#6b6b6b]'>{item.body}</p>
-            </div>
-          ))}
-        </div>
-      </Reveal>
+            </TiltFrame>
+          </Reveal>
+        ))}
+      </div>
 
       <Reveal delay={0.18}>
-        <div className='mt-10 flex flex-wrap items-center justify-center gap-4 text-xs text-[#6b6b6b]'>
-          <Link href='/community-guidelines' className='font-semibold text-[#1f5d4f] underline-offset-2 hover:underline'>
+        <div className='relative z-10 mt-10 flex flex-wrap items-center justify-center gap-4 text-xs text-[#6b6b6b]'>
+          <Link href='/community-guidelines' className='font-bold text-[#1f5d4f] underline-offset-2 hover:underline'>
             コミュニティガイドライン
           </Link>
           <span aria-hidden>·</span>
-          <Link href='/privacy' className='font-semibold text-[#1f5d4f] underline-offset-2 hover:underline'>
+          <Link href='/privacy' className='font-bold text-[#1f5d4f] underline-offset-2 hover:underline'>
             プライバシーポリシー
           </Link>
           <span aria-hidden>·</span>
-          <Link href='/contact' className='font-semibold text-[#1f5d4f] underline-offset-2 hover:underline'>
+          <Link href='/contact' className='font-bold text-[#1f5d4f] underline-offset-2 hover:underline'>
             お問い合わせ
           </Link>
         </div>

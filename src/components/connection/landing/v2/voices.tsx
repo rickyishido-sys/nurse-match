@@ -1,50 +1,26 @@
 'use client';
 
-import { Heading, HK, Kicker, Reveal, Section } from '@/components/connection/landing/v2/ui';
+import { ColorBlob, ScatterCharacters, TiltFrame } from '@/components/connection/brand/brand-editorial';
+import { HK } from '@/lib/connection/brand/tokens';
+import { Heading, Kicker, Reveal, Section } from '@/components/connection/landing/v2/ui';
 
 const VOICES = [
-  {
-    quote: '花に集中していたら、自然に会話が始まっていました。',
-    who: '30代・女性',
-    tag: '初参加',
-    initial: 'A',
-  },
-  {
-    quote: '大人になってから友達ができるとは思いませんでした。',
-    who: '40代・男性',
-    tag: '3回参加',
-    initial: 'K',
-  },
-  {
-    quote: 'また来月も参加したいです。次が待ち遠しい。',
-    who: '20代・女性',
-    tag: '常連',
-    initial: 'M',
-  },
-  {
-    quote: '初参加でしたが、運営の方がいて安心できました。',
-    who: '30代・女性',
-    tag: '初参加',
-    initial: 'S',
-  },
-  {
-    quote: '一人で行ったのに、帰る頃には仲間ができていた。',
-    who: '50代・女性',
-    tag: '2回参加',
-    initial: 'Y',
-  },
-  {
-    quote: 'SNSではなく、リアルで話せる場所がほしかった。',
-    who: '30代・男性',
-    tag: '初参加',
-    initial: 'T',
-  },
+  { quote: '花に集中していたら、自然に会話が始まっていました。', who: '30代・女性', tag: '初参加', initial: 'A', accent: HK.coral, tilt: -3 },
+  { quote: '大人になってから友達ができるとは思いませんでした。', who: '40代・男性', tag: '3回参加', initial: 'K', accent: HK.amber, tilt: 4 },
+  { quote: 'また来月も参加したいです。次が待ち遠しい。', who: '20代・女性', tag: '常連', initial: 'M', accent: HK.violet, tilt: -2 },
+  { quote: '初参加でしたが、運営の方がいて安心できました。', who: '30代・女性', tag: '初参加', initial: 'S', accent: HK.sky, tilt: 5 },
+  { quote: '一人で行ったのに、帰る頃には仲間ができていた。', who: '50代・女性', tag: '2回参加', initial: 'Y', accent: HK.lime, tilt: -4 },
+  { quote: 'SNSではなく、リアルで話せる場所がほしかった。', who: '30代・男性', tag: '初参加', initial: 'T', accent: HK.coral, tilt: 3 },
 ] as const;
 
 export function LandingVoices() {
   return (
-    <Section tone='green'>
-      <div className='flex flex-col items-center text-center'>
+    <Section tone='green' className='relative overflow-hidden !bg-gradient-to-br from-[#0f2820] via-[#163f35] to-[#1a3040]'>
+      <ColorBlob color={HK.violetSoft} className='right-[5%] top-[10%] opacity-40' />
+      <ColorBlob color={HK.coralSoft} className='left-[3%] bottom-[20%] opacity-35' />
+      <ScatterCharacters ids={['Y', 'A', 'S']} />
+
+      <div className='relative z-10 flex flex-col items-center text-center'>
         <Reveal>
           <Kicker dark>Voices</Kicker>
         </Reveal>
@@ -60,27 +36,37 @@ export function LandingVoices() {
         </Reveal>
       </div>
 
-      <div className='mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5'>
+      <div className='relative z-10 mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8'>
         {VOICES.map((v, i) => (
           <Reveal key={v.quote} delay={0.05 * i}>
-            <article className='flex h-full flex-col rounded-[1.75rem] bg-white/95 px-6 py-7 shadow-[0_8px_30px_rgba(0,0,0,0.12)]'>
-              <div className='flex items-center gap-3'>
-                <span
-                  className='flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white'
-                  style={{ backgroundColor: HK.gold }}
-                  aria-hidden
-                >
-                  {v.initial}
-                </span>
-                <div className='min-w-0 text-left'>
-                  <p className='text-sm font-semibold text-[#1a1a1a]'>{v.who}</p>
-                  <p className='text-[11px] text-[#9a9a9a]'>{v.tag}</p>
+            <TiltFrame tilt={v.tilt}>
+              <article
+                className='flex h-full flex-col rounded-[1.75rem] px-6 py-7 shadow-[0_16px_48px_rgba(0,0,0,0.25)]'
+                style={{
+                  background: 'linear-gradient(160deg, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.88) 100%)',
+                  borderTop: `4px solid ${v.accent}`,
+                }}
+              >
+                <div className='flex items-center gap-3'>
+                  <span
+                    className='flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-md'
+                    style={{ backgroundColor: v.accent }}
+                    aria-hidden
+                  >
+                    {v.initial}
+                  </span>
+                  <div className='min-w-0 text-left'>
+                    <p className='text-sm font-bold text-[#1a1a1a]'>{v.who}</p>
+                    <p className='text-[11px] font-semibold' style={{ color: v.accent }}>
+                      {v.tag}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <p className='mt-5 flex-1 font-serif text-[15px] leading-[1.9] text-[#1a1a1a]'>
-                「{v.quote}」
-              </p>
-            </article>
+                <p className='mt-5 flex-1 text-[15px] font-semibold leading-[1.85] text-[#1a1a1a]'>
+                  「{v.quote}」
+                </p>
+              </article>
+            </TiltFrame>
           </Reveal>
         ))}
       </div>

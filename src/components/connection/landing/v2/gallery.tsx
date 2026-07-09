@@ -3,19 +3,21 @@
 import Image from 'next/image';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
+import { ColorBlob, ScatterCharacters, TiltFrame } from '@/components/connection/brand/brand-editorial';
+import { HK } from '@/lib/connection/brand/tokens';
 import { Heading, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
 
 const FEATURED = [
-  { src: '/hero/desktop/cafe.png', mobile: '/hero/mobile/cafe.png', alt: 'カフェで話す様子' },
-  { src: '/hero/desktop/flower.png', mobile: '/hero/mobile/flower.png', alt: '花の体験イベント' },
-  { src: '/hero/desktop/Stroll.png', mobile: '/hero/mobile/Stroll.png', alt: '街を歩く様子' },
+  { src: '/hero/desktop/cafe.png', mobile: '/hero/mobile/cafe.png', alt: 'カフェで話す様子', tilt: -4, label: 'カフェで話す', ring: HK.coral },
+  { src: '/hero/desktop/flower.png', mobile: '/hero/mobile/flower.png', alt: '花の体験イベント', tilt: 3, label: '花の体験', ring: HK.violet },
+  { src: '/hero/desktop/Stroll.png', mobile: '/hero/mobile/Stroll.png', alt: '街を歩く様子', tilt: -2, label: '街を歩く', ring: HK.sky },
 ] as const;
 
 const GRID = [
-  '/hero/mobile/bar.png',
-  '/hero/mobile/fitness.png',
-  '/categories/cafe.png',
-  '/categories/stroll.png',
+  { src: '/hero/mobile/bar.png', tilt: 5, ring: HK.amber },
+  { src: '/hero/mobile/fitness.png', tilt: -3, ring: HK.lime },
+  { src: '/categories/cafe.png', tilt: 4, ring: HK.coral },
+  { src: '/categories/stroll.png', tilt: -5, ring: HK.violet },
 ] as const;
 
 export function LandingGallery() {
@@ -33,8 +35,12 @@ export function LandingGallery() {
   }, [open]);
 
   return (
-    <Section tone='white'>
-      <div className='flex flex-col items-center text-center'>
+    <Section tone='white' className='relative overflow-hidden'>
+      <ColorBlob color={HK.coralSoft} className='left-[-8%] top-[5%]' />
+      <ColorBlob color={HK.violetSoft} className='right-[-5%] bottom-[10%]' />
+      <ScatterCharacters ids={['D1', 'N', 'E2']} />
+
+      <div className='relative z-10 flex flex-col items-center text-center'>
         <Reveal>
           <Kicker>Gallery</Kicker>
         </Reveal>
@@ -43,73 +49,90 @@ export function LandingGallery() {
         </Reveal>
         <Reveal delay={0.1}>
           <Lead className='mt-6 max-w-[42ch]'>
-            楽しそうな体験の写真を、大きく見せています。
+            斜めに重なる写真のように、体験も重なり合う。
             カフェ、食事、散歩、運動——どの場でも、自然な会話が生まれます。
           </Lead>
         </Reveal>
       </div>
 
       <Reveal delay={0.12}>
-        <div className='mt-12 grid gap-3 sm:gap-4 lg:grid-cols-12 lg:grid-rows-2 lg:gap-5'>
-          <button
-            type='button'
-            onClick={() => setOpen(FEATURED[0].src)}
-            className='group relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#f1efe9] lg:col-span-7 lg:row-span-2 lg:aspect-auto lg:min-h-[420px]'
-            aria-label='イベント写真を拡大'
-          >
-            <Image
-              src={FEATURED[0].src}
-              alt={FEATURED[0].alt}
-              fill
-              sizes='(max-width: 1024px) 100vw, 58vw'
-              className='hidden object-cover transition duration-700 group-hover:scale-[1.03] lg:block'
-            />
-            <Image
-              src={FEATURED[0].mobile}
-              alt={FEATURED[0].alt}
-              fill
-              sizes='100vw'
-              className='object-cover transition duration-700 group-hover:scale-[1.03] lg:hidden'
-            />
-            <div className='absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent' />
-            <p className='absolute bottom-4 left-4 text-sm font-semibold text-white'>カフェで話す</p>
-          </button>
-
-          {FEATURED.slice(1).map((photo) => (
+        <div className='relative z-10 mt-12 lg:mt-16'>
+          <TiltFrame tilt={-3} hover={false} className='mx-auto max-w-[92%] lg:max-w-none'>
             <button
-              key={photo.src}
               type='button'
-              onClick={() => setOpen(photo.src)}
-              className='group relative hidden aspect-[16/10] overflow-hidden rounded-2xl bg-[#f1efe9] lg:col-span-5 lg:block'
+              onClick={() => setOpen(FEATURED[0].src)}
+              className='group relative block w-full overflow-hidden rounded-[2rem] shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-4 ring-white'
+              style={{ boxShadow: `0 24px 60px rgba(0,0,0,0.18), 0 0 0 4px ${FEATURED[0].ring}33` }}
               aria-label='イベント写真を拡大'
             >
-              <Image
-                src={photo.src}
-                alt={photo.alt}
-                fill
-                sizes='42vw'
-                className='object-cover transition duration-700 group-hover:scale-[1.03]'
-              />
-            </button>
-          ))}
-
-          <div className='grid grid-cols-2 gap-3 sm:grid-cols-4 lg:col-span-5 lg:grid-cols-2 lg:gap-4'>
-            {GRID.map((src, i) => (
-              <button
-                key={src}
-                type='button'
-                onClick={() => setOpen(src)}
-                className='group relative aspect-square overflow-hidden rounded-xl bg-[#f1efe9] sm:rounded-2xl'
-                aria-label={`イベント写真 ${i + 1} を拡大`}
-              >
+              <div className='relative aspect-[4/3] lg:aspect-[16/9] lg:min-h-[380px]'>
                 <Image
-                  src={src}
-                  alt={`イベント風景 ${i + 1}`}
+                  src={FEATURED[0].src}
+                  alt={FEATURED[0].alt}
                   fill
-                  sizes='(max-width: 640px) 45vw, 220px'
-                  className='object-cover transition duration-500 group-hover:scale-105'
+                  sizes='(max-width: 1024px) 100vw, 1080px'
+                  className='hidden object-cover transition duration-700 group-hover:scale-[1.03] lg:block'
                 />
-              </button>
+                <Image
+                  src={FEATURED[0].mobile}
+                  alt={FEATURED[0].alt}
+                  fill
+                  sizes='100vw'
+                  className='object-cover transition duration-700 group-hover:scale-[1.03] lg:hidden'
+                />
+                <div className='absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent' />
+                <p className='absolute bottom-5 left-5 rounded-full bg-white/90 px-4 py-1.5 text-sm font-bold text-[#1a1a1a] shadow-lg'>
+                  {FEATURED[0].label}
+                </p>
+              </div>
+            </button>
+          </TiltFrame>
+
+          <div className='mt-8 flex flex-wrap items-center justify-center gap-5 sm:gap-6 lg:mt-10'>
+            {FEATURED.slice(1).map((photo) => (
+              <TiltFrame key={photo.src} tilt={photo.tilt} className='w-[calc(50%-10px)] sm:w-[220px] lg:w-[280px]'>
+                <button
+                  type='button'
+                  onClick={() => setOpen(photo.src)}
+                  className='group relative block w-full overflow-hidden rounded-[1.5rem] shadow-xl ring-2 ring-white'
+                  style={{ boxShadow: `0 16px 40px rgba(0,0,0,0.12), 0 0 0 2px ${photo.ring}44` }}
+                  aria-label='イベント写真を拡大'
+                >
+                  <div className='relative aspect-[4/5]'>
+                    <Image
+                      src={photo.src}
+                      alt={photo.alt}
+                      fill
+                      sizes='280px'
+                      className='object-cover transition duration-700 group-hover:scale-[1.05]'
+                    />
+                  </div>
+                </button>
+              </TiltFrame>
+            ))}
+          </div>
+
+          <div className='mt-10 flex flex-wrap justify-center gap-4 sm:gap-5'>
+            {GRID.map((item, i) => (
+              <TiltFrame key={item.src} tilt={item.tilt} className='w-[calc(50%-8px)] sm:w-[140px]'>
+                <button
+                  type='button'
+                  onClick={() => setOpen(item.src)}
+                  className='group relative block w-full overflow-hidden rounded-2xl shadow-lg ring-2 ring-white'
+                  style={{ boxShadow: `0 12px 32px rgba(0,0,0,0.1), 0 0 0 2px ${item.ring}55` }}
+                  aria-label={`イベント写真 ${i + 1} を拡大`}
+                >
+                  <div className='relative aspect-square'>
+                    <Image
+                      src={item.src}
+                      alt={`イベント風景 ${i + 1}`}
+                      fill
+                      sizes='140px'
+                      className='object-cover transition duration-500 group-hover:scale-110'
+                    />
+                  </div>
+                </button>
+              </TiltFrame>
             ))}
           </div>
         </div>
@@ -126,8 +149,8 @@ export function LandingGallery() {
           >
             <motion.div
               className='relative aspect-[4/3] w-full max-w-[720px] overflow-hidden rounded-2xl'
-              initial={{ scale: 0.92, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
+              initial={{ scale: 0.92, opacity: 0, rotate: -2 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
               exit={{ scale: 0.92, opacity: 0 }}
               transition={{ duration: 0.3 }}
               onClick={(e) => e.stopPropagation()}
