@@ -60,7 +60,7 @@ export function ApplyForm({
         type='submit'
         whileTap={{ scale: 0.98 }}
         disabled={!valid}
-        className='w-full rounded-full bg-[#1f5d4f] py-4 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-40'
+        className='flex min-h-12 w-full items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white shadow-sm transition hover:bg-[#1a4f44] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40'
       >
         {approvalMode === 'auto' ? '参加する' : '参加申請する'}
       </motion.button>

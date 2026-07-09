@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { loginAction } from '@/lib/actions';
 import { LegalLinks } from '@/components/connection/legal-links';
+import { ctaPrimaryFull } from '@/components/connection/ui/cta-classes';
 import { getHanakaiRegistrationStatus } from '@/lib/connection/registration-status';
 
 type LoginPageProps = {
@@ -95,7 +96,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 className='w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100'
               />
             </label>
-            <button className='w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800'>
+            <button type='submit' className={ctaPrimaryFull}>
               ログイン
             </button>
           </form>
@@ -105,7 +106,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
           <div className='mt-3 flex flex-col items-center gap-2 text-xs'>
             <Link href='/register' className='font-medium text-[#1f5d4f] underline underline-offset-2'>
-              はじめての方は参加登録へ
+              はじめての方は新規登録へ
             </Link>
             <Link href='/admin/login' className='font-medium text-slate-600 underline underline-offset-2'>
               管理者ログイン

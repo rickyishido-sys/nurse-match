@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ctaPrimary, ctaSecondary } from '@/components/connection/ui/cta-classes';
 
 type ConnectionPageErrorProps = {
   title?: string;
@@ -28,18 +29,11 @@ export function ConnectionPageError({
       </div>
       <div className='flex flex-col items-center gap-3'>
         {onRetry ? (
-          <button
-            type='button'
-            onClick={() => window.location.reload()}
-            className='inline-flex h-11 items-center justify-center rounded-full bg-[#1f5d4f] px-6 text-sm font-semibold text-white'
-          >
+          <button type='button' onClick={() => window.location.reload()} className={ctaPrimary}>
             もう一度試す
           </button>
         ) : null}
-        <Link
-          href={actionHref}
-          className='inline-flex h-11 items-center justify-center rounded-full border border-[#1f5d4f] px-6 text-sm font-semibold text-[#1f5d4f]'
-        >
+        <Link href={actionHref} className={onRetry ? ctaSecondary : ctaPrimary}>
           {actionLabel}
         </Link>
       </div>

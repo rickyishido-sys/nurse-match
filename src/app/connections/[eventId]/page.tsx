@@ -54,7 +54,7 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
         <Card className='text-center'>
           <p className='text-sm font-semibold text-[#1a1a1a]'>参加者限定のページです</p>
           <p className='mt-2 text-xs leading-6 text-[#6b6b6b]'>
-            イベント終了後、確定参加者だけがこのConnectionページを閲覧できます。
+            イベント終了後、確定参加者だけがコミュニティページを閲覧できます。
           </p>
           <Link href='/events' className='mt-4 inline-block text-xs font-semibold text-[#1a1a1a] underline-offset-2 hover:underline'>
             イベント一覧へ
@@ -68,10 +68,10 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
     <ConnectionShell viewer={viewer}>
       <div className='space-y-6'>
         <div>
-          <p className='text-[11px] font-medium tracking-[0.2em] text-[#6b6b6b]'>CONNECTION</p>
+          <p className='text-[11px] font-medium tracking-[0.2em] text-[#6b6b6b]'>COMMUNITY</p>
           <h1 className='mt-1 text-xl font-semibold text-[#1a1a1a]'>{event.title}</h1>
           <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>
-            このイベントに参加した{members.length}人だけが閲覧できます。フォローやメッセージで、次のConnectionへ。
+            このイベントに参加した{members.length}人だけが閲覧できます。フォローやメッセージで、次の出会いへ。
           </p>
           <Link
             href={`/groups/${eventId}`}

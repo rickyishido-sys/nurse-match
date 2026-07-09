@@ -8,7 +8,7 @@ import { CONNECTION_NAV_CLASS } from '@/lib/connection/layout-width';
 const items = [
   { href: '/home', label: 'ホーム' },
   { href: '/events', label: 'イベント' },
-  { href: '/connections', label: 'Connection' },
+  { href: '/connections', label: 'コミュニティ' },
   { href: '/my-profile', label: 'プロフィール' },
 ];
 
@@ -25,7 +25,7 @@ export function ConnectionBottomNav() {
               <Link
                 href={item.href}
                 className={clsx(
-                  'flex items-center justify-center rounded-full py-2.5 text-[11px] font-medium transition',
+                  'flex min-h-11 items-center justify-center rounded-full py-2.5 text-[11px] font-medium transition',
                   active ? 'bg-[#1a1a1a] text-white' : 'text-[#6b6b6b]',
                 )}
               >

@@ -94,7 +94,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
             <span className='text-[11px] font-medium tracking-[0.2em] text-[#6b6b6b]'>CONNECTION</span>
           </div>
 
-          <h1 className='mb-1 text-center text-2xl font-semibold tracking-tight text-[#1a1a1a]'>参加登録</h1>
+          <h1 className='mb-1 text-center text-2xl font-semibold tracking-tight text-[#1a1a1a]'>新規登録</h1>
           <p className='mb-6 text-center text-sm text-[#6b6b6b]'>まずはメール認証から始めます</p>
 
           {sent === '1' ? (

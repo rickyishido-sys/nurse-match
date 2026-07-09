@@ -1,13 +1,15 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
+import { ctaPrimary } from '@/components/connection/ui/cta-classes';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
-export default async function ConnectionNotFound() {
+export default async function EventNotFound() {
   const viewer = await getHanakaiViewer();
+
   return (
     <ConnectionShell viewer={viewer}>
-      <div className='flex min-h-[60vh] flex-col items-center justify-center text-center'>
+      <div className='flex min-h-[50vh] flex-col items-center justify-center text-center'>
         <div
           className='mb-6 flex h-24 w-24 items-center justify-center rounded-[28px]'
           style={{ background: 'radial-gradient(circle at 50% 36%, #eef3ef 0%, #e4ecdd 74%)' }}
@@ -17,25 +19,14 @@ export default async function ConnectionNotFound() {
           </div>
         </div>
         <h1 className='text-xl font-semibold tracking-tight text-[#1a1a1a]'>
-          コミュニティが見つかりませんでした
+          イベントが見つかりませんでした
         </h1>
         <p className='mx-auto mt-3 max-w-sm text-sm leading-7 text-[#6b6b6b]'>
-          イベントが削除されたか、まだ参加履歴がありません。
+          イベントが終了・削除されたか、URLが正しくない可能性があります。
         </p>
-        <div className='mt-7 flex flex-col items-center gap-3'>
-          <Link
-            href='/events'
-            className='inline-flex h-11 items-center justify-center rounded-full bg-[#1f5d4f] px-7 text-sm font-semibold text-white transition hover:bg-[#1a4f44] active:scale-[0.98]'
-          >
-            イベント一覧へ戻る
-          </Link>
-          <Link
-            href='/connections'
-            className='text-xs font-semibold text-[#8b7355] underline-offset-2 hover:underline'
-          >
-            コミュニティを見る
-          </Link>
-        </div>
+        <Link href='/events' className={`mt-7 ${ctaPrimary}`}>
+          イベント一覧へ戻る
+        </Link>
       </div>
     </ConnectionShell>
   );

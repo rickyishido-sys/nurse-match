@@ -52,7 +52,7 @@ export default async function HomePage() {
             <p className='text-[11px] font-semibold tracking-[0.18em]' style={{ color: GOLD }}>
               NEXT STEP
             </p>
-            <p className='mt-2 text-base font-semibold text-[#1a1a1a]'>イベントに参加申請する</p>
+            <p className='mt-2 text-base font-semibold text-[#1a1a1a]'>イベントに参加する</p>
             <p className='mt-1.5 text-xs leading-6 text-[#5b6f67]'>
               運営が参加メンバーを選定し、リアルイベントが開催されます。
             </p>
@@ -93,16 +93,16 @@ export default async function HomePage() {
           )}
         </section>
 
-        {/* 過去のConnection */}
+        {/* コミュニティ */}
         <section
           className='flex items-center justify-between gap-4 rounded-3xl border border-[#ebe5dc] px-6 py-6'
           style={{ background: 'linear-gradient(135deg, #f6f0e6 0%, #f1ece2 100%)' }}
         >
           <div className='min-w-0'>
             <p className='text-[11px] font-semibold tracking-[0.18em]' style={{ color: GOLD }}>
-              CONNECTIONS
+              COMMUNITY
             </p>
-            <p className='mt-2 text-sm font-semibold text-[#1a1a1a]'>過去のConnection</p>
+            <p className='mt-2 text-sm font-semibold text-[#1a1a1a]'>コミュニティ</p>
             <p className='mt-1.5 text-xs leading-6 text-[#7a7264]'>
               イベント参加者だけが見られるページで、出会った人とつながれます。
             </p>
@@ -110,7 +110,7 @@ export default async function HomePage() {
               href='/connections'
               className='mt-3 inline-block text-xs font-semibold text-[#8b7355] underline-offset-2 hover:underline'
             >
-              自分のConnectionを見る →
+              コミュニティを見る →
             </Link>
           </div>
           <div className='relative hidden h-20 w-20 shrink-0 items-center justify-center rounded-[24px] bg-white/60 sm:flex'>

@@ -43,7 +43,7 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
 
       <footer className={`border-t border-[#ebe9e4] px-5 py-6 text-center text-[11px] text-[#9a9a9a] ${showNav ? 'mb-16' : ''}`}>
         <p className='mb-1 font-medium tracking-[0.12em] text-[#1a1a1a]'>HANAKAI Connection</p>
-        <p>人と人との新しいつながりを生み出す、リアル体験プラットフォーム。</p>
+        <p>知らない人同士がリアルで出会う、週替わりのイベントコミュニティ。</p>
         <div className='mt-3'>
           <LegalLinks className='text-[#9a9a9a]' />
         </div>

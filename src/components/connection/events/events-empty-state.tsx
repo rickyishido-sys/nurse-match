@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 
 export function EventsEmptyState() {
@@ -8,7 +7,7 @@ export function EventsEmptyState() {
         ✿
       </div>
       <h2 className='mt-6 text-lg font-semibold text-[#1a1a1a]'>
-        現在、新しいConnectionを準備しています。
+        現在、新しいイベントを準備しています。
       </h2>
       <p className='mx-auto mt-3 max-w-md text-sm leading-8 text-[#6b6b6b]'>
         花やコーヒー、散歩など——あなたに合う体験をひとつずつ整えています。

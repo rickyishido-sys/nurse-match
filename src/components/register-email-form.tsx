@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { requestRegisterVerificationAction } from '@/lib/actions';
+import { ctaPrimaryFull } from '@/components/connection/ui/cta-classes';
 
 const COOLDOWN_STORAGE_KEY = 'hanakai:register-cooldown';
 // Temporary relaxed resend interval for active verification testing.
@@ -21,7 +22,7 @@ function SubmitButton({ cooldownRemaining }: { cooldownRemaining: number }) {
     <button
       type='submit'
       disabled={disabled}
-      className='w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60'
+      className={ctaPrimaryFull}
     >
       {label}
     </button>

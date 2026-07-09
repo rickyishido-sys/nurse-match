@@ -31,9 +31,11 @@ button {
 
 input:focus,
 select:focus,
-textarea:focus {
+textarea:focus,
+button:focus-visible,
+a:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 0 0 3px rgba(31, 93, 79, 0.22);
 }
 
 .safe-area-padding {

@@ -22,7 +22,7 @@ export function adminFlashMessage(
   success?: string,
   error?: string,
 ): { variant: 'success' | 'error'; message: string } | null {
-  if (success === 'approved') return { variant: 'success', message: '参加申請を承認しました。' };
+  if (success === 'approved') return { variant: 'success', message: '参加を決定しました。' };
   if (success === 'rejected') return { variant: 'success', message: '参加申請を却下しました。' };
   if (success === 'reviewing') return { variant: 'success', message: '通報を確認中に更新しました。' };
   if (success === 'resolved') return { variant: 'success', message: '通報を対応済みにしました。' };

@@ -24,7 +24,7 @@ export function AdminApplicationActions({ applicationId, eventTitle, memberNickn
           onClick={() => setMode('approve')}
           className='rounded-full bg-[#1f5d4f] px-3 py-1 text-[11px] font-medium text-white transition hover:bg-[#174a3f]'
         >
-          承認
+          参加決定
         </button>
         <button
           type='button'
