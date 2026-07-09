@@ -78,7 +78,7 @@ export async function GET(request: Request) {
 
     if (sessionEstablished) {
       redirectTo = profileUrl;
-      response = NextResponse.redirect(profileUrl);
+      // Keep `response` from setAll — it already carries auth cookies.
     }
   } catch (error) {
     console.error('AUTH_CALLBACK_UNEXPECTED_ERROR', error);

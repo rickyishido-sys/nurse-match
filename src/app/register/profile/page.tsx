@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { OnboardingFlow } from '@/components/connection/onboarding/onboarding-flow';
+import { RegisterProfileSessionGate } from '@/components/connection/onboarding/register-profile-session-gate';
 import { HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
 import { ensureHanakaiMemberForAuthUser, getViewerMemberId } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
@@ -18,33 +19,48 @@ export default async function RegisterProfilePage({ searchParams }: PageProps) {
   const error = pickFirst(sp.error);
 
   let hasPasswordSet = false;
+  let hasServerUser = false;
+  let member = null;
 
-  if (HANAKAI_CONNECTION_BACKEND === 'supabase') {
-    const supabase = await createServerSupabaseClient();
-    if (!supabase) redirect('/register?error=config');
+  try {
+    if (HANAKAI_CONNECTION_BACKEND === 'supabase') {
+      const supabase = await createServerSupabaseClient();
+      if (!supabase) redirect('/register?error=config');
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      redirect('/register');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      hasServerUser = Boolean(user);
+
+      if (!user) {
+        return <RegisterProfileSessionGate hasServerUser={false} />;
+      }
+
+      hasPasswordSet = Boolean(user.user_metadata?.hanakai_password_set);
+
+      await ensureHanakaiMemberForAuthUser(user.id, {
+        email: user.email,
+        nickname: (user.user_metadata?.nickname as string | undefined) ?? null,
+      });
+    } else {
+      hasServerUser = true;
     }
 
-    hasPasswordSet = Boolean(user.user_metadata?.hanakai_password_set);
+    const viewerMemberId = await getViewerMemberId();
+    member = viewerMemberId ? await getMember(viewerMemberId) : null;
 
-    await ensureHanakaiMemberForAuthUser(user.id, {
-      email: user.email,
-      nickname: (user.user_metadata?.nickname as string | undefined) ?? null,
-    });
+    const status = await getHanakaiRegistrationStatus();
+    if (status.profileComplete) {
+      redirect('/register/complete');
+    }
+  } catch (pageError) {
+    console.error('REGISTER_PROFILE_PAGE_ERROR', pageError);
+    throw pageError;
   }
 
-  const viewerMemberId = await getViewerMemberId();
-  const member = viewerMemberId ? await getMember(viewerMemberId) : null;
-
-  const status = await getHanakaiRegistrationStatus();
-  if (status.profileComplete) {
-    redirect('/register/complete');
-  }
-
-  return <OnboardingFlow error={error || undefined} member={member} hasPasswordSet={hasPasswordSet} />;
+  return (
+    <RegisterProfileSessionGate hasServerUser={hasServerUser}>
+      <OnboardingFlow error={error || undefined} member={member} hasPasswordSet={hasPasswordSet} />
+    </RegisterProfileSessionGate>
+  );
 }

@@ -136,18 +136,30 @@ export function OnboardingFlow({
   useEffect(() => {
     if (initDone.current) return;
     initDone.current = true;
-    const initial = resolveInitialOnboardingStep(member, hasPasswordSet);
-    if (!initLogged.current) {
-      console.log('BLOOM_ONBOARDING_INIT', {
-        initial,
-        hasPasswordSet,
-        error: error ?? null,
-      });
-      initLogged.current = true;
+    try {
+      const initial = resolveInitialOnboardingStep(member, hasPasswordSet);
+      if (!initLogged.current) {
+        console.log('BLOOM_ONBOARDING_INIT', {
+          initial,
+          hasPasswordSet,
+          error: error ?? null,
+        });
+        initLogged.current = true;
+      }
+      setStep(initial);
+      if (hasPasswordSet) setPasswordDone(true);
+      setReady(true);
+    } catch (initError) {
+      console.error('BLOOM_ONBOARDING_INIT_ERROR', initError);
+      try {
+        sessionStorage.removeItem('hanakai_onboarding_started');
+        sessionStorage.removeItem('hanakai_onboarding_step');
+      } catch {
+        // noop
+      }
+      setStep('intro');
+      setReady(true);
     }
-    setStep(initial);
-    if (hasPasswordSet) setPasswordDone(true);
-    setReady(true);
   }, [member, hasPasswordSet, error]);
 
   useEffect(() => {

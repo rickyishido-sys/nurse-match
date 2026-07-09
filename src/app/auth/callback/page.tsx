@@ -100,6 +100,7 @@ export default function AuthCallbackPage() {
 
       console.log('AUTH_CALLBACK_SET_SESSION_SUCCESS');
       window.clearTimeout(fallbackTimer);
+      await new Promise((resolve) => window.setTimeout(resolve, 150));
       redirectToProfile('set_session_success');
     }
 

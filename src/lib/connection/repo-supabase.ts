@@ -65,11 +65,15 @@ async function photosForMembers(memberIds: string[]): Promise<Map<string, Member
   if (memberIds.length === 0) return map;
   const sb = await db();
   if (!sb) return map;
-  const { data } = await sb
+  const { data, error } = await sb
     .from('hanakai_member_photos')
     .select('*')
     .in('member_id', memberIds)
     .order('sort_order', { ascending: true });
+  if (error) {
+    console.warn('HANAKAI_PHOTOS_FETCH_FAILED', { message: error.message, code: error.code });
+    return map;
+  }
   for (const row of data ?? []) {
     const photo = photoFromRow(row);
     const list = map.get(photo.memberId) ?? [];
@@ -94,7 +98,11 @@ async function socialLinksForMembers(memberIds: string[]): Promise<Map<string, M
   if (memberIds.length === 0) return map;
   const sb = await db();
   if (!sb) return map;
-  const { data } = await sb.from('hanakai_member_social_links').select('*').in('member_id', memberIds);
+  const { data, error } = await sb.from('hanakai_member_social_links').select('*').in('member_id', memberIds);
+  if (error) {
+    console.warn('HANAKAI_SOCIAL_LINKS_FETCH_FAILED', { message: error.message, code: error.code });
+    return map;
+  }
   for (const row of data ?? []) {
     const link = socialLinkFromRow(row);
     const list = map.get(link.memberId) ?? [];

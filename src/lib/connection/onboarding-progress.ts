@@ -131,6 +131,14 @@ export function resolveInitialOnboardingStep(
   const stored = readStoredOnboardingStep();
 
   if (started && stored && stored !== 'intro') {
+    if (!hasPasswordSet && stored !== 'password') {
+      clearOnboardingProgress();
+      return 'intro';
+    }
+    if (hasPasswordSet && stored === 'password') {
+      persistOnboardingStep('nickname');
+      return 'nickname';
+    }
     console.log('BLOOM_ONBOARDING_RESTORE_STEP', { stored, started });
     return stored;
   }
