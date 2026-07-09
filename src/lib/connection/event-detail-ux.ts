@@ -14,16 +14,16 @@ export type ParticipantPreviewCard = {
 };
 
 const EXPERIENCE_TAGLINE: Record<ConnectionEventCategory, string> = {
-  flower: '花を囲みながら、普段出会えない人とゆっくり話せるConnectionです。',
-  coffee: 'カフェの心地よい空間で、新しい人との会話が生まれるConnectionです。',
-  business: '食卓を囲みながら、普段出会えない人とゆっくり話せるConnectionです。',
-  walking: '街を歩きながら、自然な会話でつながれるConnectionです。',
-  fitness: '体を動かしながら、気軽に話せるConnectionです。',
-  learning: '学びを通じて、新しい視点と出会いが広がるConnectionです。',
-  bar: 'リラックスした雰囲気で、本音の会話が生まれるConnectionです。',
-  sports: '共通の体験を通じて、自然に打ち解けられるConnectionです。',
-  workshop: 'つくる時間の中で、創造と対話が重なるConnectionです。',
-  other: '体験を通じて、知らない人とゆっくりつながれるConnectionです。',
+  flower: '花を囲みながら、普段出会えない人とゆっくり話せる体験です。',
+  coffee: 'カフェの心地よい空間で、新しい人との会話が生まれる体験です。',
+  business: '食卓を囲みながら、普段出会えない人とゆっくり話せる体験です。',
+  walking: '街を歩きながら、自然な会話でつながれる体験です。',
+  fitness: '体を動かしながら、気軽に話せる体験です。',
+  learning: '学びを通じて、新しい視点と出会いが広がる体験です。',
+  bar: 'リラックスした雰囲気で、本音の会話が生まれる体験です。',
+  sports: '共通の体験を通じて、自然に打ち解けられる場です。',
+  workshop: 'つくる時間の中で、創造と対話が重なる体験です。',
+  other: '体験を通じて、知らない人とゆっくりつながれる場です。',
 };
 
 const CATEGORY_RECOMMEND: Partial<Record<ConnectionEventCategory, string[]>> = {
