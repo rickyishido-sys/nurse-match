@@ -67,7 +67,30 @@ body {
   will-change: transform;
 }
 
+/* 斜め・自由レイアウト用 */
+.hk-tilt-1 { transform: rotate(-2deg); }
+.hk-tilt-2 { transform: rotate(2.5deg); }
+.hk-tilt-3 { transform: rotate(-4deg); }
+.hk-tilt-4 { transform: rotate(3deg); }
+
+.hk-vibrant-gradient {
+  background: linear-gradient(135deg, #fff0ec 0%, #faf7f2 40%, #f0f8ff 100%);
+}
+
+.hk-text-gradient {
+  background: linear-gradient(120deg, #1f5d4f 0%, #7b5ea7 50%, #e85d4c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .hk-tilt-1,
+  .hk-tilt-2,
+  .hk-tilt-3,
+  .hk-tilt-4 {
+    transform: none;
+  }
   .hk-kenburns {
     animation: none;
   }

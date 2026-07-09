@@ -2,80 +2,82 @@
 
 import { motion } from 'motion/react';
 import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
 import { BRAND_TAGLINE } from '@/lib/connection/brand/tokens';
 
-const CYCLE_STEPS = ['リアルイベント', 'アプリで交流', '応援する', '再会する', '再びイベントへ'];
+const CYCLE_STEPS = [
+  { label: 'リアル体験', color: HK.coral },
+  { label: 'アプリで交流', color: HK.violet },
+  { label: '応援する', color: HK.amber },
+  { label: '再会する', color: HK.sky },
+  { label: 'また体験へ', color: HK.lime },
+];
 
 export function LandingConnectionDefinition() {
   return (
-    <Section tone='white' id='hanakai-connection' className='relative overflow-hidden'>
-      <BgTypography text='華会' className='!opacity-60' />
-      <div className='pointer-events-none absolute -right-2 top-[15%] hidden sm:block'>
-        <BrandCharacter id='D1' size='lg' variant='peek' />
+    <Section
+      tone='white'
+      id='hanakai-connection'
+      className='relative overflow-hidden !bg-gradient-to-br from-white via-[#fff8f5] to-[#f0f8ff]'
+    >
+      <BgTypography text='華会' className='!text-[#1f5d4f]/[0.06]' />
+      <ColorBlob color={HK.violetSoft} className='right-0 top-[20%]' />
+      <ColorBlob color={HK.coralSoft} className='bottom-[10%] left-0' />
+
+      <div className='pointer-events-none absolute -right-4 top-[12%]'>
+        <BrandCharacter id='D1' size='xl' variant='peek' className='rotate-8' />
       </div>
-      <div className='pointer-events-none absolute -left-4 bottom-[10%]'>
-        <BrandCharacter id='N' size='md' variant='float' />
+      <div className='pointer-events-none absolute -left-6 bottom-[8%] hidden sm:block'>
+        <BrandCharacter id='N' size='lg' variant='float' className='-rotate-6' />
       </div>
-      <div className='relative z-10 flex flex-col items-center text-center'>
+      <div className='pointer-events-none absolute right-[15%] bottom-[25%] hidden lg:block'>
+        <BrandCharacter id='Y' size='sm' variant='float' className='rotate-12' />
+      </div>
+
+      <div className='relative z-10 flex flex-col items-center text-center lg:items-start lg:text-left'>
         <Reveal>
           <Kicker>華会</Kicker>
         </Reveal>
         <Reveal delay={0.05}>
-          <Heading className='mt-5'>体験をデザインする、華会とは</Heading>
+          <Heading className='mt-5'>
+            体験をデザインする、
+            <br className='sm:hidden' />
+            <span className='hk-text-gradient'>華会</span>とは
+          </Heading>
         </Reveal>
         <Reveal delay={0.1}>
-          <Lead className='mt-6 max-w-[48ch] text-left sm:text-center'>
+          <Lead className='mt-6 max-w-[48ch]'>
             {BRAND_TAGLINE}
-            <br className='hidden sm:block' />
-            <br className='hidden sm:block' />
-            イベントで出会い、コミュニティで交流し、また次の体験で再会する。
-            <br className='hidden sm:block' />
-            <br className='hidden sm:block' />
-            この循環そのものが、HANAKAI Connectionの体験です。
-            <br className='hidden sm:block' />
-            体験は、その最初のきっかけです。
+            イベントで出会い、コミュニティで交流し、また次の体験で再会する——この循環が、HANAKAI Connectionです。
           </Lead>
         </Reveal>
       </div>
 
-      <Reveal delay={0.15} className='mt-14'>
-        <div className='mx-auto max-w-3xl'>
-          <p className='mb-6 text-center text-[11px] font-semibold tracking-[0.2em] text-[#9a9a9a]'>
-            Connectionの循環
-          </p>
-          <div className='flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center'>
-            {CYCLE_STEPS.map((step, i) => (
-              <div key={step} className='flex items-center gap-3 sm:gap-2'>
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.08 * i }}
-                  className='flex flex-1 items-center justify-center rounded-full border border-[#e8dfd0] bg-gradient-to-br from-[#fbf8f3] to-[#eef3ef] px-5 py-3 text-sm font-semibold text-[#1a1a1a] shadow-sm sm:flex-none sm:min-w-[120px]'
-                >
-                  {step}
-                </motion.div>
-                {i < CYCLE_STEPS.length - 1 ? (
-                  <span className='hidden text-lg text-[#b8956a] sm:inline' aria-hidden>
-                    →
-                  </span>
-                ) : null}
-                {i < CYCLE_STEPS.length - 1 ? (
-                  <span className='mx-auto text-lg text-[#b8956a] sm:hidden' aria-hidden>
-                    ↓
-                  </span>
-                ) : null}
-              </div>
-            ))}
-          </div>
-          <p className='mt-8 text-center text-xs leading-7 text-[#6b6b6b]'>
-            毎週新しいイベント案内が届き、参加・交流・再会が続いていく。
-            <br className='hidden sm:block' />
-            それが<span style={{ color: HK.green }}> HANAKAI Connection </span>の体験です。
-          </p>
+      <Reveal delay={0.15} className='relative z-10 mt-16'>
+        <p className='mb-8 text-center text-[11px] font-bold tracking-[0.24em] text-[#9a9a9a] lg:text-left'>
+          Connectionの循環
+        </p>
+        <div className='flex flex-wrap items-center justify-center gap-4 lg:justify-start'>
+          {CYCLE_STEPS.map((step, i) => (
+            <TiltFrame key={step.label} tilt={i % 2 === 0 ? -3 : 4}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.06 * i }}
+                className='rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-lg'
+                style={{ background: step.color }}
+              >
+                {step.label}
+              </motion.div>
+            </TiltFrame>
+          ))}
         </div>
+        <p className='mt-10 text-center text-sm leading-8 text-[#5a5247] lg:text-left'>
+          毎週新しい体験の案内が届き、参加・交流・再会が続いていく。
+        </p>
       </Reveal>
     </Section>
   );

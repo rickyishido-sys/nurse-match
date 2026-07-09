@@ -16,7 +16,7 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
   const adminHref = viewer?.isConnectionAdmin ? '/manage' : null;
 
   return (
-    <div className={`${CONNECTION_SHELL_CLASS} bg-[#faf7f2]`}>
+    <div className={`${CONNECTION_SHELL_CLASS} hk-vibrant-gradient`}>
       <header className='sticky top-0 z-20 border-b border-white/40 bg-white/70 px-5 py-4 backdrop-blur-xl'>
         <div className='flex items-center justify-between'>
           <Link href='/' className='flex flex-col'>

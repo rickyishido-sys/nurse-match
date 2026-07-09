@@ -28,7 +28,7 @@ export default async function LandingPage() {
   const joinHref = resolveJoinHref(registration);
 
   return (
-    <div className='min-h-screen bg-[#faf7f2] text-[#1a1a1a]'>
+    <div className='min-h-screen hk-vibrant-gradient text-[#1a1a1a]'>
       <LandingNav joinHref={joinHref} viewer={viewer} />
 
       <main>

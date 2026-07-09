@@ -2,80 +2,104 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
 
 const STEPS = [
   {
     step: '01',
-    title: 'プロフィール作成',
-    body: '興味や価値観を登録。あなたに合うイベントを見つける準備をします。',
+    title: '体験を選ぶ',
+    body: '花・コーヒー・散歩など、気分に合った体験を選ぶだけ。難しい手続きはありません。',
     img: '/flow/register.png',
+    tilt: -4,
+    accent: HK.coral,
+    char: 'W' as const,
   },
   {
     step: '02',
-    title: 'イベント参加',
-    body: '花・コーヒー・散歩など、気になる体験に参加申請。リアルで出会います。',
+    title: '参加する',
+    body: 'リアルな場所に行くだけ。運営がグループづくりや当日の案内をサポートします。',
     img: '/flow/apply.png',
+    tilt: 3,
+    accent: HK.violet,
+    char: 'E1' as const,
   },
   {
     step: '03',
     title: 'つながりが育つ',
-    body: 'イベント後は参加者だけのコミュニティで交流。フォローやメッセージで関係が深まります。',
+    body: 'イベント後はコミュニティで交流。フォローやメッセージで、関係が深まります。',
     img: '/flow/continue.png',
+    tilt: -2,
+    accent: HK.amber,
+    char: 'S' as const,
   },
 ] as const;
 
 export function LandingHowItWorks({ joinHref = '/register' }: { joinHref?: string }) {
   return (
-    <Section tone='cream' id='how-it-works'>
-      <div className='flex flex-col items-center text-center'>
+    <Section tone='cream' id='how-it-works' className='relative overflow-hidden !bg-gradient-to-b from-[#fff8f5] via-[#faf7f2] to-[#f5f0ff]'>
+      <ColorBlob color={HK.blush} className='left-[-5%] top-[10%]' />
+      <ColorBlob color={HK.skySoft} className='right-[-3%] bottom-[15%]' />
+
+      <div className='relative z-10 flex flex-col items-center text-center lg:items-start lg:text-left'>
         <Reveal>
           <Kicker>How it works</Kicker>
         </Reveal>
         <Reveal delay={0.05}>
-          <Heading className='mt-5'>参加までの流れ</Heading>
+          <Heading className='mt-5'>
+            参加まで、
+            <span className='hk-text-gradient'> 3ステップ</span>
+          </Heading>
         </Reveal>
         <Reveal delay={0.1}>
           <Lead className='mt-6 max-w-[40ch]'>
-            難しい手続きはありません。プロフィールを作って、イベントに参加するだけ。
-            あとは自然に、つながりが育っていきます。
+            正方形に並べた説明ではなく、体験の流れそのものをデザイン。
+            あなたは「来る」だけでOKです。
           </Lead>
         </Reveal>
       </div>
 
-      <div className='mt-14 space-y-8 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6'>
+      <div className='relative z-10 mt-16 space-y-10 lg:space-y-0'>
         {STEPS.map((item, index) => (
-          <Reveal key={item.title} delay={0.08 * index}>
-            <div className='relative flex h-full flex-col items-center rounded-[2rem] border border-[#ece3d4] bg-white px-6 py-8 text-center shadow-[0_8px_30px_rgba(26,26,26,0.04)] sm:px-8'>
-              {index < STEPS.length - 1 ? (
-                <span
-                  className='pointer-events-none absolute -bottom-4 left-1/2 hidden -translate-x-1/2 text-2xl text-[#d8c39a] lg:hidden'
-                  aria-hidden
+          <Reveal key={item.title} delay={0.1 * index}>
+            <div
+              className={`flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-10 ${
+                index % 2 === 1 ? 'lg:flex-row-reverse' : ''
+              }`}
+            >
+              <TiltFrame tilt={item.tilt} className='relative mx-auto w-full max-w-[320px] shrink-0 lg:mx-0 lg:w-[38%]'>
+                <div
+                  className='relative overflow-visible rounded-[2rem] p-8 shadow-[0_20px_60px_rgba(26,26,26,0.1)]'
+                  style={{ background: `linear-gradient(145deg, ${item.accent}18, white)` }}
                 >
-                  ↓
-                </span>
-              ) : null}
-              <div className='relative h-28 w-28 sm:h-32 sm:w-32'>
-                <Image src={item.img} alt='' fill sizes='128px' className='object-contain' />
+                  <div className='pointer-events-none absolute -right-4 -top-4'>
+                    <BrandCharacter id={item.char} size='sm' variant='peek' />
+                  </div>
+                  <div className='relative mx-auto h-32 w-32'>
+                    <Image src={item.img} alt='' fill sizes='128px' className='object-contain' />
+                  </div>
+                  <p className='mt-4 text-center text-[11px] font-bold tracking-[0.24em]' style={{ color: item.accent }}>
+                    STEP {item.step}
+                  </p>
+                </div>
+              </TiltFrame>
+
+              <div className={`flex-1 text-center lg:text-left ${index % 2 === 1 ? 'lg:text-right' : ''}`}>
+                <h3 className='font-serif text-2xl font-bold text-[#1a1a1a] sm:text-[1.75rem]'>{item.title}</h3>
+                <p className='mt-3 text-sm leading-[1.95] text-[#5a5247] sm:text-base'>{item.body}</p>
               </div>
-              <p
-                className='mt-5 text-[11px] font-bold tracking-[0.24em]'
-                style={{ color: HK.gold }}
-              >
-                STEP {item.step}
-              </p>
-              <h3 className='mt-2 font-serif text-xl font-semibold text-[#1a1a1a]'>{item.title}</h3>
-              <p className='mt-3 text-sm leading-[1.9] text-[#6b6b6b]'>{item.body}</p>
             </div>
           </Reveal>
         ))}
       </div>
 
-      <Reveal delay={0.25}>
-        <div className='mt-12 flex flex-col items-center justify-center'>
+      <Reveal delay={0.35}>
+        <div className='relative z-10 mt-14 flex justify-center lg:justify-start'>
           <Link
             href='/events'
-            className='flex h-12 min-w-[200px] items-center justify-center rounded-full bg-[#1f5d4f] px-8 text-sm font-semibold text-white shadow-md transition active:scale-[0.98]'
+            className='hk-brand-btn flex h-14 min-w-[220px] items-center justify-center rounded-full px-8 text-sm font-bold text-white shadow-lg'
+            style={{ background: HK.green }}
           >
             イベントを見る
           </Link>

@@ -12,7 +12,7 @@ const label = baseUrl.includes('hanakai.kranz.design') ? 'prod' : 'local';
 const outDir = path.join('scripts', 'e2e-screenshots', `brand-redesign-${label}`);
 
 const pages = [
-  { name: 'landing', path: '/', checks: ['華会', '人との時間を華やかにする', 'イベントを見る'] },
+  { name: 'landing', path: '/', checks: ['華会', '人との時間を華やかにする', '毎週開催中', 'イベントを見る'] },
   { name: 'events', path: '/events', checks: ['体験からはじまる', '参加する'] },
   { name: 'login', path: '/login', checks: ['華会', 'おかえりなさい'] },
   { name: 'register', path: '/register', checks: ['華会', '新規登録'] },

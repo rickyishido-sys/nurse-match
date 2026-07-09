@@ -37,7 +37,7 @@ export function BrandCharacter({
 
   const inner = (
     <div
-      className={`relative flex ${s.box} items-center justify-center overflow-visible rounded-[28%] bg-gradient-to-br ${char.gradient} shadow-[0_12px_40px_rgba(31,93,79,0.18)] ${peekOffset} ${className}`}
+      className={`relative flex ${s.box} items-center justify-center overflow-visible rounded-[28%] bg-gradient-to-br ${char.gradient} shadow-[0_16px_48px_rgba(0,0,0,0.15)] ring-2 ring-white/30 ${peekOffset} ${className}`}
       title={char.name}
     >
       {src ? (

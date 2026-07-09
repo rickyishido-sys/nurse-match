@@ -20,7 +20,7 @@ type Props = {
 /** ログイン・新規登録用ブランドフレーム */
 export function BrandAuthFrame({ children, title, subtitle, characterId = 'E1' }: Props) {
   return (
-    <main className='relative min-h-screen overflow-hidden bg-[#faf7f2] px-5 py-10'>
+    <main className='relative min-h-screen overflow-hidden hk-vibrant-gradient px-5 py-10'>
       <BgTypography text='華会' />
       <div className='pointer-events-none absolute -left-6 bottom-[12%] z-[1] opacity-90'>
         <BrandCharacter id={characterId} size='lg' variant='peek' />
