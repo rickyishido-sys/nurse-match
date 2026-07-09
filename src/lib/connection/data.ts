@@ -32,7 +32,7 @@ export const PURPOSE_OPTIONS = Object.entries(PURPOSE_LABEL) as [ConnectionPurpo
 
 export const INTEREST_TAG_LABEL: Record<InterestTag, string> = {
   flowers: '花',
-  coffee: 'コーヒー',
+  coffee: 'カフェ',
   walking: '散歩',
   art: 'アート',
   reading: '読書',
@@ -184,8 +184,8 @@ export const EVENT_CATEGORY_META: Record<
     label: 'Coffee Connection',
     short: 'Coffee',
     emoji: '☕️',
-    tagline: '一杯のコーヒーから始まる対話',
-    landingTagline: '一杯のコーヒーから会話が生まれる',
+    tagline: 'カフェの心地よい空間で、お茶と会話の時間',
+    landingTagline: 'お茶をしながら、自然と会話が生まれる',
     imagePath: '/images/category-coffee.jpg',
     accent: '#9a6f4a',
     gradient: 'from-[#f1e8df] to-[#e6d5c2]',

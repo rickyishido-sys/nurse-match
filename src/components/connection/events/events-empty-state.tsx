@@ -20,7 +20,7 @@ export function EventsEmptyState() {
             現在、新しい体験を準備しています。
           </h2>
           <p className='mx-auto mt-3 max-w-md text-sm leading-8 text-[#6b6b6b]'>
-            花やコーヒー、散歩など——あなたに合う体験をひとつずつ整えています。
+            花やカフェ、散歩など——あなたに合う体験をひとつずつ整えています。
             公開まで、もう少しお待ちください。
           </p>
           <Link href='/contact?category=event' className={`mt-8 ${ctaPrimary}`}>

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { ConnectionBottomNav } from '@/components/connection/bottom-nav';
 import { BrandFooter } from '@/components/connection/brand/brand-footer';
 import { HeaderUserMenu } from '@/components/connection/header-user-menu';
+import { ctaPrimary } from '@/components/connection/ui/cta-classes';
+import { HK } from '@/lib/connection/brand/tokens';
 import { CONNECTION_SHELL_CLASS } from '@/lib/connection/layout-width';
 import type { HanakaiViewer } from '@/lib/hanakai/session';
 
@@ -35,10 +37,16 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
                   ログイン
                 </Link>
                 <Link
-                  href='/events'
-                  className='hk-brand-btn rounded-full bg-[#1f5d4f] px-3 py-1.5 text-xs font-medium text-white'
+                  href='/events/create'
+                  className='rounded-full px-2.5 py-1.5 text-[10px] font-semibold text-white sm:px-3 sm:text-xs'
+                  style={{ background: HK.coral }}
                 >
-                  イベントを見る
+                  <span className='sm:hidden'>作る</span>
+                  <span className='hidden sm:inline'>イベントを作る</span>
+                </Link>
+                <Link href='/events' className={`${ctaPrimary} !px-2.5 !py-1.5 !text-[10px] sm:!px-3 sm:!text-xs`}>
+                  <span className='sm:hidden'>見る</span>
+                  <span className='hidden sm:inline'>イベントを見る</span>
                 </Link>
               </>
             )}

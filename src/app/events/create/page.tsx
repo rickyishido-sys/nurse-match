@@ -96,7 +96,7 @@ export default async function CreateEventPage({ searchParams }: PageProps) {
           <ConnectionShell viewer={viewer}>
             <ConnectionPageError
               title='プロフィールの準備ができていません'
-              message='イベントを作成するには、会員プロフィールの登録が必要です。登録を完了してから再度お試しください。'
+              message='イベントを作るには、会員プロフィールの登録が必要です。登録を完了してから再度お試しください。'
               actionHref='/register/profile'
               actionLabel='プロフィール登録へ'
             />

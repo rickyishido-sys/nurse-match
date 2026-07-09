@@ -3,6 +3,7 @@ import { LandingConnectionDefinition } from '@/components/connection/landing/v2/
 import { LandingNav } from '@/components/connection/landing/v2/nav';
 import { LandingHeroV2 } from '@/components/connection/landing/v2/hero';
 import { LandingStats } from '@/components/connection/landing/v2/stats';
+import { LandingHostEvents } from '@/components/connection/landing/v2/host-events';
 import { LandingHowItWorks } from '@/components/connection/landing/v2/how-it-works';
 import { LandingGallery } from '@/components/connection/landing/v2/gallery';
 import { LandingThemes } from '@/components/connection/landing/v2/themes';
@@ -36,6 +37,7 @@ export default async function LandingPage() {
         <LandingConnectionDefinition />
         <LandingStats />
         <LandingHowItWorks joinHref={joinHref} />
+        <LandingHostEvents />
         <LandingGallery />
         <LandingThemes />
         <LandingBloomIntro />

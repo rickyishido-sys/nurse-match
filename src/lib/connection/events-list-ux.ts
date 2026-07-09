@@ -17,7 +17,7 @@ export const EVENTS_LIST_FILTERS: {
 }[] = [
   { slug: '', label: 'すべて', emoji: '✿', categories: null },
   { slug: 'flower', label: '花', emoji: '🌸', categories: ['flower'] },
-  { slug: 'coffee', label: 'コーヒー', emoji: '☕', categories: ['coffee'] },
+  { slug: 'coffee', label: 'カフェ', emoji: '☕', categories: ['coffee'] },
   { slug: 'walking', label: '散歩', emoji: '🍃', categories: ['walking'] },
   { slug: 'business', label: '食事', emoji: '🍽️', categories: ['business'] },
   { slug: 'fitness', label: '運動', emoji: '🤸', categories: ['fitness'] },

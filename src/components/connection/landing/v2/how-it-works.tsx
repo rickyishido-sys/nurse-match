@@ -4,13 +4,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { BrandCharacter } from '@/components/connection/brand/brand-character';
 import { ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
+import { ctaPrimary, ctaSecondary } from '@/components/connection/ui/cta-classes';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
 
 const STEPS = [
   {
     step: '01',
     title: '体験を選ぶ',
-    body: '花・コーヒー・散歩など、気分に合った体験を選ぶだけ。難しい手続きはありません。',
+    body: '花・カフェ・散歩など、気分に合った体験を選ぶだけ。難しい手続きはありません。',
     img: '/flow/register.png',
     tilt: -4,
     accent: HK.coral,
@@ -95,13 +96,16 @@ export function LandingHowItWorks({ joinHref = '/register' }: { joinHref?: strin
       </div>
 
       <Reveal delay={0.35}>
-        <div className='relative z-10 mt-14 flex justify-center lg:justify-start'>
-          <Link
-            href='/events'
-            className='hk-brand-btn flex h-14 min-w-[220px] items-center justify-center rounded-full px-8 text-sm font-bold text-white shadow-lg'
-            style={{ background: HK.green }}
-          >
+        <div className='relative z-10 mt-14 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start'>
+          <Link href='/events' className={`${ctaPrimary} min-w-[200px]`}>
             イベントを見る
+          </Link>
+          <Link
+            href='/events/create'
+            className={`${ctaSecondary} min-w-[200px] border-[#e85d4c] text-[#e85d4c] hover:bg-[#fff5f3]`}
+            style={{ borderColor: HK.coral, color: HK.coral }}
+          >
+            イベントを作る
           </Link>
         </div>
       </Reveal>

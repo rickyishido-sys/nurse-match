@@ -44,7 +44,7 @@ export function LandingFinalCta({ joinHref = '/register' }: { joinHref?: string 
           知らない人との時間が、日常を華やかにします。
         </p>
 
-        <div className='mt-10 flex w-full max-w-[420px] flex-col gap-3 sm:flex-row sm:justify-center'>
+        <div className='mt-10 flex w-full max-w-[480px] flex-col gap-3 sm:flex-row sm:justify-center'>
           <Link
             href='/events'
             className='hk-brand-btn flex h-14 flex-1 items-center justify-center rounded-full px-8 text-sm font-bold text-[#1a1a1a] shadow-xl'
@@ -53,12 +53,19 @@ export function LandingFinalCta({ joinHref = '/register' }: { joinHref?: string 
             イベントを見る
           </Link>
           <Link
-            href={joinHref}
-            className='hk-brand-btn flex h-14 flex-1 items-center justify-center rounded-full border-2 border-white/60 px-8 text-sm font-bold text-white backdrop-blur-sm'
+            href='/events/create'
+            className='hk-brand-btn flex h-14 flex-1 items-center justify-center rounded-full px-8 text-sm font-bold text-white shadow-xl'
+            style={{ background: HK.coral }}
           >
-            新規登録
+            イベントを作る
           </Link>
         </div>
+        <Link
+          href={joinHref}
+          className='mt-4 inline-flex min-h-11 items-center justify-center rounded-full border-2 border-white/60 px-8 text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white/10'
+        >
+          新規登録
+        </Link>
       </motion.div>
     </section>
   );

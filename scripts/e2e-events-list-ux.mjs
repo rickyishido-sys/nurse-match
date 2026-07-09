@@ -46,7 +46,7 @@ async function main() {
         overflow: btn.scrollWidth <= btn.clientWidth + 1,
       }));
     });
-    const hasCategoryChips = html.includes('花') && html.includes('コーヒー') && html.includes('交流');
+    const hasCategoryChips = html.includes('花') && html.includes('カフェ') && html.includes('交流');
     const hasTrust = html.includes('通報機能あり') || html.includes('本人確認');
     const gridCols = await page.evaluate(() => {
       const grid = document.querySelector('.grid');

@@ -104,7 +104,7 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
           className='mt-5 max-w-[38ch] text-sm leading-[1.95] text-white/80 sm:text-base'
         >
           スワイプ不要。知らない人との体験が、いつの間にか友達になる。
-          花・コーヒー・散歩——気分に合った体験を選ぶだけ。
+          花・カフェ・散歩——気分に合った体験を選ぶだけ。
         </motion.p>
 
         <motion.div

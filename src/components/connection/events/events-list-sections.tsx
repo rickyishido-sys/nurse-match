@@ -3,6 +3,8 @@ import { EventsEmptyState } from '@/components/connection/events/events-empty-st
 import { EventsListCard } from '@/components/connection/events/events-list-card';
 import { EventsListHero } from '@/components/connection/events/events-list-hero';
 import { BrandFloatCard } from '@/components/connection/brand/brand-motion';
+import { ctaSecondary } from '@/components/connection/ui/cta-classes';
+import { HK } from '@/lib/connection/brand/tokens';
 import type { EnrichedEventListItem } from '@/lib/connection/events-list-data';
 import type { EventsListFilterSlug } from '@/lib/connection/events-list-ux';
 
@@ -27,14 +29,20 @@ export function EventsListGrid({ items, activeFilter, totalCount }: Props) {
           このカテゴリーでは、まだイベントがありません
         </p>
         <p className='mx-auto mt-2 max-w-sm text-xs leading-7 text-[#6b6b6b]'>
-          ほかのカテゴリーも見てみるか、新しいイベントの準備をお待ちください。
+          あなたが最初のイベントを作ってみませんか？ほかのカテゴリーを見ることもできます。
         </p>
-        <Link
-          href='/events'
-          className='mt-6 inline-flex h-11 items-center justify-center rounded-full border border-[#1f5d4f] px-6 text-sm font-semibold text-[#1f5d4f]'
-        >
-          すべてのイベントを見る
-        </Link>
+        <div className='mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row'>
+          <Link
+            href='/events/create'
+            className='inline-flex min-h-11 items-center justify-center rounded-full px-6 text-sm font-semibold text-white'
+            style={{ background: HK.coral }}
+          >
+            イベントを作る
+          </Link>
+          <Link href='/events' className={ctaSecondary}>
+            すべてのイベントを見る
+          </Link>
+        </div>
       </div>
     );
   }
