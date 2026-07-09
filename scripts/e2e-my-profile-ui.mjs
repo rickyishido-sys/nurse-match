@@ -33,7 +33,7 @@ async function loginWithPassword(page, email, password) {
   await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(password);
-  await page.locator('button[type="submit"]').click();
+  await page.getByRole('button', { name: 'ログイン' }).click();
   await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 60000 });
 }
 

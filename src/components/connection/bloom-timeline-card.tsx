@@ -1,5 +1,11 @@
 import type { BloomTimelineEntry } from '@/lib/connection/bloom-phase4-types';
 
+function displayTimelineTitle(title: string): string {
+  return title
+    .replace('初めてBloom Profileを作成', 'はじめて紹介文を作成')
+    .replace('Bloom Profileを更新しました', '紹介文を更新しました');
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('ja-JP', {
     year: 'numeric',
@@ -42,7 +48,7 @@ export function BloomTimelineCard({ entries, mode }: Props) {
           />
           <div className='border-b border-[#f1efe9] py-4 last:border-b-0'>
             <p className='text-xs font-medium text-[#9a9a9a]'>{formatDate(entry.createdAt)}</p>
-            <p className='mt-1 text-sm font-semibold text-[#1a1a1a]'>{entry.title}</p>
+            <p className='mt-1 text-sm font-semibold text-[#1a1a1a]'>{displayTimelineTitle(entry.title)}</p>
             {entry.description ? (
               <p className='mt-1 text-xs leading-6 text-[#6b6b6b]'>{entry.description}</p>
             ) : null}

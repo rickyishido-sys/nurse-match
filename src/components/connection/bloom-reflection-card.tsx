@@ -22,12 +22,12 @@ export function BloomReflectionCard({ reflection, aiEnabled, mode }: Props) {
       const res = await fetch('/api/hanakai/bloom/generate-reflection', { method: 'POST' });
       const payload = (await res.json()) as { ok: boolean; error?: string };
       if (!res.ok || !payload.ok) {
-        setError('Reflection の更新に失敗しました');
+        setError('振り返りの更新に失敗しました');
         return;
       }
       router.refresh();
     } catch {
-      setError('Reflection の更新に失敗しました');
+      setError('振り返りの更新に失敗しました');
     } finally {
       setLoading(false);
     }
@@ -38,9 +38,9 @@ export function BloomReflectionCard({ reflection, aiEnabled, mode }: Props) {
       <div className='space-y-2'>
         <p className='text-sm text-[#c4c0b8]'>
           {mode === 'owner'
-            ? 'Bloom Memoryを記録すると、「最近のあなた」が育っていきます。'
+            ? '思い出のメモを記録すると、「最近のあなた」が育っていきます。'
             : null}
-          {mode === 'admin' ? 'AI Reflection は未生成です' : null}
+          {mode === 'admin' ? '振り返りは未生成です' : null}
         </p>
         {mode === 'owner' ? (
           <button
@@ -49,7 +49,7 @@ export function BloomReflectionCard({ reflection, aiEnabled, mode }: Props) {
             onClick={() => void handleRefresh()}
             className='text-xs font-medium text-[#1f5d4f] underline-offset-2 hover:underline disabled:opacity-50'
           >
-            {loading ? '更新中…' : 'Reflectionを試す'}
+            {loading ? '更新中…' : '振り返りを試す'}
           </button>
         ) : null}
         {error ? <p className='text-xs text-rose-600'>{error}</p> : null}
@@ -68,10 +68,10 @@ export function BloomReflectionCard({ reflection, aiEnabled, mode }: Props) {
             onClick={() => void handleRefresh()}
             className='text-xs font-medium text-[#1f5d4f] underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50'
           >
-            {loading ? '更新中…' : 'Reflectionを更新する'}
+            {loading ? '更新中…' : '振り返りを更新する'}
           </button>
           {!aiEnabled ? (
-            <p className='text-[10px] text-[#9a9a9a]'>OpenAI未設定時はテンプレートで生成されます</p>
+            <p className='text-[10px] text-[#9a9a9a]'>準備中の場合はテンプレートで生成されます</p>
           ) : null}
           {error ? <p className='text-xs text-rose-600'>{error}</p> : null}
         </div>

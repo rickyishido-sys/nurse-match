@@ -32,8 +32,8 @@ export function BloomHistoryCard({ versions, mode }: Props) {
     return (
       <p className='text-sm text-[#c4c0b8]'>
         {mode === 'owner'
-          ? 'Bloom Profileを更新すると、ここに履歴が残ります。'
-          : 'History はまだありません'}
+          ? '紹介文を更新すると、ここに履歴が残ります。'
+          : '履歴はまだありません'}
       </p>
     );
   }

@@ -301,7 +301,7 @@ export async function recordBloomProfileGenerated(
     await addBloomTimelineEntry({
       memberId,
       type: 'profile_created',
-      title: '初めてBloom Profileを作成',
+      title: 'はじめて紹介文を作成',
       description: generated.bloomSummaryTitle || null,
       visibility: 'public',
     });
@@ -309,7 +309,7 @@ export async function recordBloomProfileGenerated(
     await addBloomTimelineEntry({
       memberId,
       type: 'bloom_updated',
-      title: 'Bloom Profileを更新しました',
+      title: '紹介文を更新しました',
       description: generated.bloomSummaryTitle || null,
       visibility: 'public',
     });
