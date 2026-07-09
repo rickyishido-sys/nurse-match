@@ -54,6 +54,14 @@ export function LandingNav({
           >
             イベント
           </Link>
+          <Link
+            href='/events/create'
+            className={`flex h-9 items-center rounded-full px-3 text-[11px] font-semibold transition sm:px-4 sm:text-xs ${
+              solid ? 'text-[#e85d4c] hover:bg-[#fff5f3]' : 'text-white/90 hover:bg-white/10'
+            }`}
+          >
+            作る
+          </Link>
           {viewer ? (
             <HeaderUserMenu user={viewer} />
           ) : (

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { AppShell } from '@/components/app-shell';
+import { AdminShell } from '@/components/admin-shell';
 import { Badge } from '@/components/badges';
 import { adminMaleReviewAction, adminReportAction, adminRiskCheckUpdateAction, adminRunRiskCheckAction, adminSuspendAction } from '@/lib/actions';
 import { getAdminMetrics } from '@/lib/admin-metrics';
@@ -62,7 +62,7 @@ export default async function MaleAdminPage() {
     const maleMap = new Map(males.map((u) => [u.id, u.nickname]));
 
     return (
-      <AppShell user={user}>
+      <AdminShell user={user}>
         <section className='space-y-4'>
         <article className='rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
           <h1 className='text-lg font-bold text-slate-900'>男性管理</h1>
@@ -180,7 +180,7 @@ export default async function MaleAdminPage() {
           ))}
         </article>
         </section>
-      </AppShell>
+      </AdminShell>
     );
   } catch (error) {
     if (isRedirectThrown(error)) throw error;
@@ -193,12 +193,12 @@ export default async function MaleAdminPage() {
       stack: error instanceof Error ? error.stack : null,
     });
     return (
-      <AppShell user={user}>
+      <AdminShell user={user}>
         <section className='rounded-3xl border border-red-100 bg-white p-5 shadow-sm'>
           <h1 className='text-lg font-bold text-slate-900'>男性管理</h1>
           <p className='mt-3 text-sm text-red-700'>男性管理ページの読み込み中にエラーが発生しました。時間をおいて再度お試しください。</p>
         </section>
-      </AppShell>
+      </AdminShell>
     );
   }
 }

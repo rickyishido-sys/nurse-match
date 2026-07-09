@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { AppShell } from '@/components/app-shell';
+import { AdminShell } from '@/components/admin-shell';
 import { adminApproveReviewAction, adminRejectReviewAction } from '@/lib/actions';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { getCurrentUser } from '@/lib/data';
@@ -51,12 +51,12 @@ export default async function AdminReviewsPage() {
     const adminSupabase = createAdminSupabaseClient();
     if (!adminSupabase) {
       return (
-        <AppShell user={user}>
+        <AdminShell user={user}>
           <section className='rounded-3xl border border-slate-200 bg-white p-5 shadow-sm'>
             <h1 className='text-xl font-bold text-slate-900'>審査管理</h1>
             <p className='mt-3 text-sm text-slate-600'>管理者設定が未完了です。`SUPABASE_SERVICE_ROLE_KEY` を確認してください。</p>
           </section>
-        </AppShell>
+        </AdminShell>
       );
     }
 
@@ -106,7 +106,7 @@ export default async function AdminReviewsPage() {
     );
 
     return (
-      <AppShell user={user}>
+      <AdminShell user={user}>
         <section className='space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm'>
         <h1 className='text-xl font-bold text-slate-900'>審査待ちユーザー一覧</h1>
         <p className='text-sm text-slate-600'>登録内容を確認し、承認または否認を行ってください。</p>
@@ -178,7 +178,7 @@ export default async function AdminReviewsPage() {
           ) : null}
         </div>
         </section>
-      </AppShell>
+      </AdminShell>
     );
   } catch (error) {
     if (isRedirectThrown(error)) throw error;
@@ -191,12 +191,12 @@ export default async function AdminReviewsPage() {
       stack: error instanceof Error ? error.stack : null,
     });
     return (
-      <AppShell user={user}>
+      <AdminShell user={user}>
         <section className='rounded-3xl border border-red-100 bg-white p-5 shadow-sm'>
           <h1 className='text-xl font-bold text-slate-900'>審査管理</h1>
           <p className='mt-3 text-sm text-red-700'>審査ページの読み込み中にエラーが発生しました。時間をおいて再度お試しください。</p>
         </section>
-      </AppShell>
+      </AdminShell>
     );
   }
 }

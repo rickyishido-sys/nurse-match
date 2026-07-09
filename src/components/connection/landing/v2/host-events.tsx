@@ -49,7 +49,7 @@ export function LandingHostEvents() {
 
       <div className='relative z-10 flex flex-col items-center text-center lg:items-start lg:text-left'>
         <Reveal>
-          <Kicker>Host</Kicker>
+          <Kicker>イベントを作る</Kicker>
         </Reveal>
         <Reveal delay={0.05}>
           <Heading className='mt-5'>

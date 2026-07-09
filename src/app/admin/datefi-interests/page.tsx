@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { AppShell } from '@/components/app-shell';
+import { AdminShell } from '@/components/admin-shell';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { getCurrentUser } from '@/lib/data';
 
@@ -28,12 +28,12 @@ export default async function AdminDatefiInterestsPage() {
   const adminSupabase = createAdminSupabaseClient();
   if (!adminSupabase) {
     return (
-      <AppShell user={user}>
+      <AdminShell user={user}>
         <section className='rounded-3xl border border-slate-200 bg-white p-5 shadow-sm'>
           <h1 className='text-xl font-bold text-slate-900'>DateFi 関心登録一覧</h1>
           <p className='mt-3 text-sm text-slate-600'>管理者設定が未完了です。`SUPABASE_SERVICE_ROLE_KEY` を確認してください。</p>
         </section>
-      </AppShell>
+      </AdminShell>
     );
   }
 
@@ -54,7 +54,7 @@ export default async function AdminDatefiInterestsPage() {
   const rows = (data as DatefiInterestRow[] | null) ?? [];
 
   return (
-    <AppShell user={user}>
+    <AdminShell user={user}>
       <section className='space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm'>
         <h1 className='text-xl font-bold text-slate-900'>DateFi 関心登録一覧</h1>
         <p className='text-sm text-slate-600'>男性向け DateFi の関心登録状況を確認できます。</p>
@@ -95,7 +95,7 @@ export default async function AdminDatefiInterestsPage() {
           </table>
         </div>
       </section>
-    </AppShell>
+    </AdminShell>
   );
 }
 

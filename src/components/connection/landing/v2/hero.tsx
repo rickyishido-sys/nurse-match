@@ -111,20 +111,40 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.28 }}
-          className='mt-9 flex w-full flex-col gap-3 sm:flex-row sm:items-center'
+          className='mt-9 flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center'
         >
           <Link
             href='/events'
-            className='hk-brand-btn flex h-14 min-w-[200px] items-center justify-center rounded-full px-8 text-sm font-bold text-white shadow-[0_12px_40px_rgba(232,93,76,0.45)]'
+            className='hk-brand-btn flex h-14 min-w-[200px] flex-1 items-center justify-center rounded-full px-8 text-sm font-bold text-white shadow-[0_12px_40px_rgba(232,93,76,0.45)] sm:flex-none'
             style={{ background: `linear-gradient(135deg, ${HK.coral} 0%, ${HK.coralSoft} 100%)` }}
           >
             イベントを見る
           </Link>
           <Link
-            href={joinHref}
-            className='hk-brand-btn flex h-14 items-center justify-center rounded-full border-2 border-white/50 bg-white/10 px-8 text-sm font-semibold text-white backdrop-blur-md'
+            href='/events/create'
+            className='hk-brand-btn flex h-14 min-w-[200px] flex-1 items-center justify-center rounded-full border-2 border-white/70 bg-white/15 px-8 text-sm font-bold text-white backdrop-blur-md sm:flex-none'
           >
-            新規登録
+            イベントを作る
+          </Link>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.34 }}
+          className='mt-4 flex flex-wrap items-center gap-4'
+        >
+          <Link
+            href={joinHref}
+            className='text-sm font-semibold text-white/90 underline-offset-4 hover:underline'
+          >
+            新規登録はこちら
+          </Link>
+          <Link
+            href='#host-events'
+            className='text-sm font-semibold text-white/70 underline-offset-4 hover:text-white hover:underline'
+          >
+            イベントの作り方を見る
           </Link>
         </motion.div>
 

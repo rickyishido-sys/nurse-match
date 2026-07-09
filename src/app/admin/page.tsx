@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { AppShell } from '@/components/app-shell';
+import { AdminShell } from '@/components/admin-shell';
 import { Badge } from '@/components/badges';
 import {
   adminMatchHoldDeletionAction,
@@ -84,7 +84,7 @@ export default async function AdminPage() {
     const userMap = new Map(data.users.map((u) => [u.id, u.nickname]));
 
     return (
-      <AppShell user={user}>
+      <AdminShell user={user}>
         <section className='space-y-4'>
         <article className='rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm'>
           <h1 className='text-xl font-bold text-slate-900'>管理画面</h1>
@@ -117,7 +117,7 @@ export default async function AdminPage() {
 
         <article className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
           <h2 className='font-semibold text-slate-900'>2. マッチング数</h2>
-          <div className='grid grid-cols-2 gap-2 md:grid-cols-3'>
+          <div className='grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6'>
             <KpiCard label='累計マッチ数' value={metrics.matching.totalMatches} />
             <KpiCard label='今日のマッチ数' value={metrics.matching.todayMatches} />
             <KpiCard label='直近7日マッチ数' value={metrics.matching.sevenDayMatches} />
@@ -129,7 +129,7 @@ export default async function AdminPage() {
 
         <article className='space-y-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm'>
           <h2 className='font-semibold text-slate-900'>3. 登録者属性</h2>
-          <div className='grid gap-3 md:grid-cols-2'>
+          <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
             <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>性別比率</p><DistList items={metrics.attributes.genderRatio} /></div>
             <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>年齢帯</p><DistList items={metrics.attributes.ageBands} /></div>
             <div className='rounded-2xl border border-slate-100 bg-slate-50 p-3'><p className='mb-2 text-xs font-semibold text-slate-700'>居住地</p><DistList items={metrics.attributes.locations} /></div>
@@ -409,7 +409,7 @@ export default async function AdminPage() {
           )}
         </div>
         </section>
-      </AppShell>
+      </AdminShell>
     );
   } catch (error) {
     if (isRedirectThrown(error)) throw error;
@@ -422,12 +422,12 @@ export default async function AdminPage() {
       stack: error instanceof Error ? error.stack : null,
     });
     return (
-      <AppShell user={user}>
+      <AdminShell user={user}>
         <section className='rounded-3xl border border-red-100 bg-white p-5 shadow-sm'>
           <h1 className='text-xl font-bold text-slate-900'>管理画面</h1>
           <p className='mt-3 text-sm text-red-700'>管理画面の読み込み中にエラーが発生しました。時間をおいて再度お試しください。</p>
         </section>
-      </AppShell>
+      </AdminShell>
     );
   }
 }

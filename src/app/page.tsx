@@ -35,9 +35,9 @@ export default async function LandingPage() {
       <main>
         <LandingHeroV2 joinHref={joinHref} />
         <LandingConnectionDefinition />
+        <LandingHostEvents />
         <LandingStats />
         <LandingHowItWorks joinHref={joinHref} />
-        <LandingHostEvents />
         <LandingGallery />
         <LandingThemes />
         <LandingBloomIntro />

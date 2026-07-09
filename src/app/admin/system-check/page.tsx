@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { AppShell } from '@/components/app-shell';
+import { AdminShell } from '@/components/admin-shell';
 import { Badge } from '@/components/badges';
 import manifest from '@/app/manifest';
 import { STORAGE_BUCKETS, USE_MOCK_DATA } from '@/lib/config';
@@ -109,7 +109,7 @@ export default async function AdminSystemCheckPage() {
   ];
 
   return (
-    <AppShell user={user}>
+    <AdminShell user={user}>
       <section className='space-y-4'>
         <article className='rounded-3xl border border-slate-100 bg-white p-5 shadow-sm'>
           <h1 className='text-xl font-bold text-slate-900'>本番動作確認チェックリスト</h1>
@@ -146,6 +146,6 @@ export default async function AdminSystemCheckPage() {
           </div>
         </article>
       </section>
-    </AppShell>
+    </AdminShell>
   );
 }

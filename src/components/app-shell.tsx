@@ -9,12 +9,21 @@ import { listUsers } from '@/lib/mock-data';
 import type { AppUser } from '@/lib/types/domain';
 import { headers } from 'next/headers';
 
-type AppShellProps = {
+export type AppShellProps = {
   user: AppUser | null;
   children: React.ReactNode;
+  /** 管理画面など PC 幅レイアウト */
+  wide?: boolean;
 };
 
-export async function AppShell({ user, children }: AppShellProps) {
+const ADMIN_NAV_ITEMS = [
+  { href: '/admin', label: 'ダッシュボード' },
+  { href: '/admin/reviews', label: '審査一覧' },
+  { href: '/admin/datefi-interests', label: 'DateFi関心' },
+  { href: '/home', label: 'サービスへ' },
+] as const;
+
+export async function AppShell({ user, children, wide = false }: AppShellProps) {
   const showBottomNav = user !== null;
   const isAdmin = user?.role === 'female_admin' || user?.role === 'male_admin' || user?.role === 'super_admin';
   const adminHref = user?.role === 'female_admin' ? '/admin/female' : user?.role === 'male_admin' ? '/admin/male' : '/admin';
@@ -24,10 +33,20 @@ export async function AppShell({ user, children }: AppShellProps) {
   const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1') || host.includes('::1');
   const showDemoSwitcher = USE_MOCK_DATA && process.env.NODE_ENV === 'development' && isLocalhost;
 
+  const shellClass = wide
+    ? 'mx-auto flex min-h-screen w-full max-w-[1280px] flex-col bg-[#f4f6f8]'
+    : 'safe-area-padding mx-auto flex min-h-screen w-full max-w-[390px] flex-col border-x border-[#ebe9e4]/80 bg-[#fafaf8] shadow-[0_24px_70px_-30px_rgba(31,93,79,0.12)]';
+
+  const headerClass = wide
+    ? 'sticky top-0 z-20 border-b border-slate-200 bg-white px-6 py-4 backdrop-blur lg:px-8'
+    : 'sticky top-0 z-20 border-b border-[#ebe9e4] bg-[#fafaf8]/95 px-4 py-3 backdrop-blur';
+
+  const mainClass = wide ? 'flex-1 px-6 py-6 lg:px-8' : `flex-1 px-4 py-4 ${showBottomNav ? 'pb-24' : ''}`;
+
   return (
-    <div className='safe-area-padding mx-auto flex min-h-screen w-full max-w-[390px] flex-col border-x border-[#ebe9e4]/80 bg-[#fafaf8] shadow-[0_24px_70px_-30px_rgba(31,93,79,0.12)]'>
-      <header className='sticky top-0 z-20 border-b border-[#ebe9e4] bg-[#fafaf8]/95 px-4 py-3 backdrop-blur'>
-        <div className='mb-2 flex items-center justify-between'>
+    <div className={shellClass}>
+      <header className={headerClass}>
+        <div className='flex items-center justify-between gap-4'>
           <HanakaiWordmark compact href='/home' />
           <div className='flex items-center gap-2'>
             {isAdmin ? (
@@ -46,8 +65,22 @@ export async function AppShell({ user, children }: AppShellProps) {
           </div>
         </div>
 
+        {wide && isAdmin ? (
+          <nav className='mt-3 flex flex-wrap gap-2'>
+            {ADMIN_NAV_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className='rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-white'
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
+
         {showDemoSwitcher ? (
-          <form action={setDemoUserAction} className='flex items-center gap-2 rounded-2xl border border-[#e2ddd2] bg-[#f5f3ee] p-2'>
+          <form action={setDemoUserAction} className='mt-2 flex items-center gap-2 rounded-2xl border border-[#e2ddd2] bg-[#f5f3ee] p-2'>
             <label htmlFor='demo-user' className='text-xs font-medium text-[#6b6b6b]'>
               デモユーザー
             </label>
@@ -68,9 +101,11 @@ export async function AppShell({ user, children }: AppShellProps) {
         ) : null}
       </header>
 
-      <main className={`flex-1 px-4 py-4 ${showBottomNav ? 'pb-24' : ''}`}>{children}</main>
+      <main className={mainClass}>{children}</main>
 
-      <footer className={`border-t border-[#ebe9e4] px-4 py-3 text-center text-xs text-[#9a9a9a] ${showBottomNav ? 'mb-16' : ''}`}>
+      <footer
+        className={`border-t border-[#ebe9e4] px-4 py-3 text-center text-xs text-[#9a9a9a] ${showBottomNav && !wide ? 'mb-16' : wide ? 'px-6 lg:px-8' : ''}`}
+      >
         <div className='mb-2 flex justify-center'>
           <HanakaiWordmark href='/home' />
         </div>
@@ -87,7 +122,7 @@ export async function AppShell({ user, children }: AppShellProps) {
         </div>
       </footer>
 
-      {showBottomNav ? <BottomNav role={user?.role} /> : null}
+      {showBottomNav && !wide ? <BottomNav role={user?.role} /> : null}
     </div>
   );
 }
