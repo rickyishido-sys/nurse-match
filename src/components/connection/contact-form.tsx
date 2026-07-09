@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { submitContactInquiryAction } from '@/lib/connection/contact-actions';
-import { CONTACT_INQUIRY_CATEGORIES } from '@/lib/connection/contact-inquiry-constants';
+import { CONTACT_INQUIRY_CATEGORIES, type ContactInquiryCategory } from '@/lib/connection/contact-inquiry-constants';
 
 const fieldClass =
   'w-full rounded-2xl border border-[#ebe9e4] bg-[#faf9f6] px-4 py-3 text-sm text-[#1a1a1a] outline-none transition focus:border-[#1f5d4f] focus:ring-1 focus:ring-[#1f5d4f]/20';
@@ -10,9 +10,10 @@ const fieldClass =
 type ContactFormProps = {
   defaultEmail?: string;
   defaultName?: string;
+  defaultCategory?: ContactInquiryCategory;
 };
 
-export function ContactForm({ defaultEmail = '', defaultName = '' }: ContactFormProps) {
+export function ContactForm({ defaultEmail = '', defaultName = '', defaultCategory = 'service' }: ContactFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,7 +61,7 @@ export function ContactForm({ defaultEmail = '', defaultName = '' }: ContactForm
 
       <div>
         <label className='mb-2 block text-xs font-medium tracking-wide text-[#9a9a9a]'>お問い合わせ種別</label>
-        <select name='category' required className={fieldClass} defaultValue='service'>
+        <select name='category' required className={fieldClass} defaultValue={defaultCategory}>
           {CONTACT_INQUIRY_CATEGORIES.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}

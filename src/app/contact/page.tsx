@@ -4,6 +4,7 @@ import { ContactForm } from '@/components/connection/contact-form';
 import { LegalLinks } from '@/components/connection/legal-links';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
+import type { ContactInquiryCategory } from '@/lib/connection/contact-inquiry-constants';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 const GOLD = '#b8956a';
@@ -25,6 +26,15 @@ export default async function ContactPage({ searchParams }: PageProps) {
   const sp = searchParams ? await searchParams : {};
   const sent = param(sp, 'sent') === '1';
   const error = param(sp, 'error');
+  const rawCategory = param(sp, 'category');
+  const defaultCategory: ContactInquiryCategory =
+    rawCategory === 'event' ||
+    rawCategory === 'service' ||
+    rawCategory === 'account_deletion' ||
+    rawCategory === 'safety' ||
+    rawCategory === 'other'
+      ? rawCategory
+      : 'service';
 
   const memberId = await getViewerMemberId();
   const member = memberId ? await getMember(memberId) : null;
@@ -60,6 +70,7 @@ export default async function ContactPage({ searchParams }: PageProps) {
           <ContactForm
             defaultName={member?.nickname ?? ''}
             defaultEmail={viewer?.email ?? ''}
+            defaultCategory={defaultCategory}
           />
         </section>
 
