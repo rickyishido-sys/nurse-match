@@ -8,7 +8,7 @@ const STEPS = [
   {
     step: '01',
     title: 'プロフィール作成',
-    body: '興味や価値観を登録。あなたに合うConnectionを見つける準備をします。',
+    body: '興味や価値観を登録。あなたに合うイベントを見つける準備をします。',
     img: '/flow/register.png',
   },
   {
@@ -19,8 +19,8 @@ const STEPS = [
   },
   {
     step: '03',
-    title: 'Connectionが始まる',
-    body: 'イベント後は参加者だけのページで交流。フォローやメッセージでつながりが育ちます。',
+    title: 'つながりが育つ',
+    body: 'イベント後は参加者だけのコミュニティで交流。フォローやメッセージで関係が深まります。',
     img: '/flow/continue.png',
   },
 ] as const;
@@ -38,7 +38,7 @@ export function LandingHowItWorks({ joinHref = '/register' }: { joinHref?: strin
         <Reveal delay={0.1}>
           <Lead className='mt-6 max-w-[40ch]'>
             難しい手続きはありません。プロフィールを作って、イベントに参加するだけ。
-            あとは自然に、Connectionが始まります。
+            あとは自然に、つながりが育っていきます。
           </Lead>
         </Reveal>
       </div>
@@ -72,16 +72,10 @@ export function LandingHowItWorks({ joinHref = '/register' }: { joinHref?: strin
       </div>
 
       <Reveal delay={0.25}>
-        <div className='mt-12 flex flex-col items-center justify-center gap-3 sm:flex-row'>
-          <Link
-            href={joinHref}
-            className='flex h-12 min-w-[200px] items-center justify-center rounded-full bg-[#1f5d4f] px-8 text-sm font-semibold text-white shadow-md transition active:scale-[0.98]'
-          >
-            参加登録する
-          </Link>
+        <div className='mt-12 flex flex-col items-center justify-center'>
           <Link
             href='/events'
-            className='flex h-12 min-w-[200px] items-center justify-center rounded-full border border-[#1a1a1a]/15 bg-white px-8 text-sm font-semibold text-[#1a1a1a] transition active:scale-[0.98]'
+            className='flex h-12 min-w-[200px] items-center justify-center rounded-full bg-[#1f5d4f] px-8 text-sm font-semibold text-white shadow-md transition active:scale-[0.98]'
           >
             イベントを見る
           </Link>

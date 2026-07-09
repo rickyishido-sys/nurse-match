@@ -23,20 +23,26 @@ function param(sp: Record<string, string | string[] | undefined>, key: string): 
 const statusOptions = [
   { value: 'all', label: 'すべて' },
   { value: 'pending', label: '承認待ち' },
-  { value: 'confirmed', label: '承認済み' },
+  { value: 'awaiting_confirmation', label: '参加確認待ち' },
+  { value: 'confirmed', label: '参加確定' },
   { value: 'rejected', label: '却下済み' },
+  { value: 'cancelled', label: '辞退済み' },
 ];
 
 const statusTone = {
   pending: 'amber' as const,
+  awaiting_confirmation: 'amber' as const,
   confirmed: 'green' as const,
   rejected: 'redSoft' as const,
+  cancelled: 'gray' as const,
 };
 
 const statusLabel = {
   pending: '承認待ち',
-  confirmed: '承認済み',
+  awaiting_confirmation: '参加確認待ち',
+  confirmed: '参加確定',
   rejected: '却下',
+  cancelled: '辞退',
 };
 
 async function ApplicationsContent({
@@ -44,7 +50,7 @@ async function ApplicationsContent({
   eventId,
   memberQuery,
 }: {
-  status: 'pending' | 'confirmed' | 'rejected' | 'all';
+  status: 'pending' | 'awaiting_confirmation' | 'confirmed' | 'rejected' | 'cancelled' | 'all';
   eventId: string;
   memberQuery: string;
 }) {
@@ -146,8 +152,10 @@ export default async function HanakaiAdminApplicationsPage({ searchParams }: Pag
   const eventId = param(sp, 'eventId');
   const statusRaw = param(sp, 'status') || 'all';
   const status = (
-    statusRaw === 'pending' || statusRaw === 'confirmed' || statusRaw === 'rejected' ? statusRaw : 'all'
-  ) as 'pending' | 'confirmed' | 'rejected' | 'all';
+    ['pending', 'awaiting_confirmation', 'confirmed', 'rejected', 'cancelled'].includes(statusRaw)
+      ? statusRaw
+      : 'all'
+  ) as 'pending' | 'awaiting_confirmation' | 'confirmed' | 'rejected' | 'cancelled' | 'all';
 
   const flash = adminFlashMessage(param(sp, 'success'), param(sp, 'error'));
 

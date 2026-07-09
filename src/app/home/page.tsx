@@ -30,7 +30,7 @@ export default async function HomePage() {
             <p className='text-sm leading-7 text-[#6b6b6b]'>
               知らない人同士が、リアルで出会う。
               <br className='hidden sm:block' />
-              あなたの次のConnectionは、ここから始まります。
+              あなたの次の出会いは、ここから始まります。
             </p>
           </div>
           <div
@@ -52,7 +52,7 @@ export default async function HomePage() {
             <p className='text-[11px] font-semibold tracking-[0.18em]' style={{ color: GOLD }}>
               NEXT STEP
             </p>
-            <p className='mt-2 text-base font-semibold text-[#1a1a1a]'>Connection Eventに参加申請する</p>
+            <p className='mt-2 text-base font-semibold text-[#1a1a1a]'>イベントに参加申請する</p>
             <p className='mt-1.5 text-xs leading-6 text-[#5b6f67]'>
               運営が参加メンバーを選定し、リアルイベントが開催されます。
             </p>
@@ -74,7 +74,7 @@ export default async function HomePage() {
               <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
                 UPCOMING
               </p>
-              <h2 className='text-lg font-semibold tracking-tight text-[#1a1a1a]'>開催予定のConnection Event</h2>
+              <h2 className='text-lg font-semibold tracking-tight text-[#1a1a1a]'>開催予定のイベント</h2>
             </div>
             <Link href='/events' className='text-xs font-medium text-[#8b7355] underline-offset-2 hover:underline'>
               すべて

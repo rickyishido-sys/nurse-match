@@ -3,8 +3,8 @@ import 'server-only';
 import { getBloomProfile } from '@/lib/connection/bloom-profile';
 import { EVENT_CATEGORY_META } from '@/lib/connection/data';
 import { anonymizeParticipants, getExperienceTagline } from '@/lib/connection/event-detail-ux';
-import { getEventMembers, getMember } from '@/lib/connection/repo';
-import type { ConnectionEvent, ConnectionMember } from '@/lib/connection/types';
+import { getEventMembers, getMember, getApplication } from '@/lib/connection/repo';
+import type { ConnectionEvent, ConnectionMember, EventApplicationStatus } from '@/lib/connection/types';
 
 export type EnrichedEventListItem = {
   event: ConnectionEvent;
@@ -18,6 +18,7 @@ export type EnrichedEventListItem = {
   joinedCount: number;
   remainingSeats: number;
   isSmallGroup: boolean;
+  viewerApplicationStatus?: EventApplicationStatus | null;
 };
 
 function aggregateParticipantChips(
@@ -32,7 +33,10 @@ function aggregateParticipantChips(
   return Array.from(chips).slice(0, 8);
 }
 
-export async function enrichEventForList(event: ConnectionEvent): Promise<EnrichedEventListItem> {
+export async function enrichEventForList(
+  event: ConnectionEvent,
+  viewerMemberId?: string | null,
+): Promise<EnrichedEventListItem> {
   const host = event.hostId ? await getMember(event.hostId) : null;
   const bloom = event.hostId ? await getBloomProfile(event.hostId) : null;
   const confirmed = await getEventMembers(event.id);
@@ -51,6 +55,12 @@ export async function enrichEventForList(event: ConnectionEvent): Promise<Enrich
     host?.bio?.trim()?.slice(0, 72) ||
     '心地よい場で、知らない人同士が自然につながる時間を届けます。';
 
+  let viewerApplicationStatus = null as EventApplicationStatus | null;
+  if (viewerMemberId) {
+    const app = await getApplication(event.id, viewerMemberId);
+    viewerApplicationStatus = app?.status ?? null;
+  }
+
   return {
     event,
     host,
@@ -63,11 +73,13 @@ export async function enrichEventForList(event: ConnectionEvent): Promise<Enrich
     joinedCount,
     remainingSeats,
     isSmallGroup: event.capacity <= 8,
+    viewerApplicationStatus,
   };
 }
 
 export async function enrichEventsForList(
   events: ConnectionEvent[],
+  viewerMemberId?: string | null,
 ): Promise<EnrichedEventListItem[]> {
-  return Promise.all(events.map(enrichEventForList));
+  return Promise.all(events.map((e) => enrichEventForList(e, viewerMemberId)));
 }

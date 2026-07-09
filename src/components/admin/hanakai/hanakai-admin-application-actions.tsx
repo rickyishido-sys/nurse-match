@@ -42,14 +42,14 @@ export function AdminApplicationActions({ applicationId, eventTitle, memberNickn
       <form action={adminApproveApplicationAction} className='space-y-2'>
         <input type='hidden' name='applicationId' value={applicationId} />
         <p className='max-w-[220px] text-[11px] leading-5 text-[#6b6b6b]'>
-          「{memberNickname}」の「{eventTitle}」への参加申請を承認しますか？
+          「{memberNickname}」の「{eventTitle}」への参加を決定します。確認メールが送信されます。
         </p>
         <div className='flex flex-wrap gap-2'>
           <button
             type='submit'
             className='rounded-full bg-[#1f5d4f] px-3 py-1 text-[11px] font-medium text-white'
           >
-            承認する
+            参加決定する
           </button>
           <button
             type='button'
@@ -100,10 +100,24 @@ export function AdminApplicationActions({ applicationId, eventTitle, memberNickn
   );
 }
 
-export function AdminApplicationProcessed({ status, decidedAt }: { status: 'confirmed' | 'rejected'; decidedAt: string | null }) {
+export function AdminApplicationProcessed({
+  status,
+  decidedAt,
+}: {
+  status: 'confirmed' | 'rejected' | 'awaiting_confirmation' | 'cancelled';
+  decidedAt: string | null;
+}) {
+  const label =
+    status === 'confirmed'
+      ? '参加確定'
+      : status === 'awaiting_confirmation'
+        ? '確認待ち'
+        : status === 'cancelled'
+          ? '辞退済み'
+          : '却下済み';
   return (
     <span className='text-[11px] text-[#9a9a9a]'>
-      {status === 'confirmed' ? '承認済み' : '却下済み'}
+      {label}
       {decidedAt ? ` · ${new Date(decidedAt).toLocaleDateString('ja-JP')}` : ''}
     </span>
   );

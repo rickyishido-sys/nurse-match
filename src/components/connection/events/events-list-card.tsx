@@ -39,17 +39,26 @@ function ParticipationMeter({ joined, remaining, capacity }: { joined: number; r
   );
 }
 
-export function EventsListCard({ item }: { item: EnrichedEventListItem }) {
-  const { event, host, catchCopy, hostTagline, hostVerified, experienceLine, participantChips, participantIsPlaceholder, joinedCount, remainingSeats, isSmallGroup } = item;
+export function EventsListCard({
+  item,
+  variant = 'standard',
+}: {
+  item: EnrichedEventListItem;
+  variant?: 'standard' | 'additional';
+}) {
+  const { event, host, catchCopy, hostTagline, hostVerified, experienceLine, participantChips, participantIsPlaceholder, joinedCount, remainingSeats, isSmallGroup, viewerApplicationStatus } = item;
   const meta = EVENT_CATEGORY_META[event.category];
   const uploaded = event.imageUrls?.[0];
   const categoryImage = EVENT_CATEGORY_DEFAULT_IMAGE[event.category];
   const heroSrc = uploaded || event.coverUrl || categoryImage || null;
   const detailHref = `/events/${event.id}`;
   const applyHref = `${detailHref}#event-apply`;
+  const hasParticipation = viewerApplicationStatus && ['pending', 'awaiting_confirmation', 'confirmed'].includes(viewerApplicationStatus);
 
   return (
-    <article className='flex h-full flex-col overflow-hidden rounded-3xl border border-[#ebe9e4] bg-white shadow-[0_4px_24px_rgba(26,26,26,0.05)] transition hover:shadow-[0_8px_32px_rgba(31,93,79,0.08)]'>
+    <article className={`flex h-full flex-col overflow-hidden rounded-3xl border bg-white shadow-[0_4px_24px_rgba(26,26,26,0.05)] transition hover:shadow-[0_8px_32px_rgba(31,93,79,0.08)] ${
+      variant === 'additional' ? 'border-[#e8a0a8]/50' : 'border-[#ebe9e4]'
+    }`}>
       <Link href={detailHref} className='group block flex-1'>
         <div className={`relative aspect-[5/3] w-full bg-gradient-to-br ${meta.gradient}`}>
           {heroSrc ? (
@@ -168,12 +177,18 @@ export function EventsListCard({ item }: { item: EnrichedEventListItem }) {
         >
           詳しく見る
         </Link>
-        <Link
-          href={applyHref}
-          className='inline-flex h-11 min-h-11 w-full items-center justify-center whitespace-nowrap rounded-full bg-[#1f5d4f] px-6 text-sm font-semibold text-white transition hover:bg-[#1a4f44] active:scale-[0.98] sm:min-w-0 sm:flex-1'
-        >
-          参加する
-        </Link>
+        {hasParticipation ? (
+          <span className='inline-flex h-11 min-h-11 w-full items-center justify-center whitespace-nowrap rounded-full border border-[#1f5d4f]/25 bg-[#eef4f0] px-6 text-sm font-semibold text-[#1f5d4f] sm:min-w-0 sm:flex-1'>
+            参加予定です
+          </span>
+        ) : (
+          <Link
+            href={applyHref}
+            className='inline-flex h-11 min-h-11 w-full items-center justify-center whitespace-nowrap rounded-full bg-[#1f5d4f] px-6 text-sm font-semibold text-white transition hover:bg-[#1a4f44] active:scale-[0.98] sm:min-w-0 sm:flex-1'
+          >
+            参加する
+          </Link>
+        )}
       </div>
     </article>
   );

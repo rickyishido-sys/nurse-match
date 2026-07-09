@@ -23,7 +23,7 @@ export function LandingFinalCta({ joinHref = '/register' }: { joinHref?: string 
       >
         <p className='text-[11px] font-semibold uppercase tracking-[0.32em] text-white/75'>Get started</p>
         <h2 className='mt-5 font-serif text-[1.85rem] font-semibold leading-[1.45] tracking-tight text-white sm:text-[2.4rem] lg:text-[2.8rem]'>
-          次のConnectionは、
+          次の出会いは、
           <br />
           あなたの一歩から
         </h2>
@@ -34,14 +34,8 @@ export function LandingFinalCta({ joinHref = '/register' }: { joinHref?: string 
 
         <div className='mt-9 flex w-full max-w-[400px] flex-col gap-3 sm:max-w-[460px] sm:flex-row sm:justify-center'>
           <Link
-            href={joinHref}
-            className='flex h-[3.25rem] flex-1 items-center justify-center rounded-full bg-white px-6 text-sm font-semibold text-[#1a1a1a] shadow-lg transition active:scale-[0.98]'
-          >
-            参加登録する
-          </Link>
-          <Link
             href='/events'
-            className='flex h-[3.25rem] flex-1 items-center justify-center rounded-full bg-[#1f5d4f] px-6 text-sm font-semibold text-white shadow-lg transition active:scale-[0.98]'
+            className='flex h-[3.25rem] flex-1 items-center justify-center rounded-full bg-white px-6 text-sm font-semibold text-[#1a1a1a] shadow-lg transition active:scale-[0.98]'
           >
             イベントを見る
           </Link>

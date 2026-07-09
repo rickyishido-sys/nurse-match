@@ -10,6 +10,7 @@ import {
   adminUpdateReportStatus,
 } from '@/lib/connection/hanakai-admin-repo';
 import { adminResolveInquiry } from '@/lib/connection/contact-inquiry';
+import { updateEventRecruitmentType } from '@/lib/connection/participation-confirmation';
 
 async function requireAdminAction(): Promise<string> {
   const access = await getHanakaiAdminAccess();
@@ -36,6 +37,25 @@ export async function adminApproveApplicationAction(formData: FormData) {
   revalidatePath(`/events/${result.eventId}`);
   revalidatePath(`/events/manage/${result.eventId}`);
   redirect('/admin/hanakai/applications?success=approved');
+}
+
+export async function adminUpdateEventRecruitmentAction(formData: FormData) {
+  await requireAdminAction();
+  const eventId = String(formData.get('eventId') ?? '').trim();
+  const recruitmentType = String(formData.get('recruitmentType') ?? 'standard').trim();
+  if (!eventId) redirect('/admin/hanakai/events?error=missing_id');
+  if (recruitmentType !== 'standard' && recruitmentType !== 'additional') {
+    redirect('/admin/hanakai/events?error=invalid_type');
+  }
+
+  const result = await updateEventRecruitmentType(eventId, recruitmentType);
+  if (!result.ok) {
+    redirect(`/admin/hanakai/events?error=${encodeURIComponent(result.error)}`);
+  }
+
+  revalidatePath('/admin/hanakai/events');
+  revalidatePath('/events');
+  redirect('/admin/hanakai/events?success=recruitment_updated');
 }
 
 export async function adminRejectApplicationAction(formData: FormData) {

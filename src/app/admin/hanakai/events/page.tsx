@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { AdminPageHeader, Badge } from '@/components/admin/ui';
+import { AdminEventRecruitmentToggle } from '@/components/admin/hanakai/hanakai-admin-event-recruitment';
 import { AdminSearchBar, AdminSelectFilter } from '@/components/admin/hanakai/hanakai-admin-filters';
 import {
   AdminEmptyState,
@@ -58,6 +59,7 @@ async function EventsContent({
               <th className='px-4 py-3 font-medium'>申請</th>
               <th className='px-4 py-3 font-medium'>承認</th>
               <th className='px-4 py-3 font-medium'>公開</th>
+              <th className='px-4 py-3 font-medium'>募集</th>
               <th className='px-4 py-3 font-medium'>詳細</th>
             </tr>
           </thead>
@@ -74,6 +76,10 @@ async function EventsContent({
                 <td className='px-4 py-3'>{e.confirmedCount}</td>
                 <td className='px-4 py-3'>
                   <Badge tone={e.isPast ? 'gray' : 'green'}>{e.visibilityLabel}</Badge>
+                </td>
+                <td className='px-4 py-3'>
+                  <Badge tone={e.recruitmentType === 'additional' ? 'amber' : 'gray'}>{e.recruitmentLabel}</Badge>
+                  {!e.isPast ? <AdminEventRecruitmentToggle eventId={e.id} recruitmentType={e.recruitmentType} /> : null}
                 </td>
                 <td className='px-4 py-3'>
                   <AdminPhase2Note />
@@ -96,6 +102,14 @@ async function EventsContent({
               </div>
               <Badge tone={e.isPast ? 'gray' : 'green'}>{e.visibilityLabel}</Badge>
             </div>
+            <div className='mt-2'>
+              <Badge tone={e.recruitmentType === 'additional' ? 'amber' : 'gray'}>{e.recruitmentLabel}</Badge>
+            </div>
+            {!e.isPast ? (
+              <div className='mt-3'>
+                <AdminEventRecruitmentToggle eventId={e.id} recruitmentType={e.recruitmentType} />
+              </div>
+            ) : null}
             <dl className='mt-3 grid grid-cols-2 gap-2 text-xs'>
               <div>
                 <dt className='text-[#9a9a9a]'>主催者</dt>
@@ -127,7 +141,7 @@ export default async function HanakaiAdminEventsPage({ searchParams }: PageProps
       <AdminPageHeader
         kicker='EVENTS'
         title='イベント一覧'
-        description='全イベントの一覧です。詳細・編集は Phase 2 で追加予定です。'
+        description='全イベントの一覧です。追加募集の ON/OFF を設定できます。'
       />
 
       <div className='grid gap-3 md:grid-cols-[1fr_auto_auto]'>

@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
+import { EventsAdditionalRecruitmentSection } from '@/components/connection/events/events-additional-recruitment-section';
 import { EventsCategoryFilter } from '@/components/connection/events/events-category-filter';
 import { EventsListGrid, EventsListHero } from '@/components/connection/events/events-list-sections';
 import { enrichEventsForList } from '@/lib/connection/events-list-data';
 import { filterEventsBySlug, parseEventsListFilter } from '@/lib/connection/events-list-ux';
 import { listEvents } from '@/lib/connection/repo';
+import { getViewerMemberId } from '@/lib/connection/identity';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 const GOLD = '#b8956a';
@@ -13,13 +15,21 @@ type PageProps = { searchParams?: Promise<Record<string, string | string[] | und
 
 export default async function EventsPage({ searchParams }: PageProps) {
   const viewer = await getHanakaiViewer();
+  const viewerMemberId = await getViewerMemberId();
   const sp = searchParams ? await searchParams : {};
   const activeFilter = parseEventsListFilter(typeof sp.category === 'string' ? sp.category : undefined);
   const registered = sp.registered === '1';
 
   const allEvents = (await listEvents()).filter((e) => !e.isPast);
   const filtered = filterEventsBySlug(allEvents, activeFilter);
-  const items = filtered.length > 0 ? await enrichEventsForList(filtered) : [];
+
+  const additionalEvents = filtered.filter((e) => e.recruitmentType === 'additional');
+  const standardEvents = filtered.filter((e) => e.recruitmentType !== 'additional');
+
+  const [additionalItems, standardItems] = await Promise.all([
+    additionalEvents.length > 0 ? enrichEventsForList(additionalEvents, viewerMemberId) : Promise.resolve([]),
+    standardEvents.length > 0 ? enrichEventsForList(standardEvents, viewerMemberId) : Promise.resolve([]),
+  ]);
 
   return (
     <ConnectionShell viewer={viewer}>
@@ -34,11 +44,13 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
         <EventsCategoryFilter active={activeFilter} />
 
+        <EventsAdditionalRecruitmentSection items={additionalItems} />
+
         <div className='flex items-center justify-between gap-4'>
           <p className='text-sm text-[#6b6b6b]'>
             {allEvents.length > 0 ? (
               <>
-                <span className='font-semibold text-[#1a1a1a]'>{filtered.length}</span>件の体験
+                <span className='font-semibold text-[#1a1a1a]'>{standardEvents.length}</span>件のイベント
               </>
             ) : null}
           </p>
@@ -51,7 +63,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
           </Link>
         </div>
 
-        <EventsListGrid items={items} activeFilter={activeFilter} totalCount={allEvents.length} />
+        <EventsListGrid items={standardItems} activeFilter={activeFilter} totalCount={allEvents.length} />
 
         <Link
           href='/events/create'
@@ -63,7 +75,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
             </p>
             <p className='mt-1.5 text-sm font-semibold text-[#1a1a1a]'>イベントを作成する</p>
             <p className='mt-0.5 text-xs leading-6 text-[#5b6f67]'>
-              あなた自身が、心地よいConnectionをひらけます。
+              あなた自身が、心地よいイベントをひらけます。
             </p>
           </div>
           <span className='flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#1f5d4f] text-xl font-light text-white'>

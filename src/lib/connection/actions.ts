@@ -24,6 +24,9 @@ import { ensureViewerMemberId, getAuthenticatedAuthUserId, getViewerMemberId } f
 import { softDeleteHanakaiAccount } from '@/lib/connection/account-deletion';
 import { isDeletedMember } from '@/lib/connection/member-status';
 import { requireHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access';
+import {
+  selectMemberForEvent,
+} from '@/lib/connection/participation-confirmation';
 import { requireEventHostAccess } from '@/lib/connection/group-access';
 import { isHanakaiProfileComplete } from '@/lib/connection/registration-status';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
@@ -219,7 +222,7 @@ export async function applyConnectionEventAction(formData: FormData) {
 
   if (eventId) {
     const existing = await getApplication(eventId, memberId);
-    if (existing && existing.status !== 'rejected') {
+    if (existing && existing.status !== 'rejected' && existing.status !== 'cancelled') {
       redirect(`/events/${eventId}?applied=1`);
     }
   }
@@ -245,7 +248,10 @@ export async function approveApplicationAction(formData: FormData) {
   if (!eventId || !memberId) redirect('/events');
   await requireEventHostAccess(eventId);
   console.log('CONNECTION_HOST_APPROVE', { eventId, memberId });
-  await confirmMemberForEvent(eventId, memberId);
+  const result = await selectMemberForEvent(eventId, memberId);
+  if (!result.ok) {
+    redirect(`/events/manage/${eventId}?error=${encodeURIComponent(result.error)}`);
+  }
   revalidatePath(`/events/manage/${eventId}`);
   revalidatePath(`/events/${eventId}`);
   redirect(`/events/manage/${eventId}?approved=${memberId}`);

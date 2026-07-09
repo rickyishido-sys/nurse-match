@@ -30,8 +30,8 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
                 <Link href='/login' className='rounded-full border border-[#d8d6d1] px-3 py-1.5 text-xs font-medium text-[#6b6b6b]'>
                   ログイン
                 </Link>
-                <Link href='/register' className='rounded-full bg-[#1f5d4f] px-3 py-1.5 text-xs font-medium text-white'>
-                  参加登録する
+                <Link href='/events' className='rounded-full bg-[#1f5d4f] px-3 py-1.5 text-xs font-medium text-white'>
+                  イベントを見る
                 </Link>
               </>
             )}
@@ -43,7 +43,7 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
 
       <footer className={`border-t border-[#ebe9e4] px-5 py-6 text-center text-[11px] text-[#9a9a9a] ${showNav ? 'mb-16' : ''}`}>
         <p className='mb-1 font-medium tracking-[0.12em] text-[#1a1a1a]'>HANAKAI Connection</p>
-        <p>人と人との新しいConnectionを生み出す、リアル体験プラットフォーム。</p>
+        <p>人と人との新しいつながりを生み出す、リアル体験プラットフォーム。</p>
         <div className='mt-3'>
           <LegalLinks className='text-[#9a9a9a]' />
         </div>

@@ -8,6 +8,7 @@ import {
   confirmMemberForEvent,
   rejectApplication,
 } from '@/lib/connection/repo';
+import { selectMemberForEvent } from '@/lib/connection/participation-confirmation';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { PERSONALITY_TYPE_META } from '@/lib/connection/personality';
@@ -87,6 +88,8 @@ function eventToRow(event: Awaited<ReturnType<typeof repoListEvents>>[number]): 
     status: event.status,
     isPast: event.isPast,
     visibilityLabel: visibilityLabel(event.status, event.isPast),
+    recruitmentType: event.recruitmentType ?? 'standard',
+    recruitmentLabel: event.recruitmentType === 'additional' ? '追加募集' : '通常募集',
   };
 }
 
@@ -134,7 +137,7 @@ type RawApplication = {
   eventId: string;
   memberId: string;
   appliedAt: string;
-  status: 'pending' | 'confirmed' | 'rejected';
+  status: 'pending' | 'awaiting_confirmation' | 'confirmed' | 'rejected' | 'cancelled';
   reason?: string;
   decidedAt: string | null;
   decisionNote?: string | null;
@@ -303,7 +306,7 @@ export async function listHanakaiAdminEvents(options?: {
 }
 
 export async function listHanakaiAdminApplications(options?: {
-  status?: 'pending' | 'confirmed' | 'rejected' | 'all';
+  status?: 'pending' | 'awaiting_confirmation' | 'confirmed' | 'rejected' | 'cancelled' | 'all';
   eventId?: string;
   memberQuery?: string;
 }): Promise<AdminApplicationRow[]> {
@@ -405,8 +408,9 @@ export async function adminApproveApplication(
     const app = apps.find((a) => a.id === applicationId);
     if (!app) return { ok: false, error: '申請が見つかりません' };
     if (app.status !== 'pending') return { ok: false, error: 'この申請はすでに処理済みです' };
-    await confirmMemberForEvent(app.eventId, app.memberId);
-    return { ok: true, eventId: app.eventId, groupSynced: true };
+    const selectResult = await selectMemberForEvent(app.eventId, app.memberId);
+    if (!selectResult.ok) return { ok: false, error: selectResult.error };
+    return { ok: true, eventId: app.eventId, groupSynced: false };
   }
 
   const admin = await adminDb();
@@ -421,20 +425,14 @@ export async function adminApproveApplication(
   if (fetchErr || !app) return { ok: false, error: '申請が見つかりません' };
   if (app.status !== 'pending') return { ok: false, error: 'この申請はすでに処理済みです' };
 
-  const now = new Date().toISOString();
-  const { error: updateErr } = await admin
-    .from('hanakai_event_applications')
-    .update({
-      status: 'confirmed',
-      decided_at: now,
-      decided_by_member_id: adminMemberId,
-    })
-    .eq('id', applicationId);
+  const selectResult = await selectMemberForEvent(
+    String(app.event_id),
+    String(app.member_id),
+    adminMemberId,
+  );
+  if (!selectResult.ok) return { ok: false, error: selectResult.error };
 
-  if (updateErr) return { ok: false, error: updateErr.message };
-
-  const sync = await adminSyncGroupForConfirmedMember(String(app.event_id), String(app.member_id));
-  return { ok: true, eventId: String(app.event_id), groupSynced: sync.ok };
+  return { ok: true, eventId: String(app.event_id), groupSynced: false };
 }
 
 export async function adminRejectApplication(

@@ -109,7 +109,7 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
           transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
           className='inline-flex items-center rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-[11px] font-semibold tracking-[0.12em] text-white/90 backdrop-blur'
         >
-          リアルで出会う Connection コミュニティ
+          リアルで出会う HANAKAI Connection
         </motion.p>
 
         <motion.h1
@@ -141,14 +141,8 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
           className='mt-9 flex w-full max-w-[400px] flex-col gap-3 sm:max-w-[460px] sm:flex-row sm:justify-center'
         >
           <Link
-            href={joinHref}
-            className='flex h-[3.25rem] flex-1 items-center justify-center rounded-full bg-white px-6 text-sm font-semibold text-[#1a1a1a] shadow-lg transition active:scale-[0.98]'
-          >
-            参加登録する
-          </Link>
-          <Link
             href='/events'
-            className='flex h-[3.25rem] flex-1 items-center justify-center rounded-full border border-white/70 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/15 active:scale-[0.98]'
+            className='flex h-[3.25rem] flex-1 items-center justify-center rounded-full bg-white px-6 text-sm font-semibold text-[#1a1a1a] shadow-lg transition active:scale-[0.98]'
           >
             イベントを見る
           </Link>
@@ -160,7 +154,7 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
           transition={{ duration: 0.9, delay: 0.48 }}
           className='mt-6 text-[11px] tracking-wide text-white/65'
         >
-          プロフィール作成 → イベント参加 → Connection開始
+          プロフィール作成 → イベント参加 → つながりが育つ
         </motion.p>
       </div>
 

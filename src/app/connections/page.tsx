@@ -22,9 +22,9 @@ function EmptyState() {
           <Image src='/flow/continue.png' alt='' fill sizes='48px' className='object-contain' />
         </div>
       </div>
-      <p className='text-base font-semibold text-[#1a1a1a]'>まだConnectionはありません</p>
+      <p className='text-base font-semibold text-[#1a1a1a]'>まだ参加したイベントはありません</p>
       <p className='mx-auto mt-2 max-w-xs text-xs leading-6 text-[#7a7264]'>
-        イベントに参加すると、ここに出会った人とのConnectionが表示されます。
+        イベントに参加すると、ここに出会った人との記録が表示されます。
       </p>
       <Link
         href='/events'
@@ -50,9 +50,13 @@ function StatusRow({ row }: { row: Row }) {
   const { event, application } = row;
   const meta = EVENT_CATEGORY_META[event.category];
   const label =
-    application.status === 'pending' ? '選考中' : event.isPast ? '参加済み' : '参加予定';
+    application.status === 'pending' || application.status === 'awaiting_confirmation'
+      ? '選考中'
+      : event.isPast
+        ? '参加済み'
+        : '参加予定';
   const tone =
-    application.status === 'pending'
+    application.status === 'pending' || application.status === 'awaiting_confirmation'
       ? 'bg-[#f0eeea] text-[#6b6b6b]'
       : event.isPast
         ? 'bg-[#efe7d7] text-[#8b7355]'
@@ -169,7 +173,7 @@ export default async function ConnectionsPage() {
     })
     .filter((r): r is Row => r !== null);
 
-  const pending = rows.filter((r) => r.application.status === 'pending').sort(byStartAsc);
+  const pending = rows.filter((r) => ['pending', 'awaiting_confirmation'].includes(r.application.status)).sort(byStartAsc);
   const upcoming = rows
     .filter((r) => r.application.status === 'confirmed' && !r.event.isPast)
     .sort(byStartAsc);
@@ -193,15 +197,15 @@ export default async function ConnectionsPage() {
       <div className='space-y-12'>
         <section className='space-y-2'>
           <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
-            CONNECTIONS
+            HANAKAI
           </p>
           <h1 className='text-[1.6rem] font-semibold leading-tight tracking-tight text-[#1a1a1a]'>
-            あなたのConnection
+            あなたのイベント
           </h1>
           <p className='text-sm leading-7 text-[#6b6b6b]'>
             参加申請から、出会った人とのつながりまで。
             <br className='hidden sm:block' />
-            あなたのConnectionの歩みがここに集まります。
+            イベント参加の記録がここに集まります。
           </p>
         </section>
 
@@ -224,7 +228,7 @@ export default async function ConnectionsPage() {
             {upcoming.length > 0 ? (
               <Section
                 kicker='UPCOMING'
-                title='参加予定のConnection'
+                title='参加予定のイベント'
                 description='参加が確定したイベントです。当日お会いしましょう。'
               >
                 {upcoming.map((row) => (
@@ -236,7 +240,7 @@ export default async function ConnectionsPage() {
             {past.length > 0 ? (
               <Section
                 kicker='HISTORY'
-                title='過去のConnection'
+                title='過去のイベント'
                 description='参加したイベントで出会った人とつながれます。再会したい相手にフォロー・メッセージを。'
               >
                 {past.map((row) => (

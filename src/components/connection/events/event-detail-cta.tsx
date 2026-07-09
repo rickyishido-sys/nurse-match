@@ -15,7 +15,7 @@ export function EventDetailCta({
   applySectionId,
   loginHref,
   canApply,
-  label = 'このConnectionに参加する',
+  label = '参加する',
   variant = 'inline',
 }: Props) {
   const [showSticky, setShowSticky] = useState(false);

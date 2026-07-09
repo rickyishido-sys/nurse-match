@@ -26,7 +26,7 @@ export function EventsListGrid({ items, activeFilter, totalCount }: Props) {
           このカテゴリーでは、まだイベントがありません
         </p>
         <p className='mx-auto mt-2 max-w-sm text-xs leading-7 text-[#6b6b6b]'>
-          ほかのカテゴリーも見てみるか、新しいConnectionの準備をお待ちください。
+          ほかのカテゴリーも見てみるか、新しいイベントの準備をお待ちください。
         </p>
         <Link
           href='/events'
@@ -56,12 +56,12 @@ export function EventsListHero() {
       />
       <div className='relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between'>
         <div className='max-w-xl space-y-3'>
-          <p className='text-[11px] font-semibold tracking-[0.2em] text-[#b8956a]'>CONNECTION</p>
+          <p className='text-[11px] font-semibold tracking-[0.2em] text-[#b8956a]'>HANAKAI</p>
           <h1 className='text-[1.65rem] font-semibold leading-tight tracking-tight text-[#1a1a1a] sm:text-[1.85rem]'>
-            体験からはじまる、新しいつながり
+            体験からはじまる、新しい出会い
           </h1>
           <p className='text-sm leading-8 text-[#5a5a5a]'>
-            花・コーヒー・散歩——興味のある体験を選んで、知らない人とのConnectionに参加してみませんか。
+            花・コーヒー・散歩——興味のある体験を選んで、知らない人とのイベントに参加してみませんか。
             理解から始まる、HANAKAIらしい出会いがここにあります。
           </p>
         </div>

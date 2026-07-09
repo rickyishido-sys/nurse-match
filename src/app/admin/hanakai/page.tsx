@@ -9,14 +9,18 @@ import { getHanakaiAdminDashboard } from '@/lib/connection/hanakai-admin-repo';
 
 const statusTone = {
   pending: 'amber' as const,
+  awaiting_confirmation: 'amber' as const,
   confirmed: 'green' as const,
   rejected: 'redSoft' as const,
+  cancelled: 'gray' as const,
 };
 
 const statusLabel = {
   pending: '承認待ち',
-  confirmed: '承認済み',
+  awaiting_confirmation: '参加確認待ち',
+  confirmed: '参加確定',
   rejected: '却下',
+  cancelled: '辞退',
 };
 
 export default async function HanakaiAdminDashboardPage() {

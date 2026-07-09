@@ -165,11 +165,17 @@ function appFromRow(row: AppRow): EventApplication {
     appliedAt: row.applied_at,
     status: row.status,
     reason: row.reason ?? undefined,
+    confirmationToken: row.confirmation_token ?? undefined,
+    confirmedAt: row.confirmed_at ?? undefined,
   };
 }
 
+function activeApplicationStatuses(): string[] {
+  return ['pending', 'awaiting_confirmation', 'confirmed'];
+}
+
 function eventFromRow(row: EventRow, apps: AppRow[]): ConnectionEvent {
-  const active = apps.filter((a) => a.status !== 'rejected');
+  const active = apps.filter((a) => activeApplicationStatuses().includes(a.status));
   const confirmed = apps.filter((a) => a.status === 'confirmed').map((a) => a.member_id as string);
   const isPast = row.is_past === true || new Date(row.start_at).getTime() < Date.now();
   return {
@@ -193,6 +199,7 @@ function eventFromRow(row: EventRow, apps: AppRow[]): ConnectionEvent {
     approvalMode: row.approval_mode ?? 'host_approval',
     hostId: row.host_member_id ?? undefined,
     isUserCreated: row.is_user_created ?? false,
+    recruitmentType: row.recruitment_type ?? 'standard',
   };
 }
 

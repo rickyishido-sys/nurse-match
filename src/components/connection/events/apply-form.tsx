@@ -62,7 +62,7 @@ export function ApplyForm({
         disabled={!valid}
         className='w-full rounded-full bg-[#1f5d4f] py-4 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-40'
       >
-        {approvalMode === 'auto' ? 'このConnectionに参加する' : 'このConnectionに参加申請する'}
+        {approvalMode === 'auto' ? '参加する' : '参加申請する'}
       </motion.button>
     </form>
   );

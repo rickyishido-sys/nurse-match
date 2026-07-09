@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LandingConnectionDefinition } from '@/components/connection/landing/v2/connection-definition';
 import { LandingNav } from '@/components/connection/landing/v2/nav';
 import { LandingHeroV2 } from '@/components/connection/landing/v2/hero';
 import { LandingStats } from '@/components/connection/landing/v2/stats';
@@ -32,6 +33,7 @@ export default async function LandingPage() {
 
       <main>
         <LandingHeroV2 joinHref={joinHref} />
+        <LandingConnectionDefinition />
         <LandingStats />
         <LandingHowItWorks joinHref={joinHref} />
         <LandingGallery />
@@ -60,8 +62,8 @@ export default async function LandingPage() {
             <Link href='/events' className='underline-offset-4 hover:underline'>
               イベント
             </Link>
-            <Link href='/register' className='underline-offset-4 hover:underline'>
-              参加登録
+            <Link href='/login' className='underline-offset-4 hover:underline'>
+              ログイン
             </Link>
             <Link href='/terms' className='underline-offset-4 hover:underline'>
               利用規約

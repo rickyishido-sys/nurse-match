@@ -33,6 +33,8 @@ export type AdminEventRow = {
   status: string;
   isPast: boolean;
   visibilityLabel: string;
+  recruitmentType: 'standard' | 'additional';
+  recruitmentLabel: string;
 };
 
 export type AdminApplicationRow = {
@@ -43,7 +45,7 @@ export type AdminApplicationRow = {
   memberNickname: string;
   reason?: string;
   appliedAt: string;
-  status: 'pending' | 'confirmed' | 'rejected';
+  status: 'pending' | 'awaiting_confirmation' | 'confirmed' | 'rejected' | 'cancelled';
   decidedAt: string | null;
   decisionNote?: string | null;
 };
@@ -90,7 +92,7 @@ export type AdminMemberApplicationHistory = {
   id: string;
   eventId: string;
   eventTitle: string;
-  status: 'pending' | 'confirmed' | 'rejected';
+  status: 'pending' | 'awaiting_confirmation' | 'confirmed' | 'rejected' | 'cancelled';
   appliedAt: string;
   decidedAt: string | null;
 };

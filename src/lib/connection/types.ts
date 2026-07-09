@@ -16,8 +16,19 @@ export type ConnectionEventCategory =
 
 export type ConnectionEventStatus = 'open' | 'almost_full' | 'full' | 'closed' | 'completed';
 
+/** 募集種別（通常 / 追加募集） */
+export type EventRecruitmentType = 'standard' | 'additional';
+
 /** 参加申請の承認方式 */
 export type EventApprovalMode = 'host_approval' | 'auto';
+
+/** 参加申請ステータス */
+export type EventApplicationStatus =
+  | 'pending'
+  | 'awaiting_confirmation'
+  | 'confirmed'
+  | 'rejected'
+  | 'cancelled';
 
 /**
  * Hostバッジ（現時点ではUI/ダミーデータのみ。将来は開催実績・評価・本人確認の
@@ -223,6 +234,8 @@ export type ConnectionEvent = {
   hostId?: string;
   /** ユーザー作成イベントかどうか */
   isUserCreated?: boolean;
+  /** 募集種別。additional は一覧・週次メール最優先表示 */
+  recruitmentType?: EventRecruitmentType;
 };
 
 export const EVENT_APPLICATION_REASON_MIN = 10;
@@ -233,9 +246,12 @@ export type EventApplication = {
   eventId: string;
   memberId: string;
   appliedAt: string;
-  status: 'pending' | 'confirmed' | 'rejected';
+  status: EventApplicationStatus;
   /** 参加理由（10〜300文字） */
   reason?: string;
+  /** 参加確認メール用トークン（awaiting_confirmation 時に発行） */
+  confirmationToken?: string;
+  confirmedAt?: string;
 };
 
 /** AI grouping 用の正規化スナップショット（将来の選定API向け） */

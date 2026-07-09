@@ -52,7 +52,9 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
   const isHost = !!viewerMemberId && event.hostId === viewerMemberId;
   const approvalMode = event.approvalMode ?? 'host_approval';
   const isFull = event.status === 'full' || event.reservedCount >= event.capacity;
-  const showApplyCta = !event.isPast && !isHost && existingApp?.status !== 'confirmed';
+  const showApplyCta = !event.isPast && !isHost && !['confirmed', 'pending', 'awaiting_confirmation'].includes(existingApp?.status ?? '');
+  const participationScheduled = ['pending', 'awaiting_confirmation', 'confirmed'].includes(existingApp?.status ?? '');
+  const ctaLabel = participationScheduled ? '参加予定です' : '参加する';
   const loginHref = `/login?next=/events/${event.id}`;
   const useScrollCta = !!viewerMemberId;
   const participantCards = anonymizeParticipants(confirmedMembers);
@@ -109,7 +111,12 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
               applySectionId='event-apply'
               loginHref={loginHref}
               canApply={useScrollCta}
+              label={ctaLabel}
             />
+          ) : participationScheduled ? (
+            <div className='rounded-2xl border border-[#dfe9e4] bg-[#eef4f0] px-5 py-4 text-center'>
+              <p className='text-sm font-semibold text-[#1f5d4f]'>参加予定です</p>
+            </div>
           ) : null}
         </header>
 
@@ -159,7 +166,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
               <p className='text-sm text-[#4a4a4a]'>このイベントは終了しました。</p>
               <div className='mt-3 flex flex-col gap-2'>
                 <Link href={`/connections/${event.id}`} className='text-xs font-semibold text-[#1a1a1a] underline-offset-2 hover:underline'>
-                  Connectionページを見る →
+                  イベントの記録を見る →
                 </Link>
                 {(existingApp?.status === 'confirmed' || isHost) && viewerMemberId ? (
                   <Link href={`/groups/${event.id}`} className='text-xs font-semibold text-[#1f5d4f] underline-offset-2 hover:underline'>
@@ -189,6 +196,23 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                 </Link>
               </div>
             </div>
+          ) : existingApp?.status === 'awaiting_confirmation' ? (
+            <div className='rounded-2xl border border-[#e8dfd0] bg-[#fbf8f3] px-5 py-5'>
+              <p className='inline-flex rounded-full bg-[#fff4e6] px-3 py-1 text-xs font-semibold text-[#b8956a]'>
+                参加確認待ち
+              </p>
+              <p className='mt-3 text-sm leading-7 text-[#4a4a4a]'>
+                あなたの参加イベントが決まりました。メールのリンクから参加を確定してください。
+              </p>
+              {existingApp.confirmationToken ? (
+                <Link
+                  href={`/events/participation/confirm?token=${encodeURIComponent(existingApp.confirmationToken)}`}
+                  className='mt-4 inline-flex h-11 w-full items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white'
+                >
+                  参加を確定する
+                </Link>
+              ) : null}
+            </div>
           ) : existingApp?.status === 'confirmed' ? (
             <div className='rounded-2xl border border-[#dfe9e4] bg-[#faf9f6] px-5 py-5'>
               <p className='text-sm font-semibold text-[#1a1a1a]'>参加が確定しました</p>
@@ -210,7 +234,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                     <>
                       <p className='text-sm font-semibold text-[#1a1a1a]'>却下されました</p>
                       <p className='text-sm leading-7 text-[#4a4a4a]'>
-                        今回はご縁がありませんでしたが、ほかのConnectionでお会いできますように。
+                        今回はご縁がありませんでしたが、ほかのイベントでお会いできますように。
                       </p>
                     </>
                   ) : existingApp?.status === 'pending' || (applied && approvalMode === 'host_approval') ? (
@@ -259,6 +283,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
             applySectionId='event-apply'
             loginHref={loginHref}
             canApply={useScrollCta}
+            label={ctaLabel}
             variant='sticky'
           />
         ) : null}
