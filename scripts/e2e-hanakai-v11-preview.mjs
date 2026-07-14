@@ -17,7 +17,7 @@ const outDir = path.join('scripts', 'e2e-screenshots', 'hanakai-v11-preview');
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 
 function loadEnv(filePath) {
-  if (!exists(filePath)) return {};
+  if (!existsSync(filePath)) return {};
   const env = {};
   for (const line of readFileSync(filePath, 'utf8').split('\n')) {
     const trimmed = line.trim();
@@ -111,8 +111,8 @@ async function main() {
   record('3-experience-page', formHtml.includes('あなたはどんな体験をしてみたいですか？'), 'Experience request page loads');
 
   const uniqueCity = `E2E区${Date.now().toString().slice(-6)}`;
-  await page.getByRole('checkbox', { name: '花' }).check();
-  await page.getByRole('checkbox', { name: '土曜日' }).check();
+  await page.getByText('花', { exact: true }).click();
+  await page.getByText('土曜日', { exact: true }).click();
   await page.locator('select[name="prefecture"]').selectOption('神奈川県');
   await page.locator('input[name="city"]').fill(uniqueCity);
   await page.getByRole('radio', { name: '20代' }).check();
@@ -122,7 +122,7 @@ async function main() {
   await page.getByRole('button', { name: '体験リクエストを送る' }).click();
   await page.waitForURL(/experience-request\?sent=1/, { timeout: 60000 });
   const sentHtml = await page.content();
-  const sentOk = sentHtml.includes('送信') || sentHtml.includes('ありがとう') || page.url().includes('sent=1');
+  const sentOk = sentHtml.includes('受け付けました') || page.url().includes('sent=1');
   record('3-experience-submit', sentOk, 'Experience request form submitted', { url: page.url() });
   await page.screenshot({ path: path.join(outDir, `${stamp}-06-experience-sent.png`), fullPage: true });
 

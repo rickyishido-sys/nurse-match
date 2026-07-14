@@ -40,7 +40,15 @@ function HeroCollage({ index }: { index: number }) {
 
       {/* モバイル用フルブリード */}
       <div className='absolute inset-0 sm:hidden'>
-        <Image src={slide.mobile} alt='' fill sizes='100vw' className='object-cover' />
+        <Image
+          src={slide.mobile}
+          alt=''
+          fill
+          sizes='100vw'
+          className='object-cover'
+          priority={index === 0}
+          fetchPriority={index === 0 ? 'high' : 'auto'}
+        />
       </div>
       <div className='absolute inset-0 bg-gradient-to-br from-[#0f1412]/88 via-[#1f5d4f]/75 to-[#7b5ea7]/55 sm:bg-gradient-to-r sm:from-[#0f1412]/92 sm:via-[#163f35]/80 sm:to-transparent' />
     </div>

@@ -44,15 +44,21 @@ if (!url || !key) {
 
 const admin = createClient(url, key, { auth: { persistSession: false } });
 
-const { error: probeError } = await admin.from('experience_requests').select('id', { count: 'exact', head: true });
+const { data: probeData, error: probeError } = await admin.from('experience_requests').select('id').limit(1);
 
 if (!probeError) {
-  console.log(JSON.stringify({ ok: true, action: 'already_exists' }));
+  console.log(JSON.stringify({ ok: true, action: 'already_exists', sample: probeData?.length ?? 0 }));
   process.exit(0);
 }
 
-if (probeError.code !== '42P01' && !probeError.message?.includes('does not exist')) {
-  console.error('Probe failed:', probeError.message);
+const missing =
+  probeError.code === '42P01' ||
+  probeError.code === 'PGRST205' ||
+  probeError.message?.includes('does not exist') ||
+  probeError.message?.includes('schema cache');
+
+if (!missing) {
+  console.error('Probe failed:', probeError.message, probeError.code);
   process.exit(2);
 }
 
