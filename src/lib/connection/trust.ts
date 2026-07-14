@@ -11,6 +11,7 @@ export const SAFETY_FLAG_PRESETS = [
   '追加確認必要',
   '本人確認書類確認済',
   '過去メディア掲載確認済',
+  '再提出依頼',
 ] as const;
 
 export const TRUST_STATUS_LABEL: Record<TrustVerificationStatus, string> = {

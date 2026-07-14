@@ -66,7 +66,7 @@ export default async function LandingPage() {
         <LandingHowItWorks joinHref={joinHref} />
         <LandingGallery />
         <LandingThemes />
-        <LandingBloomIntro joinHref={joinHref} />
+        <LandingBloomIntro joinHref={joinHref} viewer={viewer} />
         <LandingRecommend />
         <LandingSafety />
         <LandingVoices />

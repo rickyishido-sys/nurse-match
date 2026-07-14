@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { RegisterCtaLink } from '@/components/connection/register-cta-link';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
+import type { HanakaiViewer } from '@/lib/hanakai/session';
 
 const POINTS = [
   { icon: '✦', text: 'ニックネーム・年代・エリアなどの基本情報' },
@@ -11,7 +12,17 @@ const POINTS = [
   { icon: '✦', text: '参加申請時に、主催者があなたを確認できます' },
 ] as const;
 
-export function LandingBloomIntro({ joinHref = '/register' }: { joinHref?: string }) {
+const SAMPLE_TAGS = ['カフェ', '花', '散歩', '映画', '旅行'] as const;
+
+export function LandingBloomIntro({
+  joinHref = '/register',
+  viewer = null,
+}: {
+  joinHref?: string;
+  viewer?: HanakaiViewer | null;
+}) {
+  const isLoggedIn = Boolean(viewer);
+
   return (
     <Section tone='white'>
       <div className='grid items-center gap-10 lg:grid-cols-2 lg:gap-14'>
@@ -68,17 +79,17 @@ export function LandingBloomIntro({ joinHref = '/register' }: { joinHref?: strin
                 </div>
                 <div>
                   <p className='text-sm font-semibold text-[#1f5d4f]'>Aoi</p>
-                  <p className='text-xs text-[#6b6b6b]'>20代前半 · 東京</p>
+                  <p className='text-xs text-[#6b6b6b]'>28歳 · 横浜</p>
                 </div>
               </div>
               <div>
                 <p className='text-[10px] font-medium tracking-wide text-[#9a9a9a]'>自己紹介</p>
                 <p className='mt-2 text-sm leading-7 text-[#4a4a4a]'>
-                  体験を通じて人とつながることを大切にしています。
+                  カフェ巡りが好きで、花が好き。休日は散歩しています。体験を通じて、自然な会話からつながりたいです。
                 </p>
               </div>
               <div className='flex flex-wrap gap-2'>
-                {['カフェ', '散歩', '花'].map((tag) => (
+                {SAMPLE_TAGS.map((tag) => (
                   <span key={tag} className='rounded-full bg-[#f3f7f5] px-3 py-1 text-xs text-[#1f5d4f]'>
                     {tag}
                   </span>
@@ -88,16 +99,28 @@ export function LandingBloomIntro({ joinHref = '/register' }: { joinHref?: strin
             <p className='mt-5 text-center text-[11px] leading-6 text-[#9a9a9a]'>
               評価やランキングではなく、理解のためのプロフィールです。
             </p>
-            <Link
-              href='/register/profile'
-              prefetch
-              className='mt-5 flex h-11 items-center justify-center rounded-full border border-[#1f5d4f]/30 text-xs font-semibold text-[#1f5d4f] transition hover:scale-[1.02] hover:bg-[#1f5d4f]/5 active:scale-[0.98]'
-            >
-              プロフィールを作ってみる
-            </Link>
-            <div className='mt-3 flex justify-center'>
-              <RegisterCtaLink href={joinHref} className='w-full max-w-[280px]' />
-            </div>
+            {isLoggedIn ? (
+              <Link
+                href='/my-profile?mode=edit'
+                prefetch
+                className='mt-5 flex h-11 items-center justify-center rounded-full border border-[#1f5d4f]/30 text-xs font-semibold text-[#1f5d4f] transition hover:scale-[1.02] hover:bg-[#1f5d4f]/5 active:scale-[0.98]'
+              >
+                プロフィールを充実させる
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href='/register/profile'
+                  prefetch
+                  className='mt-5 flex h-11 items-center justify-center rounded-full border border-[#1f5d4f]/30 text-xs font-semibold text-[#1f5d4f] transition hover:scale-[1.02] hover:bg-[#1f5d4f]/5 active:scale-[0.98]'
+                >
+                  無料でプロフィールを作る
+                </Link>
+                <div className='mt-3 flex justify-center'>
+                  <RegisterCtaLink href={joinHref} className='w-full max-w-[280px]' />
+                </div>
+              </>
+            )}
           </div>
         </Reveal>
       </div>

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
 import { MemberAvatar } from '@/components/connection/member-avatar';
 import { ProfilePhotoSection } from '@/components/connection/profile-photo-section';
+import { IdentityVerificationSection } from '@/components/connection/identity-verification-section';
 import { ProfileEditForm } from '@/components/connection/profile-edit-form';
 import { LegalLinks } from '@/components/connection/legal-links';
 import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
@@ -142,39 +143,7 @@ function SectionCard({
 }
 
 function IdentityStatus({ member }: { member: ConnectionMember }) {
-  let status = '未提出';
-  let description = '本人確認書類を提出すると、審査完了後に本人確認済みバッジが付与されます。';
-  let tone = 'text-[#c4c0b8]';
-
-  if (member.identityVerified) {
-    status = '本人確認済み';
-    description = '本人確認が完了しています。';
-    tone = 'text-[#1f5d4f]';
-  } else if (member.documentUploadStatus === 'pending') {
-    status = '審査中';
-    description = '提出いただいた書類を確認しています。完了までしばらくお待ちください。';
-    tone = 'text-[#b8956a]';
-  } else if (member.documentUploadStatus === 'approved') {
-    status = '確認完了';
-    description = '書類の確認が完了しました。';
-    tone = 'text-[#1f5d4f]';
-  } else if (member.documentUploadStatus === 'rejected') {
-    status = '再提出が必要';
-    description = '書類を確認できませんでした。お手数ですが、再度ご提出ください。';
-    tone = 'text-rose-600';
-  }
-
-  return (
-    <div className='space-y-2'>
-      <p className={`text-sm font-semibold ${tone}`}>{status}</p>
-      <p className='text-xs leading-6 text-[#6b6b6b]'>{description}</p>
-      {!member.identityVerified && member.documentUploadStatus !== 'pending' ? (
-        <p className='text-xs text-[#9a9a9a]'>
-          書類の提出は登録時に行えます。再提出が必要な場合は運営までお問い合わせください。
-        </p>
-      ) : null}
-    </div>
-  );
+  return <IdentityVerificationSection member={member} />;
 }
 
 function ValuesBlock({ member }: { member: ConnectionMember }) {
@@ -219,6 +188,7 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
   const mode = param(sp, 'mode');
   const isEditMode = mode === 'edit';
   const profileSaved = param(sp, 'saved') === '1';
+  const identitySubmitted = param(sp, 'identity') === 'submitted';
   const photosSaved = param(sp, 'photos') === 'saved';
   const editError = param(sp, 'error');
   const viewerMemberId = await getViewerMemberId();
@@ -280,6 +250,11 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
         {profileSaved ? (
           <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
             プロフィールを更新しました
+          </p>
+        ) : null}
+        {identitySubmitted ? (
+          <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
+            本人確認書類を受け付けました。審査完了までしばらくお待ちください。
           </p>
         ) : null}
         {photosSaved ? (

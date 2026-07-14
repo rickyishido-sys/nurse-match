@@ -602,6 +602,82 @@ export async function updateMyProfileAction(formData: FormData) {
   redirect('/my-profile?saved=1');
 }
 
+async function persistIdentityDocumentUpload(
+  authUserId: string,
+  identityFile: File,
+): Promise<string | null> {
+  const identityUrl = await uploadDocument(identityFile, authUserId, 'identity');
+  if (!identityUrl) return null;
+
+  const adminSupabase = createAdminSupabaseClient();
+  const dbClient = adminSupabase ?? (await createServerSupabaseClient());
+  if (dbClient) {
+    const { data: existingIdentity } = await dbClient
+      .from('identity_documents')
+      .select('id')
+      .eq('user_id', authUserId)
+      .maybeSingle();
+    if (existingIdentity?.id) {
+      await dbClient
+        .from('identity_documents')
+        .update({ document_url: identityUrl, status: 'pending' })
+        .eq('id', existingIdentity.id);
+    } else {
+      await dbClient.from('identity_documents').insert({
+        user_id: authUserId,
+        document_url: identityUrl,
+        status: 'pending',
+      });
+    }
+  }
+  return identityUrl;
+}
+
+export async function submitIdentityDocumentAction(formData: FormData) {
+  const memberId = await ensureViewerMemberId();
+  if (!memberId) redirect('/register');
+
+  const authUserId = await getAuthenticatedAuthUserId();
+  if (!authUserId) redirect('/register?hint=auth-required');
+
+  const identityFile = formData.get('identityDocument');
+  if (!(identityFile instanceof File) || identityFile.size === 0) {
+    redirect('/my-profile?mode=edit&error=identity');
+  }
+
+  const member = await getMember(memberId);
+  if (!member) redirect('/my-profile');
+
+  let identityUrl: string | null = null;
+  try {
+    identityUrl = await persistIdentityDocumentUpload(authUserId, identityFile);
+  } catch (error) {
+    console.error('CONNECTION_IDENTITY_UPLOAD_ERROR', { authUserId, error: String(error) });
+    redirect('/my-profile?mode=edit&error=identity');
+  }
+
+  if (!identityUrl) {
+    redirect('/my-profile?mode=edit&error=identity');
+  }
+
+  const { IDENTITY_RESUBMIT_FLAG } = await import('@/lib/connection/identity-verification');
+  const safetyFlags = member.safetyFlags.filter((flag) => flag !== IDENTITY_RESUBMIT_FLAG);
+
+  await updateMember(memberId, {
+    documentUploadStatus: 'pending',
+    trustVerificationStatus: 'pending' as TrustVerificationStatus,
+    verificationSource: 'id_only' as VerificationSource,
+    identityVerified: false,
+    trustNotes: `identity:${identityUrl}`,
+    identityVerificationMethod: 'manual_document',
+    safetyFlags,
+  });
+
+  revalidatePath('/my-profile');
+  revalidatePath('/admin/hanakai/members');
+  redirect('/my-profile?identity=submitted');
+}
+
 export async function savePersonalityAction(formData: FormData) {
   const type = String(formData.get('type') ?? '') as PersonalityType;
   const energy = String(formData.get('energy') ?? 'introvert') as 'extravert' | 'introvert';

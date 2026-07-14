@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { updateMyProfileAction } from '@/lib/connection/actions';
 import { BioAiDraftPanel } from '@/components/connection/bio-ai-draft-panel';
+import { IdentityVerificationSection } from '@/components/connection/identity-verification-section';
 import { MemberSocialLinksEditor } from '@/components/connection/member-social-links-editor';
 import { ProfilePhotoUploader } from '@/components/connection/profile-photo-uploader';
 import {
@@ -142,6 +143,11 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
       {error === 'nickname' ? (
         <p className='rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700'>
           表示名を入力してください。
+        </p>
+      ) : null}
+      {error === 'identity' ? (
+        <p className='rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700'>
+          本人確認書類のアップロードに失敗しました。ファイル形式とサイズをご確認のうえ、再度お試しください。
         </p>
       ) : null}
 
@@ -326,13 +332,7 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
       </SectionCard>
 
       <SectionCard kicker='安心' title='本人確認' id={PROFILE_SECTION_IDS.identity}>
-        <p className='text-sm text-[#6b6b6b]'>
-          {member.identityVerified
-            ? '本人確認が完了しています。'
-            : member.documentUploadStatus === 'pending'
-              ? '提出いただいた書類を確認しています。'
-              : '本人確認書類は登録時に提出できます。再提出が必要な場合は運営までお問い合わせください。'}
-        </p>
+        <IdentityVerificationSection member={member} />
       </SectionCard>
 
       <div className='flex flex-col gap-3 sm:flex-row'>
