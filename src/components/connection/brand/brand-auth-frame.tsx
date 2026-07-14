@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
+import { BrandLogo } from '@/components/connection/brand/brand-logo';
 import { BrandTagline } from '@/components/connection/brand/brand-scene';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
 import { GlassSurface } from '@/components/connection/brand/glass-surface';
@@ -37,10 +38,7 @@ export function BrandAuthFrame({ children, title, subtitle, characterId = 'E1' }
 
       <div className='relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-[440px] flex-col items-center justify-center'>
         <BrandReveal className='mb-8 text-center'>
-          <Link href='/' className='inline-flex flex-col items-center'>
-            <span className='font-serif text-xl font-semibold tracking-[0.2em] text-[#1a1a1a]'>華会</span>
-            <span className='mt-1 text-[10px] font-medium tracking-[0.34em] text-[#b8956a]'>HANAKAI</span>
-          </Link>
+          <BrandLogo href='/' size='large' className='justify-center' />
           <div className='mt-4'>
             <BrandTagline />
           </div>

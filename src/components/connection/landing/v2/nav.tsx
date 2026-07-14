@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { BrandLogo } from '@/components/connection/brand/brand-logo';
 import { HeaderUserMenu } from '@/components/connection/header-user-menu';
 import { RegisterCtaLink } from '@/components/connection/register-cta-link';
 import type { HanakaiViewer } from '@/lib/hanakai/session';
@@ -29,22 +30,7 @@ export function LandingNav({
       }`}
     >
       <div className='mx-auto flex w-full max-w-[1080px] items-center justify-between gap-3 px-4 py-3.5 sm:px-6 sm:py-4'>
-        <Link href='/' className='flex min-w-0 flex-col leading-none'>
-          <span
-            className={`text-[15px] font-semibold tracking-[0.16em] transition-colors sm:text-[16px] sm:tracking-[0.18em] ${
-              solid ? 'text-[#1a1a1a]' : 'text-white'
-            }`}
-          >
-            華会
-          </span>
-          <span
-            className={`mt-0.5 font-serif text-[9px] font-medium tracking-[0.28em] transition-colors sm:text-[10px] sm:tracking-[0.32em] ${
-              solid ? 'text-[#b8956a]' : 'text-white/70'
-            }`}
-          >
-            HANAKAI
-          </span>
-        </Link>
+        <BrandLogo href='/' size='md' tone={solid ? 'default' : 'onLight'} />
 
         <nav className='flex shrink-0 items-center gap-1.5 sm:gap-2.5'>
           <Link

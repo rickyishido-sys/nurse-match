@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 import { Noto_Sans_JP, Noto_Serif_JP } from 'next/font/google';
 import { SITE_URL } from '@/lib/config';
+import { BRAND_OG_TAGLINE } from '@/lib/connection/brand/logo';
 import './globals.css';
 
-const SITE_TITLE = 'HANAKAI Connection';
-const SITE_DESCRIPTION = '週替わりのリアルイベントを探して参加申請できるコミュニティ。プロフィール作成、イベント主催、通報・ブロックまで。';
+const SITE_TITLE = '華会 HANAKAI';
+const SITE_DESCRIPTION = '体験から始まる、新しい出会い。週替わりのリアルイベントを探して参加申請できるコミュニティ。';
+const ICON_VERSION = '7';
 
 const noto = Noto_Sans_JP({
   subsets: ['latin'],
@@ -29,14 +31,16 @@ export const metadata: Metadata = {
     type: 'website',
     siteName: SITE_TITLE,
     title: SITE_TITLE,
-    description: SITE_DESCRIPTION,
+    description: BRAND_OG_TAGLINE,
     url: SITE_URL,
     locale: 'ja_JP',
+    images: [{ url: `/og-image.png?v=${ICON_VERSION}`, width: 1200, height: 630, alt: SITE_TITLE }],
   },
   twitter: {
     card: 'summary_large_image',
     title: SITE_TITLE,
-    description: SITE_DESCRIPTION,
+    description: BRAND_OG_TAGLINE,
+    images: [`/og-image.png?v=${ICON_VERSION}`],
   },
   robots: {
     index: true,
@@ -45,11 +49,11 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [
-      { url: '/favicon.ico?v=6', sizes: 'any' },
-      { url: '/icon.png?v=6', type: 'image/png', sizes: '512x512' },
+      { url: `/favicon.ico?v=${ICON_VERSION}`, sizes: 'any' },
+      { url: `/icon.png?v=${ICON_VERSION}`, type: 'image/png', sizes: '512x512' },
     ],
-    shortcut: [{ url: '/favicon.ico?v=6', sizes: 'any' }],
-    apple: [{ url: '/apple-touch-icon.png?v=6', sizes: '180x180', type: 'image/png' }],
+    shortcut: [{ url: `/favicon.ico?v=${ICON_VERSION}`, sizes: 'any' }],
+    apple: [{ url: `/apple-touch-icon.png?v=${ICON_VERSION}`, sizes: '180x180', type: 'image/png' }],
   },
   appleWebApp: {
     capable: true,

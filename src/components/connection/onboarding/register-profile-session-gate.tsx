@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { BrandLogo } from '@/components/connection/brand/brand-logo';
 import { createClient } from '@/lib/supabase/client';
 
 type Props = {
@@ -54,7 +55,8 @@ export function RegisterProfileSessionGate({ children, hasServerUser }: Props) {
 
   if (state === 'syncing') {
     return (
-      <main className='flex min-h-[60vh] items-center justify-center px-5'>
+      <main className='flex min-h-[60vh] flex-col items-center justify-center px-5'>
+        <BrandLogo href='/' size='md' className='mb-8' />
         <section className='w-full max-w-[420px] rounded-2xl border border-[#ebe9e4] bg-white p-6 text-center'>
           <p className='text-sm font-medium text-[#1a1a1a]'>認証を確認しています…</p>
           <p className='mt-2 text-xs leading-6 text-[#6b6b6b]'>プロフィール入力画面を準備しています。</p>
@@ -64,7 +66,8 @@ export function RegisterProfileSessionGate({ children, hasServerUser }: Props) {
   }
 
   return (
-    <main className='flex min-h-[60vh] items-center justify-center px-5'>
+    <main className='flex min-h-[60vh] flex-col items-center justify-center px-5'>
+      <BrandLogo href='/' size='md' className='mb-8' />
       <section className='w-full max-w-[420px] rounded-2xl border border-[#ebe9e4] bg-white p-6 text-center'>
         <p className='text-sm font-medium text-[#1a1a1a]'>認証セッションの確認に時間がかかっています</p>
         <p className='mt-2 text-xs leading-6 text-[#6b6b6b]'>

@@ -166,6 +166,8 @@ export function isHanakaiStaticAsset(pathname: string): boolean {
     pathname.startsWith('/flow') ||
     pathname.startsWith('/icons') ||
     pathname.startsWith('/images') ||
+    pathname.startsWith('/brand') ||
+    pathname.startsWith('/og-image') ||
     pathname === '/manifest.webmanifest' ||
     pathname === '/robots.txt' ||
     pathname === '/sitemap.xml'

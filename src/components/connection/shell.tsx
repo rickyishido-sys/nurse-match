@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ConnectionBottomNav } from '@/components/connection/bottom-nav';
 import { BrandFooter } from '@/components/connection/brand/brand-footer';
+import { BrandLogo } from '@/components/connection/brand/brand-logo';
 import { HeaderUserMenu } from '@/components/connection/header-user-menu';
 import { ctaPrimary } from '@/components/connection/ui/cta-classes';
 import { HK } from '@/lib/connection/brand/tokens';
@@ -21,10 +22,7 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
     <div className={`${CONNECTION_SHELL_CLASS} hk-vibrant-gradient`}>
       <header className='sticky top-0 z-20 border-b border-white/40 bg-white/70 px-5 py-4 backdrop-blur-xl'>
         <div className='flex items-center justify-between'>
-          <Link href='/' className='flex flex-col'>
-            <span className='font-serif text-[15px] font-semibold tracking-[0.16em] text-[#1a1a1a]'>華会</span>
-            <span className='text-[10px] font-medium tracking-[0.28em] text-[#b8956a]'>HANAKAI</span>
-          </Link>
+          <BrandLogo href='/' size='md' />
           <div className='flex items-center gap-2'>
             {viewer ? (
               <HeaderUserMenu user={viewer} />

@@ -1,0 +1,450 @@
+{
+  "baseUrl": "http://127.0.0.1:4173",
+  "stamp": "2026-07-14T22-08-44-291Z",
+  "outDir": "scripts/e2e-screenshots/brand-logo-final",
+  "logoHash": "07530687799eee93",
+  "iconHash": "2f5cdcff8a5ecc61",
+  "faviconHash": "5b170e572e2ed4a6",
+  "sameFamily": "5b170e572e2ed4a6",
+  "results": [
+    {
+      "kind": "asset-local",
+      "page": "logo-source",
+      "ok": true,
+      "hash": "07530687799eee93"
+    },
+    {
+      "kind": "asset-local",
+      "page": "favicon",
+      "ok": true,
+      "hash": "5b170e572e2ed4a6"
+    },
+    {
+      "kind": "asset-local",
+      "page": "icon-512",
+      "ok": true,
+      "hash": "2f5cdcff8a5ecc61"
+    },
+    {
+      "kind": "asset-local",
+      "page": "apple-touch",
+      "ok": true,
+      "hash": "39a94af0fedb4d7a"
+    },
+    {
+      "kind": "asset-local",
+      "page": "og-image",
+      "ok": true,
+      "hash": "cd618d20a52eaeeb"
+    },
+    {
+      "kind": "manifest",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "kind": "asset-http",
+      "page": "favicon",
+      "ok": true,
+      "bytes": 14510,
+      "status": 200
+    },
+    {
+      "kind": "asset-http",
+      "page": "icon-512",
+      "ok": true,
+      "bytes": 134547,
+      "status": 200
+    },
+    {
+      "kind": "asset-http",
+      "page": "apple-touch",
+      "ok": true,
+      "bytes": 24014,
+      "status": 200
+    },
+    {
+      "kind": "asset-http",
+      "page": "og-image",
+      "ok": true,
+      "bytes": 90049,
+      "status": 200
+    },
+    {
+      "kind": "asset-http",
+      "page": "brand-logo-png",
+      "ok": true,
+      "bytes": 452735,
+      "status": 200
+    },
+    {
+      "kind": "warn",
+      "page": "event-detail",
+      "ok": false,
+      "detail": "No event link found on /events — skipped"
+    },
+    {
+      "kind": "screenshot",
+      "id": "390px-landing",
+      "viewport": "390px",
+      "page": "landing",
+      "path": "/",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 2
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-390px-landing.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "390px-login",
+      "viewport": "390px",
+      "page": "login",
+      "path": "/login",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-390px-login.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "390px-register",
+      "viewport": "390px",
+      "page": "register",
+      "path": "/register",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-390px-register.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "390px-profile",
+      "viewport": "390px",
+      "page": "profile",
+      "path": "/register/profile",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-390px-profile.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "390px-events",
+      "viewport": "390px",
+      "page": "events",
+      "path": "/events",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-390px-events.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "390px-experience-request",
+      "viewport": "390px",
+      "page": "experience-request",
+      "path": "/experience-request",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 2
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-390px-experience-request.png"
+    },
+    {
+      "kind": "redirect",
+      "id": "390px-manage-redirect",
+      "page": "manage-redirect",
+      "viewport": "390px",
+      "ok": true,
+      "url": "http://127.0.0.1:4173/login?next=%2Fmanage"
+    },
+    {
+      "kind": "screenshot",
+      "id": "390px-manage-redirect",
+      "viewport": "390px",
+      "page": "manage-redirect",
+      "path": "/manage",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-390px-manage-redirect.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "768px-landing",
+      "viewport": "768px",
+      "page": "landing",
+      "path": "/",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 2
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-768px-landing.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "768px-login",
+      "viewport": "768px",
+      "page": "login",
+      "path": "/login",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-768px-login.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "768px-register",
+      "viewport": "768px",
+      "page": "register",
+      "path": "/register",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-768px-register.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "768px-profile",
+      "viewport": "768px",
+      "page": "profile",
+      "path": "/register/profile",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-768px-profile.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "768px-events",
+      "viewport": "768px",
+      "page": "events",
+      "path": "/events",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-768px-events.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "768px-experience-request",
+      "viewport": "768px",
+      "page": "experience-request",
+      "path": "/experience-request",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 2
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-768px-experience-request.png"
+    },
+    {
+      "kind": "redirect",
+      "id": "768px-manage-redirect",
+      "page": "manage-redirect",
+      "viewport": "768px",
+      "ok": true,
+      "url": "http://127.0.0.1:4173/login?next=%2Fmanage"
+    },
+    {
+      "kind": "screenshot",
+      "id": "768px-manage-redirect",
+      "viewport": "768px",
+      "page": "manage-redirect",
+      "path": "/manage",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-768px-manage-redirect.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "1280px-landing",
+      "viewport": "1280px",
+      "page": "landing",
+      "path": "/",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 2
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-1280px-landing.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "1280px-login",
+      "viewport": "1280px",
+      "page": "login",
+      "path": "/login",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-1280px-login.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "1280px-register",
+      "viewport": "1280px",
+      "page": "register",
+      "path": "/register",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-1280px-register.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "1280px-profile",
+      "viewport": "1280px",
+      "page": "profile",
+      "path": "/register/profile",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-1280px-profile.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "1280px-events",
+      "viewport": "1280px",
+      "page": "events",
+      "path": "/events",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-1280px-events.png"
+    },
+    {
+      "kind": "screenshot",
+      "id": "1280px-experience-request",
+      "viewport": "1280px",
+      "page": "experience-request",
+      "path": "/experience-request",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 2
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-1280px-experience-request.png"
+    },
+    {
+      "kind": "redirect",
+      "id": "1280px-manage-redirect",
+      "page": "manage-redirect",
+      "viewport": "1280px",
+      "ok": true,
+      "url": "http://127.0.0.1:4173/login?next=%2Fmanage"
+    },
+    {
+      "kind": "screenshot",
+      "id": "1280px-manage-redirect",
+      "viewport": "1280px",
+      "page": "manage-redirect",
+      "path": "/manage",
+      "hasLogo": true,
+      "mustOk": true,
+      "hScroll": false,
+      "aspect": {
+        "ok": true,
+        "count": 1
+      },
+      "ok": true,
+      "screenshot": "scripts/e2e-screenshots/brand-logo-final/2026-07-14T22-08-44-291Z-1280px-manage-redirect.png"
+    }
+  ],
+  "passed": 35,
+  "total": 36,
+  "allOk": true
+}

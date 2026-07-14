@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandLogo } from '@/components/connection/brand/brand-logo';
 import { BRAND_CHARACTERS_ENABLED } from '@/lib/connection/brand/brand-config';
 import { CHARACTER_ORDER } from '@/lib/connection/brand/characters';
 import { BRAND_TAGLINE } from '@/lib/connection/brand/tokens';
@@ -29,9 +30,10 @@ export function BrandFooter({ dark = true, showCharacters = BRAND_CHARACTERS_ENA
           </div>
         ) : null}
 
-        <p className='font-serif text-lg font-semibold tracking-[0.2em]'>華会</p>
-        <p className='mt-1 text-[10px] font-medium tracking-[0.34em] opacity-60'>HANAKAI</p>
-        <p className={`mx-auto mt-4 max-w-[36ch] text-xs leading-[1.9] ${muted}`}>{BRAND_TAGLINE}</p>
+        <div className='mb-6 flex justify-center'>
+          <BrandLogo href='/' size='lg' tone={dark ? 'onDark' : 'default'} className='justify-center' />
+        </div>
+        <p className={`mx-auto max-w-[36ch] text-xs leading-[1.9] ${muted}`}>{BRAND_TAGLINE}</p>
 
         <div className={`mt-7 flex flex-wrap items-center justify-center gap-5 text-xs ${linkClass}`}>
           <Link href='/events' className='underline-offset-4 hover:underline'>

@@ -34,6 +34,7 @@ import type {
 import { BioStep, MbtiStep, SocialLinksStep } from './bloom-profile-steps';
 import { IdentityDocumentStep, PasswordStep } from './registration-steps';
 import { BottomNavButtons, OnboardingLayout, ONB, ProgressDots } from './onboarding-ui';
+import { BrandLogo } from '@/components/connection/brand/brand-logo';
 import {
   AreaSelectStep,
   MultiChoiceStep,
@@ -255,22 +256,12 @@ export function OnboardingFlow({
     });
   }
 
-  const header =
-    step === 'intro' ? (
-      <div className='space-y-4'>
-        <div className='flex flex-col'>
-          <span className='text-[14px] font-semibold tracking-[0.14em]' style={{ color: ONB.ink }}>
-            HANAKAI
-          </span>
-          <span className='text-[10px] font-medium tracking-[0.24em]' style={{ color: ONB.subtle }}>
-            CONNECTION
-          </span>
-        </div>
-        <ProgressDots total={QUESTION_STEP_IDS.length} current={-1} />
-      </div>
-    ) : (
-      <ProgressDots total={QUESTION_STEP_IDS.length} current={progressDotIndex(step)} />
-    );
+  const header = (
+    <div className='space-y-4'>
+      <BrandLogo href='/' size={step === 'intro' ? 'md' : 'sm'} iconOnly={step !== 'intro'} />
+      <ProgressDots total={QUESTION_STEP_IDS.length} current={step === 'intro' ? -1 : progressDotIndex(step)} />
+    </div>
+  );
 
   const footer =
     step === 'intro' ? (

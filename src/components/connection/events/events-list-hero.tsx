@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
+import { BrandLogo } from '@/components/connection/brand/brand-logo';
 import { BrandReveal } from '@/components/connection/brand/brand-motion';
 import { ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
@@ -34,6 +35,7 @@ export function EventsListHero() {
       <BrandCharacterSlot id='A' size='sm' variant='float' className='rotate-10' wrapperClassName='absolute right-[6%] top-[48%] z-[3] hidden sm:block' />
 
       <BrandReveal className='relative z-[2] max-w-[56%] pt-2 sm:max-w-[50%] sm:pt-6'>
+        <BrandLogo iconOnly size='sm' href={null} className='mb-3' />
         <TiltFrame tilt={-2} hover={false}>
           <GlassSurface className='!border-white/80 !bg-white/85'>
             <p className='text-[11px] font-bold tracking-[0.28em]' style={{ color: HK.coral }}>

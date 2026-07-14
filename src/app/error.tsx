@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
+import { BrandLogo } from '@/components/connection/brand/brand-logo';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
 import { GlassSurface } from '@/components/connection/brand/glass-surface';
 import { ctaPrimary, ctaSecondary } from '@/components/connection/ui/cta-classes';
@@ -22,10 +23,7 @@ export default function GlobalError({
     <div className='relative min-h-screen overflow-hidden bg-[#faf7f2] text-[#1a1a1a]'>
       <BgTypography text='華会' />
       <header className='relative z-10 border-b border-white/40 bg-white/70 px-5 py-4 backdrop-blur-xl'>
-        <Link href='/' className='flex flex-col'>
-          <span className='font-serif text-[15px] font-semibold tracking-[0.16em]'>華会</span>
-          <span className='text-[10px] font-medium tracking-[0.28em] text-[#b8956a]'>HANAKAI</span>
-        </Link>
+        <BrandLogo href='/' size='md' />
       </header>
       <main className='relative flex min-h-[calc(100vh-5rem)] flex-col items-center justify-center px-5 py-10 text-center'>
         <BrandCharacterSlot id='D1' size='lg' variant='float' wrapperClassName='absolute right-[8%] top-[25%]' />
