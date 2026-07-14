@@ -3,6 +3,7 @@
 import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
 import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BRAND_CHARACTERS_ENABLED } from '@/lib/connection/brand/brand-config';
 import type { BrandCharacterId } from '@/lib/connection/brand/characters';
 
 type TiltProps = {
@@ -62,6 +63,8 @@ type ScatterProps = {
 
 /** キャラクターをランダム感で散らす */
 export function ScatterCharacters({ ids, className = '' }: ScatterProps) {
+  if (!BRAND_CHARACTERS_ENABLED) return null;
+
   const positions = [
     { top: '8%', left: '4%', size: 'sm' as const, tilt: -12 },
     { top: '20%', right: '6%', size: 'md' as const, tilt: 8 },

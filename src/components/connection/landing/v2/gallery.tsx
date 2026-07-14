@@ -3,7 +3,8 @@
 import Image from 'next/image';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { ColorBlob, ScatterCharacters, TiltFrame } from '@/components/connection/brand/brand-editorial';
+import { ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
+import { BrandCharacterScatter } from '@/components/connection/brand/brand-character-slot';
 import { HK } from '@/lib/connection/brand/tokens';
 import { Heading, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
 
@@ -38,7 +39,7 @@ export function LandingGallery() {
     <Section tone='white' className='relative overflow-hidden'>
       <ColorBlob color={HK.coralSoft} className='left-[-8%] top-[5%]' />
       <ColorBlob color={HK.violetSoft} className='right-[-5%] bottom-[10%]' />
-      <ScatterCharacters ids={['D1', 'N', 'E2']} />
+      <BrandCharacterScatter ids={['D1', 'N', 'E2']} />
 
       <div className='relative z-10 flex flex-col items-center text-center'>
         <Reveal>

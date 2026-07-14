@@ -1,6 +1,6 @@
 'use client';
 
-import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
 import { Kicker, Reveal, Section } from '@/components/connection/landing/v2/ui';
 import { HK } from '@/lib/connection/brand/tokens';
@@ -32,9 +32,12 @@ export function LandingStats() {
                   className='relative flex min-h-[220px] w-full flex-col items-center justify-center overflow-visible rounded-[2rem] px-8 py-12 text-center shadow-[0_20px_56px_rgba(26,26,26,0.1)] sm:min-h-[260px] sm:px-10 sm:py-14 lg:min-h-[280px] lg:rounded-[2.25rem] lg:px-12 lg:py-16'
                   style={{ background: `linear-gradient(160deg, ${stat.color}18, white 70%)` }}
                 >
-                  <div className='pointer-events-none absolute -right-3 -top-4 sm:-right-4 sm:-top-5'>
-                    <BrandCharacter id={stat.char} size='sm' variant='peek' />
-                  </div>
+                  <BrandCharacterSlot
+                    id={stat.char}
+                    size='sm'
+                    variant='peek'
+                    wrapperClassName='absolute -right-3 -top-4 sm:-right-4 sm:-top-5'
+                  />
                   <p
                     className='font-serif text-[3.5rem] font-bold leading-none sm:text-[4.25rem] lg:text-[5rem]'
                     style={{ color: stat.color }}

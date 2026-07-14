@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { BrandReveal } from '@/components/connection/brand/brand-motion';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
 import { GlassSurface } from '@/components/connection/brand/glass-surface';
@@ -11,9 +11,7 @@ export function EventsEmptyState() {
   return (
     <div className='relative overflow-hidden py-8'>
       <BgTypography text='華会' />
-      <div className='pointer-events-none absolute -right-2 top-8'>
-        <BrandCharacter id='N' size='xl' variant='peek' />
-      </div>
+      <BrandCharacterSlot id='N' size='xl' variant='peek' wrapperClassName='absolute -right-2 top-8' />
       <BrandReveal>
         <GlassSurface className='relative mx-auto max-w-lg text-center'>
           <h2 className='font-serif text-lg font-semibold text-[#1a1a1a]'>

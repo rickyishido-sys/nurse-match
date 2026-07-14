@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
-import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { AccentSticker, ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
 import { HK } from '@/lib/connection/brand/tokens';
 
@@ -19,12 +19,8 @@ export function LandingFinalCta({ joinHref = '/register' }: { joinHref?: string 
       <ColorBlob color={HK.coralSoft} className='left-[10%] top-[20%] opacity-60' />
       <ColorBlob color={HK.amberSoft} className='right-[15%] bottom-[25%] opacity-50' />
 
-      <div className='pointer-events-none absolute bottom-[15%] left-[8%]'>
-        <BrandCharacter id='W' size='lg' variant='peek' className='-rotate-6' />
-      </div>
-      <div className='pointer-events-none absolute right-[10%] top-[20%]'>
-        <BrandCharacter id='E2' size='md' variant='float' className='rotate-10' />
-      </div>
+      <BrandCharacterSlot id='W' size='lg' variant='peek' className='-rotate-6' wrapperClassName='absolute bottom-[15%] left-[8%]' />
+      <BrandCharacterSlot id='E2' size='md' variant='float' className='rotate-10' wrapperClassName='absolute right-[10%] top-[20%]' />
 
       <motion.div
         initial={{ opacity: 0, y: 32 }}

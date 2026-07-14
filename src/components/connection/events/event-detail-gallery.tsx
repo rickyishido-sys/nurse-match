@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useRef } from 'react';
-import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { EVENT_CATEGORY_DEFAULT_IMAGE, EVENT_CATEGORY_META } from '@/lib/connection/data';
 import { getGalleryImages } from '@/lib/connection/event-detail-ux';
 import type { ConnectionEvent } from '@/lib/connection/types';
@@ -15,9 +15,7 @@ export function EventDetailGallery({ event }: { event: ConnectionEvent }) {
 
   return (
     <section className='relative -mx-5 lg:-mx-10'>
-      <div className='pointer-events-none absolute -right-2 top-8 z-10 hidden sm:block'>
-        <BrandCharacter id='Y' size='md' variant='peek' />
-      </div>
+      <BrandCharacterSlot id='Y' size='md' variant='peek' wrapperClassName='absolute -right-2 top-8 z-10 hidden sm:block' />
       <div
         ref={scrollRef}
         className='flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-1 [scrollbar-width:none] lg:gap-5 lg:px-10 [&::-webkit-scrollbar]:hidden'

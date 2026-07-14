@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { AccentSticker, ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
 import { BRAND_SUBLINE, BRAND_TAGLINE, HK } from '@/lib/connection/brand/tokens';
@@ -61,19 +61,11 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
       <HeroCollage index={index} />
       <BgTypography text='華会' dark animate className='!text-white/[0.06]' />
 
-      {/* 散らしたキャラクター */}
-      <div className='pointer-events-none absolute left-[6%] top-[20%] z-[5] hidden lg:block'>
-        <BrandCharacter id='W' size='lg' variant='float' className='-rotate-12' />
-      </div>
-      <div className='pointer-events-none absolute bottom-[22%] left-[12%] z-[5]'>
-        <BrandCharacter id='E1' size='md' variant='peek' className='rotate-6' />
-      </div>
-      <div className='pointer-events-none absolute right-[8%] top-[55%] z-[5] sm:right-[45%]'>
-        <BrandCharacter id='S' size='sm' variant='float' className='-rotate-8' />
-      </div>
-      <div className='pointer-events-none absolute bottom-[12%] right-[6%] z-[5] hidden sm:block'>
-        <BrandCharacter id='A' size='md' variant='peek' className='rotate-12' />
-      </div>
+      {/* キャラクタースロット — brand-config.ts で再有効化 */}
+      <BrandCharacterSlot id='W' size='lg' variant='float' className='-rotate-12' wrapperClassName='absolute left-[6%] top-[20%] z-[5] hidden lg:block' />
+      <BrandCharacterSlot id='E1' size='md' variant='peek' className='rotate-6' wrapperClassName='absolute bottom-[22%] left-[12%] z-[5]' />
+      <BrandCharacterSlot id='S' size='sm' variant='float' className='-rotate-8' wrapperClassName='absolute right-[8%] top-[55%] z-[5] sm:right-[45%]' />
+      <BrandCharacterSlot id='A' size='md' variant='peek' className='rotate-12' wrapperClassName='absolute bottom-[12%] right-[6%] z-[5] hidden sm:block' />
 
       <div className='relative z-10 mx-auto flex w-full max-w-[1080px] flex-col px-6 pb-24 pt-28 sm:pt-32 lg:max-w-[55%] lg:items-start lg:pl-10 lg:text-left'>
         <motion.div

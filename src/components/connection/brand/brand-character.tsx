@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { motion } from 'motion/react';
 import { BRAND_CHARACTERS, type BrandCharacterId } from '@/lib/connection/brand/characters';
+import { BRAND_CHARACTERS_ENABLED } from '@/lib/connection/brand/brand-config';
 
 const SIZE_MAP = {
   xs: { box: 'h-12 w-12', text: 'text-lg', peek: '-right-2 -top-2' },
@@ -30,6 +31,8 @@ export function BrandCharacter({
   className = '',
   label = false,
 }: Props) {
+  if (!BRAND_CHARACTERS_ENABLED) return null;
+
   const char = BRAND_CHARACTERS[id];
   const src = imageSrc ?? char.imageSrc;
   const s = SIZE_MAP[size];
@@ -39,6 +42,7 @@ export function BrandCharacter({
     <div
       className={`relative flex ${s.box} items-center justify-center overflow-visible rounded-[28%] bg-gradient-to-br ${char.gradient} shadow-[0_16px_48px_rgba(0,0,0,0.15)] ring-2 ring-white/30 ${peekOffset} ${className}`}
       title={char.name}
+      data-brand-character={id}
     >
       {src ? (
         <Image src={src} alt={char.name} fill sizes='200px' className='object-contain p-1' />

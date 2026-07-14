@@ -1,4 +1,6 @@
 export { BrandCharacter } from '@/components/connection/brand/brand-character';
+export { BrandCharacterSlot, BrandCharacterScatter } from '@/components/connection/brand/brand-character-slot';
+export { BRAND_CHARACTERS_ENABLED } from '@/lib/connection/brand/brand-config';
 export { BgTypography } from '@/components/connection/brand/bg-typography';
 export { BrandReveal, BrandFloatCard } from '@/components/connection/brand/brand-motion';
 export { GlassSurface } from '@/components/connection/brand/glass-surface';

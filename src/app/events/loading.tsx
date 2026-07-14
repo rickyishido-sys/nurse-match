@@ -1,7 +1,7 @@
 'use client';
 
 import { ConnectionShell } from '@/components/connection/shell';
-import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
 
 function SkeletonBlock({ className }: { className?: string }) {
@@ -13,9 +13,7 @@ export default function EventsLoading() {
     <ConnectionShell viewer={null}>
       <div className='relative space-y-10 overflow-hidden' aria-busy='true' aria-label='読み込み中'>
         <BgTypography text='体験' className='opacity-50' animate={false} />
-        <div className='pointer-events-none absolute right-4 top-8'>
-          <BrandCharacter id='D1' size='md' variant='float' />
-        </div>
+        <BrandCharacterSlot id='D1' size='md' variant='float' wrapperClassName='absolute right-4 top-8' />
         <div className='relative z-10 space-y-4'>
           <SkeletonBlock className='h-3 w-24' />
           <SkeletonBlock className='h-10 w-56' />

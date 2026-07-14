@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
 
@@ -34,9 +34,7 @@ export function LandingThemes() {
     <Section tone='white' className='relative overflow-hidden'>
       <ColorBlob color={HK.amberSoft} className='left-[10%] top-[5%] opacity-50' />
       <ColorBlob color={HK.limeSoft} className='right-[8%] bottom-[8%] opacity-40' />
-      <div className='pointer-events-none absolute right-[5%] top-[12%] hidden md:block'>
-        <BrandCharacter id='D2' size='lg' variant='float' className='rotate-12' />
-      </div>
+      <BrandCharacterSlot id='D2' size='lg' variant='float' className='rotate-12' wrapperClassName='absolute right-[5%] top-[12%] hidden md:block' />
 
       <div className='relative z-10 flex flex-col items-center text-center'>
         <Reveal>
@@ -62,9 +60,12 @@ export function LandingThemes() {
                 style={{ background: theme.bg }}
               >
                 {theme.char ? (
-                  <div className='pointer-events-none absolute -right-1 -top-2 z-10 scale-75 sm:scale-90'>
-                    <BrandCharacter id={theme.char} size='xs' variant='peek' />
-                  </div>
+                  <BrandCharacterSlot
+                    id={theme.char}
+                    size='xs'
+                    variant='peek'
+                    wrapperClassName='absolute -right-1 -top-2 z-10 scale-75 sm:scale-90'
+                  />
                 ) : null}
                 <div
                   className='flex h-16 w-16 items-center justify-center rounded-2xl sm:h-20 sm:w-20'

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
-import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { BrandReveal } from '@/components/connection/brand/brand-motion';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
 import { GlassSurface } from '@/components/connection/brand/glass-surface';
@@ -18,9 +18,7 @@ export function BrandNotFoundContent({ viewer }: Props) {
     <ConnectionShell viewer={viewer} showNav={false}>
       <div className='relative flex min-h-[60vh] flex-col items-center justify-center overflow-hidden py-12 text-center'>
         <BgTypography text='404' />
-        <div className='pointer-events-none absolute -left-4 top-[20%]'>
-          <BrandCharacter id='S' size='xl' variant='peek' />
-        </div>
+        <BrandCharacterSlot id='S' size='xl' variant='peek' wrapperClassName='absolute -left-4 top-[20%]' />
 
         <BrandReveal className='relative z-10 max-w-md'>
           <GlassSurface className='text-center'>

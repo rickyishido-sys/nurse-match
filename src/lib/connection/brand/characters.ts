@@ -1,4 +1,6 @@
-/** WEDNESDAY — 9文字モチーフのブランドキャラクター定義（イラスト差し替え可能） */
+/** WEDNESDAY — 9文字モチーフのブランドキャラクター定義（イラスト差し替え可能）
+ * 表示 ON/OFF: src/lib/connection/brand/brand-config.ts の BRAND_CHARACTERS_ENABLED
+ */
 export type BrandCharacterId = 'W' | 'E1' | 'D1' | 'N' | 'E2' | 'S' | 'D2' | 'A' | 'Y';
 
 export type BrandCharacter = {

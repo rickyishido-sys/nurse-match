@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BRAND_CHARACTERS_ENABLED } from '@/lib/connection/brand/brand-config';
 import { CHARACTER_ORDER } from '@/lib/connection/brand/characters';
 import { BRAND_TAGLINE } from '@/lib/connection/brand/tokens';
 
@@ -12,7 +13,7 @@ type Props = {
 };
 
 /** 統一ブランドフッター（9体キャラクター帯 + リンク） */
-export function BrandFooter({ dark = true, showCharacters = true, adminHref = null }: Props) {
+export function BrandFooter({ dark = true, showCharacters = BRAND_CHARACTERS_ENABLED, adminHref = null }: Props) {
   const bg = dark ? 'bg-[#163f35] text-white' : 'bg-[#faf7f2] text-[#1a1a1a]';
   const muted = dark ? 'text-white/70' : 'text-[#6b6b6b]';
   const linkClass = dark ? 'text-white/80 hover:text-white' : 'text-[#1f5d4f] hover:underline';

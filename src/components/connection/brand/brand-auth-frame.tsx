@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { BrandTagline } from '@/components/connection/brand/brand-scene';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
 import { GlassSurface } from '@/components/connection/brand/glass-surface';
@@ -22,12 +22,18 @@ export function BrandAuthFrame({ children, title, subtitle, characterId = 'E1' }
   return (
     <main className='relative min-h-screen overflow-hidden hk-vibrant-gradient px-5 py-10'>
       <BgTypography text='華会' />
-      <div className='pointer-events-none absolute -left-6 bottom-[12%] z-[1] opacity-90'>
-        <BrandCharacter id={characterId} size='lg' variant='peek' />
-      </div>
-      <div className='pointer-events-none absolute -right-4 top-[18%] z-[1] opacity-70'>
-        <BrandCharacter id='S' size='sm' variant='float' />
-      </div>
+      <BrandCharacterSlot
+        id={characterId}
+        size='lg'
+        variant='peek'
+        wrapperClassName='absolute -left-6 bottom-[12%] z-[1] opacity-90'
+      />
+      <BrandCharacterSlot
+        id='S'
+        size='sm'
+        variant='float'
+        wrapperClassName='absolute -right-4 top-[18%] z-[1] opacity-70'
+      />
 
       <div className='relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-[440px] flex-col items-center justify-center'>
         <BrandReveal className='mb-8 text-center'>

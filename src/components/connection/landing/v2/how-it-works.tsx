@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
 import { ctaPrimary, ctaSecondary } from '@/components/connection/ui/cta-classes';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
@@ -74,9 +74,12 @@ export function LandingHowItWorks({ joinHref = '/register' }: { joinHref?: strin
                   className='relative overflow-visible rounded-[2rem] p-8 shadow-[0_20px_60px_rgba(26,26,26,0.1)]'
                   style={{ background: `linear-gradient(145deg, ${item.accent}18, white)` }}
                 >
-                  <div className='pointer-events-none absolute -right-4 -top-4'>
-                    <BrandCharacter id={item.char} size='sm' variant='peek' />
-                  </div>
+                  <BrandCharacterSlot
+                    id={item.char}
+                    size='sm'
+                    variant='peek'
+                    wrapperClassName='absolute -right-4 -top-4'
+                  />
                   <div className='relative mx-auto h-32 w-32'>
                     <Image src={item.img} alt='' fill sizes='128px' className='object-contain' />
                   </div>

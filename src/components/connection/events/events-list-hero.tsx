@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { BrandReveal } from '@/components/connection/brand/brand-motion';
 import { ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
@@ -30,12 +30,8 @@ export function EventsListHero() {
         </TiltFrame>
       </div>
 
-      <div className='pointer-events-none absolute -left-3 bottom-4 z-[3] sm:bottom-8'>
-        <BrandCharacter id='E2' size='lg' variant='peek' className='-rotate-6' />
-      </div>
-      <div className='pointer-events-none absolute right-[6%] top-[48%] z-[3] hidden sm:block'>
-        <BrandCharacter id='A' size='sm' variant='float' className='rotate-10' />
-      </div>
+      <BrandCharacterSlot id='E2' size='lg' variant='peek' className='-rotate-6' wrapperClassName='absolute -left-3 bottom-4 z-[3] sm:bottom-8' />
+      <BrandCharacterSlot id='A' size='sm' variant='float' className='rotate-10' wrapperClassName='absolute right-[6%] top-[48%] z-[3] hidden sm:block' />
 
       <BrandReveal className='relative z-[2] max-w-[56%] pt-2 sm:max-w-[50%] sm:pt-6'>
         <TiltFrame tilt={-2} hover={false}>

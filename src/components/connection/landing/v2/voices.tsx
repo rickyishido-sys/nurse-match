@@ -1,6 +1,7 @@
 'use client';
 
-import { ColorBlob, ScatterCharacters, TiltFrame } from '@/components/connection/brand/brand-editorial';
+import { ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
+import { BrandCharacterScatter } from '@/components/connection/brand/brand-character-slot';
 import { HK } from '@/lib/connection/brand/tokens';
 import { Heading, Kicker, Reveal, Section } from '@/components/connection/landing/v2/ui';
 
@@ -18,7 +19,7 @@ export function LandingVoices() {
     <Section tone='green' className='relative overflow-hidden !bg-gradient-to-br from-[#0f2820] via-[#163f35] to-[#1a3040]'>
       <ColorBlob color={HK.violetSoft} className='right-[5%] top-[10%] opacity-40' />
       <ColorBlob color={HK.coralSoft} className='left-[3%] bottom-[20%] opacity-35' />
-      <ScatterCharacters ids={['Y', 'A', 'S']} />
+      <BrandCharacterScatter ids={['Y', 'A', 'S']} />
 
       <div className='relative z-10 flex flex-col items-center text-center'>
         <Reveal>

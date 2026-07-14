@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
 import { ctaPrimary } from '@/components/connection/ui/cta-classes';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
@@ -43,9 +43,7 @@ export function LandingHostEvents() {
       <ColorBlob color={HK.coralSoft} className='right-[-4%] top-[8%]' />
       <ColorBlob color={HK.violetSoft} className='left-[-5%] bottom-[12%]' />
 
-      <div className='pointer-events-none absolute -right-4 top-[10%] hidden sm:block'>
-        <BrandCharacter id='A' size='lg' variant='peek' className='rotate-8' />
-      </div>
+      <BrandCharacterSlot id='A' size='lg' variant='peek' className='rotate-8' wrapperClassName='absolute -right-4 top-[10%] hidden sm:block' />
 
       <div className='relative z-10 flex flex-col items-center text-center lg:items-start lg:text-left'>
         <Reveal>
@@ -75,9 +73,12 @@ export function LandingHostEvents() {
                 className='relative flex h-full min-h-[200px] flex-col rounded-[2rem] px-6 py-8 shadow-[0_16px_48px_rgba(26,26,26,0.08)] sm:min-h-[220px] sm:px-7 sm:py-9'
                 style={{ background: `linear-gradient(160deg, ${item.accent}16, white 65%)` }}
               >
-                <div className='pointer-events-none absolute -right-2 -top-3'>
-                  <BrandCharacter id={item.char} size='xs' variant='peek' />
-                </div>
+                <BrandCharacterSlot
+                  id={item.char}
+                  size='xs'
+                  variant='peek'
+                  wrapperClassName='absolute -right-2 -top-3'
+                />
                 <p className='text-[11px] font-bold tracking-[0.24em]' style={{ color: item.accent }}>
                   STEP {item.step}
                 </p>

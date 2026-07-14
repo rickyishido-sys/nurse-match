@@ -3,8 +3,9 @@
 import type { ReactNode } from 'react';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
 import { BrandCharacter } from '@/components/connection/brand/brand-character';
-import { BRAND_SUBLINE, BRAND_TAGLINE } from '@/lib/connection/brand/tokens';
+import { BRAND_CHARACTERS_ENABLED } from '@/lib/connection/brand/brand-config';
 import { PAGE_CHARACTERS, type BrandCharacterId } from '@/lib/connection/brand/characters';
+import { BRAND_SUBLINE, BRAND_TAGLINE } from '@/lib/connection/brand/tokens';
 
 type Props = {
   children: ReactNode;
@@ -22,7 +23,7 @@ export function BrandScene({
   className = '',
   tone = 'cream',
 }: Props) {
-  const chars = characters ?? [];
+  const chars = BRAND_CHARACTERS_ENABLED ? (characters ?? []) : [];
   const bg =
     tone === 'dark'
       ? 'bg-[#163f35]'

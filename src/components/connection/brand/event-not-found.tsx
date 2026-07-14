@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
-import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { BrandReveal } from '@/components/connection/brand/brand-motion';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
 import { GlassSurface } from '@/components/connection/brand/glass-surface';
@@ -14,9 +14,7 @@ export function EventNotFoundContent({ viewer }: { viewer: HanakaiViewer | null 
     <ConnectionShell viewer={viewer}>
       <div className='relative flex min-h-[50vh] flex-col items-center justify-center overflow-hidden py-12 text-center'>
         <BgTypography text='体験' />
-        <div className='pointer-events-none absolute -left-2 top-[18%]'>
-          <BrandCharacter id='Y' size='lg' variant='peek' />
-        </div>
+        <BrandCharacterSlot id='Y' size='lg' variant='peek' wrapperClassName='absolute -left-2 top-[18%]' />
         <BrandReveal className='relative z-10 max-w-md'>
           <GlassSurface className='text-center'>
             <h1 className='font-serif text-xl font-semibold tracking-tight text-[#1a1a1a]'>

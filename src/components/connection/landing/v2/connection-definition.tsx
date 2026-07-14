@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
-import { BrandCharacter } from '@/components/connection/brand/brand-character';
+import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
@@ -26,15 +26,9 @@ export function LandingConnectionDefinition() {
       <ColorBlob color={HK.violetSoft} className='right-0 top-[20%]' />
       <ColorBlob color={HK.coralSoft} className='bottom-[10%] left-0' />
 
-      <div className='pointer-events-none absolute -right-4 top-[12%]'>
-        <BrandCharacter id='D1' size='xl' variant='peek' className='rotate-8' />
-      </div>
-      <div className='pointer-events-none absolute -left-6 bottom-[8%] hidden sm:block'>
-        <BrandCharacter id='N' size='lg' variant='float' className='-rotate-6' />
-      </div>
-      <div className='pointer-events-none absolute right-[15%] bottom-[25%] hidden lg:block'>
-        <BrandCharacter id='Y' size='sm' variant='float' className='rotate-12' />
-      </div>
+      <BrandCharacterSlot id='D1' size='xl' variant='peek' className='rotate-8' wrapperClassName='absolute -right-4 top-[12%]' />
+      <BrandCharacterSlot id='N' size='lg' variant='float' className='-rotate-6' wrapperClassName='absolute -left-6 bottom-[8%] hidden sm:block' />
+      <BrandCharacterSlot id='Y' size='sm' variant='float' className='rotate-12' wrapperClassName='absolute right-[15%] bottom-[25%] hidden lg:block' />
 
       <div className='relative z-10 flex flex-col items-center text-center lg:items-start lg:text-left'>
         <Reveal>
