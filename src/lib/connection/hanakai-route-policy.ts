@@ -30,6 +30,7 @@ export const HANAKAI_PUBLIC_EXACT = new Set([
   '/admin/login',
   '/onboarding',
   '/auth/callback',
+  '/not-found',
 ]);
 
 export const HANAKAI_AUTH_EXACT = new Set(['/home', '/my-profile', '/manage', '/events/create']);
