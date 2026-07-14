@@ -1,3 +1,4 @@
+import dynamic from 'next/dynamic';
 import { BrandFooter } from '@/components/connection/brand/brand-footer';
 import { LandingConnectionDefinition } from '@/components/connection/landing/v2/connection-definition';
 import { LandingNav } from '@/components/connection/landing/v2/nav';
@@ -5,19 +6,42 @@ import { LandingHeroV2 } from '@/components/connection/landing/v2/hero';
 import { LandingStats } from '@/components/connection/landing/v2/stats';
 import { LandingHostEvents } from '@/components/connection/landing/v2/host-events';
 import { LandingHowItWorks } from '@/components/connection/landing/v2/how-it-works';
-import { LandingGallery } from '@/components/connection/landing/v2/gallery';
-import { LandingThemes } from '@/components/connection/landing/v2/themes';
 import { LandingBloomIntro } from '@/components/connection/landing/v2/bloom-intro';
 import { LandingRecommend } from '@/components/connection/landing/v2/recommend';
 import { LandingSafety } from '@/components/connection/landing/v2/safety';
-import { LandingVoices } from '@/components/connection/landing/v2/voices';
-import { LandingAppMock } from '@/components/connection/landing/v2/app-mock';
-import { LandingCycle } from '@/components/connection/landing/v2/cycle';
 import { LandingFaq } from '@/components/connection/landing/v2/faq';
 import { LandingFinalCta } from '@/components/connection/landing/v2/final-cta';
+import { PageSkeleton } from '@/components/connection/ui/page-skeleton';
 import { getHanakaiRegistrationStatus, resolveJoinHref } from '@/lib/connection/registration-status';
 import { getHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
+
+const sectionFallback = () => (
+  <div className='px-6 py-16'>
+    <PageSkeleton lines={3} />
+  </div>
+);
+
+const LandingGallery = dynamic(
+  () => import('@/components/connection/landing/v2/gallery').then((m) => ({ default: m.LandingGallery })),
+  { loading: sectionFallback },
+);
+const LandingThemes = dynamic(
+  () => import('@/components/connection/landing/v2/themes').then((m) => ({ default: m.LandingThemes })),
+  { loading: sectionFallback },
+);
+const LandingVoices = dynamic(
+  () => import('@/components/connection/landing/v2/voices').then((m) => ({ default: m.LandingVoices })),
+  { loading: sectionFallback },
+);
+const LandingAppMock = dynamic(
+  () => import('@/components/connection/landing/v2/app-mock').then((m) => ({ default: m.LandingAppMock })),
+  { loading: sectionFallback },
+);
+const LandingCycle = dynamic(
+  () => import('@/components/connection/landing/v2/cycle').then((m) => ({ default: m.LandingCycle })),
+  { loading: sectionFallback },
+);
 
 export default async function LandingPage() {
   const [registration, adminAccess, viewer] = await Promise.all([
@@ -29,6 +53,9 @@ export default async function LandingPage() {
 
   return (
     <div className='min-h-screen hk-vibrant-gradient text-[#1a1a1a]'>
+      <link rel='preload' as='image' href='/images/profile-sample.webp' type='image/webp' />
+      <link rel='preload' as='image' href='/hero/mobile/cafe.png' fetchPriority='high' />
+
       <LandingNav joinHref={joinHref} viewer={viewer} />
 
       <main>
@@ -39,7 +66,7 @@ export default async function LandingPage() {
         <LandingHowItWorks joinHref={joinHref} />
         <LandingGallery />
         <LandingThemes />
-        <LandingBloomIntro />
+        <LandingBloomIntro joinHref={joinHref} />
         <LandingRecommend />
         <LandingSafety />
         <LandingVoices />

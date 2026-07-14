@@ -29,7 +29,7 @@ function HeroCollage({ index }: { index: number }) {
       {/* 斜めに重なる写真コラージュ */}
       <TiltFrame tilt={-6} hover={false} className='absolute right-[4%] top-[14%] hidden w-[42%] sm:block'>
         <div className='relative aspect-[4/5] overflow-hidden rounded-[2rem] shadow-[0_30px_80px_rgba(0,0,0,0.35)] ring-4 ring-white/20'>
-          <Image src={slide.src} alt='' fill sizes='45vw' className='object-cover' />
+          <Image src={slide.src} alt='' fill sizes='45vw' className='object-cover' loading='lazy' />
         </div>
       </TiltFrame>
       <TiltFrame tilt={5} hover={false} className='absolute bottom-[18%] right-[18%] hidden w-[28%] sm:block'>
@@ -107,6 +107,7 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
         >
           <Link
             href='/events'
+            prefetch
             className='hk-brand-btn flex h-14 min-w-[200px] flex-1 items-center justify-center rounded-full px-8 text-sm font-bold text-white shadow-[0_12px_40px_rgba(232,93,76,0.45)] sm:flex-none'
             style={{ background: `linear-gradient(135deg, ${HK.coral} 0%, ${HK.coralSoft} 100%)` }}
           >
@@ -114,6 +115,7 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
           </Link>
           <Link
             href='/events/create'
+            prefetch
             className='hk-brand-btn flex h-14 min-w-[200px] flex-1 items-center justify-center rounded-full border-2 border-white/70 bg-white/15 px-8 text-sm font-bold text-white backdrop-blur-md sm:flex-none'
           >
             イベントを作る
@@ -128,6 +130,7 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
         >
           <Link
             href={joinHref}
+            prefetch
             className='text-sm font-semibold text-white/90 underline-offset-4 hover:underline'
           >
             新規登録はこちら

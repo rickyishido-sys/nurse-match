@@ -31,6 +31,7 @@ export const HANAKAI_PUBLIC_EXACT = new Set([
   '/onboarding',
   '/auth/callback',
   '/not-found',
+  '/experience-request',
 ]);
 
 export const HANAKAI_AUTH_EXACT = new Set(['/home', '/my-profile', '/manage', '/events/create']);
@@ -39,6 +40,7 @@ export const HANAKAI_AUTH_PREFIXES = [
   '/account/',
   '/events/manage/',
   '/events/edit/',
+  '/manage/',
 ];
 
 export const HANAKAI_PUBLIC_PREFIXES = [
@@ -163,6 +165,7 @@ export function isHanakaiStaticAsset(pathname: string): boolean {
     pathname.startsWith('/categories') ||
     pathname.startsWith('/flow') ||
     pathname.startsWith('/icons') ||
+    pathname.startsWith('/images') ||
     pathname === '/manifest.webmanifest' ||
     pathname === '/robots.txt' ||
     pathname === '/sitemap.xml'

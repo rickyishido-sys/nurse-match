@@ -1,6 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
+import { RegisterCtaLink } from '@/components/connection/register-cta-link';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
 
 const POINTS = [
@@ -9,7 +11,7 @@ const POINTS = [
   { icon: '✦', text: '参加申請時に、主催者があなたを確認できます' },
 ] as const;
 
-export function LandingBloomIntro() {
+export function LandingBloomIntro({ joinHref = '/register' }: { joinHref?: string }) {
   return (
     <Section tone='white'>
       <div className='grid items-center gap-10 lg:grid-cols-2 lg:gap-14'>
@@ -54,10 +56,19 @@ export function LandingBloomIntro() {
             </div>
             <div className='mt-6 space-y-4 rounded-2xl bg-white p-5 shadow-sm'>
               <div className='flex items-center gap-3'>
-                <span className='h-14 w-14 rounded-full bg-[#e7ddcf]' />
+                <div className='relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#f3f7f5] ring-2 ring-[#e7f0ea]'>
+                  <Image
+                    src='/images/profile-sample.webp'
+                    alt='プロフィール写真のサンプル'
+                    fill
+                    sizes='64px'
+                    className='object-cover object-top'
+                    loading='lazy'
+                  />
+                </div>
                 <div>
                   <p className='text-sm font-semibold text-[#1f5d4f]'>Aoi</p>
-                  <p className='text-xs text-[#6b6b6b]'>30代 · 東京</p>
+                  <p className='text-xs text-[#6b6b6b]'>20代前半 · 東京</p>
                 </div>
               </div>
               <div>
@@ -79,10 +90,14 @@ export function LandingBloomIntro() {
             </p>
             <Link
               href='/register/profile'
-              className='mt-5 flex h-11 items-center justify-center rounded-full border border-[#1f5d4f]/30 text-xs font-semibold text-[#1f5d4f] transition hover:bg-[#1f5d4f]/5'
+              prefetch
+              className='mt-5 flex h-11 items-center justify-center rounded-full border border-[#1f5d4f]/30 text-xs font-semibold text-[#1f5d4f] transition hover:scale-[1.02] hover:bg-[#1f5d4f]/5 active:scale-[0.98]'
             >
               プロフィールを作ってみる
             </Link>
+            <div className='mt-3 flex justify-center'>
+              <RegisterCtaLink href={joinHref} className='w-full max-w-[280px]' />
+            </div>
           </div>
         </Reveal>
       </div>

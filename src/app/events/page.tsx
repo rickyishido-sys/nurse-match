@@ -1,11 +1,12 @@
 import { ConnectionShell } from '@/components/connection/shell';
 import { EventsActionBar } from '@/components/connection/events/events-action-bar';
 import { EventsAdditionalRecruitmentSection } from '@/components/connection/events/events-additional-recruitment-section';
+import { ExperienceRequestPromoCard } from '@/components/connection/events/experience-request-promo';
 import { EventsCategoryFilter } from '@/components/connection/events/events-category-filter';
 import { EventsListGrid, EventsListHero } from '@/components/connection/events/events-list-sections';
 import { enrichEventsForList } from '@/lib/connection/events-list-data';
+import { listEventsCached } from '@/lib/connection/events-list-cache';
 import { filterEventsBySlug, parseEventsListFilter } from '@/lib/connection/events-list-ux';
-import { listEvents } from '@/lib/connection/repo';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
@@ -18,7 +19,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const activeFilter = parseEventsListFilter(typeof sp.category === 'string' ? sp.category : undefined);
   const registered = sp.registered === '1';
 
-  const allEvents = (await listEvents()).filter((e) => !e.isPast);
+  const allEvents = (await listEventsCached()).filter((e) => !e.isPast);
   const filtered = filterEventsBySlug(allEvents, activeFilter);
 
   const additionalEvents = filtered.filter((e) => e.recruitmentType === 'additional');
@@ -33,6 +34,8 @@ export default async function EventsPage({ searchParams }: PageProps) {
     <ConnectionShell viewer={viewer}>
       <div className='space-y-8'>
         <EventsListHero />
+
+        <ExperienceRequestPromoCard />
 
         <EventsActionBar variant='on-events-page' />
 

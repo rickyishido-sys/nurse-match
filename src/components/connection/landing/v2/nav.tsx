@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { HeaderUserMenu } from '@/components/connection/header-user-menu';
+import { RegisterCtaLink } from '@/components/connection/register-cta-link';
 import type { HanakaiViewer } from '@/lib/hanakai/session';
 
 export function LandingNav({
@@ -48,6 +49,7 @@ export function LandingNav({
         <nav className='flex shrink-0 items-center gap-1.5 sm:gap-2.5'>
           <Link
             href='/events'
+            prefetch
             className={`flex h-9 items-center rounded-full px-3 text-[11px] font-semibold transition sm:px-4 sm:text-xs ${
               solid ? 'text-[#1a1a1a] hover:bg-black/5' : 'text-white hover:bg-white/10'
             }`}
@@ -56,23 +58,20 @@ export function LandingNav({
           </Link>
           <Link
             href='/events/create'
+            prefetch
             className={`flex h-9 items-center rounded-full px-3 text-[11px] font-semibold transition sm:px-4 sm:text-xs ${
               solid ? 'text-[#e85d4c] hover:bg-[#fff5f3]' : 'text-white/90 hover:bg-white/10'
             }`}
           >
             作る
           </Link>
-          {viewer ? (
-            <HeaderUserMenu user={viewer} />
+          {!viewer ? (
+            <RegisterCtaLink
+              href={joinHref}
+              className='!min-h-9 !px-3.5 !text-[11px] sm:!px-4 sm:!text-xs'
+            />
           ) : (
-            <Link
-              href='/login'
-              className={`flex h-9 items-center rounded-full px-3.5 text-[11px] font-semibold transition active:scale-[0.97] sm:px-4 sm:text-xs ${
-                solid ? 'border border-[#1f5d4f]/20 text-[#1f5d4f] hover:bg-[#f3f7f5]' : 'border border-white/50 text-white hover:bg-white/10'
-              }`}
-            >
-              ログイン
-            </Link>
+            <HeaderUserMenu user={viewer} />
           )}
         </nav>
       </div>

@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
+import { ManageNav } from '@/components/connection/manage-nav';
 import { MemberInsights } from '@/components/connection/member-insights';
 import { TrustAdminPanel, TrustOperationGuide } from '@/components/connection/trust-admin-panel';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
@@ -42,6 +43,8 @@ export default async function ManagePage({ searchParams }: PageProps) {
             このイベントに最適な参加メンバーを選定します。
           </p>
         </div>
+
+        <ManageNav active='members' />
 
         <TrustOperationGuide />
 
