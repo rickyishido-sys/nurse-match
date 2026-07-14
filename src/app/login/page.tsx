@@ -72,7 +72,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             name='email'
             required
             placeholder='email@example.com'
-            className='w-full rounded-2xl border border-[#e8e4dc] bg-white/80 px-4 py-3 text-sm text-[#1a1a1a] outline-none backdrop-blur transition focus:border-[#1f5d4f] focus:ring-4 focus:ring-[#1f5d4f]/10'
+            className='min-h-[44px] w-full rounded-2xl border border-[#e8e4dc] bg-white/80 px-4 py-3 text-sm text-[#1a1a1a] outline-none backdrop-blur transition focus:border-[#1f5d4f] focus:ring-4 focus:ring-[#1f5d4f]/10'
           />
         </label>
         <label className='block'>
@@ -82,10 +82,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             name='password'
             required
             placeholder='password'
-            className='w-full rounded-2xl border border-[#e8e4dc] bg-white/80 px-4 py-3 text-sm text-[#1a1a1a] outline-none backdrop-blur transition focus:border-[#1f5d4f] focus:ring-4 focus:ring-[#1f5d4f]/10'
+            className='min-h-[44px] w-full rounded-2xl border border-[#e8e4dc] bg-white/80 px-4 py-3 text-sm text-[#1a1a1a] outline-none backdrop-blur transition focus:border-[#1f5d4f] focus:ring-4 focus:ring-[#1f5d4f]/10'
           />
         </label>
-        <button type='submit' className={`hk-brand-btn ${ctaPrimaryFull}`}>
+        <p className='text-right'>
+          <a href='/forgot-password' className='text-xs font-medium text-[#1f5d4f] underline-offset-2 hover:underline'>
+            パスワードをお忘れの方
+          </a>
+        </p>
+        <button type='submit' className={`hk-brand-btn min-h-[44px] ${ctaPrimaryFull}`}>
           ログイン
         </button>
       </form>

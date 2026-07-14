@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { guardDebugApi } from '@/lib/connection/production-guard';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
@@ -16,6 +17,9 @@ function isAdminRole(role: string | null | undefined) {
 }
 
 export async function POST() {
+  const blocked = guardDebugApi();
+  if (blocked) return blocked;
+
   const supabase = await createServerSupabaseClient();
   if (!supabase) {
     return NextResponse.json({ ok: false, reason: 'missing_session_client' }, { status: 500 });

@@ -14,7 +14,7 @@ export type ConnectionEventCategory =
   | 'workshop'
   | 'other';
 
-export type ConnectionEventStatus = 'open' | 'almost_full' | 'full' | 'closed' | 'completed';
+export type ConnectionEventStatus = 'open' | 'almost_full' | 'full' | 'closed' | 'completed' | 'cancelled';
 
 /** 募集種別（通常 / 追加募集） */
 export type EventRecruitmentType = 'standard' | 'additional';
@@ -252,6 +252,8 @@ export type EventApplication = {
   /** 参加確認メール用トークン（awaiting_confirmation 時に発行） */
   confirmationToken?: string;
   confirmedAt?: string;
+  cancelledAt?: string;
+  cancelReason?: string;
 };
 
 /** AI grouping 用の正規化スナップショット（将来の選定API向け） */

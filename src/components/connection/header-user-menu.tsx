@@ -116,14 +116,22 @@ export function HeaderUserMenu({ user }: HeaderUserMenuProps) {
             >
               プロフィール
             </Link>
-            <span
+            <Link
+              href='/account/blocked'
               role='menuitem'
-              aria-disabled='true'
-              className='block cursor-not-allowed px-4 py-2.5 text-sm text-[#b0b0b0]'
-              title='準備中'
+              onClick={() => setOpen(false)}
+              className='block px-4 py-2.5 text-sm text-[#1a1a1a] transition hover:bg-[#f7f6f3]'
             >
-              設定（準備中）
-            </span>
+              ブロック一覧
+            </Link>
+            <Link
+              href='/account/delete'
+              role='menuitem'
+              onClick={() => setOpen(false)}
+              className='block px-4 py-2.5 text-sm text-[#6b6b6b] transition hover:bg-[#f7f6f3]'
+            >
+              アカウント削除
+            </Link>
             <form action={logoutAction}>
               <button
                 type='submit'

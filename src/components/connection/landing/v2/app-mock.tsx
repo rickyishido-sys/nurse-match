@@ -46,7 +46,7 @@ export function LandingAppMock() {
         </Reveal>
         <Reveal delay={0.1}>
           <Lead className='mt-6 max-w-[40ch]'>
-            出会いはその日で終わりません。投稿やメッセージ、応援を通じて、つながりはゆっくり育っていきます。
+            出会いはその日で終わりません。グループ投稿を通じて、つながりはゆっくり育っていきます。
           </Lead>
         </Reveal>
       </div>
@@ -79,26 +79,11 @@ export function LandingAppMock() {
             </div>
           </Phone>
 
-          <Phone label='メッセージ'>
+          <Phone label='グループ'>
             <div className='space-y-2'>
-              <Bubble>来月のイベント参加します？</Bubble>
-              <Bubble me>もちろん！申請しました🌿</Bubble>
-              <Bubble>よかった、また会えますね</Bubble>
-              <Bubble me>楽しみにしています</Bubble>
-            </div>
-          </Phone>
-
-          <Phone label='応援（投げ花）'>
-            <div className='flex h-full flex-col items-center justify-center text-center'>
-              <span className='h-14 w-14 rounded-full bg-[#e7ddcf]' />
-              <p className='mt-3 text-[12px] font-semibold text-[#1a1a1a]'>Hana さんを応援</p>
-              <p className='mt-1 text-[10px] text-[#9a9a9a]'>素敵な投稿に花を贈ろう</p>
-              <span className='mt-4 flex items-center gap-1 rounded-full bg-[#1f5d4f] px-4 py-2 text-[11px] font-semibold text-white'>
-                ❀ 花を贈る
-              </span>
-              <div className='mt-3 text-lg' aria-hidden>
-                🌸 🌷 🌼
-              </div>
+              <Bubble>今日のイベント、また話しましょう</Bubble>
+              <Bubble me>ぜひ！次回も参加します</Bubble>
+              <Bubble>グループに写真をシェアしました</Bubble>
             </div>
           </Phone>
 

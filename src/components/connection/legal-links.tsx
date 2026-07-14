@@ -19,6 +19,9 @@ export function LegalLinks({ className = '', variant = 'light' }: LegalLinksProp
       <Link href='/privacy' className={linkClass}>
         プライバシーポリシー
       </Link>
+      <Link href='/legal/tokushoho' className={linkClass}>
+        特定商取引法
+      </Link>
       <Link href='/contact' className={linkClass}>
         お問い合わせ
       </Link>

@@ -29,7 +29,7 @@ const STEPS = [
   {
     step: '03',
     title: 'つながりが育つ',
-    body: 'イベント後はコミュニティで交流。フォローやメッセージで、関係が深まります。',
+    body: 'イベント後はコミュニティで交流。フォローやグループ投稿で、関係が深まります。',
     img: '/flow/continue.png',
     tilt: -2,
     accent: HK.amber,

@@ -12,7 +12,7 @@ import {
 } from '@/lib/connection/bloom-ui-labels';
 import { MBTI_OPTIONS } from '@/lib/connection/bloom-profile-options';
 import { PROFILE_SECTION_IDS } from '@/lib/connection/profile-completion';
-import { INTEREST_TAG_OPTIONS, LIFE_PHASE_OPTIONS } from '@/lib/connection/data';
+import { INTEREST_TAG_OPTIONS, LIFE_PHASE_OPTIONS, VALUE_TAG_OPTIONS } from '@/lib/connection/data';
 import {
   DESIRED_CONNECTION_OPTIONS,
   PREFECTURES,
@@ -23,6 +23,7 @@ import type {
   ConnectionPurpose,
   InterestTag,
   LifePhase,
+  ValueTag,
 } from '@/lib/connection/types';
 
 const GOLD = '#b8956a';
@@ -121,6 +122,7 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
   const [mbtiType, setMbtiType] = useState(member.mbtiType || 'unknown');
   const [bio, setBio] = useState(member.bio);
   const [introductionAiGenerated, setIntroductionAiGenerated] = useState(member.introductionAiGenerated);
+  const [valueTags, setValueTags] = useState<ValueTag[]>(member.values.valueTags ?? []);
 
   const purposeFields = useMemo(
     () => purposes.map((p) => <input key={p} type='hidden' name='purposes' value={p} />),
@@ -129,6 +131,10 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
   const interestFields = useMemo(
     () => interestTags.map((t) => <input key={t} type='hidden' name='interestTags' value={t} />),
     [interestTags],
+  );
+  const valueTagFields = useMemo(
+    () => valueTags.map((t) => <input key={t} type='hidden' name='valueTags' value={t} />),
+    [valueTags],
   );
 
   return (
@@ -240,6 +246,33 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
                 </ChipButton>
               ))}
             </div>
+          </div>
+          <div className='scroll-mt-24'>
+            <FieldLabel>価値観タグ</FieldLabel>
+            {valueTagFields}
+            <div className='flex flex-wrap gap-2'>
+              {VALUE_TAG_OPTIONS.map(([value, label]) => (
+                <ChipButton
+                  key={value}
+                  active={valueTags.includes(value)}
+                  onClick={() => setValueTags((prev) => toggleItem(prev, value))}
+                >
+                  {label}
+                </ChipButton>
+              ))}
+            </div>
+          </div>
+          <div>
+            <FieldLabel>いま大切にしていること</FieldLabel>
+            <input name='mostImportant' defaultValue={member.values.mostImportant} className={fieldClass} />
+          </div>
+          <div>
+            <FieldLabel>いまの挑戦</FieldLabel>
+            <input name='currentChallenge' defaultValue={member.values.currentChallenge} className={fieldClass} />
+          </div>
+          <div>
+            <FieldLabel>将来の目標</FieldLabel>
+            <input name='futureGoal' defaultValue={member.values.futureGoal} className={fieldClass} />
           </div>
           <div id={PROFILE_SECTION_IDS.personality} className='scroll-mt-24'>
             <FieldLabel>性格タイプ</FieldLabel>

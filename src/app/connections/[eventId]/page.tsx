@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
-import { ConnectionMessageButton } from '@/components/connection/message-button';
 import { MemberAvatar } from '@/components/connection/member-avatar';
 import { MemberInsights } from '@/components/connection/member-insights';
 import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
@@ -9,6 +8,7 @@ import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { ReportButton } from '@/components/connection/report-button';
 import { Card, Chip } from '@/components/connection/ui';
 import { followMemberAction } from '@/lib/connection/actions';
+import { listBlockedMemberIds } from '@/lib/connection/block-repo';
 import { BloomMemoryForm } from '@/components/connection/bloom-memory-form';
 import { canViewConnectionPage, getEvent, getEventMembers, getMember } from '@/lib/connection/repo';
 import { getBloomMemoryForEvent, recordEventJoinedTimeline } from '@/lib/connection/bloom-phase4';
@@ -33,10 +33,9 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
   const canView = !!viewerMemberId && (await canViewConnectionPage(eventId, viewerMemberId));
   const members = await getEventMembers(eventId);
   const followedId = typeof sp.followed === 'string' ? sp.followed : null;
-  const messagedId = typeof sp.messaged === 'string' ? sp.messaged : null;
+  const blockedIds = viewerMemberId ? new Set(await listBlockedMemberIds(viewerMemberId)) : new Set<string>();
   const memorySaved = typeof sp.memorySaved === 'string';
   const followedMember = followedId ? await getMember(followedId) : null;
-  const messagedMember = messagedId ? await getMember(messagedId) : null;
 
   if (canView && event.isPast && viewerMemberId) {
     await recordEventJoinedTimeline(viewerMemberId, eventId, event.title);
@@ -71,7 +70,7 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
           <p className='text-[11px] font-medium tracking-[0.2em] text-[#6b6b6b]'>COMMUNITY</p>
           <h1 className='mt-1 text-xl font-semibold text-[#1a1a1a]'>{event.title}</h1>
           <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>
-            このイベントに参加した{members.length}人だけが閲覧できます。フォローやメッセージで、次の出会いへ。
+            このイベントに参加した{members.length}人だけが閲覧できます。フォローやグループ投稿で、次の出会いへ。
           </p>
           <Link
             href={`/groups/${eventId}`}
@@ -93,18 +92,14 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
           </p>
         ) : null}
 
-        {messagedId ? (
-          <p className='rounded-2xl border border-[#ebe9e4] bg-white px-4 py-3 text-xs text-[#4a4a4a]'>
-            {messagedMember?.nickname ?? 'メンバー'}さんにメッセージを送りました。
-          </p>
-        ) : null}
-
         {showMemoryPrompt ? (
           <BloomMemoryForm eventId={eventId} eventTitle={event.title} variant='prompt' />
         ) : null}
 
         <div className='space-y-4'>
-          {members.map((member) => {
+          {members
+            .filter((member) => !blockedIds.has(member.id))
+            .map((member) => {
             const isSelf = member.id === viewerMemberId;
             const visibleSocialLinks = getVisibleSocialLinks(member, viewerMemberId);
             return (
@@ -134,16 +129,13 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
 
                 {!isSelf ? (
                   <div className='mt-4 space-y-3'>
-                    <div className='grid grid-cols-2 gap-2'>
-                      <form action={followMemberAction}>
-                        <input type='hidden' name='memberId' value={member.id} />
-                        <input type='hidden' name='eventId' value={eventId} />
-                        <button type='submit' className='h-10 w-full rounded-full border border-[#1a1a1a] text-xs font-semibold text-[#1a1a1a]'>
-                          フォロー
-                        </button>
-                      </form>
-                      <ConnectionMessageButton memberId={member.id} memberName={member.nickname} eventId={eventId} />
-                    </div>
+                    <form action={followMemberAction}>
+                      <input type='hidden' name='memberId' value={member.id} />
+                      <input type='hidden' name='eventId' value={eventId} />
+                      <button type='submit' className='h-11 min-h-[44px] w-full rounded-full border border-[#1a1a1a] text-xs font-semibold text-[#1a1a1a]'>
+                        フォロー
+                      </button>
+                    </form>
                     <div className='text-right'>
                       <ReportButton
                         target={{

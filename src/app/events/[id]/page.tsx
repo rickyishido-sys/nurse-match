@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
 import { ApplyForm } from '@/components/connection/events/apply-form';
+import { CancelParticipationButton } from '@/components/connection/events/cancel-participation-button';
 import { EventDetailCta } from '@/components/connection/events/event-detail-cta';
 import { EventDetailGallery } from '@/components/connection/events/event-detail-gallery';
 import {
@@ -45,6 +46,8 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
   const applied = sp.applied === '1';
   const reasonError = sp.error === 'reason';
   const created = sp.created === '1';
+  const cancelled = sp.cancelled === '1';
+  const cancelError = typeof sp.cancel_error === 'string' ? sp.cancel_error : '';
   const existingApp = viewerMemberId ? await getApplication(event.id, viewerMemberId) : null;
   const confirmedMembers = await getEventMembers(event.id);
   const host = event.hostId ? await getMember(event.hostId) : null;
@@ -68,6 +71,16 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
         {created ? (
           <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
             イベントを公開しました。参加申請が届いたら、管理画面から承認できます。
+          </p>
+        ) : null}
+        {cancelled ? (
+          <p className='rounded-2xl border border-[#ebe9e4] bg-white px-4 py-3 text-sm text-[#4a4a4a]'>
+            参加をキャンセルしました。
+          </p>
+        ) : null}
+        {cancelError ? (
+          <p className='rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700'>
+            キャンセルできませんでした。イベント開始後の場合はお問い合わせください。
           </p>
         ) : null}
 
@@ -114,8 +127,11 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
               label={ctaLabel}
             />
           ) : participationScheduled ? (
-            <div className='rounded-2xl border border-[#dfe9e4] bg-[#eef4f0] px-5 py-4 text-center'>
-              <p className='text-sm font-semibold text-[#1f5d4f]'>参加予定です</p>
+            <div className='space-y-3 rounded-2xl border border-[#dfe9e4] bg-[#eef4f0] px-5 py-4'>
+              <p className='text-center text-sm font-semibold text-[#1f5d4f]'>参加予定です</p>
+              {viewerMemberId && !event.isPast ? (
+                <CancelParticipationButton eventId={event.id} eventTitle={event.title} returnTo={`/events/${event.id}`} />
+              ) : null}
             </div>
           ) : null}
         </header>
@@ -187,6 +203,12 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                   className='inline-flex h-11 w-full items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white'
                 >
                   申請者を管理する
+                </Link>
+                <Link
+                  href={`/events/edit/${event.id}`}
+                  className='inline-flex h-11 w-full items-center justify-center rounded-full border border-[#d8d6d1] text-sm font-semibold text-[#6b6b6b]'
+                >
+                  イベントを編集
                 </Link>
                 <Link
                   href={`/groups/${event.id}`}

@@ -62,6 +62,10 @@ export async function getApplication(eventId: string, memberId: string): Promise
   return useSupabase ? supa.getApplication(eventId, memberId) : mock.getApplication(eventId, memberId);
 }
 
+export async function listApplicationsForMember(memberId: string): Promise<EventApplication[]> {
+  return useSupabase ? supa.listApplicationsForMember(memberId) : mock.listApplications().filter((a) => a.memberId === memberId);
+}
+
 export async function getEventMembers(eventId: string): Promise<ConnectionMember[]> {
   const members = useSupabase ? await supa.getEventMembers(eventId) : mock.getEventMembers(eventId);
   return members.map(toPublicMemberView);

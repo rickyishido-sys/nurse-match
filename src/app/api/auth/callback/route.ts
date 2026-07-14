@@ -9,7 +9,11 @@ export async function GET(request: Request) {
   const tokenHash = requestUrl.searchParams.get('token_hash');
   const otpType = requestUrl.searchParams.get('type');
   const next = requestUrl.searchParams.get('next');
-  const profilePath = next === '/register/details' ? '/register/details' : HANAKAI_POST_AUTH_PROFILE_PATH;
+  const profilePath = next === '/register/details'
+    ? '/register/details'
+    : next === '/reset-password'
+      ? '/reset-password'
+      : HANAKAI_POST_AUTH_PROFILE_PATH;
   const profileUrl = new URL(profilePath, requestUrl.origin);
   let redirectTo: URL | string = profileUrl;
   let sessionEstablished = false;
@@ -77,8 +81,10 @@ export async function GET(request: Request) {
     }
 
     if (sessionEstablished) {
-      redirectTo = profileUrl;
-      // Keep `response` from setAll — it already carries auth cookies.
+      const nextPath = next === '/reset-password' || next === '/register/details'
+        ? next
+        : profilePath;
+      redirectTo = new URL(nextPath, requestUrl.origin);
     }
   } catch (error) {
     console.error('AUTH_CALLBACK_UNEXPECTED_ERROR', error);
@@ -88,5 +94,10 @@ export async function GET(request: Request) {
   if (typeof redirectTo === 'string') {
     return NextResponse.redirect(new URL(redirectTo, requestUrl.origin));
   }
-  return response;
+
+  const finalResponse = NextResponse.redirect(redirectTo);
+  response.cookies.getAll().forEach((cookie) => {
+    finalResponse.cookies.set(cookie.name, cookie.value);
+  });
+  return finalResponse;
 }

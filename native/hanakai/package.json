@@ -1,0 +1,30 @@
+{
+  "name": "hanakai-native",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Capacitor native wrapper for HANAKAI Connection (loads remote web app)",
+  "scripts": {
+    "cap:sync": "node scripts/sync.mjs",
+    "cap:sync:ios": "node scripts/sync.mjs ios",
+    "cap:sync:android": "node scripts/sync.mjs android",
+    "cap:open:ios": "npx cap open ios",
+    "cap:open:android": "npx cap open android",
+    "cap:add:ios": "npx cap add ios",
+    "cap:add:android": "npx cap add android",
+    "cap:doctor": "npx cap doctor"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/camera": "^8.2.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
+    "@capacitor/share": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
+    "typescript": "^5"
+  }
+}

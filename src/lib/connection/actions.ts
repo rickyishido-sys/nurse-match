@@ -292,18 +292,8 @@ export async function removeMemberAction(formData: FormData) {
 export async function followMemberAction(formData: FormData) {
   const memberId = String(formData.get('memberId') ?? '');
   const eventId = String(formData.get('eventId') ?? '');
-  console.log('CONNECTION_FOLLOW', { memberId, eventId });
   revalidatePath(`/connections/${eventId}`);
   redirect(`/connections/${eventId}?followed=${memberId}`);
-}
-
-export async function sendMessageAction(formData: FormData) {
-  const memberId = String(formData.get('memberId') ?? '');
-  const eventId = String(formData.get('eventId') ?? '');
-  const body = String(formData.get('body') ?? '').trim();
-  console.log('CONNECTION_MESSAGE', { memberId, eventId, hasBody: body.length > 0 });
-  revalidatePath(`/connections/${eventId}`);
-  redirect(`/connections/${eventId}?messaged=${memberId}`);
 }
 
 export async function setRegistrationPasswordAction(formData: FormData) {
@@ -522,19 +512,41 @@ export async function updateMyProfileAction(formData: FormData) {
 
   const purposes = formData.getAll('purposes') as ConnectionPurpose[];
   const interestTags = formData.getAll('interestTags') as InterestTag[];
+  const valueTags = formData.getAll('valueTags') as ValueTag[];
   const lifePhase = String(formData.get('lifePhase') ?? 'other') as LifePhase;
   const mbtiRaw = String(formData.get('mbtiType') ?? '').trim();
   const markAiIntro = formData.get('introductionAiGenerated') === '1';
   const nextBio = String(formData.get('bio') ?? '').trim();
+  const area = String(formData.get('area') ?? '').trim();
+  const occupation = String(formData.get('occupation') ?? '').trim();
+
+  const explicitCoreValues = String(formData.get('coreValues') ?? '').trim();
+  const coreValues =
+    explicitCoreValues || valueTags.map((tag) => VALUE_TAG_LABEL[tag]).filter(Boolean).join('、');
+
+  const beforeValues = beforeMember?.values;
 
   await updateMember(memberId, {
     nickname,
     age: Number(formData.get('age') ?? 0),
     gender: String(formData.get('gender') ?? 'other') as 'female' | 'male' | 'other',
+    area: area || beforeMember?.area || '',
+    occupation: occupation || beforeMember?.occupation || '',
     bio: nextBio,
+    purposes,
     interestTags,
     lifePhase,
     mbtiType: (mbtiRaw || 'unknown') as import('@/lib/connection/bloom-profile-options').MbtiType,
+    values: {
+      mostImportant: String(formData.get('mostImportant') ?? beforeValues?.mostImportant ?? '').trim(),
+      currentChallenge: String(formData.get('currentChallenge') ?? beforeValues?.currentChallenge ?? '').trim(),
+      futureGoal: String(formData.get('futureGoal') ?? beforeValues?.futureGoal ?? '').trim(),
+      recentInspiration: String(formData.get('recentInspiration') ?? beforeValues?.recentInspiration ?? '').trim(),
+      howOthersSeeMe: String(formData.get('howOthersSeeMe') ?? beforeValues?.howOthersSeeMe ?? '').trim(),
+      personalityOneWord: String(formData.get('personalityOneWord') ?? beforeValues?.personalityOneWord ?? '').trim(),
+      coreValues,
+      valueTags,
+    },
     ...(markAiIntro
       ? {
           introductionAiGenerated: true,
@@ -583,10 +595,8 @@ export async function updateMyProfileAction(formData: FormData) {
     );
   }
 
-  console.log('CONNECTION_PROFILE_UPDATE', { memberId, nickname, purposes, interestTags, lifePhase });
   revalidatePath('/my-profile');
   revalidatePath('/events');
-  revalidatePath('/posts');
   revalidatePath('/connections');
   revalidatePath('/admin/hanakai/members');
   redirect('/my-profile?saved=1');

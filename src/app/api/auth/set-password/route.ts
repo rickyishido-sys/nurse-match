@@ -47,6 +47,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'failed', detail: error.message }, { status: 400 });
   }
 
-  console.log('BLOOM_PASSWORD_UPDATE_SUCCESS', { userId: user.id });
   return NextResponse.json({ ok: true });
 }

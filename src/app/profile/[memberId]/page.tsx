@@ -5,6 +5,7 @@ import { MemberAvatar } from '@/components/connection/member-avatar';
 import { MemberInsights } from '@/components/connection/member-insights';
 import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
 import { ReportButton } from '@/components/connection/report-button';
+import { BlockMemberButton } from '@/components/connection/block-member-button';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { BloomCardPublic } from '@/components/connection/bloom-card';
 import { BloomPhase4Panel } from '@/components/connection/bloom-phase4-panel';
@@ -19,6 +20,7 @@ import {
 import { filterPublicMemories, filterPublicTimeline } from '@/lib/connection/bloom-phase4-types';
 import { LIFE_PHASE_LABEL, PURPOSE_LABEL, INTEREST_TAG_LABEL } from '@/lib/connection/data';
 import { getViewerMemberId } from '@/lib/connection/identity';
+import { isMemberBlocked } from '@/lib/connection/block-repo';
 import { getMember } from '@/lib/connection/repo';
 import { getVisibleSocialLinks } from '@/lib/connection/social-links';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
@@ -34,6 +36,10 @@ export default async function MemberProfilePage({ params }: PageProps) {
 
   const isSelf = viewerMemberId === memberId;
   if (isSelf) {
+    return notFound();
+  }
+
+  if (viewerMemberId && (await isMemberBlocked(viewerMemberId, memberId) || await isMemberBlocked(memberId, viewerMemberId))) {
     return notFound();
   }
 
@@ -71,6 +77,14 @@ export default async function MemberProfilePage({ params }: PageProps) {
             loginNext={`/profile/${member.id}`}
           />
         </div>
+
+        {viewerMemberId ? (
+          <BlockMemberButton
+            blockedMemberId={member.id}
+            memberName={member.nickname}
+            returnTo={`/profile/${member.id}`}
+          />
+        ) : null}
 
         <Card>
           <div className='flex gap-4'>

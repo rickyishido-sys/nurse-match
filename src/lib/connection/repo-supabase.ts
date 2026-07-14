@@ -167,6 +167,8 @@ function appFromRow(row: AppRow): EventApplication {
     reason: row.reason ?? undefined,
     confirmationToken: row.confirmation_token ?? undefined,
     confirmedAt: row.confirmed_at ?? undefined,
+    cancelledAt: row.cancelled_at ?? undefined,
+    cancelReason: row.cancel_reason ?? undefined,
   };
 }
 
@@ -292,6 +294,17 @@ export async function getApplication(eventId: string, memberId: string): Promise
     .eq('member_id', memberId)
     .maybeSingle();
   return data ? appFromRow(data) : null;
+}
+
+export async function listApplicationsForMember(memberId: string): Promise<EventApplication[]> {
+  const sb = await db();
+  if (!sb) return [];
+  const { data } = await sb
+    .from('hanakai_event_applications')
+    .select('*')
+    .eq('member_id', memberId)
+    .order('applied_at', { ascending: false });
+  return (data ?? []).map(appFromRow);
 }
 
 export async function getEventMembers(eventId: string): Promise<ConnectionMember[]> {
