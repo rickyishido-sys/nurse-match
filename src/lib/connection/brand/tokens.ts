@@ -29,6 +29,7 @@ export const HK = {
 } as const;
 
 export const BRAND_TAGLINE = '人との時間を華やかにする。';
+export const BRAND_CONCEPT = '評価から始まる関係ではなく、理解から始まる関係をつくる。';
 export const BRAND_SUBLINE = 'イベントではなく、体験をデザインする。';
 
 /** セクションごとの鮮やかな背景 */

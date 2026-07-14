@@ -44,11 +44,11 @@ HANAKAI Connection Ver1.0 の App Store / Google Play 提出前チェックリ�
 | B3 | プロフィール閲覧・編集 | ✅ | |
 | B4 | 通報機能 | ✅ | ReportButton |
 | B5 | ブロック機能 | ✅ | `/account/blocked` |
-| B6 | グループフィード（投稿・写真） | ✅ | |
+| B6 | 参加者一覧（/connections） | ✅ | フォロー・DM なし |
 | B7 | アカウント削除 | ✅ | `/account/delete` |
-| B8 | パスワードリセット UI | 🔴 | 未実装 — 審査リスク |
-| B9 | DM（メッセージ送信） | 🔴 | スタブ — UI 非表示 or 実装推奨 |
-| B10 | レガシールートの無効化 | 🔴 | `/admin/connection/*` 等の公開モック |
+| B8 | パスワードリセット UI | ✅ | `/forgot-password` |
+| B9 | DM（メッセージ送信） | ✅ | Ver1.0 スコープ外・UI 非表示 |
+| B10 | レガシールートの無効化 | ✅ | middleware 404 |
 | B11 | プッシュ通知 | ⬜ | Ver1.0 スコープ外（権限要求なし） |
 | B12 | アプリ内課金 | ✅ | なし（確認済み） |
 

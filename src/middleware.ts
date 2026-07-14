@@ -67,7 +67,17 @@ async function redirectIfDeletedHanakaiMember(request: NextRequest): Promise<Nex
 }
 
 function notFoundResponse(request: NextRequest): NextResponse {
-  return NextResponse.rewrite(new URL('/not-found', request.url));
+  if (request.headers.get('x-hanakai-not-found-rewrite') === '1') {
+    return NextResponse.next();
+  }
+
+  const rewriteUrl = new URL('/not-found', request.url);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-hanakai-not-found-rewrite', '1');
+
+  return NextResponse.rewrite(rewriteUrl, {
+    request: { headers: requestHeaders },
+  });
 }
 
 function loginRedirect(request: NextRequest, pathname: string, admin = false): NextResponse {

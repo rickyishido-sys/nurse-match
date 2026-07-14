@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'HANAKAI Connection',
     short_name: 'HANAKAI',
-    description: '知らない人同士がリアルで出会う、週替わりのイベントコミュニティ。',
+    description: '週替わりのリアルイベントを探して参加申請できるコミュニティ。プロフィール作成、イベント主催、通報・ブロックまで。',
     start_url: '/',
     display: 'standalone',
     orientation: 'portrait',

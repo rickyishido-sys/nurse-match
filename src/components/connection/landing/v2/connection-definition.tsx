@@ -1,19 +1,17 @@
 'use client';
 
 import { motion } from 'motion/react';
-import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
-import { BRAND_TAGLINE } from '@/lib/connection/brand/tokens';
+import { BRAND_CONCEPT, BRAND_TAGLINE } from '@/lib/connection/brand/tokens';
 
 const CYCLE_STEPS = [
-  { label: 'リアル体験', color: HK.coral },
-  { label: 'アプリで交流', color: HK.violet },
-  { label: '応援する', color: HK.amber },
-  { label: '再会する', color: HK.sky },
-  { label: 'また体験へ', color: HK.lime },
-];
+  { label: 'イベントを探す', color: HK.coral },
+  { label: '参加申請', color: HK.violet },
+  { label: 'リアル体験', color: HK.amber },
+  { label: '次の体験へ', color: HK.sky },
+] as const;
 
 export function LandingConnectionDefinition() {
   return (
@@ -25,10 +23,6 @@ export function LandingConnectionDefinition() {
       <BgTypography text='華会' className='!text-[#1f5d4f]/[0.06]' />
       <ColorBlob color={HK.violetSoft} className='right-0 top-[20%]' />
       <ColorBlob color={HK.coralSoft} className='bottom-[10%] left-0' />
-
-      <BrandCharacterSlot id='D1' size='xl' variant='peek' className='rotate-8' wrapperClassName='absolute -right-4 top-[12%]' />
-      <BrandCharacterSlot id='N' size='lg' variant='float' className='-rotate-6' wrapperClassName='absolute -left-6 bottom-[8%] hidden sm:block' />
-      <BrandCharacterSlot id='Y' size='sm' variant='float' className='rotate-12' wrapperClassName='absolute right-[15%] bottom-[25%] hidden lg:block' />
 
       <div className='relative z-10 flex flex-col items-center text-center lg:items-start lg:text-left'>
         <Reveal>
@@ -44,14 +38,17 @@ export function LandingConnectionDefinition() {
         <Reveal delay={0.1}>
           <Lead className='mt-6 max-w-[48ch]'>
             {BRAND_TAGLINE}
-            イベントで出会い、コミュニティで交流し、また次の体験で再会する——この循環が、HANAKAI Connectionです。
+            <br />
+            {BRAND_CONCEPT}
+            <br />
+            イベントを探し、参加申請し、リアルな場で体験する——それが Ver1.0 の HANAKAI Connection です。
           </Lead>
         </Reveal>
       </div>
 
       <Reveal delay={0.15} className='relative z-10 mt-16'>
         <p className='mb-8 text-center text-[11px] font-bold tracking-[0.24em] text-[#9a9a9a] lg:text-left'>
-          Connectionの循環
+          参加の流れ
         </p>
         <div className='flex flex-wrap items-center justify-center gap-4 lg:justify-start'>
           {CYCLE_STEPS.map((step, i) => (
@@ -70,7 +67,7 @@ export function LandingConnectionDefinition() {
           ))}
         </div>
         <p className='mt-10 text-center text-sm leading-8 text-[#5a5247] lg:text-left'>
-          毎週新しい体験の案内が届き、参加・交流・再会が続いていく。
+          プロフィールを整え、体験に参加し、また次のイベントへ——リアルな出会いを重ねていきます。
         </p>
       </Reveal>
     </Section>

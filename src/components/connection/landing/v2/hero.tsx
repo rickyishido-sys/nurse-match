@@ -146,7 +146,7 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
           transition={{ delay: 0.45 }}
           className='mt-5 text-xs text-white/55'
         >
-          プロフィール作成 → 体験に参加 → つながりが育つ
+          プロフィール作成 → 参加申請 → リアル体験
         </motion.p>
       </div>
 

@@ -241,7 +241,7 @@ export default async function ConnectionsPage() {
               <Section
                 kicker='HISTORY'
                 title='過去のイベント'
-                description='参加したイベントで出会った人とつながれます。再会したい相手にフォロー・メッセージを。'
+                description='参加したイベントで出会ったメンバーのプロフィールを確認できます。'
               >
                 {past.map((row) => (
                   <PastConnectionCard key={row.event.id} row={row} members={pastMembers.get(row.event.id) ?? []} />

@@ -4,7 +4,7 @@ import { SITE_URL } from '@/lib/config';
 import './globals.css';
 
 const SITE_TITLE = 'HANAKAI Connection';
-const SITE_DESCRIPTION = '知らない人同士がリアルで出会う、週替わりのイベントコミュニティ。';
+const SITE_DESCRIPTION = '週替わりのリアルイベントを探して参加申請できるコミュニティ。プロフィール作成、イベント主催、通報・ブロックまで。';
 
 const noto = Noto_Sans_JP({
   subsets: ['latin'],

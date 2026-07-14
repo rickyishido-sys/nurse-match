@@ -12,7 +12,6 @@ import { LandingRecommend } from '@/components/connection/landing/v2/recommend';
 import { LandingSafety } from '@/components/connection/landing/v2/safety';
 import { LandingVoices } from '@/components/connection/landing/v2/voices';
 import { LandingAppMock } from '@/components/connection/landing/v2/app-mock';
-import { LandingSupport } from '@/components/connection/landing/v2/support';
 import { LandingCycle } from '@/components/connection/landing/v2/cycle';
 import { LandingFaq } from '@/components/connection/landing/v2/faq';
 import { LandingFinalCta } from '@/components/connection/landing/v2/final-cta';
@@ -45,7 +44,6 @@ export default async function LandingPage() {
         <LandingSafety />
         <LandingVoices />
         <LandingAppMock />
-        <LandingSupport />
         <LandingCycle />
         <LandingFaq />
         <LandingFinalCta joinHref={joinHref} />

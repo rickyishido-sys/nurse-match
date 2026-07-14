@@ -5,14 +5,14 @@ import { useEffect, useState } from 'react';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
 
 const NODES = [
-  'リアルイベント',
-  'アプリで交流',
-  '人柄を知る',
-  '応援する',
-  '再会する',
-  '仲間を紹介する',
-  '再びイベントへ',
-];
+  'イベントを探す',
+  'プロフィール作成',
+  '参加申請',
+  'リアル体験',
+  '参加をキャンセル',
+  '通報・ブロック',
+  'また体験へ',
+] as const;
 
 export function LandingCycle() {
   const [active, setActive] = useState(0);
@@ -30,7 +30,7 @@ export function LandingCycle() {
     return () => clearInterval(t);
   }, [reduced]);
 
-  const R = 41; // % radius
+  const R = 41;
 
   return (
     <Section tone='green'>
@@ -42,23 +42,21 @@ export function LandingCycle() {
           <Heading dark className='mt-5'>
             リアルで出会う
             <br className='sm:hidden' />
-            コミュニティ
+            体験コミュニティ
           </Heading>
         </Reveal>
         <Reveal delay={0.1}>
           <Lead dark className='mt-6 max-w-[42ch]'>
-            一度きりの出会いで終わらせない。イベントのあともアプリでつながり、
-            応援し合い、また会う。花会は巡り続けるコミュニティです。
+            スワイプやタイムラインではなく、実際の体験から始まります。
+            イベントを探し、申請し、当日はリアルな場で過ごす——それが Ver1.0 の中心です。
           </Lead>
         </Reveal>
       </div>
 
       <Reveal delay={0.15} className='mt-16'>
         <div className='relative mx-auto aspect-square w-full max-w-[340px] sm:max-w-[480px]'>
-          {/* 円環の軌道 */}
           <div className='absolute inset-[9%] rounded-full border border-dashed border-white/25' />
 
-          {/* 中央のラベル */}
           <div className='absolute inset-0 flex items-center justify-center'>
             <div className='flex h-24 w-24 flex-col items-center justify-center rounded-full bg-white/10 text-center backdrop-blur sm:h-28 sm:w-28'>
               <span className='text-2xl' aria-hidden>

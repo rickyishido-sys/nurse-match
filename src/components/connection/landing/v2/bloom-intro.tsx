@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
 
 const POINTS = [
-  { icon: '✦', text: 'プロフィールの要点を、やさしく整理' },
-  { icon: '✦', text: '会話のきっかけを、自然な言葉で提案' },
-  { icon: '✦', text: '参加が増えるほど、あなたらしさが育つ' },
+  { icon: '✦', text: 'ニックネーム・年代・エリアなどの基本情報' },
+  { icon: '✦', text: '興味・価値観・写真で、あなたらしさを表現' },
+  { icon: '✦', text: '参加申請時に、主催者があなたを確認できます' },
 ] as const;
 
 export function LandingBloomIntro() {
@@ -15,19 +15,19 @@ export function LandingBloomIntro() {
       <div className='grid items-center gap-10 lg:grid-cols-2 lg:gap-14'>
         <div>
           <Reveal>
-            <Kicker>Bloom Profile</Kicker>
+            <Kicker>Profile</Kicker>
           </Reveal>
           <Reveal delay={0.05}>
             <Heading className='mt-5'>
-              AIが、あなたらしさを
+              プロフィールを作って、
               <br className='hidden sm:block' />
-              整理します
+              体験に参加する
             </Heading>
           </Reveal>
           <Reveal delay={0.1}>
             <Lead className='mt-6 max-w-[36ch]'>
-              難しい設定や長い説明は不要です。
-              あなたのプロフィールと体験から、会話の入口や自己紹介の要点を整えます。
+              難しい設定は不要です。あなたのことをやさしく伝えるプロフィールを作成し、
+              気になる体験へ参加申請できます。
             </Lead>
           </Reveal>
           <Reveal delay={0.15}>
@@ -50,22 +50,28 @@ export function LandingBloomIntro() {
               <span className='text-2xl' aria-hidden>
                 🌸
               </span>
-              <p className='text-sm font-semibold text-[#1f5d4f]'>Bloom Profile（イメージ）</p>
+              <p className='text-sm font-semibold text-[#1f5d4f]'>プロフィール（イメージ）</p>
             </div>
             <div className='mt-6 space-y-4 rounded-2xl bg-white p-5 shadow-sm'>
-              <div>
-                <p className='text-[10px] font-medium tracking-wide text-[#9a9a9a]'>Bloom Summary</p>
-                <p className='mt-1 text-sm font-semibold text-[#1f5d4f]'>花と対話を楽しむ人</p>
-                <p className='mt-2 text-sm leading-7 text-[#4a4a4a]'>
-                  体験を通じて人とつながることを大切にしているようです。
-                </p>
+              <div className='flex items-center gap-3'>
+                <span className='h-14 w-14 rounded-full bg-[#e7ddcf]' />
+                <div>
+                  <p className='text-sm font-semibold text-[#1f5d4f]'>Aoi</p>
+                  <p className='text-xs text-[#6b6b6b]'>30代 · 東京</p>
+                </div>
               </div>
               <div>
-                <p className='text-[10px] font-medium tracking-wide text-[#9a9a9a]'>Conversation Starters</p>
-                <ul className='mt-2 space-y-1 text-sm text-[#4a4a4a]'>
-                  <li>・最近参加したイベントは？</li>
-                  <li>・休日はどんな過ごし方をしますか？</li>
-                </ul>
+                <p className='text-[10px] font-medium tracking-wide text-[#9a9a9a]'>自己紹介</p>
+                <p className='mt-2 text-sm leading-7 text-[#4a4a4a]'>
+                  体験を通じて人とつながることを大切にしています。
+                </p>
+              </div>
+              <div className='flex flex-wrap gap-2'>
+                {['カフェ', '散歩', '花'].map((tag) => (
+                  <span key={tag} className='rounded-full bg-[#f3f7f5] px-3 py-1 text-xs text-[#1f5d4f]'>
+                    {tag}
+                  </span>
+                ))}
               </div>
             </div>
             <p className='mt-5 text-center text-[11px] leading-6 text-[#9a9a9a]'>

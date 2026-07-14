@@ -36,6 +36,22 @@ const blockedRoutes = [
 
 const dmForbidden = ['メッセージを送', 'sendMessage', 'ConnectionMessage'];
 
+const landingForbidden = [
+  'HANAKAI投稿',
+  'HANAKAIコメント',
+  'HANAKAIメッセージ',
+  'HANAKAI応援',
+  'HANAKAIライブ',
+  '花を贈る',
+  '投げ花',
+  'コミュニティで交流',
+  'アプリで交流',
+  'フォローや',
+  'グループ投稿',
+  'ライブ配信',
+  'AIが、あなたらしさを',
+];
+
 const viewports = [
   { name: 'mobile', width: 390, height: 844 },
   { name: 'tablet', width: 768, height: 1024 },
@@ -89,8 +105,16 @@ async function main() {
     await page.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(300);
     const hScroll = await checkHorizontalScroll(page);
+    const landingHtml = await page.content();
+    const forbiddenHits = landingForbidden.filter((t) => landingHtml.includes(t));
     await page.screenshot({ path: path.join(outDir, `${vp.name}-landing.png`) });
-    results.push({ kind: 'responsive', viewport: vp.name, hScroll, ok: !hScroll });
+    results.push({
+      kind: 'responsive',
+      viewport: vp.name,
+      hScroll,
+      forbiddenHits,
+      ok: !hScroll && forbiddenHits.length === 0,
+    });
   }
 
   await browser.close();

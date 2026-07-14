@@ -20,16 +20,18 @@ function Phone({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function Bubble({ me = false, children }: { me?: boolean; children: ReactNode }) {
+function Card({ title, meta, badge }: { title: string; meta: string; badge?: string }) {
   return (
-    <div className={`flex ${me ? 'justify-end' : 'justify-start'}`}>
-      <span
-        className={`max-w-[78%] rounded-2xl px-3 py-2 text-[11px] leading-relaxed ${
-          me ? 'rounded-br-md bg-[#1f5d4f] text-white' : 'rounded-bl-md bg-white text-[#1a1a1a]'
-        }`}
-      >
-        {children}
-      </span>
+    <div className='rounded-xl border border-[#ebe9e4] bg-white p-3'>
+      <div className='flex items-start justify-between gap-2'>
+        <p className='text-[11px] font-semibold leading-snug text-[#1a1a1a]'>{title}</p>
+        {badge ? (
+          <span className='shrink-0 rounded-full bg-[#e7f0ea] px-2 py-0.5 text-[9px] font-semibold text-[#1f5d4f]'>
+            {badge}
+          </span>
+        ) : null}
+      </div>
+      <p className='mt-1 text-[10px] text-[#6b6b6b]'>{meta}</p>
     </div>
   );
 }
@@ -42,65 +44,89 @@ export function LandingAppMock() {
           <Kicker>Point 06</Kicker>
         </Reveal>
         <Reveal delay={0.05}>
-          <Heading className='mt-5'>イベント後もつながる</Heading>
+          <Heading className='mt-5'>Ver1.0でできること</Heading>
         </Reveal>
         <Reveal delay={0.1}>
-          <Lead className='mt-6 max-w-[40ch]'>
-            出会いはその日で終わりません。グループ投稿を通じて、つながりはゆっくり育っていきます。
+          <Lead className='mt-6 max-w-[42ch]'>
+            イベントの探索から参加申請、プロフィール作成、主催・運営の確認まで。
+            リアルな体験に集中できる、シンプルな導線です。
           </Lead>
         </Reveal>
       </div>
 
       <Reveal delay={0.15}>
         <div className='-mx-6 mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto px-6 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
-          <Phone label='投稿'>
+          <Phone label='イベント'>
             <div className='space-y-2'>
-              <div className='h-28 rounded-xl bg-gradient-to-br from-[#f7e7ec] to-[#efd6df]' />
-              <div className='flex items-center gap-2'>
-                <span className='h-6 w-6 rounded-full bg-[#e7ddcf]' />
-                <span className='text-[11px] font-semibold text-[#1a1a1a]'>Aoi</span>
+              <p className='text-[10px] font-semibold text-[#1f5d4f]'>今週の体験</p>
+              <Card title='カフェで語らう会' meta='土曜 · 渋谷 · 定員8名' badge='募集中' />
+              <Card title='花と散歩クラブ' meta='日曜 · 代々木 · 定員10名' />
+              <Card title='バーで交流する会' meta='金曜 · 恵比寿 · 定員6名' badge='残りわずか' />
+            </div>
+          </Phone>
+
+          <Phone label='参加申請'>
+            <div className='space-y-3'>
+              <div className='rounded-xl bg-gradient-to-br from-[#e7f0ea] to-white p-4'>
+                <p className='text-[11px] font-semibold text-[#1a1a1a]'>カフェで語らう会</p>
+                <p className='mt-1 text-[10px] text-[#6b6b6b]'>参加申請を送信しました</p>
               </div>
-              <p className='text-[11px] leading-relaxed text-[#5a5247]'>
-                今日の花会、はじめてでしたが本当に楽しかったです🌸
-              </p>
-              <div className='flex items-center gap-3 text-[11px]' style={{ color: HK.gold }}>
-                <span>❀ 24</span>
-                <span className='text-[#9a9a9a]'>💬 6</span>
+              <div className='rounded-xl border border-[#ebe9e4] bg-white p-3 text-[10px] leading-relaxed text-[#5a5247]'>
+                主催者または運営が申請を確認します。承認後、当日の案内をご確認ください。
+              </div>
+              <button
+                type='button'
+                className='w-full rounded-full border border-[#d8d3cb] py-2 text-[10px] font-semibold text-[#6b6b6b]'
+              >
+                参加をキャンセル
+              </button>
+            </div>
+          </Phone>
+
+          <Phone label='プロフィール'>
+            <div className='space-y-3'>
+              <div className='flex items-center gap-3'>
+                <span className='h-12 w-12 rounded-full bg-[#e7ddcf]' />
+                <div>
+                  <p className='text-[11px] font-semibold text-[#1a1a1a]'>Aoi</p>
+                  <p className='text-[10px] text-[#6b6b6b]'>30代 · 東京 · デザイン</p>
+                </div>
+              </div>
+              <div className='rounded-xl bg-white p-3'>
+                <p className='text-[10px] font-medium text-[#9a9a9a]'>自己紹介</p>
+                <p className='mt-1 text-[10px] leading-relaxed text-[#4a4a4a]'>
+                  体験を通じて、自然な会話からつながりたいです。
+                </p>
+              </div>
+              <div className='flex flex-wrap gap-1.5'>
+                {['カフェ', '散歩', '花'].map((tag) => (
+                  <span key={tag} className='rounded-full bg-[#f3f7f5] px-2 py-0.5 text-[9px] text-[#1f5d4f]'>
+                    {tag}
+                  </span>
+                ))}
               </div>
             </div>
           </Phone>
 
-          <Phone label='コメント'>
+          <Phone label='主催・運営'>
             <div className='space-y-2'>
-              <Bubble>素敵な作品ですね！</Bubble>
-              <Bubble>次回もぜひご一緒したいです</Bubble>
-              <Bubble me>ありがとうございます☺️</Bubble>
-              <Bubble>あの後のカフェも楽しかった！</Bubble>
-            </div>
-          </Phone>
-
-          <Phone label='グループ'>
-            <div className='space-y-2'>
-              <Bubble>今日のイベント、また話しましょう</Bubble>
-              <Bubble me>ぜひ！次回も参加します</Bubble>
-              <Bubble>グループに写真をシェアしました</Bubble>
-            </div>
-          </Phone>
-
-          <Phone label='ライブ配信'>
-            <div className='space-y-2'>
-              <div className='relative h-40 overflow-hidden rounded-xl bg-gradient-to-br from-[#24463b] to-[#13261f]'>
-                <span className='absolute left-2 top-2 rounded-full bg-red-500 px-2 py-0.5 text-[9px] font-bold text-white'>
-                  LIVE
-                </span>
-                <span className='absolute right-2 top-2 rounded-full bg-black/40 px-2 py-0.5 text-[9px] text-white'>
-                  👁 128
-                </span>
-              </div>
-              <p className='text-[11px] font-semibold text-[#1a1a1a]'>春のアレンジメント配信</p>
-              <div className='space-y-1'>
-                <p className='text-[10px] text-[#6b6b6b]'>Mio: きれい！</p>
-                <p className='text-[10px] text-[#6b6b6b]'>Ken: 参考になります</p>
+              <p className='text-[10px] font-semibold text-[#1f5d4f]'>参加者の確認</p>
+              <Card title='Ken · 参加申請' meta='承認待ち' badge='確認' />
+              <Card title='Mio · 参加申請' meta='承認待ち' badge='確認' />
+              <div className='mt-2 space-y-1.5'>
+                <button
+                  type='button'
+                  className='w-full rounded-full py-2 text-[10px] font-semibold text-white'
+                  style={{ backgroundColor: HK.green }}
+                >
+                  イベントを編集
+                </button>
+                <button
+                  type='button'
+                  className='w-full rounded-full border border-[#d8d3cb] py-2 text-[10px] font-semibold text-[#6b6b6b]'
+                >
+                  イベントを中止
+                </button>
               </div>
             </div>
           </Phone>

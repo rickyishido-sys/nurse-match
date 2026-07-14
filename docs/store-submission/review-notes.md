@@ -14,7 +14,7 @@ App Store / Google Play 審査チーム向けの説明メモです。各スト�
 ## 英語版（App Store 推奨 — 審査チームは英語対応）
 
 ```
-HANAKAI Connection is a community app for real-world weekly events (walks, cafes, flowers, etc.). Users discover events, apply to participate, and connect with other attendees after events.
+HANAKAI Connection Ver1.0 is a community app for real-world weekly events (walks, cafes, flowers, etc.). Users discover events, create a profile, apply to participate, and attend in person.
 
 ARCHITECTURE:
 - This is a Capacitor wrapper around our production PWA hosted at https://hanakai.kranz.design/
@@ -24,14 +24,22 @@ TEST ACCOUNT:
 See the credentials provided in the "App Review Information" section (or attached review-account-template.md).
 Login URL: https://hanakai.kranz.design/login
 
-KEY FEATURES TO TEST:
+KEY FEATURES TO TEST (Ver1.0):
 1. Login with the test account
 2. Browse events: /events
-3. View event detail and apply
+3. View event detail and apply / cancel participation
 4. View/edit profile: /my-profile
-5. Report a member or event (Report button on profile/event pages)
-6. Block a member (Block button on member profile) — manage at /account/blocked
-7. Account deletion: /account/delete (login required)
+5. Create / edit / cancel an event: /events/create, /events/edit/[id]
+6. Report a member or event (Report button on profile/event pages)
+7. Block a member (Block button on member profile) — manage at /account/blocked
+8. Account deletion: /account/delete (login required)
+
+NOT IN Ver1.0 (intentionally removed or deferred):
+- Direct messages / DM
+- Posts / comments / timeline
+- Live streaming
+- Tipping / cheer / in-app payments
+- Post-event in-app community messaging
 
 PAYMENTS:
 - No in-app purchases
@@ -43,7 +51,7 @@ LOCATION:
 - Users may enter a text-based residence area (e.g., "Tokyo") in their profile — this is NOT GPS data
 
 USER-GENERATED CONTENT:
-- Profile photos, group posts, and group photos after events
+- Profile photos and event descriptions
 - Report and block features are available
 - Admin moderation via internal dashboard
 
@@ -64,7 +72,7 @@ Please contact us via the support email if you need additional test accounts or 
 
 ```
 【アプリ概要】
-HANAKAI Connection は、週替わりのリアルイベント（散歩・カフェ・花など）を通じて、参加者同士のつながりを育てるコミュニティアプリです。
+HANAKAI Connection Ver1.0 は、週替わりのリアルイベント（散歩・カフェ・花など）を探して参加申請できるコミュニティアプリです。
 
 【技術構成】
 本番 PWA（https://hanakai.kranz.design/）を Capacitor でラップした WebView アプリです。ネイティブ専用 UI はありません。
@@ -74,13 +82,17 @@ HANAKAI Connection は、週替わりのリアルイベント（散歩・カフ�
 パスワード: [REVIEW_PASSWORD_PLACEHOLDER]
 ログイン: https://hanakai.kranz.design/login
 
-【確認いただきたい機能】
+【確認いただきたい機能（Ver1.0）】
 1. ログイン
-2. イベント一覧・詳細・参加申込（/events）
+2. イベント一覧・詳細・参加申込・キャンセル（/events）
 3. プロフィール閲覧・編集（/my-profile）
-4. 通報（イベント・メンバーの Report ボタン）
-5. ブロック（メンバープロフィールの Block ボタン、一覧: /account/blocked）
-6. アカウント削除（/account/delete）
+4. イベントの作成・編集・中止
+5. 通報（イベント・メンバーの Report ボタン）
+6. ブロック（メンバープロフィールの Block ボタン、一覧: /account/blocked）
+7. アカウント削除（/account/delete）
+
+【Ver1.0で提供していない機能】
+メッセージ・DM、投稿・コメント、ライブ配信、投げ花・応援・決済、イベント後のアプリ内交流
 
 【課金】
 アプリ内課金・サブスクリプションはありません。イベント参加費がある場合は当日会場での現地払いです。
@@ -102,7 +114,7 @@ https://hanakai.kranz.design/contact
 | 項目 | 説明 |
 |------|------|
 | サービス種別 | イベント型コミュニティ（マッチングアプリではない） |
-| 主要導線 | イベント閲覧 → 参加申込 → イベント後の交流 |
+| 主要導線 | イベント閲覧 → プロフィール作成 → 参加申込 → リアル体験 |
 | スワイプ型マッチング | なし |
 | 位置ベースの近隣検索 | なし |
 | 常時位置追跡 | なし |
@@ -115,12 +127,13 @@ https://hanakai.kranz.design/contact
 
 | 機能 | パス | 審査アカウント必要 |
 |------|------|-------------------|
-| イベント参加申込 | `/events/[id]` | はい |
+| イベント参加申込・キャンセル | `/events/[id]` | はい |
 | プロフィール編集 | `/my-profile?mode=edit` | はい |
+| イベント作成・編集・中止 | `/events/create`, `/events/edit/[id]` | はい |
 | 通報 | 各所 Report ボタン | はい |
 | ブロック | プロフィール Block ボタン | はい |
 | アカウント削除 | `/account/delete` | はい |
-| グループフィード投稿 | `/groups/[eventId]` | はい（参加済みイベント必要） |
+| 参加者一覧 | `/connections/[eventId]` | はい（参加済みイベント必要） |
 
 ---
 
@@ -133,6 +146,7 @@ https://hanakai.kranz.design/contact
 3. **審査用アカウントをイベントに承認済みにする**
 4. **本番 URL の安定稼働確認**
 5. **レガシールートの無効化** — 旧マッチング系ページが審査員に露出しないこと
+6. **公開トップページと Ver1.0 実機能の一致確認**
 
 > ⚠️ **要人間対応:** 審査用イベントの日程・内容は実際の運営スケジュールと調整してください。
 
@@ -140,16 +154,16 @@ https://hanakai.kranz.design/contact
 
 ## 既知の制限事項（審査員への正直な開示）
 
-Ver1.0 で審査員に影響する可能性のある制限:
+Ver1.0 で意図的に提供していない機能:
 
-| 機能 | 状態 | 審査への影響 |
-|------|------|-------------|
-| DM（メッセージ送信） | スタブ（送信未実装） | UI はあるが送信されない — 審査メモで明記推奨 |
-| パスワードリセット UI | 未実装 | 審査アカウントはパスワードログインで提供 |
-| プッシュ通知 | 未実装 | 権限要求なし |
-| アプリ内通知一覧 | 未実装 | — |
-
-> ⚠️ **要確認（プロダクト）:** DM スタブは UX 上のリスクです。審査前に UI 非表示または実装完了を検討してください。
+| 機能 | 状態 |
+|------|------|
+| DM（メッセージ送信） | Ver1.0 スコープ外（UI 非表示） |
+| 投稿・コメント・ライブ | Ver1.0 スコープ外（ルート 404） |
+| 投げ花・応援・決済 | Ver1.0 スコープ外 |
+| イベント後のアプリ内交流 | Ver1.0 スコープ外 |
+| プッシュ通知 | 未実装（権限要求なし） |
+| アプリ内通知一覧 | 未実装 |
 
 ---
 
