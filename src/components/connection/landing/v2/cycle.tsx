@@ -48,7 +48,7 @@ export function LandingCycle() {
         <Reveal delay={0.1}>
           <Lead dark className='mt-6 max-w-[42ch]'>
             スワイプやタイムラインではなく、実際の体験から始まります。
-            イベントを探し、申請し、当日はリアルな場で過ごす——それが Ver1.0 の中心です。
+            イベントを探し、申請し、当日はリアルな場で過ごす——それが華会の中心です。
           </Lead>
         </Reveal>
       </div>

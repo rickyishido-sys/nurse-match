@@ -103,7 +103,7 @@ export function LandingAppMock() {
           <Kicker>Point 06</Kicker>
         </Reveal>
         <Reveal delay={0.05}>
-          <Heading className='mt-5'>Ver1.0でできること</Heading>
+          <Heading className='mt-5'>華会でできること</Heading>
         </Reveal>
         <Reveal delay={0.1}>
           <Lead className='mt-6 max-w-[42ch]'>

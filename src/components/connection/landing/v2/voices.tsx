@@ -32,7 +32,7 @@ export function LandingVoices() {
         </Reveal>
         <Reveal delay={0.08}>
           <p className='mt-5 max-w-[36ch] text-sm leading-7 text-white/75'>
-            ※ 表示はUIサンプルです。実際の参加者の声は順次掲載予定です。
+            ※ 掲載は順次予定です。実際の参加者の声をお届けします。
           </p>
         </Reveal>
       </div>

@@ -41,7 +41,7 @@ export function LandingConnectionDefinition() {
             <br />
             {BRAND_CONCEPT}
             <br />
-            イベントを探し、参加申請し、リアルな場で体験する——それが Ver1.0 の HANAKAI Connection です。
+            イベントを探し、参加申請し、リアルな場で体験する——それが華会です。
           </Lead>
         </Reveal>
       </div>

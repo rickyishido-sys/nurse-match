@@ -47,7 +47,7 @@ async function main() {
       await page.goto(`${baseUrl}/`, { waitUntil: 'networkidle', timeout: 60000 });
       await page.waitForTimeout(800);
 
-      const profileSection = page.locator('text=プロフィール（イメージ）').first();
+      const profileSection = page.locator('text=あなたのプロフィール').first();
       await profileSection.scrollIntoViewIfNeeded();
       await page.waitForTimeout(400);
 
@@ -72,7 +72,7 @@ async function main() {
         ctaText ? `CTA="${ctaText.trim()}"` : 'CTA not found (logged-in state may differ)',
       );
 
-      const appMock = page.locator('text=Ver1.0でできること').first();
+      const appMock = page.locator('text=華会でできること').first();
       await appMock.scrollIntoViewIfNeeded();
       await page.waitForTimeout(500);
 

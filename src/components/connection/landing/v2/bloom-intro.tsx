@@ -63,14 +63,14 @@ export function LandingBloomIntro({
               <span className='text-2xl' aria-hidden>
                 🌸
               </span>
-              <p className='text-sm font-semibold text-[#1f5d4f]'>プロフィール（イメージ）</p>
+              <p className='text-sm font-semibold text-[#1f5d4f]'>あなたのプロフィール</p>
             </div>
             <div className='mt-6 space-y-4 rounded-2xl bg-white p-5 shadow-sm'>
               <div className='flex items-center gap-3'>
                 <div className='relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#f3f7f5] ring-2 ring-[#e7f0ea]'>
                   <Image
                     src='/images/profile-sample.webp'
-                    alt='プロフィール写真のサンプル'
+                    alt='プロフィール写真'
                     fill
                     sizes='64px'
                     className='object-cover object-top'
