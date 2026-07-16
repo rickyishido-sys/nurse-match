@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { SITE_URL } from '@/lib/config';
 import { ensureViewerMemberId } from '@/lib/connection/identity';
+import { requireIdentityVerifiedMember } from '@/lib/connection/identity-gate';
 import { cancelParticipationByMember } from '@/lib/connection/participation-cancel';
 import { cancelEventById, deleteEventById, updateEventById } from '@/lib/connection/event-management';
 import type { ConnectionEventCategory, EventApprovalMode, EventRecruitmentType } from '@/lib/connection/types';
@@ -58,6 +59,7 @@ export async function updateEventAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '').trim();
   const memberId = await ensureViewerMemberId();
   if (!memberId) redirect(`/login?next=/events/edit/${eventId}`);
+  await requireIdentityVerifiedMember(memberId);
   if (!eventId) redirect('/events');
 
   const imageUrlsRaw = String(formData.get('imageUrls') ?? '').trim();

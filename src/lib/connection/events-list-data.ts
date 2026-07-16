@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { getBloomProfile } from '@/lib/connection/bloom-profile';
+import { isIdentityVerified } from '@/lib/connection/trust';
 import { EVENT_CATEGORY_META } from '@/lib/connection/data';
 import { anonymizeParticipants, getExperienceTagline } from '@/lib/connection/event-detail-ux';
 import { getEventMembers, getMember, getApplication } from '@/lib/connection/repo';
@@ -66,7 +67,7 @@ export async function enrichEventForList(
     host,
     catchCopy: meta.tagline,
     hostTagline,
-    hostVerified: Boolean(host?.identityVerified),
+    hostVerified: host ? isIdentityVerified(host) : false,
     experienceLine: getExperienceTagline(event),
     participantChips: aggregateParticipantChips(cards),
     participantIsPlaceholder: confirmed.length === 0,

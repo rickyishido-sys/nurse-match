@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
 import { MemberAvatar } from '@/components/connection/member-avatar';
 import { MemberInsights } from '@/components/connection/member-insights';
-import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
+import { MemberSocialIcons } from '@/components/connection/member-social-icons';
+import { IdentityVerifiedBadge } from '@/components/connection/identity-verified-badge';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { ReportButton } from '@/components/connection/report-button';
 import { Card, Chip } from '@/components/connection/ui';
@@ -92,18 +93,19 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
                 <div className='flex gap-4'>
                   <MemberAvatar member={member} size={64} />
                   <div className='min-w-0 flex-1'>
-                    <div className='flex items-center gap-2'>
+                    <div className='flex flex-wrap items-center gap-2'>
                       <Link href={`/profile/${member.id}`} className='text-sm font-semibold text-[#1a1a1a] hover:underline'>
                         {member.nickname}
                       </Link>
                       {isSelf ? <Chip tone='muted'>あなた</Chip> : null}
+                      <IdentityVerifiedBadge member={member} />
                     </div>
-                    <TrustBadgeList member={member} className='mt-1.5' />
+                    <TrustBadgeList member={member} hideIdentity className='mt-1.5' />
                     <p className='text-xs text-[#6b6b6b]'>{member.age}歳 · {member.area} · {member.occupation}</p>
                     <p className='mt-2 text-xs leading-6 text-[#4a4a4a]'>{member.bio}</p>
                     {visibleSocialLinks.length > 0 ? (
                       <div className='mt-3'>
-                        <MemberVisibleSocialLinks links={visibleSocialLinks} />
+                        <MemberSocialIcons links={visibleSocialLinks} />
                       </div>
                     ) : null}
                     <div className='mt-3'>

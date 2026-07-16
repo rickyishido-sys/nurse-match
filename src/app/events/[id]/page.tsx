@@ -17,6 +17,8 @@ import {
 } from '@/components/connection/events/event-detail-sections';
 import { formatFee } from '@/components/connection/events/event-card';
 import { ReportButton } from '@/components/connection/report-button';
+import { IdentityRequiredPanel } from '@/components/connection/identity-required-panel';
+import { IdentityVerifiedBadge } from '@/components/connection/identity-verified-badge';
 import { Chip } from '@/components/connection/ui';
 import { getBloomProfile } from '@/lib/connection/bloom-profile';
 import { EVENT_CATEGORY_LABEL, formatEventDate } from '@/lib/connection/data';
@@ -28,6 +30,7 @@ import {
 } from '@/lib/connection/event-detail-ux';
 import { getApplication, getEvent, getEventMembers, getMember } from '@/lib/connection/repo';
 import { getViewerMemberId } from '@/lib/connection/identity';
+import { getEventEligibility } from '@/lib/connection/identity-gate';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = {
@@ -43,6 +46,8 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
 
   const viewer = await getHanakaiViewer();
   const viewerMemberId = await getViewerMemberId();
+  const viewerMember = viewerMemberId ? await getMember(viewerMemberId) : null;
+  const eligibility = getEventEligibility(viewerMember);
   const applied = sp.applied === '1';
   const reasonError = sp.error === 'reason';
   const created = sp.created === '1';
@@ -121,6 +126,12 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
             <MetaRow label='参加費' value={formatFee(event.fee)} />
             <MetaRow label='定員' value={`${event.reservedCount} / ${event.capacity}名`} />
           </dl>
+
+          {host ? (
+            <div className='flex flex-wrap items-center gap-2'>
+              <IdentityVerifiedBadge member={host} />
+            </div>
+          ) : null}
 
           {showApplyCta ? (
             <EventDetailCta
@@ -290,6 +301,8 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                 </div>
               ) : isFull ? (
                 <p className='text-sm text-[#9a9a9a]'>このイベントは満席です。</p>
+              ) : viewerMemberId && !eligibility.canApplyToEvents ? (
+                <IdentityRequiredPanel laterHref='/my-profile' />
               ) : (
                 <>
                   {reasonError ? (

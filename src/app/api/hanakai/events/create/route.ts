@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { generateCheckinCode } from '@/lib/connection/event-operations/checkin-code';
 import { createEvent } from '@/lib/connection/repo';
 import { ensureHanakaiMemberForAuthUser } from '@/lib/connection/identity';
+import { getIdentityVerifiedMemberOrNull } from '@/lib/connection/identity-gate';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import type { ConnectionEventCategory, EventApprovalMode } from '@/lib/connection/types';
 
@@ -104,6 +105,11 @@ export async function POST(request: Request) {
       return jsonError('会員プロフィールの準備ができていません。登録を完了してから再度お試しください。', 403, 'NO_MEMBER');
     }
     console.log('HANAKAI_API_EVENT_CREATE_3_MEMBER_OK', { memberId });
+
+    const verifiedMember = await getIdentityVerifiedMemberOrNull(memberId);
+    if (!verifiedMember) {
+      return jsonError('イベントの作成には本人確認が必要です。', 403, 'IDENTITY_REQUIRED');
+    }
 
     let body: CreateEventBody;
     try {

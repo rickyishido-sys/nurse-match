@@ -22,11 +22,14 @@ function CheckIcon() {
 type TrustBadgeListProps = {
   member: ConnectionMember;
   className?: string;
+  hideIdentity?: boolean;
 };
 
 /** 本人確認・運営確認の公開バッジ */
-export function TrustBadgeList({ member, className = '' }: TrustBadgeListProps) {
-  const badges = getPublicTrustBadges(member);
+export function TrustBadgeList({ member, className = '', hideIdentity = false }: TrustBadgeListProps) {
+  const badges = getPublicTrustBadges(member).filter(
+    (badge) => !(hideIdentity && badge.key === 'identity'),
+  );
   if (badges.length === 0) return null;
 
   return (

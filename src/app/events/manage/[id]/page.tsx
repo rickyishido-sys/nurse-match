@@ -6,11 +6,14 @@ import { HostBadgeList } from '@/components/connection/host-badge';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { Card, Chip } from '@/components/connection/ui';
 import { HostCheckinPanel } from '@/components/connection/events/host-checkin-panel';
+import { IdentityVerifiedBadge } from '@/components/connection/identity-verified-badge';
 import { approveApplicationAction, rejectApplicationAction } from '@/lib/connection/actions';
 import { getEventOperationsMeta, listEventCheckins } from '@/lib/connection/event-operations/repo';
 import { INTEREST_TAG_LABEL, VALUE_TAG_LABEL, formatEventDate } from '@/lib/connection/data';
-import { getEvent, getMember, listApplications } from '@/lib/connection/repo';
+import { getEventEligibility } from '@/lib/connection/identity-gate';
+import { IdentityRequiredPanel } from '@/components/connection/identity-required-panel';
 import { getViewerMemberId } from '@/lib/connection/identity';
+import { getEvent, getMember, listApplications } from '@/lib/connection/repo';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = {
@@ -42,6 +45,20 @@ export default async function ManageEventPage({ params, searchParams }: PageProp
               この画面は、このイベントを主催している方だけがご覧いただけます。
             </p>
           </Card>
+        </div>
+      </ConnectionShell>
+    );
+  }
+
+  const eligibility = getEventEligibility(hostMember);
+  if (!eligibility.canApproveApplications) {
+    return (
+      <ConnectionShell viewer={viewer}>
+        <div className='space-y-5'>
+          <Link href={`/events/${event.id}`} className='text-xs font-medium text-[#6b6b6b] underline-offset-2 hover:underline'>
+            ← イベント詳細へ
+          </Link>
+          <IdentityRequiredPanel laterHref='/my-profile' />
         </div>
       </ConnectionShell>
     );
@@ -112,11 +129,12 @@ export default async function ManageEventPage({ params, searchParams }: PageProp
                       className='h-12 w-12 shrink-0 rounded-full object-cover'
                     />
                     <div className='min-w-0 flex-1 space-y-1'>
-                      <div className='flex items-center gap-2'>
+                      <div className='flex flex-wrap items-center gap-2'>
                         <p className='text-sm font-semibold text-[#1a1a1a]'>{m.nickname}</p>
+                        <IdentityVerifiedBadge member={m} />
                         <span className='text-xs text-[#9a9a9a]'>{m.age}歳 · {m.area}</span>
                       </div>
-                      <TrustBadgeList member={m} />
+                      <TrustBadgeList member={m} hideIdentity />
                     </div>
                   </div>
 

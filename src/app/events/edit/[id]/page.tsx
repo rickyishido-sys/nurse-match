@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
+import { IdentityRequiredPanel } from '@/components/connection/identity-required-panel';
 import { EditEventForm } from '@/components/connection/events/edit-event-form';
 import { canEditEvent } from '@/lib/connection/event-management';
 import { getViewerMemberId } from '@/lib/connection/identity';
-import { getEvent } from '@/lib/connection/repo';
+import { getEventEligibility } from '@/lib/connection/identity-gate';
+import { getEvent, getMember } from '@/lib/connection/repo';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = {
@@ -27,6 +29,19 @@ export default async function EditEventPage({ params, searchParams }: PageProps)
   const viewerMemberId = await getViewerMemberId();
   if (!viewerMemberId) redirect(`/login?next=/events/edit/${id}`);
   if (!(await canEditEvent(id, viewerMemberId))) notFound();
+
+  const hostMember = await getMember(viewerMemberId);
+  const eligibility = getEventEligibility(hostMember);
+  if (!eligibility.isVerified) {
+    return (
+      <ConnectionShell viewer={viewer}>
+        <div className='mx-auto max-w-xl space-y-4'>
+          <Link href={`/events/${id}`} className='text-xs text-[#6b6b6b] underline-offset-2 hover:underline'>← イベント詳細</Link>
+          <IdentityRequiredPanel laterHref='/my-profile' />
+        </div>
+      </ConnectionShell>
+    );
+  }
 
   const error = typeof sp.error === 'string' ? sp.error : undefined;
 

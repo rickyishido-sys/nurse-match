@@ -1,12 +1,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
-import { MemberAvatar } from '@/components/connection/member-avatar';
+import { ProfileHeader } from '@/components/connection/profile-header';
 import { ProfilePhotoSection } from '@/components/connection/profile-photo-section';
 import { IdentityVerificationSection } from '@/components/connection/identity-verification-section';
 import { ProfileEditForm } from '@/components/connection/profile-edit-form';
 import { LegalLinks } from '@/components/connection/legal-links';
-import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { BloomCardOwner } from '@/components/connection/bloom-card';
 import { BloomPhase4Panel } from '@/components/connection/bloom-phase4-panel';
@@ -25,7 +24,7 @@ import {
 import { MBTI_LABEL } from '@/lib/connection/bloom-profile-options';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
-import { memberHasProfilePhotos } from '@/lib/connection/member-photo';
+import { getPublicTrustBadges } from '@/lib/connection/trust';
 import {
   computeProfileCompletion,
   resolveProfileNextRecommendation,
@@ -140,10 +139,6 @@ function SectionCard({
       <div className='rounded-3xl border border-[#ebe9e4] bg-white px-6 py-3'>{children}</div>
     </section>
   );
-}
-
-function IdentityStatus({ member }: { member: ConnectionMember }) {
-  return <IdentityVerificationSection member={member} />;
 }
 
 function ValuesBlock({ member }: { member: ConnectionMember }) {
@@ -283,28 +278,16 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
           </p>
         ) : null}
 
-        <section className='flex items-center gap-5'>
-          <MemberAvatar
-            member={member}
-            size={80}
-            priority
-            showEmptyPlaceholder={!memberHasProfilePhotos(member)}
-            editHref='/my-profile?mode=edit#profile-section-photos'
-          />
-          <div className='min-w-0 space-y-1.5'>
-            <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
-              マイプロフィール
-            </p>
-            <h1 className='truncate text-[1.5rem] font-semibold leading-tight tracking-tight text-[#1a1a1a]'>
-              {member.nickname}
-            </h1>
-            <TrustBadgeList member={member} className='mt-1' />
-            <p className='text-xs text-[#6b6b6b]'>
-              {member.age ? `${member.age}歳` : ''}
-              {member.area ? ` · ${member.area}` : ''}
-            </p>
-          </div>
-        </section>
+        <ProfileHeader
+          member={member}
+          viewerMemberId={viewerMemberId}
+          kicker='マイプロフィール'
+          editPhotoHref='/my-profile?mode=edit#profile-section-photos'
+        />
+
+        {getPublicTrustBadges(member).some((b) => b.key !== 'identity') ? (
+          <TrustBadgeList member={member} hideIdentity />
+        ) : null}
 
         <ProfileCompletionCard completion={completion} />
 
@@ -361,18 +344,8 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
           <ValuesBlock member={member} />
         </SectionCard>
 
-        <SectionCard kicker='SNS' title='SNS' id={PROFILE_SECTION_IDS.sns}>
-          {member.socialLinks.some((l) => l.url.trim() && l.isVisibleOnProfile) ? (
-            <MemberVisibleSocialLinks
-              links={member.socialLinks.filter((l) => l.url.trim() && l.isVisibleOnProfile)}
-            />
-          ) : (
-            <p className='py-2 text-sm text-[#c4c0b8]'>未登録</p>
-          )}
-        </SectionCard>
-
         <SectionCard kicker='安心' title='本人確認' id={PROFILE_SECTION_IDS.identity}>
-          <IdentityStatus member={member} />
+          <IdentityVerificationSection member={member} />
         </SectionCard>
 
         {bloomProfile ? (

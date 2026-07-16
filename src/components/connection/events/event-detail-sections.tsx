@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { MemberAvatar } from '@/components/connection/member-avatar';
+import { IdentityVerifiedBadge } from '@/components/connection/identity-verified-badge';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { HostBadgeList } from '@/components/connection/host-badge';
 import { ReportButton } from '@/components/connection/report-button';
@@ -179,7 +180,8 @@ export function EventHostSection({
             ) : null}
           </div>
           {host ? <p className='text-xs text-[#6b6b6b]'>{host.occupation} · {host.area}</p> : null}
-          {host ? <TrustBadgeList member={host} /> : null}
+          {host ? <IdentityVerifiedBadge member={host} /> : null}
+          {host ? <TrustBadgeList member={host} hideIdentity /> : null}
           {host ? <HostBadgeList badges={host.hostBadges} /> : null}
           {bloomProfile?.bloomSummaryTitle || bloomProfile?.bloomSummary ? (
             <div className='rounded-xl border border-[#ebe9e4] bg-[#fafaf8] px-4 py-3'>

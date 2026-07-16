@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { MemberAvatar } from '@/components/connection/member-avatar';
+import { IdentityVerifiedBadge } from '@/components/connection/identity-verified-badge';
 import { formatFee } from '@/components/connection/events/event-card';
 import { EVENT_CATEGORY_DEFAULT_IMAGE, EVENT_CATEGORY_META, formatEventDate } from '@/lib/connection/data';
 import type { EnrichedEventListItem } from '@/lib/connection/events-list-data';
@@ -122,7 +123,7 @@ export function EventsListCard({
           <ParticipationMeter joined={joinedCount} remaining={remainingSeats} capacity={event.capacity} />
 
           <div className='flex flex-wrap gap-1.5'>
-            {hostVerified ? <TrustIcon icon='🪪' label='本人確認済み主催者' /> : <TrustIcon icon='🪪' label='本人確認あり' />}
+            {hostVerified && host ? <IdentityVerifiedBadge member={host} /> : null}
             <TrustIcon icon='🚩' label='通報機能あり' />
             {isSmallGroup ? <TrustIcon icon='👥' label='少人数開催' /> : null}
           </div>
@@ -140,11 +141,7 @@ export function EventsListCard({
               <div className='min-w-0 flex-1'>
                 <div className='flex flex-wrap items-center gap-2'>
                   <p className='text-sm font-semibold text-[#1a1a1a]'>{event.hostName}</p>
-                  {hostVerified ? (
-                    <span className='rounded-full bg-[#eef3ef] px-2 py-0.5 text-[10px] font-medium text-[#1f5d4f]'>
-                      本人確認済み
-                    </span>
-                  ) : null}
+                  {host ? <IdentityVerifiedBadge member={host} /> : null}
                 </div>
                 <p className='mt-1.5 line-clamp-2 text-xs leading-6 text-[#6b6b6b]'>{hostTagline}</p>
               </div>

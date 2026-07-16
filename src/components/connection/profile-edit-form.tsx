@@ -150,6 +150,11 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
           本人確認書類のアップロードに失敗しました。ファイル形式とサイズをご確認のうえ、再度お試しください。
         </p>
       ) : null}
+      {error === 'identity_document' ? (
+        <p className='rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700'>
+          本人確認書類として認識できませんでした。運転免許証・マイナンバーカード・パスポートなどを撮影してください。
+        </p>
+      ) : null}
 
       <SectionCard kicker='写真' title='プロフィール写真' id={PROFILE_SECTION_IDS.photos}>
         <p className='mb-3 text-xs leading-6 text-[#6b6b6b]'>{PROFILE_PHOTO_GUIDE}</p>

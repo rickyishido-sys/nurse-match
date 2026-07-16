@@ -28,6 +28,9 @@ import {
   selectMemberForEvent,
 } from '@/lib/connection/participation-confirmation';
 import { requireEventHostAccess } from '@/lib/connection/group-access';
+import { requireIdentityVerifiedMember } from '@/lib/connection/identity-gate';
+import { normalizeSocialLinks } from '@/lib/connection/social-link-normalize';
+import { checkIdentityDocumentFileServer } from '@/lib/connection/identity-document-check-server';
 import { isHanakaiProfileComplete } from '@/lib/connection/registration-status';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
@@ -166,6 +169,7 @@ export async function createConnectionEventAction(formData: FormData) {
       console.log('CONNECTION_EVENT_CREATE_2_MEMBER_FAIL');
       redirect('/login?next=/events/create');
     }
+    await requireIdentityVerifiedMember(hostId);
     console.log('CONNECTION_EVENT_CREATE_2_MEMBER_OK', { hostId });
 
     console.log('CONNECTION_EVENT_CREATE_5_IMAGE_START', {
@@ -219,6 +223,7 @@ export async function applyConnectionEventAction(formData: FormData) {
   if (!isHanakaiProfileComplete(member)) {
     redirect('/register/profile');
   }
+  await requireIdentityVerifiedMember(memberId);
 
   if (eventId) {
     const existing = await getApplication(eventId, memberId);
@@ -246,6 +251,9 @@ export async function approveApplicationAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '');
   const memberId = String(formData.get('memberId') ?? '');
   if (!eventId || !memberId) redirect('/events');
+  const hostId = await ensureViewerMemberId();
+  if (!hostId) redirect(`/login?next=/events/manage/${eventId}`);
+  await requireIdentityVerifiedMember(hostId);
   await requireEventHostAccess(eventId);
   console.log('CONNECTION_HOST_APPROVE', { eventId, memberId });
   const result = await selectMemberForEvent(eventId, memberId);
@@ -449,11 +457,13 @@ export async function saveProfileAction(formData: FormData) {
   });
 
   const { SOCIAL_LINK_PLATFORMS } = await import('@/lib/connection/bloom-profile-options');
-  const socialLinks = SOCIAL_LINK_PLATFORMS.map(({ platform }) => ({
-    platform,
-    url: String(formData.get(`socialLink_${platform}`) ?? '').trim(),
-    isVisibleOnProfile: false,
-  }));
+  const socialLinks = normalizeSocialLinks(
+    SOCIAL_LINK_PLATFORMS.map(({ platform }) => ({
+      platform,
+      url: String(formData.get(`socialLink_${platform}`) ?? '').trim(),
+      isVisibleOnProfile: false,
+    })),
+  );
   await saveMemberSocialLinks(memberId, socialLinks);
 
   // ステップ式ウィザードから性格診断結果も同時に届く場合は保存する（既存 temperament フロー互換）
@@ -556,11 +566,13 @@ export async function updateMyProfileAction(formData: FormData) {
   });
 
   const { SOCIAL_LINK_PLATFORMS } = await import('@/lib/connection/bloom-profile-options');
-  const socialLinks = SOCIAL_LINK_PLATFORMS.map(({ platform }) => ({
-    platform,
-    url: String(formData.get(`socialLink_${platform}`) ?? '').trim(),
-    isVisibleOnProfile: formData.get(`socialVisible_${platform}`) === '1',
-  }));
+  const socialLinks = normalizeSocialLinks(
+    SOCIAL_LINK_PLATFORMS.map(({ platform }) => ({
+      platform,
+      url: String(formData.get(`socialLink_${platform}`) ?? '').trim(),
+      isVisibleOnProfile: formData.get(`socialVisible_${platform}`) === '1',
+    })),
+  );
   console.error('HANAKAI_SOCIAL_LINK_SAVE_PAYLOAD', {
     memberId,
     links: socialLinks
@@ -643,6 +655,11 @@ export async function submitIdentityDocumentAction(formData: FormData) {
   const identityFile = formData.get('identityDocument');
   if (!(identityFile instanceof File) || identityFile.size === 0) {
     redirect('/my-profile?mode=edit&error=identity');
+  }
+
+  const docCheck = await checkIdentityDocumentFileServer(identityFile);
+  if (!docCheck.ok) {
+    redirect('/my-profile?mode=edit&error=identity_document');
   }
 
   const member = await getMember(memberId);

@@ -2,9 +2,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
 import { ConnectionPageError } from '@/components/connection/connection-page-error';
+import { IdentityRequiredPanel } from '@/components/connection/identity-required-panel';
 import { CreateEventForm } from '@/components/connection/events/create-event-form';
 import { EVENT_CATEGORY_CREATE_ORDER, EVENT_CATEGORY_META } from '@/lib/connection/data';
-import { ensureHanakaiMemberForAuthUser } from '@/lib/connection/identity';
+import { ensureHanakaiMemberForAuthUser, getViewerMemberId } from '@/lib/connection/identity';
+import { getEventEligibility } from '@/lib/connection/identity-gate';
+import { getMember } from '@/lib/connection/repo';
 import { HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
@@ -107,6 +110,22 @@ export default async function CreateEventPage({ searchParams }: PageProps) {
 
     const viewer = await getHanakaiViewer();
     const categories = buildCategoryOptions();
+    const viewerMemberId = await getViewerMemberId();
+    const member = viewerMemberId ? await getMember(viewerMemberId) : null;
+    const eligibility = getEventEligibility(member);
+    if (viewerMemberId && !eligibility.isVerified) {
+      return (
+        <ConnectionShell viewer={viewer}>
+          <div className='space-y-7'>
+            <Link href='/events' className='text-xs font-medium text-[#6b6b6b] underline-offset-2 hover:underline'>
+              ← イベント一覧へ
+            </Link>
+            <IdentityRequiredPanel laterHref='/my-profile' />
+          </div>
+        </ConnectionShell>
+      );
+    }
+
     console.log('EVENT_CREATE_4_CATEGORIES_OK', {
       count: categories.length,
       orderLength: EVENT_CATEGORY_CREATE_ORDER.length,

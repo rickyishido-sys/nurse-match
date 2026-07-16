@@ -47,7 +47,7 @@ export function MemberSocialLinksEditor({ initialLinks }: { initialLinks: Member
   return (
     <div className='space-y-4'>
       <p className='text-xs leading-6 text-[#6b6b6b]'>
-        SNS URLは保存のみ行います。公開プロフィールに表示するものだけ「表示する」をONにしてください。初期値は非公開です。
+        URLまたはユーザー名を入力できます。保存時に正規化されます。公開プロフィールに表示するものだけ「表示する」をONにしてください。
       </p>
       {SOCIAL_LINK_PLATFORMS.map(({ platform, label, placeholder }) => {
         const draft = drafts[platform];
@@ -57,7 +57,7 @@ export function MemberSocialLinksEditor({ initialLinks }: { initialLinks: Member
             <label className='mb-2 block text-xs font-medium tracking-wide text-[#9a9a9a]'>{label}</label>
             <input type='hidden' name={`socialLink_${platform}`} value={draft.url} />
             <input
-              type='url'
+              type='text'
               value={draft.url}
               onChange={(e) => updateUrl(platform, e.target.value)}
               placeholder={placeholder}

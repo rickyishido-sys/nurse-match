@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
-import { MemberAvatar } from '@/components/connection/member-avatar';
+import { ProfileHeader } from '@/components/connection/profile-header';
 import { MemberInsights } from '@/components/connection/member-insights';
-import { MemberVisibleSocialLinks } from '@/components/connection/member-visible-social-links';
 import { ReportButton } from '@/components/connection/report-button';
 import { BlockMemberButton } from '@/components/connection/block-member-button';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
@@ -22,7 +21,7 @@ import { LIFE_PHASE_LABEL, PURPOSE_LABEL, INTEREST_TAG_LABEL } from '@/lib/conne
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { isMemberBlocked } from '@/lib/connection/block-repo';
 import { getMember } from '@/lib/connection/repo';
-import { getVisibleSocialLinks } from '@/lib/connection/social-links';
+import { getPublicTrustBadges } from '@/lib/connection/trust';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = { params: Promise<{ memberId: string }> };
@@ -43,7 +42,6 @@ export default async function MemberProfilePage({ params }: PageProps) {
     return notFound();
   }
 
-  const visibleSocialLinks = getVisibleSocialLinks(member, viewerMemberId);
   const purposeLabels = member.purposes.map((p) => PURPOSE_LABEL[p]).filter(Boolean);
   const interestLabels = member.interestTags.map((t) => INTEREST_TAG_LABEL[t]).filter(Boolean);
   const canReport = !!viewerMemberId;
@@ -62,11 +60,7 @@ export default async function MemberProfilePage({ params }: PageProps) {
   return (
     <ConnectionShell viewer={viewer}>
       <div className='space-y-5'>
-        <div className='flex items-start justify-between gap-3'>
-          <div>
-            <p className='text-[11px] font-medium tracking-[0.2em] text-[#6b6b6b]'>PROFILE</p>
-            <h1 className='mt-1 text-xl font-semibold text-[#1a1a1a]'>{member.nickname}</h1>
-          </div>
+        <div className='flex items-start justify-end gap-3'>
           <ReportButton
             target={{
               targetType: 'profile',
@@ -86,21 +80,21 @@ export default async function MemberProfilePage({ params }: PageProps) {
           />
         ) : null}
 
+        <ProfileHeader member={member} viewerMemberId={viewerMemberId} kicker='PROFILE' />
+
+        {getPublicTrustBadges(member).some((b) => b.key !== 'identity') ? (
+          <TrustBadgeList member={member} hideIdentity />
+        ) : null}
+
         <Card>
-          <div className='flex gap-4'>
-            <MemberAvatar member={member} size={72} />
-            <div className='min-w-0 flex-1'>
-              <TrustBadgeList member={member} />
-              <p className='mt-2 text-xs text-[#6b6b6b]'>
-                {member.age ? `${member.age}歳` : ''}
-                {member.area ? ` · ${member.area}` : ''}
-                {member.occupation ? ` · ${member.occupation}` : ''}
-              </p>
-              {member.bio.trim() ? (
-                <p className='mt-2 text-sm leading-7 text-[#4a4a4a]'>{member.bio}</p>
-              ) : null}
-            </div>
-          </div>
+          <p className='text-xs text-[#6b6b6b]'>
+            {member.age ? `${member.age}歳` : ''}
+            {member.area ? ` · ${member.area}` : ''}
+            {member.occupation ? ` · ${member.occupation}` : ''}
+          </p>
+          {member.bio.trim() ? (
+            <p className='mt-2 text-sm leading-7 text-[#4a4a4a]'>{member.bio}</p>
+          ) : null}
         </Card>
 
         {publicBloom ? <BloomCardPublic profile={publicBloom} /> : null}
@@ -111,13 +105,6 @@ export default async function MemberProfilePage({ params }: PageProps) {
           memories={publicMemories}
           aiReflection={publicReflection}
         />
-
-        {visibleSocialLinks.length > 0 ? (
-          <Card>
-            <h2 className='mb-3 text-sm font-semibold text-[#1a1a1a]'>SNS</h2>
-            <MemberVisibleSocialLinks links={visibleSocialLinks} />
-          </Card>
-        ) : null}
 
         <Card>
           <h2 className='mb-3 text-sm font-semibold text-[#1a1a1a]'>Connection情報</h2>

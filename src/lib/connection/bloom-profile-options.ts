@@ -100,18 +100,21 @@ export type SocialLinkPlatform =
   | 'facebook'
   | 'linkedin'
   | 'youtube'
+  | 'pinterest'
+  | 'website'
   | 'other';
 
 export const SOCIAL_LINK_PLATFORMS: { platform: SocialLinkPlatform; label: string; placeholder: string }[] = [
-  { platform: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/...' },
-  { platform: 'x', label: 'X', placeholder: 'https://x.com/...' },
-  { platform: 'threads', label: 'Threads', placeholder: 'https://threads.net/@...' },
-  { platform: 'tiktok', label: 'TikTok', placeholder: 'https://tiktok.com/@...' },
-  { platform: 'note', label: 'note', placeholder: 'https://note.com/...' },
-  { platform: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/...' },
-  { platform: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/in/...' },
-  { platform: 'youtube', label: 'YouTube', placeholder: 'https://youtube.com/@...' },
-  { platform: 'other', label: 'その他', placeholder: 'https://...' },
+  { platform: 'instagram', label: 'Instagram', placeholder: 'hanakai または instagram.com/hanakai' },
+  { platform: 'threads', label: 'Threads', placeholder: '@hanakai または threads.net/@hanakai' },
+  { platform: 'x', label: 'X', placeholder: 'hanakai または x.com/hanakai' },
+  { platform: 'facebook', label: 'Facebook', placeholder: 'facebook.com/...' },
+  { platform: 'tiktok', label: 'TikTok', placeholder: '@hanakai または tiktok.com/@hanakai' },
+  { platform: 'youtube', label: 'YouTube', placeholder: '@hanakai または youtube.com/@hanakai' },
+  { platform: 'pinterest', label: 'Pinterest', placeholder: 'pinterest.com/...' },
+  { platform: 'note', label: 'note', placeholder: 'note.com/...' },
+  { platform: 'linkedin', label: 'LinkedIn', placeholder: 'linkedin.com/in/...' },
+  { platform: 'website', label: 'Website', placeholder: 'https://example.com' },
 ];
 
 export const SOCIAL_PLATFORM_LABEL: Record<SocialLinkPlatform, string> = Object.fromEntries(
