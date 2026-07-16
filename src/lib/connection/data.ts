@@ -861,6 +861,8 @@ export type CreateEventInput = {
   hostId: string;
   /** 主催者がアップロードしたイベント写真URL（最大5枚） */
   imageUrls?: string[];
+  /** イベント運営（チェックイン・請求先など） */
+  operations?: import('@/lib/connection/event-operations/types').CreateEventOperationsInput;
 };
 
 /** ユーザー作成イベントを追加（MVP: インメモリ） */

@@ -359,6 +359,8 @@ export async function rejectApplication(eventId: string, memberId: string): Prom
 export async function createEvent(input: CreateEventInput): Promise<ConnectionEvent> {
   const sb = await db();
   const host = await getMember(input.hostId);
+  const { buildEventOperationsPayload } = await import('@/lib/connection/event-operations/repo');
+  const ops = input.operations ? buildEventOperationsPayload(input.operations) : null;
   const payload: Record<string, unknown> = {
     title: input.title,
     category: input.category,
@@ -376,6 +378,7 @@ export async function createEvent(input: CreateEventInput): Promise<ConnectionEv
     approval_mode: input.approvalMode,
     is_user_created: true,
     is_past: false,
+    ...(ops?.payload ?? {}),
   };
   // image_urls カラム未適用環境でも作成を壊さないよう、写真がある時のみ含める。
   if (input.imageUrls && input.imageUrls.length > 0) {

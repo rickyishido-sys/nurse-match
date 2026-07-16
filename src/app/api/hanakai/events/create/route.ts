@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
+import { generateCheckinCode } from '@/lib/connection/event-operations/checkin-code';
 import { createEvent } from '@/lib/connection/repo';
 import { ensureHanakaiMemberForAuthUser } from '@/lib/connection/identity';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
@@ -32,6 +33,16 @@ type CreateEventBody = {
   conditions?: string;
   approvalMode?: string;
   imageUrls?: string[];
+  externalRecruitment?: string;
+  venuePermissionConfirmed?: boolean;
+  venueFeeExplained?: boolean;
+  billingTarget?: string;
+  venueBillingName?: string;
+  venueBillingContact?: string;
+  venueBillingPhone?: string;
+  venueBillingEmail?: string;
+  venueBillingAddress?: string;
+  venueBillingConsent?: boolean;
 };
 
 type SupabaseErrorLike = {
@@ -127,6 +138,32 @@ export async function POST(request: Request) {
       });
       return jsonError('イベント名・開催日時・エリアは必須です。', 400, 'VALIDATION');
     }
+
+    const externalRecruitment = body.externalRecruitment === 'multi_channel' ? 'multi_channel' : 'hanakai_only';
+    const venuePermissionConfirmed = Boolean(body.venuePermissionConfirmed);
+    const venueFeeExplained = Boolean(body.venueFeeExplained);
+    const billingTarget = body.billingTarget === 'venue' ? 'venue' : 'host';
+
+    if (!venuePermissionConfirmed) {
+      return jsonError('開催場所の事前確認・許可取得についてご確認ください。', 400, 'VENUE_PERMISSION');
+    }
+    if (fee > 0 && !venueFeeExplained) {
+      return jsonError('参加費を徴収する場合は、開催場所への説明についてご確認ください。', 400, 'VENUE_FEE');
+    }
+    if (billingTarget === 'venue') {
+      const venueBillingName = String(body.venueBillingName ?? '').trim();
+      const venueBillingContact = String(body.venueBillingContact ?? '').trim();
+      const venueBillingPhone = String(body.venueBillingPhone ?? '').trim();
+      const venueBillingEmail = String(body.venueBillingEmail ?? '').trim();
+      const venueBillingAddress = String(body.venueBillingAddress ?? '').trim();
+      const venueBillingConsent = Boolean(body.venueBillingConsent);
+      if (!venueBillingName || !venueBillingContact || !venueBillingPhone || !venueBillingEmail || !venueBillingAddress) {
+        return jsonError('店舗請求の場合は、店舗情報をすべて入力してください。', 400, 'VENUE_BILLING');
+      }
+      if (!venueBillingConsent) {
+        return jsonError('店舗請求の場合は、事前了承の確認が必要です。', 400, 'VENUE_CONSENT');
+      }
+    }
     console.log('HANAKAI_API_EVENT_CREATE_4_VALIDATE_OK', {
       titleLength: title.length,
       category,
@@ -137,6 +174,7 @@ export async function POST(request: Request) {
     });
 
     console.log('HANAKAI_API_EVENT_CREATE_5_DB_INSERT_START', { memberId, category });
+    const checkin = generateCheckinCode();
     const event = await createEvent({
       title,
       category,
@@ -151,6 +189,19 @@ export async function POST(request: Request) {
       approvalMode,
       hostId: memberId,
       imageUrls,
+      operations: {
+        externalRecruitment,
+        venuePermissionConfirmed,
+        venueFeeExplained,
+        billingTarget,
+        venueBillingName: String(body.venueBillingName ?? '').trim(),
+        venueBillingContact: String(body.venueBillingContact ?? '').trim(),
+        venueBillingPhone: String(body.venueBillingPhone ?? '').trim(),
+        venueBillingEmail: String(body.venueBillingEmail ?? '').trim(),
+        venueBillingAddress: String(body.venueBillingAddress ?? '').trim(),
+        venueBillingConsent: Boolean(body.venueBillingConsent),
+        precomputedCheckin: checkin,
+      },
     });
     console.log('HANAKAI_API_EVENT_CREATE_6_DB_INSERT_DONE', { eventId: event.id });
 
@@ -164,7 +215,7 @@ export async function POST(request: Request) {
     revalidatePath('/admin/hanakai/events');
 
     console.log('HANAKAI_API_EVENT_CREATE_7_SUCCESS', { eventId: event.id });
-    return NextResponse.json({ ok: true, eventId: event.id });
+    return NextResponse.json({ ok: true, eventId: event.id, checkinCode: checkin.code });
   } catch (error) {
     logApiEventCreateError(error);
     if (typeof error === 'object' && error !== null && ('code' in error || 'message' in error)) {

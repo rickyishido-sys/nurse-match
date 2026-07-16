@@ -22,6 +22,12 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
   const [category, setCategory] = useState<string>(categories[0]?.value ?? 'flower');
   const [approvalMode, setApprovalMode] = useState<'host_approval' | 'auto'>('host_approval');
   const [description, setDescription] = useState('');
+  const [externalRecruitment, setExternalRecruitment] = useState<'hanakai_only' | 'multi_channel'>('hanakai_only');
+  const [billingTarget, setBillingTarget] = useState<'host' | 'venue'>('host');
+  const [venuePermissionConfirmed, setVenuePermissionConfirmed] = useState(false);
+  const [venueFeeExplained, setVenueFeeExplained] = useState(false);
+  const [venueBillingConsent, setVenueBillingConsent] = useState(false);
+  const [fee, setFee] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [images, setImages] = useState<{ file: File; url: string }[]>([]);
@@ -51,7 +57,36 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
         conditions: String(fd.get('conditions') ?? '').trim(),
         approvalMode: String(fd.get('approvalMode') ?? 'host_approval'),
         imageUrls,
+        externalRecruitment,
+        venuePermissionConfirmed,
+        venueFeeExplained: fee > 0 ? venueFeeExplained : true,
+        billingTarget,
+        venueBillingName: String(fd.get('venueBillingName') ?? '').trim(),
+        venueBillingContact: String(fd.get('venueBillingContact') ?? '').trim(),
+        venueBillingPhone: String(fd.get('venueBillingPhone') ?? '').trim(),
+        venueBillingEmail: String(fd.get('venueBillingEmail') ?? '').trim(),
+        venueBillingAddress: String(fd.get('venueBillingAddress') ?? '').trim(),
+        venueBillingConsent: billingTarget === 'venue' ? venueBillingConsent : false,
       };
+
+      if (!venuePermissionConfirmed) {
+        setSubmitError('開催場所の事前確認・許可取得についてご確認ください。');
+        return;
+      }
+      if (fee > 0 && !venueFeeExplained) {
+        setSubmitError('参加費を徴収する場合は、開催場所への説明についてご確認ください。');
+        return;
+      }
+      if (billingTarget === 'venue') {
+        if (!payload.venueBillingName || !payload.venueBillingContact || !payload.venueBillingPhone || !payload.venueBillingEmail || !payload.venueBillingAddress) {
+          setSubmitError('店舗請求の場合は、店舗情報をすべて入力してください。');
+          return;
+        }
+        if (!venueBillingConsent) {
+          setSubmitError('店舗請求の場合は、事前了承の確認が必要です。');
+          return;
+        }
+      }
 
       const res = await fetch('/api/hanakai/events/create', {
         method: 'POST',
@@ -60,7 +95,7 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
       });
 
       const responseText = await res.text();
-      let data: { ok?: boolean; eventId?: string; error?: string; code?: string } = {};
+      let data: { ok?: boolean; eventId?: string; checkinCode?: string; error?: string; code?: string } = {};
       try {
         data = responseText ? (JSON.parse(responseText) as typeof data) : {};
       } catch (parseError) {
@@ -91,7 +126,7 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
         return;
       }
 
-      router.push(`/events/${data.eventId}?created=1`);
+      router.push(`/events/${data.eventId}?created=1${data.checkinCode ? `&checkin_code=${data.checkinCode}` : ''}`);
     } catch (err) {
       console.error('HANAKAI_API_EVENT_CREATE_FETCH_ERROR', err);
       const message = err instanceof Error ? err.message : 'イベントの公開に失敗しました。';
@@ -266,7 +301,8 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
               type='number'
               min={0}
               step={100}
-              defaultValue={0}
+              value={fee}
+              onChange={(e) => setFee(Number(e.target.value) || 0)}
               className={fieldClass}
             />
             <p className={helpClass}>0 で無料になります。</p>
@@ -388,6 +424,123 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
             <p className={helpClass}>jpg / png / webp・1枚10MBまで。1枚目が一覧の表紙になります。</p>
           )}
         </div>
+      </section>
+
+      <div className='h-px bg-[#ebe9e4]' />
+
+      {/* 外部募集・開催場所・請求先 */}
+      <section className='space-y-5'>
+        <div>
+          <span className={labelClass}>外部募集</span>
+          <div className='flex flex-wrap gap-2'>
+            {([
+              { value: 'hanakai_only' as const, label: 'HANAKAIのみ' },
+              { value: 'multi_channel' as const, label: '他サービス・SNSでも募集' },
+            ]).map((opt) => (
+              <button
+                key={opt.value}
+                type='button'
+                onClick={() => setExternalRecruitment(opt.value)}
+                className={`rounded-full border px-3.5 py-2 text-xs font-medium transition ${
+                  externalRecruitment === opt.value
+                    ? 'border-transparent bg-[#1f5d4f] text-white'
+                    : 'border-[#ddd9d1] bg-white text-[#6b6b6b]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className='space-y-3 rounded-2xl border border-[#e8dfd0] bg-[#fbf8f3] p-4'>
+          <p className='text-sm font-semibold text-[#1a1a1a]'>開催場所確認（公開前必須）</p>
+          <label className='flex cursor-pointer items-start gap-3'>
+            <input
+              type='checkbox'
+              checked={venuePermissionConfirmed}
+              onChange={(e) => setVenuePermissionConfirmed(e.target.checked)}
+              className='mt-1'
+            />
+            <span className='text-xs leading-6 text-[#4a4a4a]'>
+              開催場所の管理者・店舗等へイベント開催について事前確認・必要な許可を取得しています。
+            </span>
+          </label>
+          {fee > 0 ? (
+            <label className='flex cursor-pointer items-start gap-3'>
+              <input
+                type='checkbox'
+                checked={venueFeeExplained}
+                onChange={(e) => setVenueFeeExplained(e.target.checked)}
+                className='mt-1'
+              />
+              <span className='text-xs leading-6 text-[#4a4a4a]'>
+                参加費を徴収する場合、その旨も開催場所へ説明済みであることを確認します。
+              </span>
+            </label>
+          ) : null}
+        </div>
+
+        <div>
+          <span className={labelClass}>請求先</span>
+          <div className='flex flex-wrap gap-2'>
+            {([
+              { value: 'host' as const, label: '主催者へ請求' },
+              { value: 'venue' as const, label: '店舗・会場へ請求' },
+            ]).map((opt) => (
+              <button
+                key={opt.value}
+                type='button'
+                onClick={() => setBillingTarget(opt.value)}
+                className={`rounded-full border px-3.5 py-2 text-xs font-medium transition ${
+                  billingTarget === opt.value
+                    ? 'border-transparent bg-[#1f5d4f] text-white'
+                    : 'border-[#ddd9d1] bg-white text-[#6b6b6b]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {billingTarget === 'venue' ? (
+          <div className='space-y-4 rounded-2xl border border-[#ddd9d1] bg-white p-4'>
+            <div>
+              <label htmlFor='venueBillingName' className={labelClass}>店舗名</label>
+              <input id='venueBillingName' name='venueBillingName' required className={fieldClass} />
+            </div>
+            <div>
+              <label htmlFor='venueBillingContact' className={labelClass}>担当者</label>
+              <input id='venueBillingContact' name='venueBillingContact' required className={fieldClass} />
+            </div>
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <div>
+                <label htmlFor='venueBillingPhone' className={labelClass}>電話</label>
+                <input id='venueBillingPhone' name='venueBillingPhone' type='tel' required className={fieldClass} />
+              </div>
+              <div>
+                <label htmlFor='venueBillingEmail' className={labelClass}>メール</label>
+                <input id='venueBillingEmail' name='venueBillingEmail' type='email' required className={fieldClass} />
+              </div>
+            </div>
+            <div>
+              <label htmlFor='venueBillingAddress' className={labelClass}>住所</label>
+              <input id='venueBillingAddress' name='venueBillingAddress' required className={fieldClass} />
+            </div>
+            <label className='flex cursor-pointer items-start gap-3'>
+              <input
+                type='checkbox'
+                checked={venueBillingConsent}
+                onChange={(e) => setVenueBillingConsent(e.target.checked)}
+                className='mt-1'
+              />
+              <span className='text-xs leading-6 text-[#4a4a4a]'>
+                店舗・会場の担当者より、HANAKAI送客サービス利用料の請求について事前了承を得ています。
+              </span>
+            </label>
+          </div>
+        ) : null}
       </section>
 
       <div className='h-px bg-[#ebe9e4]' />

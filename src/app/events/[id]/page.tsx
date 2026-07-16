@@ -70,7 +70,10 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
 
         {created ? (
           <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
-            イベントを公開しました。参加申請が届いたら、管理画面から承認できます。
+            イベントを公開しました。
+            {typeof sp.checkin_code === 'string' ? (
+              <span className='mt-2 block font-semibold'>チェックインコード: {sp.checkin_code}（この画面でのみ表示されます）</span>
+            ) : null}
           </p>
         ) : null}
         {cancelled ? (
@@ -239,11 +242,17 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
             <div className='rounded-2xl border border-[#dfe9e4] bg-[#faf9f6] px-5 py-5'>
               <p className='text-sm font-semibold text-[#1a1a1a]'>参加が確定しました</p>
               <p className='mt-1 text-xs leading-6 text-[#6b6b6b]'>
-                当日お会いできるのを楽しみにしています。参加者同士で感想や写真を共有できます。
+                当日お会いできるのを楽しみにしています。到着したらチェックインしてください。
               </p>
               <Link
+                href={`/events/${event.id}/checkin`}
+                className='mt-4 inline-flex h-11 w-full items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white'
+              >
+                チェックインする
+              </Link>
+              <Link
                 href={`/groups/${event.id}`}
-                className='mt-4 inline-flex h-11 w-full items-center justify-center rounded-full border border-[#1f5d4f] text-sm font-semibold text-[#1f5d4f]'
+                className='mt-2 inline-flex h-11 w-full items-center justify-center rounded-full border border-[#1f5d4f] text-sm font-semibold text-[#1f5d4f]'
               >
                 グループを開く
               </Link>

@@ -5,7 +5,9 @@ import { ConnectionShell } from '@/components/connection/shell';
 import { HostBadgeList } from '@/components/connection/host-badge';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { Card, Chip } from '@/components/connection/ui';
+import { HostCheckinPanel } from '@/components/connection/events/host-checkin-panel';
 import { approveApplicationAction, rejectApplicationAction } from '@/lib/connection/actions';
+import { getEventOperationsMeta, listEventCheckins } from '@/lib/connection/event-operations/repo';
 import { INTEREST_TAG_LABEL, VALUE_TAG_LABEL, formatEventDate } from '@/lib/connection/data';
 import { getEvent, getMember, listApplications } from '@/lib/connection/repo';
 import { getViewerMemberId } from '@/lib/connection/identity';
@@ -48,6 +50,8 @@ export default async function ManageEventPage({ params, searchParams }: PageProp
   const applications = await listApplications(event.id);
   const pending = applications.filter((a) => a.status === 'pending');
   const confirmed = applications.filter((a) => a.status === 'confirmed');
+  const opsMeta = await getEventOperationsMeta(event.id);
+  const checkins = await listEventCheckins(event.id);
 
   const memberIds = [...new Set(applications.map((a) => a.memberId))];
   const memberList = await Promise.all(memberIds.map((mid) => getMember(mid)));
@@ -172,6 +176,15 @@ export default async function ManageEventPage({ params, searchParams }: PageProp
             })
           )}
         </section>
+
+        <HostCheckinPanel
+          eventId={event.id}
+          hasCheckinCode={opsMeta?.hasCheckinCode ?? false}
+          newCheckinCode={typeof sp.new_checkin_code === 'string' ? sp.new_checkin_code : null}
+          confirmedMembers={confirmed.map((a) => memberMap.get(a.memberId)).filter(Boolean) as NonNullable<ReturnType<typeof memberMap.get>>[]}
+          checkins={checkins}
+          endedAt={opsMeta?.endedAt}
+        />
 
         {/* 参加予定者 */}
         <section className='space-y-4'>
