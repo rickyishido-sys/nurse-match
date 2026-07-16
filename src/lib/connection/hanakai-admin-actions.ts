@@ -8,6 +8,9 @@ import {
   adminRejectApplication,
   adminSaveReportNote,
   adminUpdateReportStatus,
+  adminApproveIdentityReview,
+  adminRequestIdentityResubmit,
+  adminRejectIdentityReview,
 } from '@/lib/connection/hanakai-admin-repo';
 import { adminResolveInquiry } from '@/lib/connection/contact-inquiry';
 import { updateEventRecruitmentType } from '@/lib/connection/participation-confirmation';
@@ -131,4 +134,57 @@ export async function adminResolveInquiryAction(formData: FormData) {
   revalidatePath('/admin/hanakai/inquiries');
   revalidatePath('/admin/hanakai');
   redirect('/admin/hanakai/inquiries?success=inquiry_resolved');
+}
+
+export async function adminApproveIdentityAction(formData: FormData) {
+  const adminMemberId = await requireAdminAction();
+  const memberId = String(formData.get('memberId') ?? '').trim();
+  const note = String(formData.get('note') ?? '').trim() || null;
+  if (!memberId) redirect('/admin/hanakai/identity-reviews?error=missing_id');
+
+  const result = await adminApproveIdentityReview(memberId, adminMemberId, note);
+  if (!result.ok) {
+    redirect(`/admin/hanakai/identity-reviews?error=${encodeURIComponent(result.error)}`);
+  }
+
+  revalidatePath('/admin/hanakai/identity-reviews');
+  revalidatePath(`/admin/hanakai/members/${memberId}`);
+  revalidatePath(`/profile/${memberId}`);
+  revalidatePath('/my-profile');
+  redirect('/admin/hanakai/identity-reviews?success=identity_approved');
+}
+
+export async function adminRequestIdentityResubmitAction(formData: FormData) {
+  const adminMemberId = await requireAdminAction();
+  const memberId = String(formData.get('memberId') ?? '').trim();
+  const note = String(formData.get('note') ?? '').trim();
+  if (!memberId) redirect('/admin/hanakai/identity-reviews?error=missing_id');
+  if (!note) redirect(`/admin/hanakai/identity-reviews?error=note_required&memberId=${memberId}`);
+
+  const result = await adminRequestIdentityResubmit(memberId, adminMemberId, note);
+  if (!result.ok) {
+    redirect(`/admin/hanakai/identity-reviews?error=${encodeURIComponent(result.error)}`);
+  }
+
+  revalidatePath('/admin/hanakai/identity-reviews');
+  revalidatePath(`/admin/hanakai/members/${memberId}`);
+  revalidatePath('/my-profile');
+  redirect('/admin/hanakai/identity-reviews?success=resubmit_requested');
+}
+
+export async function adminRejectIdentityAction(formData: FormData) {
+  const adminMemberId = await requireAdminAction();
+  const memberId = String(formData.get('memberId') ?? '').trim();
+  const note = String(formData.get('note') ?? '').trim();
+  if (!memberId) redirect('/admin/hanakai/identity-reviews?error=missing_id');
+  if (!note) redirect(`/admin/hanakai/identity-reviews?error=note_required&memberId=${memberId}`);
+
+  const result = await adminRejectIdentityReview(memberId, adminMemberId, note);
+  if (!result.ok) {
+    redirect(`/admin/hanakai/identity-reviews?error=${encodeURIComponent(result.error)}`);
+  }
+
+  revalidatePath('/admin/hanakai/identity-reviews');
+  revalidatePath(`/admin/hanakai/members/${memberId}`);
+  redirect('/admin/hanakai/identity-reviews?success=identity_rejected');
 }

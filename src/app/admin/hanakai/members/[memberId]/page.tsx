@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AdminPageHeader, Badge } from '@/components/admin/ui';
 import { AdminEmptyState, formatAdminDate } from '@/components/admin/hanakai/hanakai-admin-shared';
-import { TrustAdminPanel } from '@/components/connection/trust-admin-panel';
+import { getIdentityStatus, IDENTITY_STATUS_LABEL } from '@/lib/connection/identity-verification';
 import { getHanakaiAdminMemberDetail } from '@/lib/connection/hanakai-admin-repo';
 import { getBloomProfile } from '@/lib/connection/bloom-profile';
 import {
@@ -12,6 +12,7 @@ import {
   listBloomVersions,
 } from '@/lib/connection/bloom-phase4';
 import { BloomPhase4Panel } from '@/components/connection/bloom-phase4-panel';
+import { TrustAdminPanel } from '@/components/connection/trust-admin-panel';
 import { getMember } from '@/lib/connection/repo';
 
 type PageProps = { params: Promise<{ memberId: string }> };
@@ -209,15 +210,7 @@ export default async function HanakaiAdminMemberDetailPage({ params, searchParam
             <dl className='grid gap-3 sm:grid-cols-2'>
               <Field
                 label='本人確認ステータス'
-                value={
-                  detail.identityVerified
-                    ? '本人確認済み'
-                    : detail.documentUploadStatus === 'approved'
-                      ? '書類承認済み'
-                      : detail.documentUploadStatus === 'pending'
-                        ? '書類確認中'
-                        : '未確認'
-                }
+                value={memberRecord ? IDENTITY_STATUS_LABEL[getIdentityStatus(memberRecord)] : '—'}
               />
               <Field label='書類アップロード' value={detail.documentUploadStatus} />
               <Field label='運営確認ステータス' value={detail.trustVerificationStatus} />

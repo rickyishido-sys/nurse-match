@@ -9,6 +9,7 @@ const BASE = '/admin/hanakai';
 const items = [
   { href: BASE, label: 'ダッシュボード', exact: true },
   { href: `${BASE}/members`, label: '会員' },
+  { href: `${BASE}/identity-reviews`, label: '本人確認' },
   { href: `${BASE}/events`, label: 'イベント' },
   { href: `${BASE}/applications`, label: '参加申請' },
   { href: `${BASE}/revenue-reports`, label: '売上報告' },

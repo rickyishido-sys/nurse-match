@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { submitIdentityDocumentAction } from '@/lib/connection/actions';
 import {
   getIdentitySubmitButtonLabel,
-  getIdentityVerificationDisplayStatus,
+  getIdentityStatus,
+  IDENTITY_DOCUMENT_AUXILIARY_MESSAGE,
   IDENTITY_SUBMIT_BUTTON_LABEL,
-  IDENTITY_VERIFICATION_STATUS_DESCRIPTION,
-  IDENTITY_VERIFICATION_STATUS_LABEL,
-  IDENTITY_VERIFICATION_STATUS_TONE,
+  IDENTITY_STATUS_DESCRIPTION,
+  IDENTITY_STATUS_LABEL,
+  IDENTITY_STATUS_TONE,
 } from '@/lib/connection/identity-verification';
 import {
   checkIdentityDocumentFileClient,
@@ -27,7 +28,7 @@ export function IdentityVerificationSection({
   member,
   showUpload = true,
 }: IdentityVerificationSectionProps) {
-  const status = getIdentityVerificationDisplayStatus(member);
+  const status = getIdentityStatus(member);
   const buttonKind = getIdentitySubmitButtonLabel(status);
   const [fileName, setFileName] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -68,12 +69,15 @@ export function IdentityVerificationSection({
 
       <div className='space-y-1'>
         <p className='text-xs font-medium tracking-wide text-[#9a9a9a]'>現在の状態</p>
-        <p className={`text-sm font-semibold ${IDENTITY_VERIFICATION_STATUS_TONE[status]}`}>
-          {IDENTITY_VERIFICATION_STATUS_LABEL[status]}
+        <p className={`text-sm font-semibold ${IDENTITY_STATUS_TONE[status]}`}>
+          {IDENTITY_STATUS_LABEL[status]}
         </p>
         <p className='text-xs leading-6 text-[#6b6b6b]'>
-          {IDENTITY_VERIFICATION_STATUS_DESCRIPTION[status]}
+          {IDENTITY_STATUS_DESCRIPTION[status]}
         </p>
+        {showUpload ? (
+          <p className='text-xs leading-6 text-[#9a9a9a]'>{IDENTITY_DOCUMENT_AUXILIARY_MESSAGE}</p>
+        ) : null}
       </div>
 
       {showUpload && buttonKind ? (

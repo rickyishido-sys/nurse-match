@@ -7,12 +7,15 @@ import {
   getMember as repoGetMember,
   confirmMemberForEvent,
   rejectApplication,
+  updateMemberTrust,
 } from '@/lib/connection/repo';
 import { selectMemberForEvent } from '@/lib/connection/participation-confirmation';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { PERSONALITY_TYPE_META } from '@/lib/connection/personality';
 import { MBTI_LABEL, SOCIAL_PLATFORM_LABEL } from '@/lib/connection/bloom-profile-options';
+import { getIdentityStatus, IDENTITY_RESUBMIT_FLAG, IDENTITY_STATUS_LABEL } from '@/lib/connection/identity-verification';
+import { getAdminSignedDocumentUrl } from '@/lib/storage';
 import {
   ADMIN_IDENTITY_STATUS_LABEL,
   getAdminIdentityStatus,
@@ -22,6 +25,7 @@ import { REPORT_CATEGORY_LABEL, REPORT_TARGET_TYPE_LABEL } from '@/lib/connectio
 import type {
   AdminApplicationRow,
   AdminEventRow,
+  AdminIdentityReviewRow,
   AdminMemberDetail,
   AdminMemberRow,
   AdminMemberStatus,
@@ -892,3 +896,209 @@ async function countMemberReports(memberId: string): Promise<number> {
     return 0;
   }
 }
+
+function extractIdentityDocumentRef(trustNotes: string | null | undefined): string | null {
+  if (!trustNotes) return null;
+  const match = trustNotes.match(/identity:([^\s]+)/);
+  return match?.[1] ?? null;
+}
+
+export async function listHanakaiIdentityReviews(): Promise<AdminIdentityReviewRow[]> {
+  if (!useSupabase) return [];
+  const admin = await adminDb();
+  if (!admin) return [];
+
+  const { data: memberRows } = await admin
+    .from('hanakai_members')
+    .select(
+      'id, nickname, area, document_upload_status, identity_verified, trust_verification_status, trust_notes, safety_flags, updated_at, identity_verification_date, auth_user_id',
+    )
+    .or('document_upload_status.eq.pending,document_upload_status.eq.rejected,trust_verification_status.eq.reviewing');
+
+  const rows: AdminIdentityReviewRow[] = [];
+
+  for (const row of memberRows ?? []) {
+    const memberLike = {
+      identityVerified: Boolean(row.identity_verified),
+      documentUploadStatus: (row.document_upload_status as ConnectionMember['documentUploadStatus']) ?? 'none',
+      trustVerificationStatus: (row.trust_verification_status as ConnectionMember['trustVerificationStatus']) ?? 'pending',
+      safetyFlags: Array.isArray(row.safety_flags) ? (row.safety_flags as string[]) : [],
+      trustNotes: (row.trust_notes as string | null) ?? null,
+      identityVerificationDate: (row.identity_verification_date as string | null) ?? null,
+    } satisfies Pick<
+      ConnectionMember,
+      | 'identityVerified'
+      | 'documentUploadStatus'
+      | 'trustVerificationStatus'
+      | 'safetyFlags'
+      | 'trustNotes'
+      | 'identityVerificationDate'
+    >;
+
+    const status = getIdentityStatus(memberLike as ConnectionMember);
+    if (status !== 'pending' && status !== 'resubmission_required') continue;
+
+    let email: string | null = null;
+    if (row.auth_user_id) {
+      const { data: authData } = await admin.auth.admin.getUserById(row.auth_user_id as string);
+      email = authData.user?.email ?? null;
+    }
+
+    const documentRef = extractIdentityDocumentRef(memberLike.trustNotes);
+    const signedDocumentUrl = documentRef ? await getAdminSignedDocumentUrl(documentRef, true) : null;
+
+    let lastReviewedAt: string | null = null;
+    let lastReviewedByNickname: string | null = null;
+    const { data: log } = await admin
+      .from('hanakai_identity_review_logs')
+      .select('created_at, reviewer_member_id')
+      .eq('member_id', row.id as string)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (log) {
+      lastReviewedAt = log.created_at;
+      if (log.reviewer_member_id) {
+        const { data: reviewerRow } = await admin
+          .from('hanakai_members')
+          .select('nickname')
+          .eq('id', log.reviewer_member_id)
+          .maybeSingle();
+        lastReviewedByNickname = (reviewerRow?.nickname as string | undefined) ?? null;
+      }
+    }
+
+    rows.push({
+      memberId: row.id as string,
+      nickname: (row.nickname as string) || '（未設定）',
+      email,
+      area: (row.area as string) || '—',
+      identityStatus: status === 'resubmission_required' ? 'resubmission_required' : 'pending',
+      documentUploadStatus: memberLike.documentUploadStatus ?? 'none',
+      submittedAt: (row.updated_at as string | null) ?? memberLike.identityVerificationDate,
+      documentRef,
+      signedDocumentUrl,
+      trustNotes: memberLike.trustNotes,
+      lastReviewedAt,
+      lastReviewedByNickname,
+    });
+  }
+
+  return rows.sort((a, b) => {
+    const aTime = a.submittedAt ? Date.parse(a.submittedAt) : 0;
+    const bTime = b.submittedAt ? Date.parse(b.submittedAt) : 0;
+    return bTime - aTime;
+  });
+}
+
+async function insertIdentityReviewLog(
+  memberId: string,
+  reviewerMemberId: string,
+  action: string,
+  note: string | null,
+  documentRef: string | null,
+) {
+  const admin = await adminDb();
+  if (!admin) return;
+  await admin.from('hanakai_identity_review_logs').insert({
+    member_id: memberId,
+    reviewer_member_id: reviewerMemberId,
+    action,
+    note,
+    document_ref: documentRef,
+  });
+}
+
+export async function adminApproveIdentityReview(
+  memberId: string,
+  reviewerMemberId: string,
+  note: string | null,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = await adminDb();
+  if (!admin) return { ok: false, error: 'admin_unavailable' };
+  const { data: memberRow } = await admin.from('hanakai_members').select('trust_notes, safety_flags').eq('id', memberId).maybeSingle();
+  if (!memberRow) return { ok: false, error: 'member_not_found' };
+
+  const documentRef = extractIdentityDocumentRef(memberRow.trust_notes as string | null);
+  const safetyFlags = ((memberRow.safety_flags as string[] | null) ?? []).filter((f) => f !== IDENTITY_RESUBMIT_FLAG);
+  const trustNotes = note
+    ? `${memberRow.trust_notes ?? ''}\n[承認] ${note}`.trim()
+    : (memberRow.trust_notes as string | null);
+
+  const { error } = await admin
+    .from('hanakai_members')
+    .update({
+      identity_verified: true,
+      document_upload_status: 'approved',
+      trust_verification_status: 'verified',
+      verification_source: 'id_only',
+      safety_flags: safetyFlags,
+      trust_notes: trustNotes,
+      identity_verification_date: new Date().toISOString(),
+    })
+    .eq('id', memberId);
+  if (error) return { ok: false, error: error.message };
+
+  await insertIdentityReviewLog(memberId, reviewerMemberId, 'approved', note, documentRef);
+  return { ok: true };
+}
+
+export async function adminRequestIdentityResubmit(
+  memberId: string,
+  reviewerMemberId: string,
+  note: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!note.trim()) return { ok: false, error: 'note_required' };
+  const admin = await adminDb();
+  if (!admin) return { ok: false, error: 'admin_unavailable' };
+  const { data: memberRow } = await admin.from('hanakai_members').select('trust_notes, safety_flags').eq('id', memberId).maybeSingle();
+  if (!memberRow) return { ok: false, error: 'member_not_found' };
+
+  const documentRef = extractIdentityDocumentRef(memberRow.trust_notes as string | null);
+  const flags = (memberRow.safety_flags as string[] | null) ?? [];
+  const safetyFlags = flags.includes(IDENTITY_RESUBMIT_FLAG) ? flags : [...flags, IDENTITY_RESUBMIT_FLAG];
+
+  const { error } = await admin
+    .from('hanakai_members')
+    .update({
+      identity_verified: false,
+      document_upload_status: 'rejected',
+      trust_verification_status: 'rejected',
+      safety_flags: safetyFlags,
+      trust_notes: `${memberRow.trust_notes ?? ''}\n[再提出依頼] ${note}`.trim(),
+    })
+    .eq('id', memberId);
+  if (error) return { ok: false, error: error.message };
+
+  await insertIdentityReviewLog(memberId, reviewerMemberId, 'resubmission_required', note, documentRef);
+  return { ok: true };
+}
+
+export async function adminRejectIdentityReview(
+  memberId: string,
+  reviewerMemberId: string,
+  note: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!note.trim()) return { ok: false, error: 'note_required' };
+  const admin = await adminDb();
+  if (!admin) return { ok: false, error: 'admin_unavailable' };
+  const { data: memberRow } = await admin.from('hanakai_members').select('trust_notes').eq('id', memberId).maybeSingle();
+  if (!memberRow) return { ok: false, error: 'member_not_found' };
+
+  const documentRef = extractIdentityDocumentRef(memberRow.trust_notes as string | null);
+  const { error } = await admin
+    .from('hanakai_members')
+    .update({
+      identity_verified: false,
+      document_upload_status: 'rejected',
+      trust_verification_status: 'rejected',
+      trust_notes: `${memberRow.trust_notes ?? ''}\n[却下] ${note}`.trim(),
+    })
+    .eq('id', memberId);
+  if (error) return { ok: false, error: error.message };
+
+  await insertIdentityReviewLog(memberId, reviewerMemberId, 'rejected', note, documentRef);
+  return { ok: true };
+}
+
+export { IDENTITY_STATUS_LABEL };

@@ -26,8 +26,10 @@ function isDeletedMemberExemptPath(pathname: string): boolean {
   return pathname.startsWith('/auth/') || pathname.startsWith('/onboarding/');
 }
 
+const USE_DEMO_AUTH = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
+
 async function redirectIfDeletedHanakaiMember(request: NextRequest): Promise<NextResponse | null> {
-  if (process.env.NEXT_PUBLIC_USE_MOCK !== 'false') return null;
+  if (USE_DEMO_AUTH) return null;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -114,7 +116,7 @@ export async function middleware(request: NextRequest) {
     }
 
     if (
-      process.env.NEXT_PUBLIC_USE_MOCK === 'false' &&
+      !USE_DEMO_AUTH &&
       request.cookies.getAll().some((c) => c.name.includes('sb-')) &&
       !isDeletedMemberExemptPath(pathname)
     ) {
@@ -127,7 +129,7 @@ export async function middleware(request: NextRequest) {
     }
 
     if (decision.kind === 'require_auth' || decision.kind === 'require_admin') {
-      if (process.env.NEXT_PUBLIC_USE_MOCK !== 'false') {
+      if (USE_DEMO_AUTH) {
         const demo = request.cookies.get('demo_user_id');
         if (!demo) return loginRedirect(request, pathname, decision.kind === 'require_admin');
         return NextResponse.next();

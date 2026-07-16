@@ -97,6 +97,21 @@ export type AdminMemberApplicationHistory = {
   decidedAt: string | null;
 };
 
+export type AdminIdentityReviewRow = {
+  memberId: string;
+  nickname: string;
+  email: string | null;
+  area: string;
+  identityStatus: 'pending' | 'resubmission_required';
+  documentUploadStatus: string;
+  submittedAt: string | null;
+  documentRef: string | null;
+  signedDocumentUrl: string | null;
+  trustNotes: string | null;
+  lastReviewedAt: string | null;
+  lastReviewedByNickname: string | null;
+};
+
 export type AdminMemberGroupHistory = {
   groupId: string;
   eventId: string;

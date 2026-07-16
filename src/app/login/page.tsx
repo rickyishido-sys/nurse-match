@@ -27,7 +27,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const registration = await getHanakaiRegistrationStatus();
   if (registration.isAuthenticated) {
     if (!registration.profileComplete) redirect('/register/profile');
-    redirect('/home');
+    const next = pickFirst(params.next);
+    const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : null;
+    redirect(safeNext ?? '/home');
   }
 
   const error = pickFirst(params.error);

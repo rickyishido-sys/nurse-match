@@ -48,12 +48,11 @@ function hasSocialLinks(member: ConnectionMember): boolean {
   return member.socialLinks.some((l) => l.url.trim().length > 0);
 }
 
+import { getIdentityStatus } from '@/lib/connection/identity-verification';
+
 export function hasIdentityProgress(member: ConnectionMember): boolean {
-  return (
-    member.identityVerified ||
-    member.documentUploadStatus === 'pending' ||
-    member.documentUploadStatus === 'approved'
-  );
+  const status = getIdentityStatus(member);
+  return status !== 'unsubmitted';
 }
 
 export function hasGeneratedIntro(bloomProfile: BloomProfile | null | undefined): boolean {

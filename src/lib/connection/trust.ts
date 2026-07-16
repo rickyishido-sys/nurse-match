@@ -57,22 +57,18 @@ export type PublicTrustBadge = {
   tone: 'verified' | 'identity' | 'reviewing' | 'muted';
 };
 
-/** 本人確認済みか（公開バッジ用） */
+import { getIdentityStatus } from '@/lib/connection/identity-verification';
+
+/** 本人確認済みか（運営承認後のみ true） */
 export function isIdentityVerified(member: ConnectionMember): boolean {
-  return member.identityVerified || member.documentUploadStatus === 'approved';
+  return member.identityVerified === true;
 }
 
 /** 管理画面用の本人確認ステータス */
 export function getAdminIdentityStatus(member: ConnectionMember): 'verified' | 'reviewing' | 'unverified' {
-  if (isIdentityVerified(member) || member.trustVerificationStatus === 'verified') {
-    return 'verified';
-  }
-  if (
-    member.trustVerificationStatus === 'reviewing' ||
-    member.documentUploadStatus === 'pending'
-  ) {
-    return 'reviewing';
-  }
+  const status = getIdentityStatus(member);
+  if (status === 'verified') return 'verified';
+  if (status === 'pending' || status === 'resubmission_required') return 'reviewing';
   return 'unverified';
 }
 

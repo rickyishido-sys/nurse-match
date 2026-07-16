@@ -595,22 +595,31 @@ export async function updateMemberTrust(
     safetyFlags?: string[];
     verificationSource?: VerificationSource;
     identityVerified?: boolean;
+    documentUploadStatus?: ConnectionMember['documentUploadStatus'];
   },
 ) {
   const member = await getMember(id);
   if (!member) return null;
   const now = new Date().toISOString();
   const status = patch.trustVerificationStatus ?? member.trustVerificationStatus;
+  const identityVerified = patch.identityVerified ?? member.identityVerified;
+  let documentUploadStatus = patch.documentUploadStatus ?? member.documentUploadStatus;
+  if (patch.identityVerified === true) {
+    documentUploadStatus = 'approved';
+  } else if (patch.identityVerified === false && documentUploadStatus === 'approved') {
+    documentUploadStatus = 'none';
+  }
   return updateMember(id, {
     trustVerificationStatus: status,
     trustNotes: patch.trustNotes !== undefined ? patch.trustNotes : member.trustNotes,
     safetyFlags: patch.safetyFlags ?? member.safetyFlags,
     verificationSource: patch.verificationSource ?? member.verificationSource,
-    identityVerified: patch.identityVerified ?? member.identityVerified,
+    identityVerified,
+    documentUploadStatus,
     trustVerificationDate:
       status === 'verified' && member.trustVerificationStatus !== 'verified' ? now : member.trustVerificationDate,
     identityVerificationDate:
-      patch.identityVerified && !member.identityVerified ? now : member.identityVerificationDate,
+      identityVerified && !member.identityVerified ? now : member.identityVerificationDate,
   });
 }
 

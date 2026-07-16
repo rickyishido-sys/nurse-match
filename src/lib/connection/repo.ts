@@ -146,6 +146,7 @@ export async function updateMemberTrust(
     safetyFlags?: string[];
     verificationSource?: VerificationSource;
     identityVerified?: boolean;
+    documentUploadStatus?: ConnectionMember['documentUploadStatus'];
   },
 ) {
   return useSupabase ? supa.updateMemberTrust(id, patch) : mock.updateMemberTrust(id, patch);
