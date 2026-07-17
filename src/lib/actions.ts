@@ -93,13 +93,15 @@ function isConfiguredAdminEmail(email: string | undefined | null) {
   return parseAdminEmails().includes(email.trim().toLowerCase());
 }
 
-const E2E_TEST_USER_PASSWORD = 'test1234';
+import { isDevAuthBypassEnabled } from '@/lib/connection/legal-consent';
 
 // Self-heal designated E2E test accounts whose auth password drifted
 // (e.g. changed by a register-details smoke run). Enabled only while the
 // dev OTP bypass flag is on, and only for the canonical test password.
+const E2E_TEST_USER_PASSWORD = 'test1234';
+
 async function tryHealTestUserPassword(email: string, password: string) {
-  if (process.env.REGISTER_DEV_BYPASS_OTP !== 'true') return false;
+  if (!isDevAuthBypassEnabled()) return false;
   const normalizedEmail = email.trim().toLowerCase();
   if (normalizedEmail !== E2E_TEST_FEMALE_EMAIL && normalizedEmail !== E2E_TEST_MALE_EMAIL) return false;
   if (password !== E2E_TEST_USER_PASSWORD) return false;
@@ -633,7 +635,7 @@ export async function requestRegisterVerificationAction(formData: FormData) {
     const email = normalizeEmail(String(formData.get('email') ?? ''));
     const allowBurst = String(formData.get('allowBurst') ?? '') === '1';
     const sendEmail = allowBurst ? createBurstAliasEmail(email) : email;
-    const bypassOtpForDev = process.env.REGISTER_DEV_BYPASS_OTP === 'true';
+    const bypassOtpForDev = isDevAuthBypassEnabled();
     const useMock = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
     console.log('REGISTER_START', {
       email,

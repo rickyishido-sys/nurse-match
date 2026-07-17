@@ -154,6 +154,10 @@ function memberFromRow(
     documentUploadStatus: row.document_upload_status ?? 'none',
     status: (row.status === 'deleted' ? 'deleted' : 'active') as ConnectionMember['status'],
     deletedAt: row.deleted_at ?? null,
+    termsAgreedAt: row.terms_agreed_at ?? null,
+    privacyAgreedAt: row.privacy_agreed_at ?? null,
+    termsVersion: row.terms_version ?? null,
+    privacyVersion: row.privacy_version ?? null,
   };
 }
 

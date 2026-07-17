@@ -1,11 +1,117 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { recordLegalConsentAction } from '@/lib/connection/actions';
 import { ONB, StepHeading } from './onboarding-ui';
 import { persistOnboardingStep } from '@/lib/connection/onboarding-progress';
 
 const inputClass =
   'w-full rounded-2xl border bg-white px-5 py-[18px] text-base leading-relaxed outline-none transition focus:border-current';
+
+/** 利用規約・プライバシーポリシー同意 */
+export function LegalConsentStep({
+  index,
+  art,
+  onComplete,
+}: {
+  index: number;
+  art?: string;
+  onComplete: () => void;
+}) {
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
+  const submitting = useRef(false);
+
+  useEffect(() => {
+    console.log('BLOOM_LEGAL_CONSENT_STEP_START');
+  }, []);
+
+  async function handleNext(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (submitting.current || pending) return;
+
+    setError('');
+    if (!termsAccepted || !privacyAccepted) {
+      setError('利用規約とプライバシーポリシーの両方に同意してください。');
+      return;
+    }
+
+    submitting.current = true;
+    setPending(true);
+
+    try {
+      const formData = new FormData();
+      formData.set('terms', termsAccepted ? '1' : '0');
+      formData.set('privacy', privacyAccepted ? '1' : '0');
+      await recordLegalConsentAction(formData);
+      persistOnboardingStep('password');
+      onComplete();
+    } catch (err) {
+      console.error('BLOOM_LEGAL_CONSENT_ERROR', { message: String(err) });
+      setError('同意の保存に失敗しました。通信環境を確認して再度お試しください。');
+    } finally {
+      submitting.current = false;
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className='flex flex-1 flex-col'>
+      <StepHeading
+        index={index}
+        art={art}
+        title='利用規約とプライバシーポリシー'
+        subtitle='必須 · 登録を続けるには同意が必要です'
+      />
+      <div className='mt-6 space-y-4'>
+        <label className='flex cursor-pointer items-start gap-3 rounded-2xl border bg-white px-4 py-4' style={{ borderColor: ONB.border }}>
+          <input
+            type='checkbox'
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            className='mt-1 h-4 w-4 rounded'
+          />
+          <span className='text-sm leading-7' style={{ color: ONB.ink }}>
+            <Link href='/terms' target='_blank' rel='noopener noreferrer' className='font-semibold underline underline-offset-2'>
+              利用規約
+            </Link>
+            に同意します
+          </span>
+        </label>
+        <label className='flex cursor-pointer items-start gap-3 rounded-2xl border bg-white px-4 py-4' style={{ borderColor: ONB.border }}>
+          <input
+            type='checkbox'
+            checked={privacyAccepted}
+            onChange={(e) => setPrivacyAccepted(e.target.checked)}
+            className='mt-1 h-4 w-4 rounded'
+          />
+          <span className='text-sm leading-7' style={{ color: ONB.ink }}>
+            <Link href='/privacy' target='_blank' rel='noopener noreferrer' className='font-semibold underline underline-offset-2'>
+              プライバシーポリシー
+            </Link>
+            に同意します
+          </span>
+        </label>
+        {error ? (
+          <p className='rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>{error}</p>
+        ) : null}
+      </div>
+      <button
+        type='button'
+        disabled={pending || !termsAccepted || !privacyAccepted}
+        onClick={handleNext}
+        className='mt-auto rounded-2xl px-4 py-3.5 text-sm font-semibold text-white transition disabled:opacity-60'
+        style={{ backgroundColor: ONB.accent }}
+      >
+        {pending ? '保存中…' : '同意して次へ'}
+      </button>
+    </div>
+  );
+}
 
 /** ログイン用パスワード設定（メール認証直後の新規登録向け） */
 export function PasswordStep({

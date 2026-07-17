@@ -204,6 +204,11 @@ export type ConnectionMember = {
   /** active | deleted（論理削除） */
   status: HanakaiMemberStatus;
   deletedAt: string | null;
+  /** 利用規約同意（App Store 必須） */
+  termsAgreedAt: string | null;
+  privacyAgreedAt: string | null;
+  termsVersion: string | null;
+  privacyVersion: string | null;
 } & MemberTrustVerificationFields;
 
 export type HanakaiMemberStatus = 'active' | 'deleted';

@@ -21,7 +21,12 @@ import { TEMPERAMENT_OPTIONS } from '@/lib/connection/onboarding-options';
 import { uploadEventImages } from '@/lib/connection/storage';
 import { uploadDocument } from '@/lib/upload';
 import { ensureViewerMemberId, getAuthenticatedAuthUserId, getViewerMemberId } from '@/lib/connection/identity';
-import { softDeleteHanakaiAccount } from '@/lib/connection/account-deletion';
+import { deleteHanakaiAccount } from '@/lib/connection/account-deletion';
+import {
+  HANAKAI_PRIVACY_VERSION,
+  HANAKAI_TERMS_VERSION,
+  hasRecordedLegalConsent,
+} from '@/lib/connection/legal-consent';
 import { isDeletedMember } from '@/lib/connection/member-status';
 import { requireHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access';
 import {
@@ -345,12 +350,54 @@ export async function setRegistrationPasswordAction(formData: FormData) {
   return { ok: true as const };
 }
 
+export async function recordLegalConsentAction(formData: FormData) {
+  const terms = formData.get('terms') === '1';
+  const privacy = formData.get('privacy') === '1';
+  if (!terms || !privacy) {
+    throw new Error('利用規約とプライバシーポリシーの同意が必要です');
+  }
+
+  const memberId = await ensureViewerMemberId();
+  if (!memberId) {
+    redirect('/register?hint=auth-required');
+  }
+
+  const sb = await createServerSupabaseClient();
+  if (!sb) {
+    throw new Error('Supabase client unavailable');
+  }
+
+  const now = new Date().toISOString();
+  const { error } = await sb
+    .from('hanakai_members')
+    .update({
+      terms_agreed_at: now,
+      privacy_agreed_at: now,
+      terms_version: HANAKAI_TERMS_VERSION,
+      privacy_version: HANAKAI_PRIVACY_VERSION,
+      updated_at: now,
+    })
+    .eq('id', memberId);
+
+  if (error) {
+    console.error('HANAKAI_LEGAL_CONSENT_FAILED', { memberId, message: error.message });
+    throw new Error('同意の保存に失敗しました');
+  }
+
+  revalidatePath('/register/profile');
+}
+
 export async function saveProfileAction(formData: FormData) {
   const nickname = String(formData.get('nickname') ?? '').trim();
   if (!nickname) redirect('/register/profile?error=nickname');
 
   const memberId = await ensureViewerMemberId();
   if (!memberId) redirect('/register');
+
+  const existingMember = await getMember(memberId);
+  if (!hasRecordedLegalConsent(existingMember)) {
+    redirect('/register/profile?error=legal');
+  }
 
   const gender = String(formData.get('gender') ?? '') as 'female' | 'male' | 'other' | '';
   if (!gender) redirect('/register/profile?error=gender');
@@ -772,7 +819,7 @@ export async function deleteHanakaiAccountAction(formData: FormData) {
   }
 
   const reason = String(formData.get('reason') ?? '').trim();
-  await softDeleteHanakaiAccount({ memberId, authUserId, reason: reason || null });
+  await deleteHanakaiAccount({ memberId, authUserId, reason: reason || null });
 
   const supabase = await createServerSupabaseClient();
   if (supabase) {

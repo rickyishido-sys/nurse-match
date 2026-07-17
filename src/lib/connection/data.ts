@@ -311,6 +311,10 @@ const memberSeeds: Omit<
   | 'introductionGeneratedAt'
   | 'status'
   | 'deletedAt'
+  | 'termsAgreedAt'
+  | 'privacyAgreedAt'
+  | 'termsVersion'
+  | 'privacyVersion'
 >[] = [
   {
     id: 'm1',
@@ -614,6 +618,10 @@ const members: ConnectionMember[] = memberSeeds.map((m) => ({
   introductionGeneratedAt: null,
   status: 'active',
   deletedAt: null,
+  termsAgreedAt: '2026-07-01T00:00:00+09:00',
+  privacyAgreedAt: '2026-07-01T00:00:00+09:00',
+  termsVersion: '2026-07-16',
+  privacyVersion: '2026-07-08',
 }));
 
 const events: ConnectionEvent[] = [

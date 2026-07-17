@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { RegisterEmailForm } from '@/components/register-email-form';
 import { BrandAuthFrame, BrandAuthLinks } from '@/components/connection/brand/brand-auth-frame';
 import { HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
+import { isDevAuthBypassEnabled } from '@/lib/connection/legal-consent';
 import { ensureHanakaiMemberForAuthUser } from '@/lib/connection/identity';
 import { getHanakaiRegistrationStatus, resolveJoinHref } from '@/lib/connection/registration-status';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
@@ -80,7 +81,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   const error = pickFirst(params.error);
   const detail = safeDecode(pickFirst(params.detail));
   const sentEmail = safeDecode(pickFirst(params.sentEmail));
-  const burst = process.env.HANAKAI_REGISTER_DEV_BYPASS === 'true';
+  const burst = isDevAuthBypassEnabled();
   const legacyFlow = pickFirst(params.legacy) === '1';
   const errorMessage = resolveRegisterErrorMessage(error, detail);
 

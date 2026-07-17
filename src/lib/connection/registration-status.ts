@@ -1,4 +1,5 @@
 import { getAuthenticatedAuthUserId, getViewerMemberId } from '@/lib/connection/identity';
+import { hasRecordedLegalConsent } from '@/lib/connection/legal-consent';
 import { isDeletedMember } from '@/lib/connection/member-status';
 import { getMember } from '@/lib/connection/repo';
 import type { ConnectionMember } from '@/lib/connection/types';
@@ -6,6 +7,7 @@ import type { ConnectionMember } from '@/lib/connection/types';
 /** Bloom Profile Lite の必須項目が揃っているか */
 export function isHanakaiProfileComplete(member: ConnectionMember | null | undefined): boolean {
   if (!member) return false;
+  if (!hasRecordedLegalConsent(member)) return false;
   const hasGender = member.gender === 'female' || member.gender === 'male' || member.gender === 'other';
   const hasArea = Boolean(member.area?.trim());
   const hasAgeBand = Boolean(member.ageBand);

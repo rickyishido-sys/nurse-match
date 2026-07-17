@@ -47,4 +47,10 @@ if (platform === 'ios' || platform === 'android') {
 }
 
 run('npx', capArgs);
+
+const applyPlist = join(__dirname, 'apply-ios-plist.mjs');
+if (existsSync(applyPlist) && (!platform || platform === 'ios')) {
+  run('node', [applyPlist]);
+}
+
 console.log('[hanakai] Sync complete.');

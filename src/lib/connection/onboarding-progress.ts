@@ -1,7 +1,9 @@
 import type { ConnectionMember } from '@/lib/connection/types';
+import { hasRecordedLegalConsent } from '@/lib/connection/legal-consent';
 
 export type OnboardingStepId =
   | 'intro'
+  | 'legal'
   | 'password'
   | 'nickname'
   | 'gender'
@@ -16,6 +18,7 @@ export type OnboardingStepId =
 
 export const ONBOARDING_STEP_ORDER: OnboardingStepId[] = [
   'intro',
+  'legal',
   'password',
   'nickname',
   'gender',
@@ -37,8 +40,19 @@ export const QUESTION_STEP_IDS = ONBOARDING_STEP_ORDER.filter((s) => s !== 'intr
 export const STORAGE_STARTED = 'hanakai_onboarding_started';
 export const STORAGE_STEP = 'hanakai_onboarding_step';
 
+export type OnboardingSkipOptions = {
+  skipLegal?: boolean;
+  skipPassword?: boolean;
+};
+
 function isStepId(value: string | null): value is OnboardingStepId {
   return Boolean(value && ONBOARDING_STEP_ORDER.includes(value as OnboardingStepId));
+}
+
+function shouldSkipStep(step: OnboardingStepId, options: OnboardingSkipOptions): boolean {
+  if (options.skipLegal && step === 'legal') return true;
+  if (options.skipPassword && step === 'password') return true;
+  return false;
 }
 
 export function readOnboardingStarted(): boolean {
@@ -109,11 +123,23 @@ function hasArea(member: ConnectionMember | null | undefined) {
   return Boolean(member?.area?.trim());
 }
 
+export function resolveOnboardingSkipOptions(
+  member: ConnectionMember | null | undefined,
+  hasPasswordSet: boolean,
+): OnboardingSkipOptions {
+  return {
+    skipLegal: hasRecordedLegalConsent(member),
+    skipPassword: hasPasswordSet,
+  };
+}
+
 /** サーバー側の既存データから最初の未完了ステップを推定 */
 export function inferResumeStep(
   member: ConnectionMember | null | undefined,
   hasPasswordSet: boolean,
 ): OnboardingStepId {
+  const skip = resolveOnboardingSkipOptions(member, hasPasswordSet);
+  if (!skip.skipLegal) return 'legal';
   if (!hasPasswordSet) return 'password';
   if (!hasNickname(member)) return 'nickname';
   if (!hasGender(member)) return 'gender';
@@ -127,11 +153,21 @@ export function resolveInitialOnboardingStep(
   member: ConnectionMember | null | undefined,
   hasPasswordSet: boolean,
 ): OnboardingStepId {
+  const skip = resolveOnboardingSkipOptions(member, hasPasswordSet);
   const started = readOnboardingStarted();
   const stored = readStoredOnboardingStep();
 
   if (started && stored && stored !== 'intro') {
-    if (!hasPasswordSet && stored !== 'password') {
+    if (shouldSkipStep(stored, skip) && stored === 'password') {
+      persistOnboardingStep('nickname');
+      return 'nickname';
+    }
+    if (shouldSkipStep(stored, skip) && stored === 'legal') {
+      const resume = hasPasswordSet ? 'nickname' : 'password';
+      persistOnboardingStep(resume);
+      return resume;
+    }
+    if (!hasPasswordSet && stored !== 'password' && stored !== 'legal') {
       clearOnboardingProgress();
       return 'intro';
     }
@@ -144,7 +180,7 @@ export function resolveInitialOnboardingStep(
   }
 
   if (started) {
-    const resume = hasPasswordSet ? inferResumeStep(member, true) : 'password';
+    const resume = inferResumeStep(member, hasPasswordSet);
     console.log('BLOOM_ONBOARDING_RESTORE_STEP', { stored: resume, started, reason: 'started_without_step' });
     return resume;
   }
@@ -156,22 +192,24 @@ export function stepIndex(step: OnboardingStepId): number {
   return ONBOARDING_STEP_ORDER.indexOf(step);
 }
 
-export function nextStepId(current: OnboardingStepId, skipPassword: boolean): OnboardingStepId | null {
-  const idx = stepIndex(current);
+export function nextStepId(current: OnboardingStepId, options: OnboardingSkipOptions): OnboardingStepId | null {
+  let idx = stepIndex(current);
   if (idx < 0 || idx >= ONBOARDING_STEP_ORDER.length - 1) return null;
   let next = ONBOARDING_STEP_ORDER[idx + 1];
-  if (skipPassword && next === 'password') {
-    next = ONBOARDING_STEP_ORDER[idx + 2] ?? next;
+  while (next && shouldSkipStep(next, options)) {
+    idx += 1;
+    next = ONBOARDING_STEP_ORDER[idx + 1] ?? null;
   }
   return next;
 }
 
-export function prevStepId(current: OnboardingStepId, skipPassword: boolean): OnboardingStepId | null {
-  const idx = stepIndex(current);
+export function prevStepId(current: OnboardingStepId, options: OnboardingSkipOptions): OnboardingStepId | null {
+  let idx = stepIndex(current);
   if (idx <= 0) return null;
   let prev = ONBOARDING_STEP_ORDER[idx - 1];
-  if (skipPassword && prev === 'password') {
-    prev = ONBOARDING_STEP_ORDER[idx - 2] ?? prev;
+  while (prev && shouldSkipStep(prev, options)) {
+    idx -= 1;
+    prev = ONBOARDING_STEP_ORDER[idx - 1] ?? null;
   }
   if (prev === 'intro' && readOnboardingStarted()) return null;
   return prev;
@@ -180,4 +218,10 @@ export function prevStepId(current: OnboardingStepId, skipPassword: boolean): On
 export function progressDotIndex(step: OnboardingStepId): number {
   if (step === 'intro') return -1;
   return QUESTION_STEP_IDS.indexOf(step as Exclude<OnboardingStepId, 'intro'>);
+}
+
+export function firstOnboardingStepAfterIntro(options: OnboardingSkipOptions): OnboardingStepId {
+  if (!options.skipLegal) return 'legal';
+  if (!options.skipPassword) return 'password';
+  return 'nickname';
 }

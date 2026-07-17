@@ -11,6 +11,7 @@ import {
   type SocialLinkPlatform,
 } from '@/lib/connection/bloom-profile-options';
 import {
+  firstOnboardingStepAfterIntro,
   nextStepId,
   persistOnboardingStarted,
   persistOnboardingStep,
@@ -18,8 +19,10 @@ import {
   progressDotIndex,
   QUESTION_STEP_IDS,
   resolveInitialOnboardingStep,
+  resolveOnboardingSkipOptions,
   type OnboardingStepId,
 } from '@/lib/connection/onboarding-progress';
+import { hasRecordedLegalConsent } from '@/lib/connection/legal-consent';
 import {
   DESIRED_CONNECTION_OPTIONS,
   PREFECTURES,
@@ -32,7 +35,7 @@ import type {
   InterestTag,
 } from '@/lib/connection/types';
 import { BioStep, MbtiStep, SocialLinksStep } from './bloom-profile-steps';
-import { IdentityDocumentStep, PasswordStep } from './registration-steps';
+import { IdentityDocumentStep, LegalConsentStep, PasswordStep } from './registration-steps';
 import { BottomNavButtons, OnboardingLayout, ONB, ProgressDots } from './onboarding-ui';
 import { BrandLogo } from '@/components/connection/brand/brand-logo';
 import {
@@ -73,6 +76,7 @@ const stepVariants = {
 };
 
 const STEP_ART: Partial<Record<OnboardingStepId, string>> = {
+  legal: '/flow/register.png',
   password: '/flow/register.png',
   nickname: '/flow/register.png',
   gender: '/flow/register.png',
@@ -132,7 +136,12 @@ export function OnboardingFlow({
     (member?.purposes ?? []).filter((p) => DESIRED_CONNECTION_OPTIONS.some((o) => o.value === p)),
   );
 
-  const skipPassword = passwordDone || hasPasswordSet;
+  const skipOptions = useMemo(
+    () => resolveOnboardingSkipOptions(member, hasPasswordSet || passwordDone),
+    [member, hasPasswordSet, passwordDone],
+  );
+  const skipPassword = skipOptions.skipPassword;
+  const skipLegal = skipOptions.skipLegal;
 
   useEffect(() => {
     if (initDone.current) return;
@@ -171,19 +180,26 @@ export function OnboardingFlow({
 
   useEffect(() => {
     if (!ready) return;
-    if (step === 'intro' && (passwordDone || hasPasswordSet)) {
-      console.error('BLOOM_ONBOARDING_UNEXPECTED_INTRO_RETURN', { passwordDone, hasPasswordSet });
+    if (step === 'legal' && skipLegal) {
+      setStep(skipPassword ? 'nickname' : 'password');
+      return;
+    }
+    if (step === 'intro' && (passwordDone || hasPasswordSet) && skipLegal) {
+      console.error('BLOOM_ONBOARDING_UNEXPECTED_INTRO_RETURN', { passwordDone, hasPasswordSet, skipLegal });
       setStep('nickname');
     }
-  }, [step, ready, passwordDone, hasPasswordSet]);
+  }, [step, ready, passwordDone, hasPasswordSet, skipLegal, skipPassword]);
 
   const isLast = step === 'purposes';
   const isPasswordStep = step === 'password';
+  const isLegalStep = step === 'legal';
 
   const canProceed = useMemo(() => {
     switch (step) {
       case 'intro':
         return true;
+      case 'legal':
+        return hasRecordedLegalConsent(member);
       case 'password':
         return passwordDone;
       case 'nickname':
@@ -199,7 +215,7 @@ export function OnboardingFlow({
       default:
         return true;
     }
-  }, [step, passwordDone, nickname, gender, ageBand, area]);
+  }, [step, passwordDone, nickname, gender, ageBand, area, member]);
 
   function goTo(next: OnboardingStepId) {
     setStep(next);
@@ -208,24 +224,29 @@ export function OnboardingFlow({
 
   function handleStart() {
     console.log('BLOOM_ONBOARDING_STARTED');
-    const first: OnboardingStepId = skipPassword ? 'nickname' : 'password';
+    const first = firstOnboardingStepAfterIntro(skipOptions);
     persistOnboardingStarted(first);
     setDirection(1);
     goTo(first);
   }
 
   function handleNext() {
-    const next = nextStepId(step, skipPassword);
+    const next = nextStepId(step, skipOptions);
     if (!next) return;
     setDirection(1);
     goTo(next);
   }
 
   function handleBack() {
-    const prev = prevStepId(step, skipPassword);
+    const prev = prevStepId(step, skipOptions);
     if (!prev) return;
     setDirection(-1);
     goTo(prev);
+  }
+
+  function handleLegalComplete() {
+    setDirection(1);
+    goTo(skipPassword ? 'nickname' : 'password');
   }
 
   function handlePasswordComplete() {
@@ -266,7 +287,7 @@ export function OnboardingFlow({
   const footer =
     step === 'intro' ? (
       <BottomNavButtons onNext={handleStart} nextLabel='はじめる' />
-    ) : isPasswordStep ? null : (
+    ) : isPasswordStep || isLegalStep ? null : (
       <BottomNavButtons
         onBack={handleBack}
         onNext={isLast ? handleFinalSubmit : handleNext}
@@ -280,6 +301,14 @@ export function OnboardingFlow({
     switch (step) {
       case 'intro':
         return <OnboardingStepIntro />;
+      case 'legal':
+        return (
+          <LegalConsentStep
+            index={stepDisplayIndex(step)}
+            art={STEP_ART.legal}
+            onComplete={handleLegalComplete}
+          />
+        );
       case 'password':
         return (
           <PasswordStep
@@ -421,6 +450,11 @@ export function OnboardingFlow({
         {error === 'ageBand' ? (
           <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
             年齢層を選択してください。
+          </p>
+        ) : null}
+        {error === 'legal' ? (
+          <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
+            利用規約とプライバシーポリシーへの同意が必要です。
           </p>
         ) : null}
 
