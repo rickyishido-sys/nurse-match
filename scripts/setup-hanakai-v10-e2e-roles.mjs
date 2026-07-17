@@ -101,6 +101,7 @@ const lines = [
   `HANAKAI_V10_E2E_ADMIN_EMAIL=${created.admin.email}`,
   `HANAKAI_V10_E2E_ADMIN_MEMBER_ID=${created.admin.memberId}`,
   `# Vercel Preview: add ${created.admin.memberId} to HANAKAI_CONNECTION_ADMIN_MEMBER_IDS`,
+  `# Vercel Preview Playwright: add VERCEL_AUTOMATION_BYPASS_SECRET from Project Settings → Deployment Protection → Protection Bypass for Automation`,
 ];
 secrets += lines.join('\n') + '\n';
 writeFileSync(secretsPath, secrets);

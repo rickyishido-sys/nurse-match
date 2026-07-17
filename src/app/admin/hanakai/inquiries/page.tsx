@@ -2,7 +2,8 @@ import { Suspense } from 'react';
 import { AdminPageHeader, Badge } from '@/components/admin/ui';
 import { AdminInquiryActions } from '@/components/admin/hanakai/hanakai-admin-inquiry-actions';
 import { AdminSelectFilter } from '@/components/admin/hanakai/hanakai-admin-filters';
-import { AdminFlashBanner, adminFlashMessage } from '@/components/admin/hanakai/hanakai-admin-flash';
+import { AdminFlashBanner } from '@/components/admin/hanakai/hanakai-admin-flash';
+import { adminFlashMessage } from '@/lib/connection/hanakai-admin-flash';
 import { AdminEmptyState, formatAdminDate } from '@/components/admin/hanakai/hanakai-admin-shared';
 import {
   CONTACT_INQUIRY_STATUS_LABEL,

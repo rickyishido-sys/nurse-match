@@ -6,7 +6,8 @@ import {
   AdminApplicationProcessed,
 } from '@/components/admin/hanakai/hanakai-admin-application-actions';
 import { AdminSearchBar, AdminSelectFilter } from '@/components/admin/hanakai/hanakai-admin-filters';
-import { AdminFlashBanner, adminFlashMessage } from '@/components/admin/hanakai/hanakai-admin-flash';
+import { AdminFlashBanner } from '@/components/admin/hanakai/hanakai-admin-flash';
+import { adminFlashMessage } from '@/lib/connection/hanakai-admin-flash';
 import { AdminEmptyState, formatAdminDate } from '@/components/admin/hanakai/hanakai-admin-shared';
 import {
   listHanakaiAdminApplications,

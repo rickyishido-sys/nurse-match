@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { AdminPageHeader, Badge } from '@/components/admin/ui';
 import { AdminEmptyState, formatAdminDate } from '@/components/admin/hanakai/hanakai-admin-shared';
-import { AdminFlashBanner, adminFlashMessage } from '@/components/admin/hanakai/hanakai-admin-flash';
+import { AdminFlashBanner } from '@/components/admin/hanakai/hanakai-admin-flash';
+import { adminFlashMessage } from '@/lib/connection/hanakai-admin-flash';
 import { HanakaiAdminIdentityReviewActions } from '@/components/admin/hanakai/hanakai-admin-identity-review-actions';
 import { listHanakaiIdentityReviews } from '@/lib/connection/hanakai-admin-repo';
 import { IDENTITY_STATUS_LABEL } from '@/lib/connection/identity-verification';

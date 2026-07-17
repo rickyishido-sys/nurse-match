@@ -10,6 +10,12 @@ import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
+import {
+  assertHanakaiReachable,
+  createHanakaiPreviewContext,
+  isVercelPreviewHost,
+  waitForHanakaiLoginForm,
+} from './lib/vercel-preview-context.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
@@ -89,8 +95,14 @@ async function screenshot(page, name) {
 }
 
 async function login(page, email, pw, nextPath = '/home') {
-  await page.goto(`${baseUrl}/login?next=${encodeURIComponent(nextPath)}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
-  if (!(await page.locator('input[name="email"]').count())) return false;
+  const loginUrl = `${baseUrl}/login?next=${encodeURIComponent(nextPath)}`;
+  await page.goto(loginUrl, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  if (page.url().includes('vercel.com/login') || page.url().includes('vercel.com/sso-api')) return false;
+  try {
+    await waitForHanakaiLoginForm(page);
+  } catch {
+    return false;
+  }
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(pw);
   await Promise.all([
@@ -190,8 +202,17 @@ async function main() {
     : null;
 
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext();
+  const { context, useBypass } = await createHanakaiPreviewContext(browser, baseUrl, env);
   const page = await context.newPage();
+
+  if (isVercelPreviewHost(baseUrl)) {
+    if (!useBypass) {
+      record('setup', false, 'Preview *.vercel.app は Vercel Authentication で Playwright がブロックされます。VERCEL_AUTOMATION_BYPASS_SECRET を .env.secrets.local に設定するか、診断: node scripts/e2e-preview-access-diagnostic.mjs');
+      await browser.close();
+      process.exit(1);
+    }
+    await assertHanakaiReachable(page, baseUrl);
+  }
 
   // Reset unsubmitted user
   if (admin && accounts.unsubmitted.memberId) {
@@ -318,13 +339,22 @@ async function main() {
       await waitForPageReady(page);
     }
     const adminText = await page.locator('main').innerText().catch(() => '');
-    const adminPageOk = adminText.includes('本人確認審査') && !adminText.includes('アクセス権限がありません');
-    const hasQueue =
-      adminPageOk &&
-      (adminText.includes('審査操作') || adminText.includes('E2E未提出') || adminText.includes('E2E確認中'));
-    record('11-admin-queue', hasQueue || adminPageOk, `運営: 申請一覧 UI=${hasQueue} page=${adminPageOk} (${page.url()})`);
-
+    const adminForbidden =
+      adminText.includes('アクセス権限がありません') || adminText.includes('運営管理コンソールへのアクセス');
+    const adminPageOk = adminText.includes('本人確認審査') && !adminForbidden;
+    const emptyQueue = adminText.includes('審査待ちの本人確認申請はありません');
     const resubmitForm = page.locator('form').filter({ has: page.getByRole('button', { name: '再提出依頼' }) }).first();
+    const approveForm = page.locator('form').filter({ has: page.getByRole('button', { name: /承認/ }) }).first();
+    const queueVisible =
+      adminPageOk &&
+      !emptyQueue &&
+      ((await resubmitForm.count()) > 0 || (await approveForm.count()) > 0 || adminText.includes('提出日時'));
+    record(
+      '11-admin-queue',
+      queueVisible,
+      `運営: 申請一覧 UI=${queueVisible} page=${adminPageOk} forbidden=${adminForbidden} (${page.url()})`,
+    );
+
     if (await resubmitForm.count()) {
       await resubmitForm.locator('textarea[name="note"]').fill('E2E再提出テスト');
       await Promise.all([
@@ -357,11 +387,11 @@ async function main() {
     await logout(page);
     await login(page, accounts.admin.email, password, '/admin/hanakai/identity-reviews');
     await gotoReady(page, `${baseUrl}/admin/hanakai/identity-reviews`);
-    const approveForm = page.locator('form').filter({ has: page.getByRole('button', { name: /承認/ }) }).first();
-    if (await approveForm.count()) {
+    const approveFormSecond = page.locator('form').filter({ has: page.getByRole('button', { name: /承認/ }) }).first();
+    if (await approveFormSecond.count()) {
       await Promise.all([
         page.waitForURL((u) => u.search.includes('success=identity_approved'), { timeout: 60000 }).catch(() => null),
-        approveForm.getByRole('button', { name: /承認/ }).click(),
+        approveFormSecond.getByRole('button', { name: /承認/ }).click(),
       ]);
       record('15-admin-approve', true, '運営: 承認（UI）');
     } else if (admin) {

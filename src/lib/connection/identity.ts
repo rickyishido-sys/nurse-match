@@ -8,13 +8,17 @@
 //       * 読み取り (getViewerMemberId): セッションが無ければ null（ゲスト閲覧）。
 //       * 書き込み (ensureViewerMemberId): セッション必須（本番は匿名 sign-in 不可）。
 //         ensureHanakaiMemberForAuthUser で hanakai_members 行を get-or-create。
-import { HANAKAI_CONNECTION_BACKEND, HANAKAI_DISABLE_ANONYMOUS_AUTH } from '@/lib/config';
+import { HANAKAI_CONNECTION_BACKEND, HANAKAI_DISABLE_ANONYMOUS_AUTH, USE_MOCK_DATA } from '@/lib/config';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 
 export const MOCK_VIEWER_ID = 'm1';
 
 const useSupabase = HANAKAI_CONNECTION_BACKEND === 'supabase';
+
+function mockViewerWhenDemoEnabled(): string | null {
+  return USE_MOCK_DATA ? MOCK_VIEWER_ID : null;
+}
 
 function isAnonymousAuthAllowed(): boolean {
   if (HANAKAI_DISABLE_ANONYMOUS_AUTH) return false;
@@ -51,7 +55,7 @@ export async function ensureHanakaiMemberForAuthUser(
   authUserId: string,
   options?: { email?: string | null; nickname?: string | null },
 ): Promise<string | null> {
-  if (!useSupabase) return MOCK_VIEWER_ID;
+  if (!useSupabase) return mockViewerWhenDemoEnabled();
 
   try {
     const existing = await findMemberIdByAuthUser(authUserId);
@@ -122,7 +126,7 @@ export async function ensureHanakaiMemberForAuthUser(
  * mock では常に 'm1'。supabase では未ログイン時 null。
  */
 export async function getViewerMemberId(): Promise<string | null> {
-  if (!useSupabase) return MOCK_VIEWER_ID;
+  if (!useSupabase) return mockViewerWhenDemoEnabled();
   try {
     const sb = await createServerSupabaseClient();
     if (!sb) return null;
@@ -138,7 +142,7 @@ export async function getViewerMemberId(): Promise<string | null> {
 
 /** ログイン済みか（Supabase Auth セッションあり） */
 export async function getAuthenticatedAuthUserId(): Promise<string | null> {
-  if (!useSupabase) return MOCK_VIEWER_ID;
+  if (!useSupabase) return mockViewerWhenDemoEnabled();
   try {
     const sb = await createServerSupabaseClient();
     if (!sb) return null;
@@ -158,7 +162,7 @@ export async function getAuthenticatedAuthUserId(): Promise<string | null> {
  * mock では常に 'm1'。
  */
 export async function ensureViewerMemberId(): Promise<string | null> {
-  if (!useSupabase) return MOCK_VIEWER_ID;
+  if (!useSupabase) return mockViewerWhenDemoEnabled();
   try {
     const sb = await createServerSupabaseClient();
     if (!sb) return null;
