@@ -107,6 +107,7 @@ export function OnboardingFlow({
   const [direction, setDirection] = useState(1);
   const [ready, setReady] = useState(false);
   const [passwordDone, setPasswordDone] = useState(hasPasswordSet);
+  const [legalDone, setLegalDone] = useState(() => hasRecordedLegalConsent(member));
   const [submitting, startSubmit] = useTransition();
   const initLogged = useRef(false);
   const initDone = useRef(false);
@@ -136,10 +137,19 @@ export function OnboardingFlow({
     (member?.purposes ?? []).filter((p) => DESIRED_CONNECTION_OPTIONS.some((o) => o.value === p)),
   );
 
-  const skipOptions = useMemo(
-    () => resolveOnboardingSkipOptions(member, hasPasswordSet || passwordDone),
-    [member, hasPasswordSet, passwordDone],
-  );
+  const skipOptions = useMemo(() => {
+    const memberForSkip =
+      legalDone && member
+        ? {
+            ...member,
+            termsAgreedAt: member.termsAgreedAt ?? new Date().toISOString(),
+            privacyAgreedAt: member.privacyAgreedAt ?? new Date().toISOString(),
+            termsVersion: member.termsVersion ?? '2026-07-16',
+            privacyVersion: member.privacyVersion ?? '2026-07-08',
+          }
+        : member;
+    return resolveOnboardingSkipOptions(memberForSkip, hasPasswordSet || passwordDone);
+  }, [member, hasPasswordSet, passwordDone, legalDone]);
   const skipPassword = skipOptions.skipPassword;
   const skipLegal = skipOptions.skipLegal;
 
@@ -245,6 +255,7 @@ export function OnboardingFlow({
   }
 
   function handleLegalComplete() {
+    setLegalDone(true);
     setDirection(1);
     goTo(skipPassword ? 'nickname' : 'password');
   }

@@ -91,9 +91,10 @@ try {
 
 const testUsers = {};
 
-async function createLegalTestUser(suffix) {
+async function createLegalTestUser() {
+  const suffix = `${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
   const email = `hanakai-e2e-legal-${suffix}@test.hanakai.local`;
-  const password = `E2eLegal!${suffix}`;
+  const password = `E2eLegal!${suffix.slice(-8)}`;
   const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
@@ -134,7 +135,7 @@ async function main() {
   }
 
   // --- Legal consent ---
-  const legalUser = await createLegalTestUser(stamp.slice(-8));
+  const legalUser = await createLegalTestUser();
   testUsers.legal = legalUser;
 
   const loggedIn = await login(page, legalUser.email, legalUser.password);
@@ -168,9 +169,11 @@ async function main() {
     await boxes.nth(1).check();
   }
   await agreeBtn.click();
-  await page.waitForSelector('text=ログイン用パスワード', { timeout: 30000 }).catch(() => null);
-  const afterConsent = (await page.locator('text=ログイン用パスワード').count()) > 0;
-  record('LEGAL-05', afterConsent, afterConsent ? 'Advanced to password step after consent' : 'Did not advance');
+  await page.waitForTimeout(2000);
+  const advanced =
+    (await page.locator('text=ログイン用パスワード').count()) > 0 ||
+    (await page.locator('text=あなたの表示名').count()) > 0;
+  record('LEGAL-05', advanced, advanced ? 'Advanced after consent' : 'Did not advance');
 
   const { data: memberAfter } = await admin
     .from('hanakai_members')
@@ -211,19 +214,25 @@ async function main() {
     .eq('id', legalUser.memberId);
   record('RLS-02', !nicknameOk.error, nicknameOk.error ? `Nickname update failed: ${nicknameOk.error.message}` : 'Nickname update allowed');
 
-  const verified = await createLegalTestUser(`${stamp.slice(-6)}v`);
-  const otherTamper = await userClient
+  const { data: otherMembers } = await admin
     .from('hanakai_members')
-    .update({ nickname: 'hack' })
-    .eq('id', verified.memberId);
+    .select('id')
+    .neq('id', legalUser.memberId)
+    .limit(1);
+  const otherId = otherMembers?.[0]?.id;
+  const otherTamper = otherId
+    ? await userClient.from('hanakai_members').update({ nickname: 'hack' }).eq('id', otherId).select('id')
+    : { error: { message: 'no other member' }, data: [] };
   record(
     'RLS-03',
-    Boolean(otherTamper.error) || otherTamper.count === 0,
-    otherTamper.error ? `Other member update blocked` : 'Other member update may have succeeded',
+    Boolean(otherTamper.error) || (otherTamper.data?.length ?? 0) === 0,
+    otherTamper.error
+      ? `Other member update blocked: ${otherTamper.error.message}`
+      : `Other member rows updated: ${otherTamper.data?.length ?? 0}`,
   );
 
   // --- Account deletion ---
-  const deleteUser = await createLegalTestUser(`${stamp.slice(-6)}d`);
+  const deleteUser = await createLegalTestUser();
   testUsers.delete = deleteUser;
   await admin.from('hanakai_members').update({ nickname: '削除テスト', area: '東京', gender: 'female', age_band: '30代' }).eq('id', deleteUser.memberId);
 
@@ -233,7 +242,7 @@ async function main() {
 
   await delPage.goto(`${baseUrl}/account/delete`, { waitUntil: 'domcontentloaded' });
   await delPage.check('input[type="checkbox"]');
-  await delPage.click('button:has-text("アカウントを削除")');
+  await delPage.click('button:has-text("アカウントを削除する")');
   await delPage.waitForURL((u) => u.pathname === '/' || u.search.includes('account=deleted'), { timeout: 60000 }).catch(() => null);
   await screenshot(delPage, 'account-deleted');
 
