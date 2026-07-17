@@ -357,8 +357,8 @@ export async function recordLegalConsentAction(formData: FormData) {
     throw new Error('利用規約とプライバシーポリシーの同意が必要です');
   }
 
-  const memberId = await getViewerMemberId();
-  if (!memberId) {
+  const authUserId = await getAuthenticatedAuthUserId();
+  if (!authUserId) {
     redirect('/register?hint=auth-required');
   }
 
@@ -367,11 +367,21 @@ export async function recordLegalConsentAction(formData: FormData) {
     throw new Error('Supabase client unavailable');
   }
 
-  const authUserId = await getAuthenticatedAuthUserId();
-  if (!authUserId) {
+  const { data: memberRow, error: memberLookupError } = await sb
+    .from('hanakai_members')
+    .select('id')
+    .eq('auth_user_id', authUserId)
+    .maybeSingle();
+
+  if (memberLookupError || !memberRow?.id) {
+    console.error('HANAKAI_LEGAL_CONSENT_MEMBER_MISSING', {
+      authUserId,
+      message: memberLookupError?.message ?? 'member not found',
+    });
     redirect('/register?hint=auth-required');
   }
 
+  const memberId = memberRow.id;
   const now = new Date().toISOString();
   const { data: updated, error } = await sb
     .from('hanakai_members')
