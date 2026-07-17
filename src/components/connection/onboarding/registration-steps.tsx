@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { recordLegalConsentAction } from '@/lib/connection/actions';
 import { ONB, StepHeading } from './onboarding-ui';
@@ -24,6 +25,7 @@ export function LegalConsentStep({
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
   const submitting = useRef(false);
+  const router = useRouter();
 
   useEffect(() => {
     console.log('BLOOM_LEGAL_CONSENT_STEP_START');
@@ -48,6 +50,7 @@ export function LegalConsentStep({
       formData.set('terms', termsAccepted ? '1' : '0');
       formData.set('privacy', privacyAccepted ? '1' : '0');
       await recordLegalConsentAction(formData);
+      router.refresh();
       persistOnboardingStep('password');
       onComplete();
     } catch (err) {

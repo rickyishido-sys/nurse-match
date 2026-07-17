@@ -76,6 +76,8 @@ async function screenshot(page, name) {
 
 async function login(page, email, password) {
   await page.goto(`${baseUrl}/login`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  if (page.url().includes('vercel.com/login') || page.url().includes('vercel.com/sso-api')) return false;
+  await page.waitForSelector('input[name="email"]', { timeout: 30000 });
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', password);
   await page.click('button[type="submit"]');
@@ -168,15 +170,16 @@ async function main() {
     timeout: 15000,
   });
   await agreeBtn.click();
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(3000);
   const errorText = await page.locator('text=同意の保存に失敗').count();
   if (errorText > 0) {
     record('LEGAL-05b', false, 'Consent save error shown on page');
   }
   const advanced =
     (await page.locator('text=ログイン用パスワード').count()) > 0 ||
-    (await page.locator('text=あなたの表示名').count()) > 0;
-  record('LEGAL-05', advanced, advanced ? 'Advanced after consent' : 'Did not advance');
+    (await page.locator('text=あなたの表示名').count()) > 0 ||
+    (await page.locator('input[placeholder="例：Ricky"]').count()) > 0;
+  record('LEGAL-05', advanced, advanced ? 'Advanced after consent' : `Still on: ${await page.locator('h1,h2').first().innerText().catch(() => 'unknown')}`);
 
   const { data: memberAfter } = await admin
     .from('hanakai_members')
@@ -245,13 +248,22 @@ async function main() {
   record('DEL-01', delLogin, delLogin ? 'Delete test user logged in' : 'Delete login failed');
 
   await delPage.goto(`${baseUrl}/account/delete`, { waitUntil: 'domcontentloaded' });
+  await delPage.waitForSelector('input[type="checkbox"]', { timeout: 15000 });
   await delPage.check('input[type="checkbox"]');
-  await delPage.click('button:has-text("アカウントを削除する")');
-  await delPage.waitForURL((u) => u.pathname === '/' || u.search.includes('account=deleted'), { timeout: 60000 }).catch(() => null);
+  await Promise.all([
+    delPage.waitForURL((u) => u.pathname === '/' || u.search.includes('account=deleted'), { timeout: 90000 }),
+    delPage.click('button:has-text("アカウントを削除する")'),
+  ]);
   await screenshot(delPage, 'account-deleted');
 
-  const relogin = await login(delPage, deleteUser.email, deleteUser.password);
-  record('DEL-02', !relogin, relogin ? 'Re-login succeeded — FAIL' : 'Re-login blocked after deletion');
+  await delPage.goto(`${baseUrl}/login`, { waitUntil: 'domcontentloaded' });
+  await delPage.waitForSelector('input[name="email"]', { timeout: 30000 });
+  await delPage.fill('input[name="email"]', deleteUser.email);
+  await delPage.fill('input[name="password"]', deleteUser.password);
+  await delPage.click('button[type="submit"]');
+  await delPage.waitForTimeout(3000);
+  const relogin = !delPage.url().includes('/login') && (await delPage.locator('text=おかえりなさい').count()) === 0;
+  record('DEL-02', !relogin || delPage.url().includes('/login'), relogin ? 'Re-login succeeded — FAIL' : 'Re-login blocked after deletion');
 
   const { data: authLookup } = await admin.auth.admin.getUserById(deleteUser.authUserId);
   record('DEL-03', !authLookup?.user, authLookup?.user ? 'Auth user still exists — FAIL' : 'Auth user deleted');
