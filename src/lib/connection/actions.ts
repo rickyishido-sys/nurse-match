@@ -388,7 +388,10 @@ export async function recordLegalConsentAction(formData: FormData) {
     .maybeSingle();
 
   if (error || !updated?.id) {
-    console.error('HANAKAI_LEGAL_CONSENT_FAILED', { memberId, message: error.message });
+    console.error('HANAKAI_LEGAL_CONSENT_FAILED', {
+      memberId,
+      message: error?.message ?? 'no row updated',
+    });
     throw new Error('同意の保存に失敗しました');
   }
 
