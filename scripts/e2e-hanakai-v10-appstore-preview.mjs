@@ -149,7 +149,7 @@ async function main() {
   record('LEGAL-02', onLegal, onLegal ? 'Legal step visible' : 'Legal step not shown');
   await screenshot(page, 'legal-step');
 
-  const agreeBtn = page.locator('button:has-text("同意して次へ")');
+  const agreeBtn = page.getByTestId('legal-consent-submit');
   const btnDisabledWithoutCheck = await agreeBtn.isDisabled();
   record('LEGAL-03', btnDisabledWithoutCheck, btnDisabledWithoutCheck ? 'Submit disabled without consent' : 'Submit enabled without consent — FAIL');
 
@@ -161,15 +161,18 @@ async function main() {
   ]);
   record('LEGAL-04', termsHref === '/terms' && privacyHref === '/privacy', `Links: terms=${termsHref} privacy=${privacyHref}`);
 
-  await page.check('input[type="checkbox"]').catch(() => null);
-  const boxes = page.locator('input[type="checkbox"]');
-  const count = await boxes.count();
-  if (count >= 2) {
-    await boxes.nth(0).check();
-    await boxes.nth(1).check();
-  }
+  await page.getByTestId('legal-consent-terms').check();
+  await page.getByTestId('legal-consent-privacy').check();
+  await agreeBtn.waitFor({ state: 'visible', timeout: 5000 });
+  await page.waitForFunction(() => !document.querySelector('[data-testid="legal-consent-submit"]')?.disabled, {
+    timeout: 15000,
+  });
   await agreeBtn.click();
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(1500);
+  const errorText = await page.locator('text=同意の保存に失敗').count();
+  if (errorText > 0) {
+    record('LEGAL-05b', false, 'Consent save error shown on page');
+  }
   const advanced =
     (await page.locator('text=ログイン用パスワード').count()) > 0 ||
     (await page.locator('text=あなたの表示名').count()) > 0;
@@ -189,14 +192,14 @@ async function main() {
   record('LEGAL-06', Boolean(dbOk), dbOk ? 'DB consent recorded with versions' : JSON.stringify(memberAfter ?? {}));
 
   // --- RLS / trigger tamper ---
-  const { data: signIn } = await admin.auth.signInWithPassword({
+  const userClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
+  const { data: signIn, error: signInErr } = await userClient.auth.signInWithPassword({
     email: legalUser.email,
     password: legalUser.password,
   });
-  const userClient = createClient(supabaseUrl, anonKey, {
-    auth: { persistSession: false },
-    global: { headers: { Authorization: `Bearer ${signIn.session.access_token}` } },
-  });
+  if (signInErr || !signIn.session) {
+    record('RLS-00', false, signInErr?.message ?? 'signIn failed');
+  }
 
   const trustTamper = await userClient
     .from('hanakai_members')
@@ -237,6 +240,7 @@ async function main() {
   await admin.from('hanakai_members').update({ nickname: '削除テスト', area: '東京', gender: 'female', age_band: '30代' }).eq('id', deleteUser.memberId);
 
   const delPage = await context.newPage();
+  await delPage.goto(`${baseUrl}/login`, { waitUntil: 'domcontentloaded', timeout: 90000 });
   const delLogin = await login(delPage, deleteUser.email, deleteUser.password);
   record('DEL-01', delLogin, delLogin ? 'Delete test user logged in' : 'Delete login failed');
 

@@ -71,6 +71,7 @@ export function LegalConsentStep({
         <label className='flex cursor-pointer items-start gap-3 rounded-2xl border bg-white px-4 py-4' style={{ borderColor: ONB.border }}>
           <input
             type='checkbox'
+            data-testid='legal-consent-terms'
             checked={termsAccepted}
             onChange={(e) => setTermsAccepted(e.target.checked)}
             className='mt-1 h-4 w-4 rounded'
@@ -85,6 +86,7 @@ export function LegalConsentStep({
         <label className='flex cursor-pointer items-start gap-3 rounded-2xl border bg-white px-4 py-4' style={{ borderColor: ONB.border }}>
           <input
             type='checkbox'
+            data-testid='legal-consent-privacy'
             checked={privacyAccepted}
             onChange={(e) => setPrivacyAccepted(e.target.checked)}
             className='mt-1 h-4 w-4 rounded'
@@ -102,6 +104,7 @@ export function LegalConsentStep({
       </div>
       <button
         type='button'
+        data-testid='legal-consent-submit'
         disabled={pending || !termsAccepted || !privacyAccepted}
         onClick={handleNext}
         className='mt-auto rounded-2xl px-4 py-3.5 text-sm font-semibold text-white transition disabled:opacity-60'
