@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import {
   applyToEvent,
   confirmMemberForEvent,
@@ -26,6 +27,8 @@ import {
   HANAKAI_PRIVACY_VERSION,
   HANAKAI_TERMS_VERSION,
   hasRecordedLegalConsent,
+  isValidConsentPlatform,
+  resolveConsentPlatform,
 } from '@/lib/connection/legal-consent';
 import { isDeletedMember } from '@/lib/connection/member-status';
 import { requireHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access';
@@ -438,6 +441,13 @@ export async function recordLegalConsentAction(formData: FormData) {
 
   const memberId = memberRow.id;
   const now = new Date().toISOString();
+
+  const platformRaw = String(formData.get('platform') ?? '').trim();
+  const headerStore = await headers();
+  const platform = isValidConsentPlatform(platformRaw)
+    ? platformRaw
+    : resolveConsentPlatform(headerStore.get('user-agent'));
+
   const { data: updated, error } = await sb
     .from('hanakai_members')
     .update({
@@ -460,6 +470,28 @@ export async function recordLegalConsentAction(formData: FormData) {
     throw new Error('同意の保存に失敗しました');
   }
 
+  const historyClient = createAdminSupabaseClient() ?? sb;
+  const { error: historyError } = await historyClient.from('hanakai_legal_consent_history').insert({
+    auth_user_id: authUserId,
+    member_id: memberId,
+    terms_version: HANAKAI_TERMS_VERSION,
+    privacy_policy_version: HANAKAI_PRIVACY_VERSION,
+    agreed_at: now,
+    platform,
+    consent_context: 'pre_identity',
+  });
+
+  if (historyError) {
+    console.error('HANAKAI_LEGAL_CONSENT_HISTORY_FAILED', {
+      memberId,
+      authUserId,
+      platform,
+      message: historyError.message,
+    });
+    throw new Error('同意履歴の保存に失敗しました');
+  }
+
+  console.log('HANAKAI_LEGAL_CONSENT_RECORDED', { memberId, authUserId, platform, context: 'pre_identity' });
   revalidatePath('/register/profile');
 }
 

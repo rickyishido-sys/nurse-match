@@ -3,12 +3,12 @@ import { hasRecordedLegalConsent } from '@/lib/connection/legal-consent';
 
 export type OnboardingStepId =
   | 'intro'
-  | 'legal'
   | 'password'
   | 'nickname'
   | 'gender'
   | 'ageBand'
   | 'area'
+  | 'preIdentityConsent'
   | 'identity'
   | 'bio'
   | 'sns'
@@ -18,12 +18,12 @@ export type OnboardingStepId =
 
 export const ONBOARDING_STEP_ORDER: OnboardingStepId[] = [
   'intro',
-  'legal',
   'password',
   'nickname',
   'gender',
   'ageBand',
   'area',
+  'preIdentityConsent',
   'identity',
   'bio',
   'sns',
@@ -41,7 +41,7 @@ export const STORAGE_STARTED = 'hanakai_onboarding_started';
 export const STORAGE_STEP = 'hanakai_onboarding_step';
 
 export type OnboardingSkipOptions = {
-  skipLegal?: boolean;
+  skipPreIdentityConsent?: boolean;
   skipPassword?: boolean;
 };
 
@@ -50,7 +50,7 @@ function isStepId(value: string | null): value is OnboardingStepId {
 }
 
 function shouldSkipStep(step: OnboardingStepId, options: OnboardingSkipOptions): boolean {
-  if (options.skipLegal && step === 'legal') return true;
+  if (options.skipPreIdentityConsent && step === 'preIdentityConsent') return true;
   if (options.skipPassword && step === 'password') return true;
   return false;
 }
@@ -128,7 +128,7 @@ export function resolveOnboardingSkipOptions(
   hasPasswordSet: boolean,
 ): OnboardingSkipOptions {
   return {
-    skipLegal: hasRecordedLegalConsent(member),
+    skipPreIdentityConsent: hasRecordedLegalConsent(member),
     skipPassword: hasPasswordSet,
   };
 }
@@ -138,13 +138,12 @@ export function inferResumeStep(
   member: ConnectionMember | null | undefined,
   hasPasswordSet: boolean,
 ): OnboardingStepId {
-  const skip = resolveOnboardingSkipOptions(member, hasPasswordSet);
-  if (!skip.skipLegal) return 'legal';
   if (!hasPasswordSet) return 'password';
   if (!hasNickname(member)) return 'nickname';
   if (!hasGender(member)) return 'gender';
   if (!hasAgeBand(member)) return 'ageBand';
   if (!hasArea(member)) return 'area';
+  if (!hasRecordedLegalConsent(member)) return 'preIdentityConsent';
   return 'identity';
 }
 
@@ -162,12 +161,11 @@ export function resolveInitialOnboardingStep(
       persistOnboardingStep('nickname');
       return 'nickname';
     }
-    if (shouldSkipStep(stored, skip) && stored === 'legal') {
-      const resume = hasPasswordSet ? 'nickname' : 'password';
-      persistOnboardingStep(resume);
-      return resume;
+    if (shouldSkipStep(stored, skip) && stored === 'preIdentityConsent') {
+      persistOnboardingStep('identity');
+      return 'identity';
     }
-    if (!hasPasswordSet && stored !== 'password' && stored !== 'legal') {
+    if (!hasPasswordSet && stored !== 'password') {
       clearOnboardingProgress();
       return 'intro';
     }
@@ -221,7 +219,6 @@ export function progressDotIndex(step: OnboardingStepId): number {
 }
 
 export function firstOnboardingStepAfterIntro(options: OnboardingSkipOptions): OnboardingStepId {
-  if (!options.skipLegal) return 'legal';
   if (!options.skipPassword) return 'password';
   return 'nickname';
 }

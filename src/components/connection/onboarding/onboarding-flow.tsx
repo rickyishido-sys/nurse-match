@@ -35,7 +35,7 @@ import type {
   InterestTag,
 } from '@/lib/connection/types';
 import { BioStep, MbtiStep, SocialLinksStep } from './bloom-profile-steps';
-import { IdentityDocumentStep, LegalConsentStep, PasswordStep } from './registration-steps';
+import { IdentityDocumentStep, PasswordStep, PreIdentityConsentStep } from './registration-steps';
 import { BottomNavButtons, OnboardingLayout, ONB, ProgressDots } from './onboarding-ui';
 import { BrandLogo } from '@/components/connection/brand/brand-logo';
 import {
@@ -76,12 +76,12 @@ const stepVariants = {
 };
 
 const STEP_ART: Partial<Record<OnboardingStepId, string>> = {
-  legal: '/flow/register.png',
   password: '/flow/register.png',
   nickname: '/flow/register.png',
   gender: '/flow/register.png',
   ageBand: '/flow/register.png',
   area: '/categories/stroll.png',
+  preIdentityConsent: '/categories/cafe.png',
   identity: '/categories/cafe.png',
   bio: '/categories/flower.png',
   sns: '/categories/cafe.png',
@@ -107,7 +107,7 @@ export function OnboardingFlow({
   const [direction, setDirection] = useState(1);
   const [ready, setReady] = useState(false);
   const [passwordDone, setPasswordDone] = useState(hasPasswordSet);
-  const [legalDone, setLegalDone] = useState(() => hasRecordedLegalConsent(member));
+  const [preIdentityConsentDone, setPreIdentityConsentDone] = useState(() => hasRecordedLegalConsent(member));
   const [submitting, startSubmit] = useTransition();
   const initLogged = useRef(false);
   const initDone = useRef(false);
@@ -139,7 +139,7 @@ export function OnboardingFlow({
 
   const skipOptions = useMemo(() => {
     const memberForSkip =
-      legalDone && member
+      preIdentityConsentDone && member
         ? {
             ...member,
             termsAgreedAt: member.termsAgreedAt ?? new Date().toISOString(),
@@ -149,9 +149,9 @@ export function OnboardingFlow({
           }
         : member;
     return resolveOnboardingSkipOptions(memberForSkip, hasPasswordSet || passwordDone);
-  }, [member, hasPasswordSet, passwordDone, legalDone]);
+  }, [member, hasPasswordSet, passwordDone, preIdentityConsentDone]);
   const skipPassword = skipOptions.skipPassword;
-  const skipLegal = skipOptions.skipLegal;
+  const skipPreIdentityConsent = skipOptions.skipPreIdentityConsent;
 
   useEffect(() => {
     if (initDone.current) return;
@@ -190,26 +190,32 @@ export function OnboardingFlow({
 
   useEffect(() => {
     if (!ready) return;
-    if (step === 'legal' && skipLegal) {
-      setStep(skipPassword ? 'nickname' : 'password');
+    if (step === 'preIdentityConsent' && skipPreIdentityConsent) {
+      setStep('identity');
       return;
     }
-    if (step === 'intro' && (passwordDone || hasPasswordSet) && skipLegal) {
-      console.error('BLOOM_ONBOARDING_UNEXPECTED_INTRO_RETURN', { passwordDone, hasPasswordSet, skipLegal });
+    if (
+      step === 'identity' &&
+      !skipPreIdentityConsent &&
+      !preIdentityConsentDone &&
+      !hasRecordedLegalConsent(member)
+    ) {
+      setStep('preIdentityConsent');
+    }
+    if (step === 'intro' && (passwordDone || hasPasswordSet)) {
+      console.error('BLOOM_ONBOARDING_UNEXPECTED_INTRO_RETURN', { passwordDone, hasPasswordSet });
       setStep('nickname');
     }
-  }, [step, ready, passwordDone, hasPasswordSet, skipLegal, skipPassword]);
+  }, [step, ready, passwordDone, hasPasswordSet, skipPreIdentityConsent]);
 
   const isLast = step === 'purposes';
   const isPasswordStep = step === 'password';
-  const isLegalStep = step === 'legal';
+  const isPreIdentityConsentStep = step === 'preIdentityConsent';
 
   const canProceed = useMemo(() => {
     switch (step) {
       case 'intro':
         return true;
-      case 'legal':
-        return hasRecordedLegalConsent(member);
       case 'password':
         return passwordDone;
       case 'nickname':
@@ -220,12 +226,14 @@ export function OnboardingFlow({
         return ageBand !== '';
       case 'area':
         return area !== '';
+      case 'preIdentityConsent':
+        return preIdentityConsentDone || hasRecordedLegalConsent(member);
       case 'identity':
-        return true;
+        return preIdentityConsentDone || hasRecordedLegalConsent(member);
       default:
         return true;
     }
-  }, [step, passwordDone, nickname, gender, ageBand, area, member]);
+  }, [step, passwordDone, nickname, gender, ageBand, area, preIdentityConsentDone, member]);
 
   function goTo(next: OnboardingStepId) {
     setStep(next);
@@ -254,10 +262,10 @@ export function OnboardingFlow({
     goTo(prev);
   }
 
-  function handleLegalComplete() {
-    setLegalDone(true);
+  function handlePreIdentityConsentComplete() {
+    setPreIdentityConsentDone(true);
     setDirection(1);
-    goTo(skipPassword ? 'nickname' : 'password');
+    goTo('identity');
   }
 
   function handlePasswordComplete() {
@@ -298,7 +306,7 @@ export function OnboardingFlow({
   const footer =
     step === 'intro' ? (
       <BottomNavButtons onNext={handleStart} nextLabel='はじめる' />
-    ) : isPasswordStep || isLegalStep ? null : (
+    ) : isPasswordStep || isPreIdentityConsentStep ? null : (
       <BottomNavButtons
         onBack={handleBack}
         onNext={isLast ? handleFinalSubmit : handleNext}
@@ -312,12 +320,12 @@ export function OnboardingFlow({
     switch (step) {
       case 'intro':
         return <OnboardingStepIntro />;
-      case 'legal':
+      case 'preIdentityConsent':
         return (
-          <LegalConsentStep
+          <PreIdentityConsentStep
             index={stepDisplayIndex(step)}
-            art={STEP_ART.legal}
-            onComplete={handleLegalComplete}
+            art={STEP_ART.preIdentityConsent}
+            onComplete={handlePreIdentityConsentComplete}
           />
         );
       case 'password':
@@ -465,7 +473,7 @@ export function OnboardingFlow({
         ) : null}
         {error === 'legal' ? (
           <p className='mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
-            利用規約とプライバシーポリシーへの同意が必要です。
+            本人確認の前に、利用規約とプライバシーポリシーへの同意が必要です。
           </p>
         ) : null}
 

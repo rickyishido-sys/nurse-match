@@ -10,7 +10,140 @@ import { persistOnboardingStep } from '@/lib/connection/onboarding-progress';
 const inputClass =
   'w-full rounded-2xl border bg-white px-5 py-[18px] text-base leading-relaxed outline-none transition focus:border-current';
 
-/** 利用規約・プライバシーポリシー同意 */
+/** 本人確認前の利用規約・プライバシーポリシー同意 */
+export function PreIdentityConsentStep({
+  index,
+  art,
+  onComplete,
+}: {
+  index: number;
+  art?: string;
+  onComplete: () => void;
+}) {
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
+  const submitting = useRef(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    console.log('HANAKAI_PRE_IDENTITY_CONSENT_STEP_START');
+  }, []);
+
+  async function handleProceed(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (submitting.current || pending) return;
+
+    setError('');
+    if (!termsAccepted || !privacyAccepted) {
+      setError('利用規約とプライバシーポリシーの両方に同意してください。');
+      return;
+    }
+
+    submitting.current = true;
+    setPending(true);
+
+    try {
+      const formData = new FormData();
+      formData.set('terms', termsAccepted ? '1' : '0');
+      formData.set('privacy', privacyAccepted ? '1' : '0');
+      formData.set('platform', detectClientConsentPlatform());
+      await recordLegalConsentAction(formData);
+      router.refresh();
+      persistOnboardingStep('identity');
+      onComplete();
+    } catch (err) {
+      console.error('HANAKAI_PRE_IDENTITY_CONSENT_ERROR', { message: String(err) });
+      setError('同意の保存に失敗しました。通信環境を確認して再度お試しください。');
+    } finally {
+      submitting.current = false;
+      setPending(false);
+    }
+  }
+
+  const canProceed = termsAccepted && privacyAccepted && !pending;
+
+  return (
+    <div className='flex flex-1 flex-col'>
+      <StepHeading
+        index={index}
+        art={art}
+        title='本人確認の前に'
+        subtitle='安心してご利用いただくための確認'
+      />
+      <p className='mt-4 text-sm leading-7' style={{ color: ONB.subtle }}>
+        安心してご利用いただくため、本人確認をお願いしています。
+        <br />
+        本人確認書類は運営による確認のみに使用し、他の参加者へ公開されることはありません。
+        <br />
+        ご利用前に、利用規約とプライバシーポリシーをご確認ください。
+      </p>
+      <div className='mt-6 space-y-3'>
+        <label
+          className='flex cursor-pointer items-start gap-3 rounded-2xl border bg-white px-4 py-4 transition'
+          style={{ borderColor: termsAccepted ? ONB.accent : ONB.border }}
+        >
+          <input
+            type='checkbox'
+            data-testid='legal-consent-terms'
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            className='mt-0.5 h-4 w-4 shrink-0 rounded accent-[#1f5d4f]'
+          />
+          <span className='text-sm leading-7' style={{ color: ONB.ink }}>
+            <Link href='/terms' target='_blank' rel='noopener noreferrer' className='font-semibold underline underline-offset-2'>
+              利用規約
+            </Link>
+            を確認し、同意します
+          </span>
+        </label>
+        <label
+          className='flex cursor-pointer items-start gap-3 rounded-2xl border bg-white px-4 py-4 transition'
+          style={{ borderColor: privacyAccepted ? ONB.accent : ONB.border }}
+        >
+          <input
+            type='checkbox'
+            data-testid='legal-consent-privacy'
+            checked={privacyAccepted}
+            onChange={(e) => setPrivacyAccepted(e.target.checked)}
+            className='mt-0.5 h-4 w-4 shrink-0 rounded accent-[#1f5d4f]'
+          />
+          <span className='text-sm leading-7' style={{ color: ONB.ink }}>
+            <Link href='/privacy' target='_blank' rel='noopener noreferrer' className='font-semibold underline underline-offset-2'>
+              プライバシーポリシー
+            </Link>
+            を確認し、同意します
+          </span>
+        </label>
+        {error ? (
+          <p className='rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>{error}</p>
+        ) : null}
+      </div>
+      <button
+        type='button'
+        data-testid='legal-consent-submit'
+        disabled={!canProceed}
+        onClick={handleProceed}
+        className='mt-auto rounded-2xl px-4 py-3.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50'
+        style={{ backgroundColor: ONB.accent }}
+      >
+        {pending ? '保存中…' : '本人確認へ進む'}
+      </button>
+    </div>
+  );
+}
+
+function detectClientConsentPlatform(): 'ios' | 'android' | 'web' {
+  if (typeof navigator === 'undefined') return 'web';
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+  if (/Android/i.test(ua)) return 'android';
+  return 'web';
+}
+
+/** @deprecated 本人確認前ステップへ移行。PreIdentityConsentStep を使用 */
 export function LegalConsentStep({
   index,
   art,
@@ -277,10 +410,10 @@ export function IdentityDocumentStep({
         index={index}
         art={art}
         title='本人確認書類をアップロードしてください'
-        subtitle='任意 · 運転免許証・マイナンバーカード・パスポートなど'
+        subtitle='必須 · 運転免許証・マイナンバーカード・パスポートなど'
       />
       <p className='mt-4 text-[14px] leading-7' style={{ color: ONB.subtle }}>
-        任意の提出です。書類をアップロードいただくと運営が確認し、審査完了後に本人確認済みバッジが付与されます。後からマイページでも提出できます。
+        本人確認（必須）です。書類をアップロードいただくとHANAKAI運営が確認し、認証済みバッジが付与されます。イベント参加・作成には認証済みである必要があります。
       </p>
       <div className='mt-6'>
         <input
