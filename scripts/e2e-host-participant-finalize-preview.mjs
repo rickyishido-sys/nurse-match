@@ -7,6 +7,7 @@ import { chromium } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import { ensureE2EAdminReady } from './e2e-hanakai-admin-helper.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -92,18 +93,20 @@ async function waitForAdminApplicationsPanel(page, eventId) {
     waitUntil: 'domcontentloaded',
     timeout: 90000,
   });
-  await page.waitForFunction(
-    () => {
-      const text = document.body?.innerText ?? '';
-      return (
-        text.includes('参加メンバー選定') ||
-        text.includes('参加申請一覧') ||
-        text.includes('アクセス権限がありません') ||
-        text.includes('ログインが必要です')
-      );
-    },
-    { timeout: 45000 },
-  ).catch(() => null);
+  await page
+    .waitForFunction(
+      () => {
+        const text = document.body?.innerText ?? '';
+        return (
+          text.includes('参加メンバー選定') ||
+          text.includes('参加申請一覧') ||
+          text.includes('アクセス権限がありません') ||
+          text.includes('ログインが必要です')
+        );
+      },
+      { timeout: 45000 },
+    )
+    .catch(() => null);
   await page.waitForTimeout(1000);
   const body = await page.locator('body').innerText();
   const forbidden = body.includes('アクセス権限がありません') || body.includes('ログインが必要です');
@@ -344,6 +347,9 @@ try {
     const adminEmail = env.HANAKAI_E2E_ADMIN_EMAIL || process.env.HANAKAI_E2E_ADMIN_EMAIL;
     const adminPassword = env.HANAKAI_E2E_ADMIN_PASSWORD || process.env.HANAKAI_E2E_ADMIN_PASSWORD;
     if (adminEmail && adminPassword) {
+      const adminReady = await ensureE2EAdminReady(admin, env);
+      record('admin test account ready', adminReady.ok, adminReady.detail ?? adminReady.memberId ?? '');
+
       const adminPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
       if (bypassSecret && baseUrl.includes('vercel.app')) {
         await adminPage.goto(
@@ -357,15 +363,10 @@ try {
         adminPassword,
         `/admin/hanakai/applications?eventId=${state.eventId}`,
       );
-      let panel = adminLoggedIn
-        ? await waitForAdminApplicationsPanel(adminPage, state.eventId)
-        : { forbidden: true, hasPanel: false, body: '' };
-      if (!adminLoggedIn || panel.forbidden) {
+      if (!adminLoggedIn) {
         adminLoggedIn = await adminLogin(adminPage, adminEmail, adminPassword);
-        if (adminLoggedIn) {
-          panel = await waitForAdminApplicationsPanel(adminPage, state.eventId);
-        }
       }
+      const panel = adminLoggedIn ? await waitForAdminApplicationsPanel(adminPage, state.eventId) : { forbidden: true, hasPanel: false, body: '' };
       record('admin login for UI check', adminLoggedIn, adminLoggedIn ? adminPage.url() : 'login failed');
       record('admin hanakai access granted', adminLoggedIn && !panel.forbidden, panel.forbidden ? 'forbidden' : 'ok');
       if (adminLoggedIn && !panel.forbidden) {

@@ -1,5 +1,6 @@
-import { getViewerMemberId } from '@/lib/connection/identity';
+import { getViewerMemberId, getAuthenticatedAuthUserId } from '@/lib/connection/identity';
 import { isConnectionAdminMember } from '@/lib/connection/group-access';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
 export { isHanakaiAdminPath } from '@/lib/connection/hanakai-admin-path';
@@ -13,9 +14,21 @@ export type HanakaiAdminAccess = {
   reason: HanakaiAdminAccessReason;
 };
 
+async function isSuperAdminAuthUser(): Promise<boolean> {
+  const authUserId = await getAuthenticatedAuthUserId();
+  if (!authUserId) return false;
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return false;
+  const { data } = await supabase.from('users').select('role').eq('id', authUserId).maybeSingle();
+  return data?.role === 'super_admin';
+}
+
 /** HANAKAI 運営管理画面（/admin/hanakai）のアクセス判定 */
 export async function getHanakaiAdminAccess(): Promise<HanakaiAdminAccess> {
   const memberId = await getViewerMemberId();
+  if (await isSuperAdminAuthUser()) {
+    return { allowed: true, memberId, reason: 'ok' };
+  }
   if (!memberId) {
     return { allowed: false, memberId: null, reason: 'no_session' };
   }

@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ensureE2EAdminReady } from './e2e-hanakai-admin-helper.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
@@ -214,6 +215,7 @@ try {
     .maybeSingle();
 
   if (adminEmail && adminPassword) {
+    await ensureE2EAdminReady(admin, env);
     const adminPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await bypass(adminPage);
     let adminLoggedIn = await login(
