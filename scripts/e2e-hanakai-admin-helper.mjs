@@ -40,16 +40,31 @@ export async function ensureE2EAdminReady(adminClient, envVars) {
   if (!authUserId) return { ok: false, detail: 'admin auth user not found' };
 
   const now = new Date().toISOString();
-  await adminClient.from('users').upsert(
+  const normalizedEmail = (adminEmail ?? '').trim().toLowerCase();
+  const { error: userErr } = await adminClient.from('users').upsert(
     {
       id: authUserId,
-      email: adminEmail ?? undefined,
+      email: normalizedEmail || `e2e-admin-${authUserId.slice(0, 8)}@test.hanakai.local`,
       role: 'super_admin',
+      gender: 'female',
+      nickname: 'E2E運営',
+      birthdate: '1990-01-01',
+      age: 35,
+      location: 'Tokyo',
+      bio: '',
+      profile_image_url: '',
+      desired_gender: 'female',
+      seeking_gender: 'female',
       onboarding_status: 'verified',
+      risk_check_status: 'clear',
       verification_status: 'approved',
+      moderation_action: 'none',
+      is_suspended: false,
+      is_test_user: true,
     },
     { onConflict: 'id' },
   );
+  if (userErr) return { ok: false, detail: userErr.message };
 
   if (memberId) {
     await adminClient
