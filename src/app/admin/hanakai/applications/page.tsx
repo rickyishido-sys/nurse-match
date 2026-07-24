@@ -1,18 +1,24 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { AdminPageHeader, Badge } from '@/components/admin/ui';
-import {
-  AdminApplicationActions,
-  AdminApplicationProcessed,
-} from '@/components/admin/hanakai/hanakai-admin-application-actions';
+import { AdminApplicationProcessed } from '@/components/admin/hanakai/hanakai-admin-application-actions';
 import { AdminSearchBar, AdminSelectFilter } from '@/components/admin/hanakai/hanakai-admin-filters';
 import { AdminFlashBanner } from '@/components/admin/hanakai/hanakai-admin-flash';
+import {
+  HostParticipantSelection,
+  type HostApplicantCard,
+  type HostMemberRow,
+} from '@/components/connection/events/host-participant-selection';
 import { adminFlashMessage } from '@/lib/connection/hanakai-admin-flash';
 import { AdminEmptyState, formatAdminDate } from '@/components/admin/hanakai/hanakai-admin-shared';
 import {
   listHanakaiAdminApplications,
   listHanakaiAdminEventOptions,
 } from '@/lib/connection/hanakai-admin-repo';
+import { memberMainPhotoUrl } from '@/lib/connection/member-photo';
+import { applicationStatusHostLabel } from '@/lib/connection/participation-finalize';
+import { isIdentityVerified } from '@/lib/connection/trust';
+import { getEvent, getMember, listApplications } from '@/lib/connection/repo';
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
 
@@ -23,10 +29,10 @@ function param(sp: Record<string, string | string[] | undefined>, key: string): 
 
 const statusOptions = [
   { value: 'all', label: 'すべて' },
-  { value: 'pending', label: '承認待ち' },
+  { value: 'pending', label: '選定待ち' },
   { value: 'awaiting_confirmation', label: '参加確認待ち' },
   { value: 'confirmed', label: '参加確定' },
-  { value: 'rejected', label: '却下済み' },
+  { value: 'rejected', label: '今回のご案内なし' },
   { value: 'cancelled', label: '辞退済み' },
 ];
 
@@ -34,17 +40,91 @@ const statusTone = {
   pending: 'amber' as const,
   awaiting_confirmation: 'amber' as const,
   confirmed: 'green' as const,
-  rejected: 'redSoft' as const,
+  rejected: 'gray' as const,
   cancelled: 'gray' as const,
 };
 
 const statusLabel = {
-  pending: '承認待ち',
+  pending: '選定待ち',
   awaiting_confirmation: '参加確認待ち',
   confirmed: '参加確定',
-  rejected: '却下',
+  rejected: '今回のご案内なし',
   cancelled: '辞退',
 };
+
+async function EventFinalizePanel({ eventId }: { eventId: string }) {
+  const event = await getEvent(eventId);
+  if (!event) return null;
+
+  const applications = await listApplications(eventId);
+  const pending = applications.filter((a) => a.status === 'pending');
+  const selectedMembersApps = applications.filter((a) =>
+    ['awaiting_confirmation', 'confirmed', 'cancelled'].includes(a.status),
+  );
+
+  const memberIds = [...new Set(applications.map((a) => a.memberId))];
+  const memberList = await Promise.all(memberIds.map((mid) => getMember(mid)));
+  const memberMap = new Map(memberList.filter(Boolean).map((m) => [m!.id, m!]));
+
+  const pendingApplicants: HostApplicantCard[] = pending
+    .map((app) => {
+      const m = memberMap.get(app.memberId);
+      if (!m) return null;
+      return {
+        applicationId: app.id,
+        memberId: m.id,
+        nickname: m.nickname,
+        age: m.age,
+        area: m.area,
+        avatarUrl: memberMainPhotoUrl(m),
+        bio: m.bio,
+        reason: app.reason ?? '',
+        interestTags: m.interestTags,
+        identityVerified: isIdentityVerified(m),
+      };
+    })
+    .filter(Boolean) as HostApplicantCard[];
+
+  const selectedMembers: HostMemberRow[] = selectedMembersApps
+    .map((app) => {
+      const m = memberMap.get(app.memberId);
+      if (!m) return null;
+      return {
+        applicationId: app.id,
+        memberId: m.id,
+        nickname: m.nickname,
+        age: m.age,
+        area: m.area,
+        avatarUrl: memberMainPhotoUrl(m),
+        status: app.status,
+        statusLabel: applicationStatusHostLabel(app.status),
+      };
+    })
+    .filter(Boolean) as HostMemberRow[];
+
+  return (
+    <section className='rounded-2xl border border-[#ebe7dd] bg-white p-4 md:p-5'>
+      <div className='mb-4 space-y-1'>
+        <p className='text-xs font-semibold tracking-[0.14em] text-[#1f5d4f]'>参加メンバー選定</p>
+        <h2 className='text-base font-semibold text-[#1a1a1a]'>{event.title}</h2>
+        <p className='text-xs text-[#6b6b6b]'>
+          定員 {event.capacity}名 · 選定待ち {pending.length}件
+          {event.participantsDecidedAt ? ' · 決定済み' : ''}
+        </p>
+      </div>
+      <HostParticipantSelection
+        eventId={event.id}
+        eventTitle={event.title}
+        capacity={event.capacity}
+        participantsDecided={Boolean(event.participantsDecidedAt)}
+        pendingApplicants={pendingApplicants}
+        selectedMembers={selectedMembers.filter((m) => m.status !== 'cancelled')}
+        redirectPath={`/admin/hanakai/applications?eventId=${event.id}`}
+        asAdmin
+      />
+    </section>
+  );
+}
 
 async function ApplicationsContent({
   status,
@@ -72,8 +152,8 @@ async function ApplicationsContent({
               <th className='px-4 py-3 font-medium'>申請理由</th>
               <th className='px-4 py-3 font-medium'>申請日時</th>
               <th className='px-4 py-3 font-medium'>ステータス</th>
-              <th className='px-4 py-3 font-medium'>承認/却下日時</th>
-              <th className='px-4 py-3 font-medium'>操作</th>
+              <th className='px-4 py-3 font-medium'>処理日時</th>
+              <th className='px-4 py-3 font-medium'>備考</th>
             </tr>
           </thead>
           <tbody>
@@ -93,11 +173,12 @@ async function ApplicationsContent({
                 <td className='px-4 py-3 text-[#6b6b6b]'>{formatAdminDate(a.decidedAt)}</td>
                 <td className='px-4 py-3'>
                   {a.status === 'pending' ? (
-                    <AdminApplicationActions
-                      applicationId={a.id}
-                      eventTitle={a.eventTitle}
-                      memberNickname={a.memberNickname}
-                    />
+                    <Link
+                      href={`/admin/hanakai/applications?eventId=${a.eventId}&status=pending`}
+                      className='text-[11px] text-[#1f5d4f] underline-offset-2 hover:underline'
+                    >
+                      イベントで一括選定
+                    </Link>
                   ) : (
                     <AdminApplicationProcessed status={a.status} decidedAt={a.decidedAt} />
                   )}
@@ -126,13 +207,12 @@ async function ApplicationsContent({
               <p className='text-[11px] text-[#9a9a9a]'>処理: {formatAdminDate(a.decidedAt)}</p>
             ) : null}
             {a.status === 'pending' ? (
-              <div className='mt-3'>
-                <AdminApplicationActions
-                  applicationId={a.id}
-                  eventTitle={a.eventTitle}
-                  memberNickname={a.memberNickname}
-                />
-              </div>
+              <Link
+                href={`/admin/hanakai/applications?eventId=${a.eventId}&status=pending`}
+                className='mt-3 inline-flex text-[11px] font-medium text-[#1f5d4f] underline-offset-2 hover:underline'
+              >
+                イベントで一括選定 →
+              </Link>
             ) : null}
           </article>
         ))}
@@ -159,13 +239,14 @@ export default async function HanakaiAdminApplicationsPage({ searchParams }: Pag
   ) as 'pending' | 'awaiting_confirmation' | 'confirmed' | 'rejected' | 'cancelled' | 'all';
 
   const flash = adminFlashMessage(param(sp, 'success'), param(sp, 'error'));
+  const resolvedEventId = eventId && eventId !== 'all' ? eventId : '';
 
   return (
     <div className='space-y-6'>
       <AdminPageHeader
         kicker='APPLICATIONS'
         title='参加申請一覧'
-        description='参加申請の承認・却下を行います。主催者による承認フローも引き続き利用できます。'
+        description='イベント単位で参加メンバーを一括選定します。申請一覧は状態確認・監査用です。'
       />
 
       {flash ? <AdminFlashBanner variant={flash.variant} message={flash.message} /> : null}
@@ -182,6 +263,16 @@ export default async function HanakaiAdminApplicationsPage({ searchParams }: Pag
         </Suspense>
       </div>
 
+      {resolvedEventId ? (
+        <Suspense fallback={<div className='h-40 animate-pulse rounded-2xl bg-[#ebe7dd]' />}>
+          <EventFinalizePanel eventId={resolvedEventId} />
+        </Suspense>
+      ) : (
+        <p className='rounded-2xl border border-dashed border-[#e2ddd2] bg-white px-4 py-3 text-xs leading-6 text-[#6b6b6b]'>
+          参加メンバーを決定するには、上のフィルターからイベントを選択してください。
+        </p>
+      )}
+
       <Suspense
         fallback={
           <div className='space-y-2'>
@@ -191,7 +282,7 @@ export default async function HanakaiAdminApplicationsPage({ searchParams }: Pag
           </div>
         }
       >
-        <ApplicationsContent status={status} eventId={eventId === 'all' ? '' : eventId} memberQuery={memberQuery} />
+        <ApplicationsContent status={status} eventId={resolvedEventId} memberQuery={memberQuery} />
       </Suspense>
     </div>
   );

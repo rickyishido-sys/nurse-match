@@ -1,17 +1,21 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
 import { HostBadgeList } from '@/components/connection/host-badge';
-import { TrustBadgeList } from '@/components/connection/trust-badge';
-import { Card, Chip } from '@/components/connection/ui';
 import { HostCheckinPanel } from '@/components/connection/events/host-checkin-panel';
-import { IdentityVerifiedBadge } from '@/components/connection/identity-verified-badge';
-import { approveApplicationAction, rejectApplicationAction } from '@/lib/connection/actions';
-import { getEventOperationsMeta, listEventCheckins } from '@/lib/connection/event-operations/repo';
-import { INTEREST_TAG_LABEL, VALUE_TAG_LABEL, formatEventDate } from '@/lib/connection/data';
-import { getEventEligibility } from '@/lib/connection/identity-gate';
+import {
+  HostParticipantSelection,
+  type HostApplicantCard,
+  type HostMemberRow,
+} from '@/components/connection/events/host-participant-selection';
 import { IdentityRequiredPanel } from '@/components/connection/identity-required-panel';
+import { Card } from '@/components/connection/ui';
+import { formatEventDate } from '@/lib/connection/data';
+import { getEventOperationsMeta, listEventCheckins } from '@/lib/connection/event-operations/repo';
+import { getEventEligibility } from '@/lib/connection/identity-gate';
+import { memberMainPhotoUrl } from '@/lib/connection/member-photo';
+import { applicationStatusHostLabel } from '@/lib/connection/participation-finalize';
+import { isIdentityVerified } from '@/lib/connection/trust';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getEvent, getMember, listApplications } from '@/lib/connection/repo';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
@@ -66,15 +70,61 @@ export default async function ManageEventPage({ params, searchParams }: PageProp
 
   const applications = await listApplications(event.id);
   const pending = applications.filter((a) => a.status === 'pending');
-  const confirmed = applications.filter((a) => a.status === 'confirmed');
-  const opsMeta = await getEventOperationsMeta(event.id);
-  const checkins = await listEventCheckins(event.id);
+  const selectedMembersApps = applications.filter((a) =>
+    ['awaiting_confirmation', 'confirmed', 'cancelled'].includes(a.status),
+  );
 
   const memberIds = [...new Set(applications.map((a) => a.memberId))];
   const memberList = await Promise.all(memberIds.map((mid) => getMember(mid)));
   const memberMap = new Map(memberList.filter(Boolean).map((m) => [m!.id, m!]));
-  const justApproved = typeof sp.approved === 'string' ? sp.approved : '';
-  const justRejected = typeof sp.rejected === 'string' ? sp.rejected : '';
+
+  const opsMeta = await getEventOperationsMeta(event.id);
+  const checkins = await listEventCheckins(event.id);
+
+  const finalized = Boolean(event.participantsDecidedAt);
+  const justFinalized = sp.finalized === '1' || sp.success === 'finalized';
+  const errorMsg = typeof sp.error === 'string' ? sp.error : '';
+
+  const pendingApplicants: HostApplicantCard[] = pending
+    .map((app) => {
+      const m = memberMap.get(app.memberId);
+      if (!m) return null;
+      return {
+        applicationId: app.id,
+        memberId: m.id,
+        nickname: m.nickname,
+        age: m.age,
+        area: m.area,
+        avatarUrl: memberMainPhotoUrl(m),
+        bio: m.bio,
+        reason: app.reason ?? '',
+        interestTags: m.interestTags,
+        identityVerified: isIdentityVerified(m),
+      };
+    })
+    .filter(Boolean) as HostApplicantCard[];
+
+  const selectedMembers: HostMemberRow[] = selectedMembersApps
+    .map((app) => {
+      const m = memberMap.get(app.memberId);
+      if (!m) return null;
+      return {
+        applicationId: app.id,
+        memberId: m.id,
+        nickname: m.nickname,
+        age: m.age,
+        area: m.area,
+        avatarUrl: memberMainPhotoUrl(m),
+        status: app.status,
+        statusLabel: applicationStatusHostLabel(app.status),
+      };
+    })
+    .filter(Boolean) as HostMemberRow[];
+
+  const confirmedForCheckin = selectedMembersApps
+    .filter((a) => a.status === 'confirmed')
+    .map((a) => memberMap.get(a.memberId))
+    .filter(Boolean) as NonNullable<(typeof memberList)[number]>[];
 
   return (
     <ConnectionShell viewer={viewer}>
@@ -91,155 +141,40 @@ export default async function ManageEventPage({ params, searchParams }: PageProp
           <HostBadgeList badges={hostMember?.hostBadges} />
         </div>
 
-        {justApproved ? (
+        {justFinalized ? (
           <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-xs text-[#1f5d4f]'>
-            参加者を承認しました。参加予定者一覧に追加されました。
+            参加メンバーを決定しました。申請者へ通知を送信しました。
           </p>
         ) : null}
-        {justRejected ? (
-          <p className='rounded-2xl border border-[#ebe9e4] bg-white px-4 py-3 text-xs text-[#6b6b6b]'>
-            申請を却下しました。
+        {errorMsg ? (
+          <p className='rounded-2xl border border-[#f0dede] bg-[#fdf8f8] px-4 py-3 text-xs text-[#8b4545]' role='alert'>
+            {errorMsg}
           </p>
         ) : null}
 
-        <p className='rounded-2xl border border-[#ebe9e4] bg-white px-4 py-3 text-xs leading-6 text-[#6b6b6b]'>
-          HANAKAIは「人を集める」場ではありません。参加理由を読み、あなたが心地よいと感じるConnectionを選んでください。
-        </p>
-
-        {/* 申請者 */}
-        <section className='space-y-4'>
-          <h2 className='text-sm font-semibold text-[#1a1a1a]'>申請者 {pending.length}名</h2>
-          {pending.length === 0 ? (
-            <Card>
-              <p className='text-sm text-[#9a9a9a]'>現在、承認待ちの申請はありません。</p>
-            </Card>
-          ) : (
-            pending.map((app) => {
-              const m = memberMap.get(app.memberId);
-              if (!m) return null;
-              const valueTags = m.values.valueTags ?? [];
-              return (
-                <Card key={app.id}>
-                  <div className='flex items-start gap-3'>
-                    <Image
-                      src={m.avatarUrl}
-                      alt={m.nickname}
-                      width={48}
-                      height={48}
-                      className='h-12 w-12 shrink-0 rounded-full object-cover'
-                    />
-                    <div className='min-w-0 flex-1 space-y-1'>
-                      <div className='flex flex-wrap items-center gap-2'>
-                        <p className='text-sm font-semibold text-[#1a1a1a]'>{m.nickname}</p>
-                        <IdentityVerifiedBadge member={m} />
-                        <span className='text-xs text-[#9a9a9a]'>{m.age}歳 · {m.area}</span>
-                      </div>
-                      <TrustBadgeList member={m} hideIdentity />
-                    </div>
-                  </div>
-
-                  {m.interestTags.length > 0 ? (
-                    <div className='mt-3'>
-                      <p className='mb-1.5 text-[11px] text-[#9a9a9a]'>興味タグ</p>
-                      <div className='flex flex-wrap gap-1.5'>
-                        {m.interestTags.map((t) => (
-                          <Chip key={t} tone='neutral'>{INTEREST_TAG_LABEL[t]}</Chip>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {valueTags.length > 0 ? (
-                    <div className='mt-3'>
-                      <p className='mb-1.5 text-[11px] text-[#9a9a9a]'>価値観タグ</p>
-                      <div className='flex flex-wrap gap-1.5'>
-                        {valueTags.map((t) => (
-                          <Chip key={t} tone='muted'>{VALUE_TAG_LABEL[t]}</Chip>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <div className='mt-3 rounded-2xl bg-[#faf9f6] p-3.5'>
-                    <p className='mb-1 text-[11px] text-[#9a9a9a]'>参加理由</p>
-                    <p className='text-sm leading-7 text-[#4a4a4a]'>
-                      {app.reason ?? '（参加理由は入力されていません）'}
-                    </p>
-                  </div>
-
-                  <div className='mt-4 flex gap-3'>
-                    <form action={rejectApplicationAction} className='flex-1'>
-                      <input type='hidden' name='eventId' value={event.id} />
-                      <input type='hidden' name='memberId' value={m.id} />
-                      <button
-                        type='submit'
-                        className='h-11 w-full rounded-full border border-[#d8d6d1] bg-white text-sm font-semibold text-[#6b6b6b] transition active:scale-[0.98]'
-                      >
-                        却下
-                      </button>
-                    </form>
-                    <form action={approveApplicationAction} className='flex-1'>
-                      <input type='hidden' name='eventId' value={event.id} />
-                      <input type='hidden' name='memberId' value={m.id} />
-                      <button
-                        type='submit'
-                        className='h-11 w-full rounded-full bg-[#1f5d4f] text-sm font-semibold text-white transition active:scale-[0.98]'
-                      >
-                        承認
-                      </button>
-                    </form>
-                  </div>
-                </Card>
-              );
-            })
-          )}
+        <section className='space-y-2'>
+          <h2 className='text-sm font-semibold text-[#1a1a1a]'>
+            {finalized ? '参加メンバー' : `参加希望者 ${pending.length}名`}
+          </h2>
+          <HostParticipantSelection
+            eventId={event.id}
+            eventTitle={event.title}
+            capacity={event.capacity}
+            participantsDecided={finalized}
+            pendingApplicants={pendingApplicants}
+            selectedMembers={selectedMembers.filter((m) => m.status !== 'cancelled')}
+            redirectPath={`/events/manage/${event.id}`}
+          />
         </section>
 
         <HostCheckinPanel
           eventId={event.id}
           hasCheckinCode={opsMeta?.hasCheckinCode ?? false}
           newCheckinCode={typeof sp.new_checkin_code === 'string' ? sp.new_checkin_code : null}
-          confirmedMembers={confirmed.map((a) => memberMap.get(a.memberId)).filter(Boolean) as NonNullable<ReturnType<typeof memberMap.get>>[]}
+          confirmedMembers={confirmedForCheckin}
           checkins={checkins}
           endedAt={opsMeta?.endedAt}
         />
-
-        {/* 参加予定者 */}
-        <section className='space-y-4'>
-          <h2 className='text-sm font-semibold text-[#1a1a1a]'>
-            参加予定者 {confirmed.length}名 <span className='font-normal text-[#9a9a9a]'>/ 定員{event.capacity}名</span>
-          </h2>
-          <Card>
-            {confirmed.length === 0 ? (
-              <p className='text-sm text-[#9a9a9a]'>まだ参加者は確定していません。</p>
-            ) : (
-              <div className='space-y-3'>
-                {confirmed.map((app) => {
-                  const m = memberMap.get(app.memberId);
-                  if (!m) return null;
-                  return (
-                    <div key={app.id} className='flex items-center justify-between gap-3'>
-                      <div className='flex items-center gap-3'>
-                        <Image
-                          src={m.avatarUrl}
-                          alt={m.nickname}
-                          width={40}
-                          height={40}
-                          className='h-10 w-10 rounded-full object-cover'
-                        />
-                        <div>
-                          <p className='text-sm font-medium text-[#1a1a1a]'>{m.nickname}</p>
-                          <p className='text-[11px] text-[#6b6b6b]'>{m.age}歳 · {m.area}</p>
-                        </div>
-                      </div>
-                      <Chip tone='accent'>承認済み</Chip>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
-        </section>
       </div>
     </ConnectionShell>
   );

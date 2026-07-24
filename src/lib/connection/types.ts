@@ -241,6 +241,8 @@ export type ConnectionEvent = {
   isUserCreated?: boolean;
   /** 募集種別。additional は一覧・週次メール最優先表示 */
   recruitmentType?: EventRecruitmentType;
+  /** 主催者が参加メンバーを一括決定した日時 */
+  participantsDecidedAt?: string | null;
 };
 
 export const EVENT_APPLICATION_REASON_MIN = 10;

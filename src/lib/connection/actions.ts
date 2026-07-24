@@ -32,8 +32,10 @@ import { requireHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access
 import {
   selectMemberForEvent,
 } from '@/lib/connection/participation-confirmation';
+import { finalizeEventParticipants } from '@/lib/connection/participation-finalize';
 import { requireEventHostAccess } from '@/lib/connection/group-access';
 import { requireIdentityVerifiedMember } from '@/lib/connection/identity-gate';
+import { validateBioContactInfo } from '@/lib/connection/bio-validation';
 import { normalizeSocialLinks } from '@/lib/connection/social-link-normalize';
 import { checkIdentityDocumentFileServer } from '@/lib/connection/identity-document-check-server';
 import { isHanakaiProfileComplete } from '@/lib/connection/registration-status';
@@ -253,6 +255,59 @@ export async function applyConnectionEventAction(formData: FormData) {
 }
 
 export async function approveApplicationAction(formData: FormData) {
+  /** @deprecated 一括決定フローへ移行。後方互換のため残存。 */
+  const eventId = String(formData.get('eventId') ?? '');
+  redirect(`/events/manage/${eventId}?error=${encodeURIComponent('個別の承認は利用できません。参加メンバーを選択して一括決定してください。')}`);
+}
+
+export async function rejectApplicationAction(formData: FormData) {
+  /** @deprecated 一括決定フローへ移行。後方互換のため残存。 */
+  const eventId = String(formData.get('eventId') ?? '');
+  redirect(`/events/manage/${eventId}?error=${encodeURIComponent('個別の選定外操作は利用できません。参加メンバーを選択して一括決定してください。')}`);
+}
+
+export async function finalizeEventParticipantsAction(input: {
+  eventId: string;
+  selectedApplicationIds: string[];
+  redirectPath: string;
+  asAdmin?: boolean;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { eventId, selectedApplicationIds, redirectPath, asAdmin } = input;
+  if (!eventId) return { ok: false, error: 'イベントが見つかりません' };
+
+  let decidedByMemberId: string;
+  if (asAdmin) {
+    decidedByMemberId = await requireHanakaiAdminAccess(redirectPath);
+  } else {
+    const access = await requireEventHostAccess(eventId);
+    decidedByMemberId = access.viewerMemberId;
+    await requireIdentityVerifiedMember(decidedByMemberId);
+  }
+
+  console.log('HANAKAI_FINALIZE_PARTICIPANTS', {
+    eventId,
+    count: selectedApplicationIds.length,
+    asAdmin: Boolean(asAdmin),
+  });
+
+  const result = await finalizeEventParticipants({
+    eventId,
+    selectedApplicationIds,
+    decidedByMemberId,
+    asAdmin,
+  });
+
+  if (!result.ok) return result;
+
+  revalidatePath(`/events/manage/${eventId}`);
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath('/manage');
+  revalidatePath('/admin/hanakai/applications');
+  revalidatePath('/admin/hanakai');
+  redirect(`${redirectPath}?success=finalized`);
+}
+
+export async function legacyApproveApplicationAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '');
   const memberId = String(formData.get('memberId') ?? '');
   if (!eventId || !memberId) redirect('/events');
@@ -270,7 +325,7 @@ export async function approveApplicationAction(formData: FormData) {
   redirect(`/events/manage/${eventId}?approved=${memberId}`);
 }
 
-export async function rejectApplicationAction(formData: FormData) {
+export async function legacyRejectApplicationAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '');
   const memberId = String(formData.get('memberId') ?? '');
   if (!eventId || !memberId) redirect('/events');
@@ -499,6 +554,10 @@ export async function saveProfileAction(formData: FormData) {
 
   const mbtiRaw = String(formData.get('mbtiType') ?? '').trim();
 
+  const onboardingBio = String(formData.get('bio') ?? '').trim();
+  const onboardingBioError = validateBioContactInfo(onboardingBio);
+  if (onboardingBioError) redirect('/register/profile?error=bio_contact');
+
   await updateMember(memberId, {
     ...trustPatch,
     nickname,
@@ -507,7 +566,7 @@ export async function saveProfileAction(formData: FormData) {
     gender,
     area,
     occupation: String(formData.get('occupation') ?? '').trim(),
-    bio: String(formData.get('bio') ?? '').trim(),
+    bio: onboardingBio,
     mbtiType: (mbtiRaw || '') as import('@/lib/connection/bloom-profile-options').MbtiType | '',
     values: {
       mostImportant: String(formData.get('mostImportant') ?? '').trim(),
@@ -595,6 +654,9 @@ export async function updateMyProfileAction(formData: FormData) {
   const mbtiRaw = String(formData.get('mbtiType') ?? '').trim();
   const markAiIntro = formData.get('introductionAiGenerated') === '1';
   const nextBio = String(formData.get('bio') ?? '').trim();
+  const bioError = validateBioContactInfo(nextBio);
+  if (bioError) redirect('/my-profile?mode=edit&error=bio_contact');
+
   const area = String(formData.get('area') ?? '').trim();
   const occupation = String(formData.get('occupation') ?? '').trim();
 
@@ -638,20 +700,9 @@ export async function updateMyProfileAction(formData: FormData) {
     SOCIAL_LINK_PLATFORMS.map(({ platform }) => ({
       platform,
       url: String(formData.get(`socialLink_${platform}`) ?? '').trim(),
-      isVisibleOnProfile: formData.get(`socialVisible_${platform}`) === '1',
+      isVisibleOnProfile: false,
     })),
   );
-  console.error('HANAKAI_SOCIAL_LINK_SAVE_PAYLOAD', {
-    memberId,
-    links: socialLinks
-      .filter((l) => l.url.length > 0)
-      .map((l) => ({
-        member_id: memberId,
-        platform: l.platform,
-        url: l.url,
-        is_visible_on_profile: l.isVisibleOnProfile,
-      })),
-  });
   await saveMemberSocialLinks(memberId, socialLinks);
 
   const temperamentValue = String(formData.get('temperament') ?? '');

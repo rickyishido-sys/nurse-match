@@ -14,6 +14,7 @@ import type {
   ValueTag,
   VerificationSource,
 } from '@/lib/connection/types';
+import { SEED_MEMBER_AVATARS } from '@/lib/connection/mock-profile-assets';
 
 const img = (id: string, w = 800) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70`;
 
@@ -176,7 +177,7 @@ export const EVENT_CATEGORY_META: Record<
     emoji: '🌸',
     tagline: '花を介して、心をひらく時間',
     landingTagline: '花と人がつながるやさしい時間',
-    imagePath: '/images/category-flower.jpg',
+    imagePath: '/categories/flower.png',
     accent: '#c1738a',
     gradient: 'from-[#f7e7ec] to-[#efd6df]',
   },
@@ -186,7 +187,7 @@ export const EVENT_CATEGORY_META: Record<
     emoji: '☕️',
     tagline: 'カフェの心地よい空間で、お茶と会話の時間',
     landingTagline: 'お茶をしながら、自然と会話が生まれる',
-    imagePath: '/images/category-coffee.jpg',
+    imagePath: '/categories/cafe.png',
     accent: '#9a6f4a',
     gradient: 'from-[#f1e8df] to-[#e6d5c2]',
   },
@@ -196,7 +197,7 @@ export const EVENT_CATEGORY_META: Record<
     emoji: '🍽️',
     tagline: '食卓を囲み、人生を語り合う夜',
     landingTagline: '美味しい食事と素敵な出会いを',
-    imagePath: '/images/category-dinner.jpg',
+    imagePath: '/categories/bar.png',
     accent: '#7a6f63',
     gradient: 'from-[#efece8] to-[#ddd6cc]',
   },
@@ -206,7 +207,7 @@ export const EVENT_CATEGORY_META: Record<
     emoji: '🍃',
     tagline: '歩きながら、自然と言葉がほどける',
     landingTagline: '自然の中で心地よくつながる',
-    imagePath: '/images/category-walking.jpg',
+    imagePath: '/categories/stroll.png',
     accent: '#5f8a5a',
     gradient: 'from-[#e8f0e4] to-[#d6e4cf]',
   },
@@ -216,7 +217,7 @@ export const EVENT_CATEGORY_META: Record<
     emoji: '🤸',
     tagline: '体を動かしたあとの、軽やかな会話',
     landingTagline: '体を動かして前向きなつながりを',
-    imagePath: '/images/category-fitness.jpg',
+    imagePath: '/categories/fitness.png',
     accent: '#5a7f99',
     gradient: 'from-[#e4eef3] to-[#cfdfe8]',
   },
@@ -272,7 +273,7 @@ export const EVENT_CATEGORY_META: Record<
   },
 };
 
-export const LANDING_HERO_IMAGE = '/images/hanakai-hero.jpg';
+export const LANDING_HERO_IMAGE = '/hero/desktop/cafe.png';
 
 function seedValues(partial: Partial<ProfileValues>): ProfileValues {
   return {
@@ -324,7 +325,7 @@ const memberSeeds: Omit<
     area: '東京・渋谷',
     occupation: 'ブランドマネージャー',
     bio: '仕事以外の出会いが少なくなってきたので、偶然のConnectionを楽しみたいです。',
-    avatarUrl: img('photo-1494790108377-be9c29b29330', 200),
+    avatarUrl: SEED_MEMBER_AVATARS.m1,
     photos: [],
     values: seedValues({
       mostImportant: '大切な人との時間と、自分らしさを大切にすること',
@@ -363,7 +364,7 @@ const memberSeeds: Omit<
     area: '東京・目黒',
     occupation: 'スタートアップ経営',
     bio: '異業種の人とゆるく話せる場があれば。堅い交流会は苦手です。',
-    avatarUrl: img('photo-1507003211169-0a1dd7228f2d', 200),
+    avatarUrl: SEED_MEMBER_AVATARS.m2,
     photos: [],
     values: seedValues({
       mostImportant: '挑戦し続けることと、チームの信頼',
@@ -402,7 +403,7 @@ const memberSeeds: Omit<
     area: '神奈川・横浜',
     occupation: 'UIデザイナー',
     bio: '最近転職して知り合いが減った。自然な形で人と繋がりたい。',
-    avatarUrl: img('photo-1438761681033-6461ffad8d80', 200),
+    avatarUrl: SEED_MEMBER_AVATARS.m3,
     photos: [],
     values: seedValues({
       mostImportant: '創造性と、心地よい人間関係',
@@ -438,7 +439,7 @@ const memberSeeds: Omit<
     area: '東京・世田谷',
     occupation: 'コンサルタント',
     bio: '週末は散歩とコーヒーが好き。気軽に話せる仲間が欲しい。',
-    avatarUrl: img('photo-1500648767791-00dcc994a43e', 200),
+    avatarUrl: SEED_MEMBER_AVATARS.m4,
     photos: [],
     values: seedValues({
       mostImportant: '家族との時間と、健康',
@@ -474,7 +475,7 @@ const memberSeeds: Omit<
     area: '東京・表参道',
     occupation: 'フリーランスライター',
     bio: '在宅ワークが多く、リアルでの会話を大切にしたい。',
-    avatarUrl: img('photo-1534528741775-53994a69daeb', 200),
+    avatarUrl: SEED_MEMBER_AVATARS.m5,
     photos: [],
     values: seedValues({
       mostImportant: '言葉の力と、深い対話',
@@ -507,7 +508,7 @@ const memberSeeds: Omit<
     area: '東京・中目黒',
     occupation: 'エンジニア',
     bio: 'マッチングアプリではなく、偶然から始まる出会いに興味があります。',
-    avatarUrl: img('photo-1506794778202-cad84cf45f1d', 200),
+    avatarUrl: SEED_MEMBER_AVATARS.m6,
     photos: [],
     values: seedValues({
       mostImportant: '技術で社会に貢献すること',
@@ -543,7 +544,7 @@ const memberSeeds: Omit<
     area: '東京・恵比寿',
     occupation: '事業開発',
     bio: '経営者や挑戦する人との出会いを増やしたい。',
-    avatarUrl: img('photo-1544005313-94ddf0286df2', 200),
+    avatarUrl: SEED_MEMBER_AVATARS.m7,
     photos: [],
     values: seedValues({
       mostImportant: '人の可能性を引き出すこと',
@@ -579,7 +580,7 @@ const memberSeeds: Omit<
     area: '神奈川・鎌倉',
     occupation: '地域商店経営',
     bio: '地域の活動にも関心があり、新しい視点の人と話したい。',
-    avatarUrl: img('photo-1472099645785-5658abf4ff4e', 200),
+    avatarUrl: SEED_MEMBER_AVATARS.m8,
     photos: [],
     values: seedValues({
       mostImportant: '地域コミュニティの活性化',
@@ -897,6 +898,7 @@ export function createEvent(input: CreateEventInput): ConnectionEvent {
     status: 'open',
     isPast: false,
     confirmedMemberIds: [],
+    participantsDecidedAt: null,
   };
   events.push(event);
   return event;
@@ -980,7 +982,7 @@ export async function saveMemberPhotos(
       saved.push({
         id: `mp_${Date.now()}_${i}`,
         memberId,
-        url: img('photo-1494790108377-be9c29b29330', 600),
+        url: SEED_MEMBER_AVATARS.m1,
         storagePath: '',
         sortOrder: i,
         category: null,

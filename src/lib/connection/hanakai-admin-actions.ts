@@ -24,22 +24,11 @@ async function requireAdminAction(): Promise<string> {
 }
 
 export async function adminApproveApplicationAction(formData: FormData) {
-  const adminMemberId = await requireAdminAction();
+  /** @deprecated 一括決定フローへ移行 */
   const applicationId = String(formData.get('applicationId') ?? '').trim();
-  if (!applicationId) {
-    redirect('/admin/hanakai/applications?error=missing_id');
-  }
-
-  const result = await adminApproveApplication(applicationId, adminMemberId);
-  if (!result.ok) {
-    redirect(`/admin/hanakai/applications?error=${encodeURIComponent(result.error)}`);
-  }
-
-  revalidatePath('/admin/hanakai/applications');
-  revalidatePath('/admin/hanakai');
-  revalidatePath(`/events/${result.eventId}`);
-  revalidatePath(`/events/manage/${result.eventId}`);
-  redirect('/admin/hanakai/applications?success=approved');
+  redirect(
+    `/admin/hanakai/applications?error=${encodeURIComponent('個別の参加決定は利用できません。イベントを選択して一括決定してください。')}${applicationId ? `&applicationId=${applicationId}` : ''}`,
+  );
 }
 
 export async function adminUpdateEventRecruitmentAction(formData: FormData) {
@@ -62,24 +51,10 @@ export async function adminUpdateEventRecruitmentAction(formData: FormData) {
 }
 
 export async function adminRejectApplicationAction(formData: FormData) {
-  const adminMemberId = await requireAdminAction();
-  const applicationId = String(formData.get('applicationId') ?? '').trim();
-  const decisionNote = String(formData.get('decisionNote') ?? '').trim();
-  if (!applicationId) {
-    redirect('/admin/hanakai/applications?error=missing_id');
-  }
-  if (!decisionNote) {
-    redirect(`/admin/hanakai/applications?error=note_required&applicationId=${applicationId}`);
-  }
-
-  const result = await adminRejectApplication(applicationId, adminMemberId, decisionNote);
-  if (!result.ok) {
-    redirect(`/admin/hanakai/applications?error=${encodeURIComponent(result.error)}`);
-  }
-
-  revalidatePath('/admin/hanakai/applications');
-  revalidatePath('/admin/hanakai');
-  redirect('/admin/hanakai/applications?success=rejected');
+  /** @deprecated 一括決定フローへ移行 */
+  redirect(
+    `/admin/hanakai/applications?error=${encodeURIComponent('個別の選定外操作は利用できません。イベントを選択して一括決定してください。')}`,
+  );
 }
 
 export async function adminUpdateReportStatusAction(formData: FormData) {

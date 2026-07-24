@@ -206,6 +206,7 @@ function eventFromRow(row: EventRow, apps: AppRow[]): ConnectionEvent {
     hostId: row.host_member_id ?? undefined,
     isUserCreated: row.is_user_created ?? false,
     recruitmentType: row.recruitment_type ?? 'standard',
+    participantsDecidedAt: row.participants_decided_at ?? null,
   };
 }
 

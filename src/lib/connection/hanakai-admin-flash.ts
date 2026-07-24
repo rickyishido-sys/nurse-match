@@ -4,8 +4,9 @@ export function adminFlashMessage(
   success?: string,
   error?: string,
 ): AdminFlashPayload | null {
+  if (success === 'finalized') return { variant: 'success', message: '参加メンバーを決定しました。' };
   if (success === 'approved') return { variant: 'success', message: '参加を決定しました。' };
-  if (success === 'rejected') return { variant: 'success', message: '参加申請を却下しました。' };
+  if (success === 'rejected') return { variant: 'success', message: '申請を処理しました。' };
   if (success === 'identity_approved') return { variant: 'success', message: '本人確認を承認しました。' };
   if (success === 'identity_rejected') return { variant: 'success', message: '本人確認を却下しました。' };
   if (success === 'reviewing') return { variant: 'success', message: '通報を確認中に更新しました。' };

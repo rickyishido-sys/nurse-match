@@ -274,18 +274,18 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                 <div className='space-y-2'>
                   {existingApp?.status === 'rejected' ? (
                     <>
-                      <p className='text-sm font-semibold text-[#1a1a1a]'>却下されました</p>
+                      <p className='text-sm font-semibold text-[#1a1a1a]'>今回の参加メンバーが決まりました</p>
                       <p className='text-sm leading-7 text-[#4a4a4a]'>
-                        今回はご縁がありませんでしたが、ほかのイベントでお会いできますように。
+                        お申し込みいただき、ありがとうございました。また別の体験でお会いできることを楽しみにしています。
                       </p>
                     </>
                   ) : existingApp?.status === 'pending' || (applied && approvalMode === 'host_approval') ? (
                     <>
                       <p className='inline-flex rounded-full bg-[#eef4f0] px-3 py-1 text-xs font-semibold text-[#1f5d4f]'>
-                        承認待ち
+                        選定待ち
                       </p>
                       <p className='text-sm leading-7 text-[#4a4a4a]'>
-                        参加申請を受け付けました。主催者が参加理由を読んで参加者を選びます。
+                        参加申請を受け付けました。主催者がプロフィール・参加理由を確認し、この体験に合うメンバーを選びます。
                       </p>
                     </>
                   ) : (
@@ -313,7 +313,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                   <p className='mb-4 text-sm leading-7 text-[#6b6b6b]'>
                     {approvalMode === 'auto'
                       ? 'あなたの想いを添えて参加できます。主催者と参加者が、心地よいConnectionを育てます。'
-                      : 'あなたの想いを添えて申請してください。主催者が読んで、参加者を選びます。'}
+                      : 'あなたの想いを添えて申請してください。主催者がプロフィール・参加理由を確認し、この体験に合うメンバーを選びます。'}
                   </p>
                   <ApplyForm eventId={event.id} approvalMode={approvalMode} />
                 </>
