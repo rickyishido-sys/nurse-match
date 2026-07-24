@@ -6,6 +6,7 @@
 import { chromium } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -71,6 +72,43 @@ async function login(page, email, passwordValue, nextPath) {
   ]);
   await page.waitForTimeout(1500);
   return !page.url().includes('/login');
+}
+
+async function adminLogin(page, email, passwordValue) {
+  await page.goto(`${baseUrl}/admin/login`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  if (!(await page.locator('input[name="email"]').count())) return false;
+  await page.locator('input[name="email"]').fill(email);
+  await page.locator('input[name="password"]').fill(passwordValue);
+  await Promise.all([
+    page.waitForNavigation({ timeout: 60000 }).catch(() => null),
+    page.getByRole('button', { name: '管理画面へログイン' }).click(),
+  ]);
+  await page.waitForTimeout(1500);
+  return !page.url().includes('/admin/login');
+}
+
+async function waitForAdminApplicationsPanel(page, eventId) {
+  await page.goto(`${baseUrl}/admin/hanakai/applications?eventId=${eventId}`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 90000,
+  });
+  await page.waitForFunction(
+    () => {
+      const text = document.body?.innerText ?? '';
+      return (
+        text.includes('参加メンバー選定') ||
+        text.includes('参加申請一覧') ||
+        text.includes('アクセス権限がありません') ||
+        text.includes('ログインが必要です')
+      );
+    },
+    { timeout: 45000 },
+  ).catch(() => null);
+  await page.waitForTimeout(1000);
+  const body = await page.locator('body').innerText();
+  const forbidden = body.includes('アクセス権限がありません') || body.includes('ログインが必要です');
+  const hasPanel = body.includes('参加メンバー選定');
+  return { forbidden, hasPanel, body };
 }
 
 async function createMember(admin, { email, nickname, gender = 'female' }) {
@@ -303,6 +341,54 @@ try {
     await page.goto(`${baseUrl}/events/manage/${state.eventId}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     record('manage page no approve/reject', (await page.getByRole('button', { name: /却下|承認|否認/ }).count()) === 0);
 
+    const adminEmail = env.HANAKAI_E2E_ADMIN_EMAIL || process.env.HANAKAI_E2E_ADMIN_EMAIL;
+    const adminPassword = env.HANAKAI_E2E_ADMIN_PASSWORD || process.env.HANAKAI_E2E_ADMIN_PASSWORD;
+    if (adminEmail && adminPassword) {
+      const adminPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
+      if (bypassSecret && baseUrl.includes('vercel.app')) {
+        await adminPage.goto(
+          `${baseUrl}/?x-vercel-protection-bypass=${encodeURIComponent(bypassSecret)}&x-vercel-set-bypass-cookie=true`,
+          { waitUntil: 'domcontentloaded', timeout: 90000 },
+        );
+      }
+      let adminLoggedIn = await login(
+        adminPage,
+        adminEmail,
+        adminPassword,
+        `/admin/hanakai/applications?eventId=${state.eventId}`,
+      );
+      let panel = adminLoggedIn
+        ? await waitForAdminApplicationsPanel(adminPage, state.eventId)
+        : { forbidden: true, hasPanel: false, body: '' };
+      if (!adminLoggedIn || panel.forbidden) {
+        adminLoggedIn = await adminLogin(adminPage, adminEmail, adminPassword);
+        if (adminLoggedIn) {
+          panel = await waitForAdminApplicationsPanel(adminPage, state.eventId);
+        }
+      }
+      record('admin login for UI check', adminLoggedIn, adminLoggedIn ? adminPage.url() : 'login failed');
+      record('admin hanakai access granted', adminLoggedIn && !panel.forbidden, panel.forbidden ? 'forbidden' : 'ok');
+      if (adminLoggedIn && !panel.forbidden) {
+        record(
+          'admin no approve/reject UI',
+          (await adminPage.getByRole('button', { name: /却下|承認|否認/ }).count()) === 0,
+        );
+        await adminPage.getByText('参加メンバー選定').scrollIntoViewIfNeeded().catch(() => null);
+        const adminBulkUi =
+          panel.hasPanel ||
+          (await adminPage.getByRole('button', { name: /を参加メンバーに追加$/ }).count()) > 0 ||
+          (await adminPage.getByText('選択済み').count()) > 0 ||
+          (await adminPage.getByText('定員').count()) > 0;
+        record('admin bulk finalize UI present', adminBulkUi);
+      } else {
+        record('admin no approve/reject UI', false, panel.forbidden ? 'forbidden page' : 'login failed');
+        record('admin bulk finalize UI present', false, panel.forbidden ? 'forbidden page' : 'login failed');
+      }
+      await adminPage.close();
+    } else {
+      record('admin UI check skipped', true, 'HANAKAI_E2E_ADMIN_EMAIL not configured');
+    }
+
     for (let i = 0; i < 3; i++) {
       await page.getByRole('button', { name: new RegExp(`E2E申請${i + 1}を参加メンバーに`) }).click();
     }
@@ -406,6 +492,25 @@ try {
     await lp.close();
   }
   await lpBrowser.close();
+
+  // LP mock copy alignment with real host screen
+  const copyBrowser = await chromium.launch({ headless: true });
+  const copyPage = await copyBrowser.newPage({ viewport: { width: 390, height: 844 } });
+  if (bypassSecret && baseUrl.includes('vercel.app')) {
+    await copyPage.goto(
+      `${baseUrl}/?x-vercel-protection-bypass=${encodeURIComponent(bypassSecret)}&x-vercel-set-bypass-cookie=true`,
+      { waitUntil: 'networkidle', timeout: 90000 },
+    );
+  } else {
+    await copyPage.goto(`${baseUrl}/`, { waitUntil: 'networkidle', timeout: 90000 });
+  }
+  await copyPage.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.65));
+  await copyPage.waitForTimeout(1000);
+  record(
+    'LP mock uses bulk finalize copy',
+    (await copyPage.getByText('このメンバーで開催する').count()) > 0,
+  );
+  await copyBrowser.close();
 } catch (e) {
   record('fatal', false, e instanceof Error ? e.message : String(e));
 } finally {
@@ -414,6 +519,16 @@ try {
 
 const report = {
   stamp: new Date().toISOString(),
+  commit:
+    process.env.VERCEL_GIT_COMMIT_SHA ??
+    (() => {
+      try {
+        return execSync('git rev-parse HEAD', { cwd: root, encoding: 'utf8' }).trim();
+      } catch {
+        return null;
+      }
+    })(),
+  deploymentId: process.env.VERCEL_DEPLOYMENT_ID ?? null,
   baseUrl,
   pass: results.filter((r) => r.ok).length,
   fail: results.filter((r) => !r.ok).length,
