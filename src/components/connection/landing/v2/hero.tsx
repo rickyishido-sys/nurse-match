@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { AccentSticker, ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
-import { BRAND_SUBLINE, BRAND_TAGLINE, HK } from '@/lib/connection/brand/tokens';
+import { BRAND_SUBLINE, HK } from '@/lib/connection/brand/tokens';
 
 const SLIDES = [
   { src: '/hero/desktop/cafe.png', mobile: '/hero/mobile/cafe.png' },
@@ -75,7 +75,7 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
       <BrandCharacterSlot id='S' size='sm' variant='float' className='-rotate-8' wrapperClassName='absolute right-[8%] top-[55%] z-[5] sm:right-[45%]' />
       <BrandCharacterSlot id='A' size='md' variant='peek' className='rotate-12' wrapperClassName='absolute bottom-[12%] right-[6%] z-[5] hidden sm:block' />
 
-      <div className='relative z-10 mx-auto flex w-full max-w-[1080px] flex-col px-6 pb-24 pt-28 sm:pt-32 lg:max-w-[55%] lg:items-start lg:pl-10 lg:text-left'>
+      <div className='relative z-10 mx-auto flex w-full max-w-[1080px] flex-col px-6 pb-24 pt-[calc(7rem+env(safe-area-inset-top,0px))] sm:pt-[calc(8rem+env(safe-area-inset-top,0px))] lg:max-w-[55%] lg:items-start lg:pl-10 lg:text-left'>
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -92,19 +92,20 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
           transition={{ duration: 0.9, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
           className='mt-6 font-serif text-[2.1rem] font-bold leading-[1.25] tracking-tight text-white sm:text-[2.8rem] lg:text-[3.4rem]'
         >
-          {BRAND_TAGLINE}
-          <br />
-          <span className='text-white/85'>{BRAND_SUBLINE}</span>
+          <span className='hk-copy-ja block'>人との時間を華やかにする。</span>
+          <span className='hk-copy-ja block text-white/85'>{BRAND_SUBLINE}</span>
         </motion.h1>
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.18 }}
-          className='mt-5 max-w-[38ch] text-sm leading-[1.95] text-white/80 sm:text-base'
+          className='hk-copy-ja mt-5 max-w-[42ch] text-sm leading-[1.95] text-white/80 sm:max-w-[48ch] sm:text-base'
         >
-          スワイプ不要。知らない人との体験が、いつの間にか友達になる。
-          花・カフェ・散歩——気分に合った体験を選ぶだけ。
+          <span className='block'>スワイプ不要。</span>
+          <span className='block sm:inline'>花・カフェ・食事・散歩など、</span>
+          <span className='block sm:inline'>好きなことを通じて、新しい休日を過ごす。</span>
+          <span className='mt-2 block sm:mt-0'>一緒に過ごす時間から、自然なつながりが生まれます。</span>
         </motion.p>
 
         <motion.div
@@ -157,7 +158,7 @@ export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?:
           transition={{ delay: 0.45 }}
           className='mt-5 text-xs text-white/55'
         >
-          プロフィール作成 → 参加申請 → リアル体験
+          プロフィール作成 → 体験を選ぶ → 参加申請 → リアル体験
         </motion.p>
       </div>
 

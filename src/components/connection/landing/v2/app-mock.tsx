@@ -27,7 +27,7 @@ const HOST_APPLICANTS = [
     name: 'Mio',
     meta: '29歳 · 横浜',
     avatarSrc: MOCK_PROFILES.femaleMio,
-    reason: '花が好きで、同じ感性の方と出会いたいです。',
+    reason: '花が好きで、同じ体験を楽しみたいです。',
     tags: '花 · カフェ · 読書',
   },
   {
@@ -43,7 +43,7 @@ const HOST_APPLICANTS = [
     name: 'Sho',
     meta: '29歳 · 中目黒',
     avatarSrc: MOCK_PROFILES.maleSho,
-    reason: '偶然から始まる出会いに興味があります。',
+    reason: '新しい体験から始まるつながりに興味があります。',
     tags: 'AI · カフェ · フィットネス',
   },
 ] as const;

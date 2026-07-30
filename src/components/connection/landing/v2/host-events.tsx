@@ -59,7 +59,7 @@ export function LandingHostEvents() {
         <Reveal delay={0.1}>
           <Lead className='mt-6 max-w-[48ch]'>
             HANAKAIは参加者だけの場所ではありません。
-            誰かがイベントを作ってくれるから、みんなの出会いが生まれます。
+            誰かがイベントを作ってくれるから、みんなの体験が生まれます。
             あなたも主催者の一人になれます。
           </Lead>
         </Reveal>

@@ -31,13 +31,13 @@ export function LandingFinalCta({ joinHref = '/register' }: { joinHref?: string 
       >
         <AccentSticker color={HK.coral}>参加する準備はできましたか？</AccentSticker>
         <h2 className='mt-6 font-serif text-[2rem] font-bold leading-[1.3] tracking-tight text-white sm:text-[2.6rem]'>
-          次の出会いは、
+          次の体験は、
           <br />
           あなたの一歩から
         </h2>
         <p className='mt-5 max-w-[36ch] text-sm leading-8 text-white/85 sm:text-base'>
           プロフィールを作って、気になる体験に参加。
-          知らない人との時間が、日常を華やかにします。
+          知らない人と過ごす時間が、日常を華やかにします。
         </p>
 
         <div className='mt-10 flex w-full max-w-[480px] flex-col gap-3 sm:flex-row sm:justify-center'>

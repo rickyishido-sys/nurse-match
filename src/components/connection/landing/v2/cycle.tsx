@@ -40,9 +40,9 @@ export function LandingCycle() {
         </Reveal>
         <Reveal delay={0.05}>
           <Heading dark className='mt-5'>
-            リアルで出会う
+            リアル体験の
             <br className='sm:hidden' />
-            体験コミュニティ
+            コミュニティ
           </Heading>
         </Reveal>
         <Reveal delay={0.1}>

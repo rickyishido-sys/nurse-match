@@ -28,9 +28,9 @@ const STEPS = [
   },
   {
     step: '03',
-    title: '主催者の確認と当日体験',
-    body: '主催者がプロフィール・参加理由などを確認し、選ばれた方は当日会場へ。同じ体験を楽しみながら、自然に出会えます。',
-    img: '/flow/experience-day.png',
+    title: 'みんなで体験を楽しむ',
+    body: '当日は花を生ける、カフェで談笑する、散歩しながら笑う——体験を楽しむだけ。終わったあとに「楽しかった。また参加したい」と思える、そんな休日の余韻がHANAKAIの中心です。',
+    img: '/flow/experience-enjoy.png',
     tilt: -2,
     accent: HK.amber,
     char: 'S' as const,
@@ -55,8 +55,8 @@ export function LandingHowItWorks({ joinHref = '/register' }: { joinHref?: strin
         </Reveal>
         <Reveal delay={0.1}>
           <Lead className='hk-copy-ja mt-6 max-w-[48ch]'>
-            <span className='block'>プロフィール作成と本人確認（必須）、体験への申込、主催者による参加確認。</span>
-            <span className='block'>認証済みになったら、あとは当日その場所へ行くだけです。</span>
+            <span className='block'>プロフィール作成と本人確認（必須）、体験への申込、そして当日は体験を楽しむだけ。</span>
+            <span className='block'>花・カフェ・散歩など、好きな体験から自然なつながりが生まれます。</span>
           </Lead>
         </Reveal>
       </div>

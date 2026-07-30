@@ -6,7 +6,7 @@ import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connect
 const STORY = [
   { img: '/categories/flower.png', label: '体験する' },
   { img: '/categories/cafe.png', label: '会話する' },
-  { img: '/flow/experience-day.png', label: '仲間になる' },
+  { img: '/flow/experience-enjoy.png', label: '楽しかった' },
   { img: '/flow/continue.png', label: 'また会う' },
 ];
 
@@ -24,7 +24,7 @@ export function LandingAbout() {
           <Lead className='mt-6 max-w-[44ch]'>
             HANAKAIは、花をきっかけに始まったConnectionコミュニティです。
             いまはカフェ、食事、散歩、バー、運動、アートなど、さまざまな体験を通じて
-            人と人が出会う場所へ広がっています。
+            人と人が自然につながる場所へ広がっています。
             <br />
             花教室でも、SNSでもありません。体験を入口に、リアルなつながりが生まれます。
           </Lead>

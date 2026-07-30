@@ -17,7 +17,7 @@ export function LandingHero() {
           </h1>
 
           <p className='mt-3 text-[13px] leading-6 text-white/90 lg:text-sm'>
-            リアルで出会い、理解が深まり、一生のつながりへ。
+            リアル体験で理解が深まり、一生のつながりへ。
           </p>
 
           <p className='mt-2 text-[11px] leading-5 text-white/75 lg:text-xs'>

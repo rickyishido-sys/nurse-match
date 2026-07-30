@@ -16,19 +16,9 @@ const STEPS = [
   },
   {
     step: '03',
-    img: '/flow/experience-day.png',
-    title: '最適なConnectionが生まれる',
-    body: (
-      <>
-        イベントごとに、運営が
-        <span style={{ color: LP_GOLD }}>価値観</span>
-        や
-        <span style={{ color: LP_GOLD }}>興味関心</span>
-        をもとに
-        <span style={{ color: LP_GOLD }}>参加メンバー</span>
-        を決定する。
-      </>
-    ),
+    img: '/flow/experience-enjoy.png',
+    title: '体験を楽しむ',
+    body: '花・カフェ・散歩など、選んだ体験を思いきり楽しむ。終わったあとに「また参加したい」と思える休日の余韻がHANAKAIの中心です。',
   },
   {
     step: '04',

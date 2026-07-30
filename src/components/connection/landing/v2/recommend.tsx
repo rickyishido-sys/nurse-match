@@ -6,9 +6,9 @@ import { Heading, Kicker, Reveal, Section } from '@/components/connection/landin
 import { SnapCarousel } from '@/components/connection/landing/v2/carousel';
 
 const ITEMS = [
-  { emoji: '💬', text: '普段出会わない人と、話してみたい', accent: HK.coral, tilt: -3 },
+  { emoji: '💬', text: '普段会わない人と、体験を共有してみたい', accent: HK.coral, tilt: -3 },
   { emoji: '🌿', text: '仕事以外の、新しいつながりが欲しい', accent: HK.lime, tilt: 4 },
-  { emoji: '🎨', text: '趣味や体験を通じて、自然に出会いたい', accent: HK.violet, tilt: -2 },
+  { emoji: '🎨', text: '趣味や体験を通じて、自然につながりたい', accent: HK.violet, tilt: -2 },
   { emoji: '🚪', text: '一人でも気軽に参加できる場所がほしい', accent: HK.sky, tilt: 5 },
   { emoji: '🤝', text: '同性・異性を問わず、新しい人間関係を作りたい', accent: HK.amber, tilt: -4 },
   { emoji: '📱', text: 'SNSではなく、リアルで人と会いたい', accent: HK.coral, tilt: 3 },
