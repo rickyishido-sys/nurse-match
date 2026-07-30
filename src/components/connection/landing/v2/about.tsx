@@ -6,7 +6,7 @@ import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connect
 const STORY = [
   { img: '/categories/flower.png', label: '体験する' },
   { img: '/categories/cafe.png', label: '会話する' },
-  { img: '/flow/matching.png', label: '仲間になる' },
+  { img: '/flow/experience-day.png', label: '仲間になる' },
   { img: '/flow/continue.png', label: 'また会う' },
 ];
 

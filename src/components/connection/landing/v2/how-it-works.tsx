@@ -10,8 +10,8 @@ import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connect
 const STEPS = [
   {
     step: '01',
-    title: '体験を選ぶ',
-    body: '花・カフェ・散歩など、気分に合った体験を選ぶだけ。難しい手続きはありません。',
+    title: 'プロフィールと本人確認',
+    body: '興味や価値観を登録し、本人確認書類を提出します（必須）。HANAKAI運営が確認し、認証済みになると次のステップへ進めます。',
     img: '/flow/register.png',
     tilt: -4,
     accent: HK.coral,
@@ -19,18 +19,18 @@ const STEPS = [
   },
   {
     step: '02',
-    title: '参加する',
-    body: 'リアルな場所に行くだけ。運営がグループづくりや当日の案内をサポートします。',
-    img: '/flow/apply.png',
+    title: '体験を選んで申し込む',
+    body: '花、カフェ、食事、散歩など、気分に合った体験を選び、認証済みユーザーとして参加申請します。',
+    img: '/flow/apply-browse.png',
     tilt: 3,
     accent: HK.violet,
     char: 'E1' as const,
   },
   {
     step: '03',
-    title: '体験に参加する',
-    body: '主催者または運営が申請を確認します。承認後、当日はリアルな場所で体験に参加できます。必要なら参加をキャンセルできます。',
-    img: '/flow/continue.png',
+    title: '主催者の確認と当日体験',
+    body: '主催者がプロフィール・参加理由などを確認し、選ばれた方は当日会場へ。同じ体験を楽しみながら、自然に出会えます。',
+    img: '/flow/experience-day.png',
     tilt: -2,
     accent: HK.amber,
     char: 'S' as const,
@@ -54,9 +54,9 @@ export function LandingHowItWorks({ joinHref = '/register' }: { joinHref?: strin
           </Heading>
         </Reveal>
         <Reveal delay={0.1}>
-          <Lead className='mt-6 max-w-[40ch]'>
-            正方形に並べた説明ではなく、体験の流れそのものをデザイン。
-            あなたは「来る」だけでOKです。
+          <Lead className='hk-copy-ja mt-6 max-w-[48ch]'>
+            <span className='block'>プロフィール作成と本人確認（必須）、体験への申込、主催者による参加確認。</span>
+            <span className='block'>認証済みになったら、あとは当日その場所へ行くだけです。</span>
           </Lead>
         </Reveal>
       </div>
@@ -91,7 +91,7 @@ export function LandingHowItWorks({ joinHref = '/register' }: { joinHref?: strin
 
               <div className={`flex-1 text-center lg:text-left ${index % 2 === 1 ? 'lg:text-right' : ''}`}>
                 <h3 className='font-serif text-2xl font-bold text-[#1a1a1a] sm:text-[1.75rem]'>{item.title}</h3>
-                <p className='mt-3 text-sm leading-[1.95] text-[#5a5247] sm:text-base'>{item.body}</p>
+                <p className='hk-copy-ja mt-3 text-sm leading-[1.95] text-[#5a5247] sm:text-base'>{item.body}</p>
               </div>
             </div>
           </Reveal>

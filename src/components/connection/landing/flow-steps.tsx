@@ -10,13 +10,13 @@ const STEPS = [
   },
   {
     step: '02',
-    img: '/flow/apply.png',
+    img: '/flow/apply-browse.png',
     title: 'イベントに申請',
     body: '気になるConnection Eventに参加希望を送る。',
   },
   {
     step: '03',
-    img: '/flow/matching.png',
+    img: '/flow/experience-day.png',
     title: '最適なConnectionが生まれる',
     body: (
       <>
