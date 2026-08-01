@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { pickNextHeroVideo } from '@/lib/connection/landing/hero-videos';
 
-const FADE_MS = 400;
-const PRELOAD_THRESHOLD = 0.85;
+/** Standard crossfade duration (600–1000ms tunable). */
+export const HERO_CROSSFADE_MS = 800;
+const CROSSFADE_SEC = HERO_CROSSFADE_MS / 1000;
 
 type HeroVideoRotatorProps = {
   videos: readonly string[];
@@ -12,10 +13,18 @@ type HeroVideoRotatorProps = {
   visibilityClassName: string;
 };
 
-function waitForVideoData(video: HTMLVideoElement): Promise<void> {
-  if (video.readyState >= 2) return Promise.resolve();
+type Slot = 0 | 1;
+
+function inactiveSlot(active: Slot): Slot {
+  return active === 0 ? 1 : 0;
+}
+
+function waitForCanPlay(video: HTMLVideoElement, signal: AbortSignal): Promise<void> {
+  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+    return Promise.resolve();
+  }
   return new Promise((resolve, reject) => {
-    const onReady = () => {
+    const onCanPlay = () => {
       cleanup();
       resolve();
     };
@@ -23,181 +32,365 @@ function waitForVideoData(video: HTMLVideoElement): Promise<void> {
       cleanup();
       reject(new Error('video load failed'));
     };
-    const cleanup = () => {
-      video.removeEventListener('loadeddata', onReady);
-      video.removeEventListener('error', onError);
+    const onAbort = () => {
+      cleanup();
+      reject(new Error('aborted'));
     };
-    video.addEventListener('loadeddata', onReady, { once: true });
+    const cleanup = () => {
+      video.removeEventListener('canplay', onCanPlay);
+      video.removeEventListener('error', onError);
+      signal.removeEventListener('abort', onAbort);
+    };
+    video.addEventListener('canplay', onCanPlay, { once: true });
     video.addEventListener('error', onError, { once: true });
-    video.load();
+    signal.addEventListener('abort', onAbort);
   });
 }
 
+async function tryPlay(video: HTMLVideoElement): Promise<boolean> {
+  try {
+    video.muted = true;
+    await video.play();
+    return !video.paused;
+  } catch {
+    return false;
+  }
+}
+
 export function HeroVideoRotator({ videos, initialSrc, visibilityClassName }: HeroVideoRotatorProps) {
-  const [activeSlot, setActiveSlot] = useState(0);
+  const [activeLayer, setActiveLayer] = useState<Slot>(0);
   const [slotSources, setSlotSources] = useState<[string, string]>(() => [initialSrc, initialSrc]);
   const [opacities, setOpacities] = useState<[number, number]>(() => [1, 0]);
 
-  const currentSrcRef = useRef(initialSrc);
-  const failedRef = useRef(new Set<string>());
-  const transitioningRef = useRef(false);
-  const preloadedNextRef = useRef<string | null>(null);
-  const skipAttemptsRef = useRef(0);
-  const activeSlotRef = useRef(0);
   const videoRef0 = useRef<HTMLVideoElement>(null);
   const videoRef1 = useRef<HTMLVideoElement>(null);
-  const refs = [videoRef0, videoRef1] as const;
+
+  const currentSrcRef = useRef(initialSrc);
+  const nextSrcRef = useRef<string | null>(null);
+  const isNextReadyRef = useRef(false);
+  const isTransitioningRef = useRef(false);
+  const failedRef = useRef(new Set<string>());
+  const skipAttemptsRef = useRef(0);
+  const activeLayerRef = useRef<Slot>(0);
+  const rafRef = useRef<number | null>(null);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prepareGenRef = useRef(0);
+  const prepareAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    activeSlotRef.current = activeSlot;
-  }, [activeSlot]);
+    activeLayerRef.current = activeLayer;
+  }, [activeLayer]);
 
-  const playVideo = useCallback(async (video: HTMLVideoElement | null) => {
-    if (!video) return false;
-    try {
-      await video.play();
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
+  const getVideo = (slot: Slot): HTMLVideoElement | null =>
+    slot === 0 ? videoRef0.current : videoRef1.current;
 
-  const advanceToNext = useCallback(
-    async (fromSlot: number) => {
-      if (transitioningRef.current) return;
-      transitioningRef.current = true;
+  useEffect(() => {
+    const clearFadeTimer = () => {
+      if (fadeTimerRef.current !== null) {
+        clearTimeout(fadeTimerRef.current);
+        fadeTimerRef.current = null;
+      }
+    };
+
+    const stopRaf = () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+
+    const abortPrepare = () => {
+      prepareAbortRef.current?.abort();
+      prepareAbortRef.current = null;
+    };
+
+    const setLayerOpacity = (active: Slot) => {
+      setOpacities(active === 0 ? [1, 0] : [0, 1]);
+    };
+
+    const prepareNext = async (forInactive: Slot) => {
+      abortPrepare();
+      const controller = new AbortController();
+      prepareAbortRef.current = controller;
+      const gen = ++prepareGenRef.current;
 
       const nextSrc = pickNextHeroVideo(videos, currentSrcRef.current, failedRef.current);
       if (!nextSrc) {
-        transitioningRef.current = false;
+        isNextReadyRef.current = false;
+        nextSrcRef.current = null;
         return;
       }
 
       if (skipAttemptsRef.current >= videos.length) {
-        transitioningRef.current = false;
+        isNextReadyRef.current = false;
+        nextSrcRef.current = null;
         return;
       }
 
-      const inactiveSlot = fromSlot === 0 ? 1 : 0;
-      const inactiveVideo = refs[inactiveSlot].current;
-      preloadedNextRef.current = null;
+      const inactive = getVideo(forInactive);
+      if (!inactive || controller.signal.aborted) return;
 
-      if (!inactiveVideo) {
-        transitioningRef.current = false;
-        return;
-      }
+      isNextReadyRef.current = false;
+      nextSrcRef.current = nextSrc;
 
       setSlotSources((prev) => {
-        if (prev[inactiveSlot] === nextSrc) return prev;
+        if (prev[forInactive] === nextSrc) return prev;
         const next: [string, string] = [...prev];
-        next[inactiveSlot] = nextSrc;
+        next[forInactive] = nextSrc;
         return next;
       });
 
-      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+      if (controller.signal.aborted || gen !== prepareGenRef.current) return;
+
+      const inactiveEl = getVideo(forInactive);
+      if (!inactiveEl) return;
+
+      if (inactiveEl.getAttribute('src') !== nextSrc) {
+        inactiveEl.src = nextSrc;
+      }
+      inactiveEl.preload = 'auto';
+      inactiveEl.load();
 
       try {
-        if (inactiveVideo.getAttribute('src') !== nextSrc) {
-          inactiveVideo.src = nextSrc;
-        }
-        await waitForVideoData(inactiveVideo);
-        inactiveVideo.currentTime = 0;
-
-        const played = await playVideo(inactiveVideo);
-        if (!played) {
-          failedRef.current.add(nextSrc);
-          skipAttemptsRef.current += 1;
-          transitioningRef.current = false;
-          void advanceToNext(fromSlot);
-          return;
-        }
-
-        skipAttemptsRef.current = 0;
-        setOpacities(inactiveSlot === 0 ? [1, 0] : [0, 1]);
-        currentSrcRef.current = nextSrc;
-        activeSlotRef.current = inactiveSlot;
-        setActiveSlot(inactiveSlot);
-        transitioningRef.current = false;
-
-        window.setTimeout(() => {
-          refs[fromSlot].current?.pause();
-        }, FADE_MS);
+        await waitForCanPlay(inactiveEl, controller.signal);
+        if (controller.signal.aborted || gen !== prepareGenRef.current) return;
+        isNextReadyRef.current = true;
       } catch {
+        if (controller.signal.aborted) return;
+        failedRef.current.add(nextSrc);
+        isNextReadyRef.current = false;
+        nextSrcRef.current = null;
+        skipAttemptsRef.current += 1;
+        if (skipAttemptsRef.current < videos.length) {
+          void prepareNext(forInactive);
+        }
+      }
+    };
+
+    const finishTransition = (fromSlot: Slot, toSlot: Slot, nextSrc: string) => {
+      const outgoing = getVideo(fromSlot);
+      outgoing?.pause();
+      if (outgoing) outgoing.currentTime = 0;
+
+      currentSrcRef.current = nextSrc;
+      activeLayerRef.current = toSlot;
+      setActiveLayer(toSlot);
+      isTransitioningRef.current = false;
+      isNextReadyRef.current = false;
+      nextSrcRef.current = null;
+      skipAttemptsRef.current = 0;
+
+      void prepareNext(inactiveSlot(toSlot));
+    };
+
+    const executeCrossfade = async (fromSlot: Slot) => {
+      if (isTransitioningRef.current) return;
+
+      const activeVideo = getVideo(fromSlot);
+      if (!activeVideo) return;
+
+      const toSlot = inactiveSlot(fromSlot);
+      const incoming = getVideo(toSlot);
+      if (!incoming) return;
+
+      if (!isNextReadyRef.current || !nextSrcRef.current) {
+        return;
+      }
+
+      if (skipAttemptsRef.current >= videos.length) return;
+
+      isTransitioningRef.current = true;
+      stopRaf();
+
+      const nextSrc = nextSrcRef.current;
+      incoming.currentTime = 0;
+
+      const played = await tryPlay(incoming);
+      if (!played) {
         failedRef.current.add(nextSrc);
         skipAttemptsRef.current += 1;
-        transitioningRef.current = false;
-        void advanceToNext(fromSlot);
+        isTransitioningRef.current = false;
+        isNextReadyRef.current = false;
+        nextSrcRef.current = null;
+        if (skipAttemptsRef.current < videos.length) {
+          void prepareNext(toSlot).then(() => {
+            startMonitor(fromSlot);
+          });
+        } else {
+          startMonitor(fromSlot);
+        }
+        return;
       }
-    },
-    [playVideo, videos],
-  );
 
-  useEffect(() => {
-    const video = refs[activeSlot].current;
-    if (!video) return;
+      setLayerOpacity(toSlot);
 
-    const onTimeUpdate = () => {
-      if (transitioningRef.current || !Number.isFinite(video.duration) || video.duration <= 0) return;
-      if (video.currentTime / video.duration < PRELOAD_THRESHOLD) return;
-      if (preloadedNextRef.current) return;
+      clearFadeTimer();
+      fadeTimerRef.current = setTimeout(() => {
+        fadeTimerRef.current = null;
+        finishTransition(fromSlot, toSlot, nextSrc);
+        startMonitor(toSlot);
+      }, HERO_CROSSFADE_MS);
+    };
 
-      const nextSrc = pickNextHeroVideo(videos, currentSrcRef.current, failedRef.current);
-      if (!nextSrc) return;
+    const tickCrossfade = (fromSlot: Slot) => {
+      const activeVideo = getVideo(fromSlot);
+      if (!activeVideo || isTransitioningRef.current) {
+        rafRef.current = null;
+        return;
+      }
 
-      const inactiveSlot = activeSlot === 0 ? 1 : 0;
-      preloadedNextRef.current = nextSrc;
-      setSlotSources((prev) => {
-        if (prev[inactiveSlot] === nextSrc) return prev;
-        const next: [string, string] = [...prev];
-        next[inactiveSlot] = nextSrc;
-        return next;
+      const { duration, currentTime } = activeVideo;
+      if (!Number.isFinite(duration) || duration <= 0) {
+        rafRef.current = requestAnimationFrame(() => tickCrossfade(fromSlot));
+        return;
+      }
+
+      const remaining = duration - currentTime;
+
+      if (remaining <= CROSSFADE_SEC && remaining > 0) {
+        if (isNextReadyRef.current) {
+          void executeCrossfade(fromSlot);
+          rafRef.current = null;
+          return;
+        }
+        rafRef.current = requestAnimationFrame(() => tickCrossfade(fromSlot));
+        return;
+      }
+
+      if (remaining > 0.05) {
+        rafRef.current = requestAnimationFrame(() => tickCrossfade(fromSlot));
+      } else {
+        rafRef.current = requestAnimationFrame(() => tickCrossfade(fromSlot));
+      }
+    };
+
+    const startMonitor = (fromSlot: Slot) => {
+      stopRaf();
+      rafRef.current = requestAnimationFrame(() => tickCrossfade(fromSlot));
+    };
+
+    const onActivePlaying = (slot: Slot) => {
+      void prepareNext(inactiveSlot(slot));
+      startMonitor(slot);
+    };
+
+    const onEndedFallback = (slot: Slot) => {
+      if (isTransitioningRef.current) return;
+      if (isNextReadyRef.current) {
+        void executeCrossfade(slot);
+        return;
+      }
+      const inactive = inactiveSlot(slot);
+      void prepareNext(inactive).then(() => {
+        if (isNextReadyRef.current) {
+          void executeCrossfade(slot);
+        }
       });
     };
 
-    video.addEventListener('timeupdate', onTimeUpdate);
-    return () => video.removeEventListener('timeupdate', onTimeUpdate);
-  }, [activeSlot, videos]);
-
-  useEffect(() => {
-    const video = refs[activeSlot].current;
-    if (!video) return;
-
-    const onEnded = () => {
-      void advanceToNext(activeSlotRef.current);
-    };
-
-    const onError = () => {
+    const onActiveError = (slot: Slot) => {
       failedRef.current.add(currentSrcRef.current);
-      void advanceToNext(activeSlotRef.current);
+      const inactive = inactiveSlot(slot);
+      void prepareNext(inactive).then(() => {
+        if (isNextReadyRef.current) {
+          void executeCrossfade(slot);
+        }
+      });
     };
 
-    video.addEventListener('ended', onEnded);
-    video.addEventListener('error', onError);
-    return () => {
-      video.removeEventListener('ended', onEnded);
-      video.removeEventListener('error', onError);
+    const resumePlayback = () => {
+      const slot = activeLayerRef.current;
+      const active = getVideo(slot);
+      if (active?.paused) {
+        void tryPlay(active);
+      }
+      if (isTransitioningRef.current) {
+        const incoming = getVideo(inactiveSlot(slot));
+        if (incoming?.paused) {
+          void tryPlay(incoming);
+        }
+      }
+      startMonitor(slot);
     };
-  }, [activeSlot, advanceToNext]);
+
+    const attachToActive = (slot: Slot) => {
+      const active = getVideo(slot);
+      if (!active) return () => undefined;
+
+      const onPlaying = () => onActivePlaying(slot);
+      const onEnded = () => onEndedFallback(slot);
+      const onError = () => onActiveError(slot);
+
+      active.addEventListener('playing', onPlaying);
+      active.addEventListener('ended', onEnded);
+      active.addEventListener('error', onError);
+
+      if (!active.paused && active.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        onActivePlaying(slot);
+      }
+
+      return () => {
+        active.removeEventListener('playing', onPlaying);
+        active.removeEventListener('ended', onEnded);
+        active.removeEventListener('error', onError);
+      };
+    };
+
+    const slot = activeLayer;
+    const detachActive = attachToActive(slot);
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') resumePlayback();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      detachActive();
+      document.removeEventListener('visibilitychange', onVisibility);
+      stopRaf();
+      clearFadeTimer();
+    };
+  }, [activeLayer, videos]);
 
   useEffect(() => {
-    void playVideo(refs[0].current);
-  }, [playVideo]);
+    const first = videoRef0.current;
+    if (first) void tryPlay(first);
+  }, []);
 
   return (
     <div className={`absolute inset-0 bg-[#0f1412] ${visibilityClassName}`} aria-hidden>
-      {([0, 1] as const).map((slot) => (
-        <video
-          key={slot}
-          ref={refs[slot]}
-          className='absolute inset-0 h-full w-full object-cover transition-opacity duration-[400ms] ease-in-out'
-          style={{ opacity: opacities[slot] }}
-          src={slotSources[slot]}
-          muted
-          playsInline
-          autoPlay={slot === 0}
-          preload='metadata'
-        />
-      ))}
+      <video
+        ref={videoRef0}
+        className='absolute inset-0 h-full w-full object-cover transition-opacity ease-in-out'
+        style={{
+          opacity: opacities[0],
+          transitionDuration: `${HERO_CROSSFADE_MS}ms`,
+          WebkitTransform: 'translateZ(0)',
+          transform: 'translateZ(0)',
+        }}
+        src={slotSources[0]}
+        muted
+        playsInline
+        autoPlay
+        preload='auto'
+      />
+      <video
+        ref={videoRef1}
+        className='absolute inset-0 h-full w-full object-cover transition-opacity ease-in-out'
+        style={{
+          opacity: opacities[1],
+          transitionDuration: `${HERO_CROSSFADE_MS}ms`,
+          WebkitTransform: 'translateZ(0)',
+          transform: 'translateZ(0)',
+        }}
+        src={slotSources[1]}
+        muted
+        playsInline
+        preload='auto'
+      />
     </div>
   );
-}
+};
