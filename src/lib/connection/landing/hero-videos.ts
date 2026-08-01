@@ -17,3 +17,24 @@ export const HERO_MOBILE_VIDEOS = [
 export function pickRandomHeroVideo<T>(videos: readonly T[]): T {
   return videos[Math.floor(Math.random() * videos.length)]!;
 }
+
+/** Pick a random video that is not the excluded one (for sequential rotation). */
+export function pickRandomHeroVideoExcluding<T>(videos: readonly T[], exclude: T): T | null {
+  const pool = videos.filter((v) => v !== exclude);
+  if (pool.length === 0) return null;
+  return pool[Math.floor(Math.random() * pool.length)]!;
+}
+
+/** Pick from pool while skipping session-failed sources; never returns `exclude`. */
+export function pickNextHeroVideo(
+  videos: readonly string[],
+  exclude: string,
+  failed: ReadonlySet<string>,
+): string | null {
+  let pool = videos.filter((v) => v !== exclude && !failed.has(v));
+  if (pool.length === 0) {
+    pool = videos.filter((v) => v !== exclude);
+  }
+  if (pool.length === 0) return null;
+  return pool[Math.floor(Math.random() * pool.length)]!;
+}

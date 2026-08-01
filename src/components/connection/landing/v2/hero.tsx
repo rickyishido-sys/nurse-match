@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { motion } from 'motion/react';
-import { useState } from 'react';
 import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
 import { AccentSticker, ColorBlob } from '@/components/connection/brand/brand-editorial';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
+import { HeroVideoRotator } from '@/components/connection/landing/v2/hero-video-rotator';
 import { BRAND_SUBLINE, HK } from '@/lib/connection/brand/tokens';
+import { HERO_MOBILE_VIDEOS, HERO_PC_VIDEOS } from '@/lib/connection/landing/hero-videos';
 
 function HeroVideoBackground({ pcSrc, mobileSrc }: { pcSrc: string; mobileSrc: string }) {
   return (
@@ -15,24 +16,8 @@ function HeroVideoBackground({ pcSrc, mobileSrc }: { pcSrc: string; mobileSrc: s
       <ColorBlob color={HK.violetSoft} size='h-56 w-56' className='bottom-[20%] left-[3%] opacity-35' />
       <ColorBlob color={HK.skySoft} size='h-40 w-40' className='right-[30%] bottom-[30%] opacity-30' />
 
-      <video
-        className='absolute inset-0 hidden h-full w-full object-cover sm:block'
-        src={pcSrc}
-        muted
-        playsInline
-        autoPlay
-        loop
-        preload='metadata'
-      />
-      <video
-        className='absolute inset-0 h-full w-full object-cover sm:hidden'
-        src={mobileSrc}
-        muted
-        playsInline
-        autoPlay
-        loop
-        preload='metadata'
-      />
+      <HeroVideoRotator videos={HERO_PC_VIDEOS} initialSrc={pcSrc} visibilityClassName='hidden sm:block' />
+      <HeroVideoRotator videos={HERO_MOBILE_VIDEOS} initialSrc={mobileSrc} visibilityClassName='sm:hidden' />
 
       <div className='absolute inset-0 bg-gradient-to-br from-[#0f1412]/88 via-[#1f5d4f]/75 to-[#7b5ea7]/55 sm:bg-gradient-to-r sm:from-[#0f1412]/92 sm:via-[#163f35]/80 sm:to-transparent' />
     </div>
@@ -48,12 +33,9 @@ export function LandingHeroV2({
   pcVideo: string;
   mobileVideo: string;
 }) {
-  const [pcVideo] = useState(pcVideoInitial);
-  const [mobileVideo] = useState(mobileVideoInitial);
-
   return (
     <section className='relative flex min-h-[100svh] items-center overflow-hidden bg-[#0f1412]'>
-      <HeroVideoBackground pcSrc={pcVideo} mobileSrc={mobileVideo} />
+      <HeroVideoBackground pcSrc={pcVideoInitial} mobileSrc={mobileVideoInitial} />
       <BgTypography text='華会' dark animate className='!text-white/[0.06]' />
 
       {/* キャラクタースロット — brand-config.ts で再有効化 */}
