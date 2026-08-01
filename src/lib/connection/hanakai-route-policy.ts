@@ -162,6 +162,8 @@ export function isHanakaiStaticAsset(pathname: string): boolean {
     pathname.startsWith('/apple-touch-icon') ||
     pathname.startsWith('/logo') ||
     pathname.startsWith('/hero') ||
+    pathname.startsWith('/Hero_PC') ||
+    pathname.startsWith('/Hero_Mobile') ||
     pathname.startsWith('/categories') ||
     pathname.startsWith('/flow') ||
     pathname.startsWith('/icons') ||
