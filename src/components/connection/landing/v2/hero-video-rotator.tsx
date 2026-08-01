@@ -57,6 +57,79 @@ async function tryPlay(video: HTMLVideoElement): Promise<boolean> {
   }
 }
 
+const FIRST_FRAME_TIMEOUT_MS = 4000;
+
+type VideoWithFrameCallback = HTMLVideoElement & {
+  requestVideoFrameCallback?: (callback: () => void) => number;
+  cancelVideoFrameCallback?: (handle: number) => void;
+};
+
+/** Wait until incoming video has a composited frame (Safari-safe before opacity fade). */
+function waitForFirstFrame(video: HTMLVideoElement): Promise<boolean> {
+  const hasDecodedFrame =
+    video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0;
+
+  if (hasDecodedFrame && video.currentTime > 0) {
+    return Promise.resolve(true);
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let rvfcHandle: number | undefined;
+    let pollRaf: number | undefined;
+
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(ok);
+    };
+
+    const cleanup = () => {
+      window.clearTimeout(timeoutId);
+      video.removeEventListener('timeupdate', onTimeUpdate);
+      video.removeEventListener('error', onError);
+      if (pollRaf !== undefined) cancelAnimationFrame(pollRaf);
+      const rvfcVideo = video as VideoWithFrameCallback;
+      if (rvfcHandle !== undefined && rvfcVideo.cancelVideoFrameCallback) {
+        rvfcVideo.cancelVideoFrameCallback(rvfcHandle);
+      }
+    };
+
+    const timeoutId = window.setTimeout(() => finish(false), FIRST_FRAME_TIMEOUT_MS);
+
+    const onError = () => finish(false);
+
+    const frameLooksReady = () =>
+      video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0;
+
+    const onTimeUpdate = () => {
+      if (frameLooksReady() && (video.currentTime > 0 || !video.paused)) {
+        finish(true);
+      }
+    };
+
+    const pollCurrentTime = () => {
+      if (frameLooksReady() && video.currentTime > 0) {
+        finish(true);
+        return;
+      }
+      pollRaf = requestAnimationFrame(pollCurrentTime);
+    };
+
+    video.addEventListener('error', onError, { once: true });
+
+    const rvfcVideo = video as VideoWithFrameCallback;
+    if (typeof rvfcVideo.requestVideoFrameCallback === 'function') {
+      rvfcHandle = rvfcVideo.requestVideoFrameCallback(() => finish(true));
+      return;
+    }
+
+    video.addEventListener('timeupdate', onTimeUpdate);
+    pollRaf = requestAnimationFrame(pollCurrentTime);
+  });
+}
+
 export function HeroVideoRotator({ videos, initialSrc, visibilityClassName }: HeroVideoRotatorProps) {
   const [activeLayer, setActiveLayer] = useState<Slot>(0);
   const [slotSources, setSlotSources] = useState<[string, string]>(() => [initialSrc, initialSrc]);
@@ -222,6 +295,15 @@ export function HeroVideoRotator({ videos, initialSrc, visibilityClassName }: He
         } else {
           startMonitor(fromSlot);
         }
+        return;
+      }
+
+      const frameReady = await waitForFirstFrame(incoming);
+      if (!frameReady) {
+        incoming.pause();
+        incoming.currentTime = 0;
+        isTransitioningRef.current = false;
+        startMonitor(fromSlot);
         return;
       }
 
