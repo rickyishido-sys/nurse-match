@@ -14,7 +14,13 @@ import { LandingFinalCta } from '@/components/connection/landing/v2/final-cta';
 import { PageSkeleton } from '@/components/connection/ui/page-skeleton';
 import { getHanakaiRegistrationStatus, resolveJoinHref } from '@/lib/connection/registration-status';
 import { getHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access';
+import { HANAKAI_ADMIN_CONSOLE_HREF } from '@/lib/connection/layout-width';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
+import {
+  HERO_MOBILE_VIDEOS,
+  HERO_PC_VIDEOS,
+  pickRandomHeroVideo,
+} from '@/lib/connection/landing/hero-videos';
 
 const sectionFallback = () => (
   <div className='px-6 py-16'>
@@ -50,16 +56,17 @@ export default async function LandingPage() {
     getHanakaiViewer(),
   ]);
   const joinHref = resolveJoinHref(registration);
+  const pcVideo = pickRandomHeroVideo(HERO_PC_VIDEOS);
+  const mobileVideo = pickRandomHeroVideo(HERO_MOBILE_VIDEOS);
 
   return (
     <div className='min-h-screen hk-vibrant-gradient text-[#1a1a1a]'>
-      <link rel='preload' as='image' href='/images/profile-sample.webp' type='image/webp' />
-      <link rel='preload' as='image' href='/hero/mobile/cafe.png' fetchPriority='high' />
+      <link rel='preload' as='image' href='/images/avatars/aoi.webp' type='image/webp' />
 
       <LandingNav joinHref={joinHref} viewer={viewer} />
 
       <main>
-        <LandingHeroV2 joinHref={joinHref} />
+        <LandingHeroV2 joinHref={joinHref} pcVideo={pcVideo} mobileVideo={mobileVideo} />
         <LandingConnectionDefinition />
         <LandingHostEvents />
         <LandingStats />
@@ -76,7 +83,7 @@ export default async function LandingPage() {
         <LandingFinalCta joinHref={joinHref} />
       </main>
 
-      <BrandFooter adminHref={adminAccess.allowed ? '/manage' : null} />
+      <BrandFooter adminHref={adminAccess.allowed ? HANAKAI_ADMIN_CONSOLE_HREF : null} />
     </div>
   );
 }

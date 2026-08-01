@@ -1,72 +1,59 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { BrandCharacterSlot } from '@/components/connection/brand/brand-character-slot';
-import { AccentSticker, ColorBlob, TiltFrame } from '@/components/connection/brand/brand-editorial';
+import { AccentSticker, ColorBlob } from '@/components/connection/brand/brand-editorial';
 import { BgTypography } from '@/components/connection/brand/bg-typography';
 import { BRAND_SUBLINE, HK } from '@/lib/connection/brand/tokens';
 
-const SLIDES = [
-  { src: '/hero/desktop/cafe.png', mobile: '/hero/mobile/cafe.png' },
-  { src: '/hero/desktop/bar.png', mobile: '/hero/mobile/bar.png' },
-  { src: '/hero/desktop/fitness.png', mobile: '/hero/mobile/fitness.png' },
-  { src: '/hero/desktop/flower.png', mobile: '/hero/mobile/flower.png' },
-];
-
-const ROTATE_MS = 5000;
-
-function HeroCollage({ index }: { index: number }) {
-  const slide = SLIDES[index];
+function HeroVideoBackground({ pcSrc, mobileSrc }: { pcSrc: string; mobileSrc: string }) {
   return (
     <div className='pointer-events-none absolute inset-0' aria-hidden>
       <ColorBlob color={HK.coralSoft} size='h-64 w-64' className='right-[5%] top-[12%] opacity-40' />
       <ColorBlob color={HK.violetSoft} size='h-56 w-56' className='bottom-[20%] left-[3%] opacity-35' />
       <ColorBlob color={HK.skySoft} size='h-40 w-40' className='right-[30%] bottom-[30%] opacity-30' />
 
-      {/* 斜めに重なる写真コラージュ */}
-      <TiltFrame tilt={-6} hover={false} className='absolute right-[4%] top-[14%] hidden w-[42%] sm:block'>
-        <div className='relative aspect-[4/5] overflow-hidden rounded-[2rem] shadow-[0_30px_80px_rgba(0,0,0,0.35)] ring-4 ring-white/20'>
-          <Image src={slide.src} alt='' fill sizes='45vw' className='object-cover' loading='lazy' />
-        </div>
-      </TiltFrame>
-      <TiltFrame tilt={5} hover={false} className='absolute bottom-[18%] right-[18%] hidden w-[28%] sm:block'>
-        <div className='relative aspect-square overflow-hidden rounded-[1.5rem] border-4 border-white shadow-2xl'>
-          <Image src={SLIDES[(index + 1) % SLIDES.length].mobile} alt='' fill sizes='30vw' className='object-cover' />
-        </div>
-      </TiltFrame>
+      <video
+        className='absolute inset-0 hidden h-full w-full object-cover sm:block'
+        src={pcSrc}
+        muted
+        playsInline
+        autoPlay
+        loop
+        preload='metadata'
+      />
+      <video
+        className='absolute inset-0 h-full w-full object-cover sm:hidden'
+        src={mobileSrc}
+        muted
+        playsInline
+        autoPlay
+        loop
+        preload='metadata'
+      />
 
-      {/* モバイル用フルブリード */}
-      <div className='absolute inset-0 sm:hidden'>
-        <Image
-          src={slide.mobile}
-          alt=''
-          fill
-          sizes='100vw'
-          className='object-cover'
-          priority={index === 0}
-          fetchPriority={index === 0 ? 'high' : 'auto'}
-        />
-      </div>
       <div className='absolute inset-0 bg-gradient-to-br from-[#0f1412]/88 via-[#1f5d4f]/75 to-[#7b5ea7]/55 sm:bg-gradient-to-r sm:from-[#0f1412]/92 sm:via-[#163f35]/80 sm:to-transparent' />
     </div>
   );
 }
 
-export function LandingHeroV2({ videoSrc, joinHref = '/register' }: { videoSrc?: string; joinHref?: string }) {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (videoSrc) return;
-    const timer = setInterval(() => setIndex((i) => (i + 1) % SLIDES.length), ROTATE_MS);
-    return () => clearInterval(timer);
-  }, [videoSrc]);
+export function LandingHeroV2({
+  joinHref = '/register',
+  pcVideo: pcVideoInitial,
+  mobileVideo: mobileVideoInitial,
+}: {
+  joinHref?: string;
+  pcVideo: string;
+  mobileVideo: string;
+}) {
+  const [pcVideo] = useState(pcVideoInitial);
+  const [mobileVideo] = useState(mobileVideoInitial);
 
   return (
     <section className='relative flex min-h-[100svh] items-center overflow-hidden bg-[#0f1412]'>
-      <HeroCollage index={index} />
+      <HeroVideoBackground pcSrc={pcVideo} mobileSrc={mobileVideo} />
       <BgTypography text='華会' dark animate className='!text-white/[0.06]' />
 
       {/* キャラクタースロット — brand-config.ts で再有効化 */}
