@@ -5,6 +5,7 @@ import {
   formatAdminDate,
   formatKpiValue,
 } from '@/components/admin/hanakai/hanakai-admin-shared';
+import { HanakaiAdminMemberAvatar } from '@/components/admin/hanakai/hanakai-admin-member-avatar';
 import { getHanakaiAdminDashboard } from '@/lib/connection/hanakai-admin-repo';
 
 const statusTone = {
@@ -74,14 +75,7 @@ export default async function HanakaiAdminDashboardPage() {
               {data.recentMembers.map((m) => (
                 <AdminCard key={m.id} className='flex items-center justify-between gap-3 py-3'>
                   <div className='flex min-w-0 items-center gap-3'>
-                    {m.avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={m.avatarUrl} alt='' className='h-9 w-9 rounded-full object-cover' />
-                    ) : (
-                      <div className='flex h-9 w-9 items-center justify-center rounded-full bg-[#eef3ef] text-xs text-[#1f5d4f]'>
-                        {m.nickname.slice(0, 1)}
-                      </div>
-                    )}
+                    <HanakaiAdminMemberAvatar nickname={m.nickname} avatarUrl={m.avatarUrl} gender={m.gender} size={36} />
                     <div className='min-w-0'>
                       <p className='truncate text-sm font-semibold text-[#1a1a1a]'>{m.nickname}</p>
                       <p className='text-[11px] text-[#9a9a9a]'>{formatAdminDate(m.createdAt)}</p>

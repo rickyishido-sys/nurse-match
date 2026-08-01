@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AdminPageHeader, Badge } from '@/components/admin/ui';
 import { AdminEmptyState, formatAdminDate } from '@/components/admin/hanakai/hanakai-admin-shared';
+import { HanakaiAdminMemberAvatar } from '@/components/admin/hanakai/hanakai-admin-member-avatar';
 import { getIdentityStatus, IDENTITY_STATUS_LABEL } from '@/lib/connection/identity-verification';
 import { getHanakaiAdminMemberDetail } from '@/lib/connection/hanakai-admin-repo';
 import { getBloomProfile } from '@/lib/connection/bloom-profile';
@@ -84,14 +85,13 @@ export default async function HanakaiAdminMemberDetailPage({ params, searchParam
         <div className='space-y-6'>
           <Section title='基本情報'>
             <div className='flex items-start gap-4'>
-              {member.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={member.avatarUrl} alt='' className='h-20 w-20 rounded-2xl object-cover' />
-              ) : (
-                <div className='flex h-20 w-20 items-center justify-center rounded-2xl bg-[#eef3ef] text-2xl text-[#1f5d4f]'>
-                  {member.nickname.slice(0, 1)}
-                </div>
-              )}
+              <HanakaiAdminMemberAvatar
+                nickname={member.nickname}
+                avatarUrl={member.avatarUrl}
+                gender={member.gender}
+                size={80}
+                rounded='2xl'
+              />
               <dl className='grid flex-1 gap-3 sm:grid-cols-2'>
                 <Field label='ニックネーム' value={member.nickname} />
                 <Field label='年齢' value={member.age ? `${member.age}歳` : null} />

@@ -4,12 +4,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { RegisterCtaLink } from '@/components/connection/register-cta-link';
 import { Heading, HK, Kicker, Lead, Reveal, Section } from '@/components/connection/landing/v2/ui';
+import { MOCK_PROFILES } from '@/lib/connection/mock-profile-assets';
 import type { HanakaiViewer } from '@/lib/hanakai/session';
 
 const POINTS = [
   { icon: '✦', text: 'ニックネーム・年代・エリアなどの基本情報' },
   { icon: '✦', text: '興味・価値観・写真で、あなたらしさを表現' },
-  { icon: '✦', text: '参加申請時に、主催者があなたを確認できます' },
+  { icon: '✦', text: '本人確認（必須）→ HANAKAI運営が確認 → 認証済みで体験に申し込めます' },
 ] as const;
 
 const SAMPLE_TAGS = ['カフェ', '花', '散歩', '映画', '旅行'] as const;
@@ -39,8 +40,8 @@ export function LandingBloomIntro({
           </Reveal>
           <Reveal delay={0.1}>
             <Lead className='mt-6 max-w-[36ch]'>
-              難しい設定は不要です。あなたのことをやさしく伝えるプロフィールを作成し、
-              気になる体験へ参加申請できます。
+              SNSで人を選ぶのではなく、体験を通じて知るためのプロフィールを作成します。
+              本人確認（必須）を経て、気になる体験へ参加申請できます。
             </Lead>
           </Reveal>
           <Reveal delay={0.15}>
@@ -69,16 +70,21 @@ export function LandingBloomIntro({
               <div className='flex items-center gap-3'>
                 <div className='relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#f3f7f5] ring-2 ring-[#e7f0ea]'>
                   <Image
-                    src='/images/profile-sample.webp'
+                    src={MOCK_PROFILES.femaleAoi}
                     alt='プロフィール写真'
                     fill
                     sizes='64px'
-                    className='object-cover object-top'
+                    className='object-cover object-[center_20%]'
                     loading='lazy'
                   />
                 </div>
                 <div>
-                  <p className='text-sm font-semibold text-[#1f5d4f]'>Aoi</p>
+                  <div className='flex flex-wrap items-center gap-2'>
+                    <p className='text-sm font-semibold text-[#1f5d4f]'>Aoi</p>
+                    <span className='inline-flex items-center gap-0.5 rounded-full border border-[#cfe3da] bg-[#eef4f0] px-2 py-0.5 text-[10px] font-semibold text-[#1f5d4f]'>
+                      ✓ 認証済み
+                    </span>
+                  </div>
                   <p className='text-xs text-[#6b6b6b]'>28歳 · 横浜</p>
                 </div>
               </div>

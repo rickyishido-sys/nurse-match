@@ -11,6 +11,7 @@ import type {
   SupportCategory,
   SupportProject,
 } from '@/lib/hanakai/types';
+import { SEED_MEMBER_AVATARS } from '@/lib/connection/mock-profile-assets';
 
 // Mock-backed data layer for the HANAKAI MVP.
 // Real persistence (Supabase) is wired later; see supabase/hanakai-schema.sql.
@@ -190,7 +191,7 @@ const users: HanakaiUser[] = [
     bio: '週末は花と向き合う時間が好きです。花会で出会えた人たちと、また会えるのが嬉しい。',
     interestTags: ['いけばな', 'ナチュラル', '季節の枝もの'],
     purpose: '同じ感性の人とゆるくつながりたい',
-    avatarUrl: img('photo-1494790108377-be9c29b29330', 200),
+    avatarUrl: SEED_MEMBER_AVATARS.m1,
     instructorStage: 'certified',
     joinedEventCount: 42,
     postCount: 38,
@@ -210,7 +211,7 @@ const users: HanakaiUser[] = [
     bio: '地域で小さな花会を立ち上げようとしています。花を通じた居場所づくりが目標。',
     interestTags: ['地域コミュニティ', '枝もの', '器'],
     purpose: '地域花会を立ち上げたい',
-    avatarUrl: img('photo-1507003211169-0a1dd7228f2d', 200),
+    avatarUrl: SEED_MEMBER_AVATARS.m8,
     instructorStage: 'candidate',
     joinedEventCount: 28,
     postCount: 21,
@@ -230,7 +231,7 @@ const users: HanakaiUser[] = [
     bio: 'モダンな花あわせが得意。いつか自分の花屋を持ちたい。',
     interestTags: ['モダン', 'ドライフラワー', '花屋開業'],
     purpose: '花屋を開きたい',
-    avatarUrl: img('photo-1438761681033-6461ffad8d80', 200),
+    avatarUrl: SEED_MEMBER_AVATARS.m3,
     instructorStage: 'regular',
     joinedEventCount: 12,
     postCount: 15,
@@ -250,7 +251,7 @@ const users: HanakaiUser[] = [
     bio: '初心者です。花を学びながら、優しい人たちと出会えたら。',
     interestTags: ['初心者', '和の花', '癒やし'],
     purpose: '花を学びたい',
-    avatarUrl: img('photo-1534528741775-53994a69daeb', 200),
+    avatarUrl: SEED_MEMBER_AVATARS.m5,
     instructorStage: 'participant',
     joinedEventCount: 3,
     postCount: 2,
@@ -270,7 +271,7 @@ const users: HanakaiUser[] = [
     bio: '九州エリアの花会を束ねています。挑戦する人を応援したい。',
     interestTags: ['運営', '応援', 'エリア'],
     purpose: '花会を広げたい',
-    avatarUrl: img('photo-1500648767791-00dcc994a43e', 200),
+    avatarUrl: SEED_MEMBER_AVATARS.m2,
     instructorStage: 'area_lead',
     joinedEventCount: 96,
     postCount: 54,
@@ -290,7 +291,7 @@ const users: HanakaiUser[] = [
     bio: '運営のお手伝いをしながら、講師を目指しています。',
     interestTags: ['運営補助', 'ワイルドフラワー', '撮影'],
     purpose: '講師になりたい',
-    avatarUrl: img('photo-1544005313-94ddf0286df2', 200),
+    avatarUrl: SEED_MEMBER_AVATARS.m7,
     instructorStage: 'support',
     joinedEventCount: 19,
     postCount: 27,

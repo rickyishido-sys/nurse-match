@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { updateMyProfileAction } from '@/lib/connection/actions';
 import { BioAiDraftPanel } from '@/components/connection/bio-ai-draft-panel';
+import { BIO_CONTACT_REJECT_MESSAGE } from '@/lib/connection/bio-validation';
 import { IdentityVerificationSection } from '@/components/connection/identity-verification-section';
 import { MemberSocialLinksEditor } from '@/components/connection/member-social-links-editor';
 import { ProfilePhotoUploader } from '@/components/connection/profile-photo-uploader';
@@ -153,6 +154,11 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
       {error === 'identity_document' ? (
         <p className='rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700'>
           本人確認書類として認識できませんでした。運転免許証・マイナンバーカード・パスポートなどを撮影してください。
+        </p>
+      ) : null}
+      {error === 'bio_contact' ? (
+        <p className='rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700'>
+          {BIO_CONTACT_REJECT_MESSAGE}
         </p>
       ) : null}
 
@@ -336,7 +342,7 @@ export function ProfileEditForm({ member, error, aiEnabled = false }: ProfileEdi
         <MemberSocialLinksEditor initialLinks={member.socialLinks} />
       </SectionCard>
 
-      <SectionCard kicker='安心' title='本人確認' id={PROFILE_SECTION_IDS.identity}>
+      <SectionCard kicker='安心' title='本人確認（必須）' id={PROFILE_SECTION_IDS.identity}>
         <IdentityVerificationSection member={member} />
       </SectionCard>
 

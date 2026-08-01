@@ -178,7 +178,7 @@ export function resolveProfileNextRecommendation(input: {
     candidates.push({
       priority: 2,
       title: '本人確認を完了しましょう',
-      body: '本人確認が済むと、主催者や参加者に安心感が伝わります。',
+      body: '本人確認が済むと、イベントへの参加申込・作成が可能になります。本人確認はHANAKAI運営が行います。',
       ctaLabel: '本人確認へ進む',
       href: '/my-profile?mode=edit#profile-section-identity',
     });

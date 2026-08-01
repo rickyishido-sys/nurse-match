@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { AdminPageHeader, Badge } from '@/components/admin/ui';
 import { AdminSearchBar } from '@/components/admin/hanakai/hanakai-admin-filters';
 import { AdminEmptyState, formatAdminDate } from '@/components/admin/hanakai/hanakai-admin-shared';
+import { HanakaiAdminMemberAvatar } from '@/components/admin/hanakai/hanakai-admin-member-avatar';
 import { listHanakaiAdminMembers } from '@/lib/connection/hanakai-admin-repo';
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
@@ -56,14 +57,7 @@ async function MembersContent({ query }: { query: string }) {
             {members.map((m) => (
               <tr key={m.id} className='border-b border-[#f7f5f0] last:border-b-0'>
                 <td className='px-4 py-3'>
-                  {m.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={m.avatarUrl} alt='' className='h-9 w-9 rounded-full object-cover' />
-                  ) : (
-                    <div className='flex h-9 w-9 items-center justify-center rounded-full bg-[#eef3ef] text-xs text-[#1f5d4f]'>
-                      {m.nickname.slice(0, 1)}
-                    </div>
-                  )}
+                  <HanakaiAdminMemberAvatar nickname={m.nickname} avatarUrl={m.avatarUrl} gender={m.gender} size={36} />
                 </td>
                 <td className='px-4 py-3 font-medium'>{m.nickname}</td>
                 <td className='px-4 py-3'>{m.age || '—'}</td>
@@ -106,14 +100,7 @@ async function MembersContent({ query }: { query: string }) {
         {members.map((m) => (
           <article key={m.id} className='rounded-2xl border border-[#ebe7dd] bg-white p-4'>
             <div className='flex items-center gap-3'>
-              {m.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={m.avatarUrl} alt='' className='h-11 w-11 rounded-full object-cover' />
-              ) : (
-                <div className='flex h-11 w-11 items-center justify-center rounded-full bg-[#eef3ef] text-sm text-[#1f5d4f]'>
-                  {m.nickname.slice(0, 1)}
-                </div>
-              )}
+              <HanakaiAdminMemberAvatar nickname={m.nickname} avatarUrl={m.avatarUrl} gender={m.gender} size={44} />
               <div className='min-w-0 flex-1'>
                 <p className='font-semibold text-[#1a1a1a]'>{m.nickname}</p>
                 <p className='text-xs text-[#6b6b6b]'>

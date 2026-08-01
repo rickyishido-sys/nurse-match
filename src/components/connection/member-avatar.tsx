@@ -4,7 +4,9 @@ import { memberHasProfilePhotos, memberMainPhotoUrl } from '@/lib/connection/mem
 import type { ConnectionMember } from '@/lib/connection/types';
 
 type MemberAvatarProps = {
-  member: Pick<ConnectionMember, 'nickname' | 'avatarUrl' | 'photos'>;
+  member: Pick<ConnectionMember, 'nickname' | 'avatarUrl' | 'photos'> & {
+    gender?: ConnectionMember['gender'];
+  };
   size?: number;
   className?: string;
   priority?: boolean;
@@ -73,7 +75,7 @@ export function MemberAvatar({
         className={`relative shrink-0 overflow-hidden rounded-full ring-1 ring-[#ebe9e4] ${className}`}
         style={{ width: px, height: px }}
       >
-        <Image src={src} alt={member.nickname} fill sizes={`${size}px`} className='object-cover' priority={priority} />
+        <Image src={src} alt={member.nickname} fill sizes={`${size}px`} className='object-cover object-top' priority={priority} />
       </div>
     );
   }
@@ -93,7 +95,9 @@ export function MemberAvatar({
 export function MemberPhotoGallery({
   member,
 }: {
-  member: Pick<ConnectionMember, 'nickname' | 'photos' | 'avatarUrl'>;
+  member: Pick<ConnectionMember, 'nickname' | 'photos' | 'avatarUrl'> & {
+    gender?: ConnectionMember['gender'];
+  };
 }) {
   const photos = [...(member.photos ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
   if (!memberHasProfilePhotos(member)) return null;

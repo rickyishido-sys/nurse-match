@@ -49,9 +49,13 @@ export function LandingGallery() {
           <Heading className='mt-5'>実際のイベント風景</Heading>
         </Reveal>
         <Reveal delay={0.1}>
-          <Lead className='mt-6 max-w-[42ch]'>
-            斜めに重なる写真のように、体験も重なり合う。
-            カフェ、食事、散歩、運動——どの場でも、自然な会話が生まれます。
+          <Lead className='hk-copy-ja mt-6 max-w-[48ch]'>
+            <span className='block'>花を囲む。</span>
+            <span className='block'>カフェで話す。</span>
+            <span className='block'>食事を楽しむ。</span>
+            <span className='block'>一緒に街を歩く。</span>
+            <span className='mt-4 block'>同じ体験をするからこそ、</span>
+            <span className='block'>初対面でも自然な会話が生まれます。</span>
           </Lead>
         </Reveal>
       </div>
@@ -82,9 +86,6 @@ export function LandingGallery() {
                   className='object-cover transition duration-700 group-hover:scale-[1.03] lg:hidden'
                 />
                 <div className='absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent' />
-                <p className='absolute bottom-5 left-5 rounded-full bg-white/90 px-4 py-1.5 text-sm font-bold text-[#1a1a1a] shadow-lg'>
-                  {FEATURED[0].label}
-                </p>
               </div>
             </button>
           </TiltFrame>

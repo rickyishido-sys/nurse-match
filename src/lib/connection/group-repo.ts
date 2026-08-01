@@ -2,6 +2,7 @@
 import { HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
 import * as mock from '@/lib/connection/group-data';
 import * as supa from '@/lib/connection/group-repo-supabase';
+import { SEED_MEMBER_AVATARS } from '@/lib/connection/mock-profile-assets';
 import { getEvent } from '@/lib/connection/repo';
 import { isConnectionAdminMember } from '@/lib/connection/group-access';
 import type { GroupMemberRole, GroupPhotoUsageScope } from '@/lib/connection/types';
@@ -86,7 +87,7 @@ export async function createGroupPhotosFromFiles(
   postId?: string,
 ) {
   if (useSupabase) return supa.createGroupPhotosFromFiles(groupId, memberId, files, postId);
-  const urls = files.map((_, i) => `https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&sig=${Date.now()}_${i}`);
+  const urls = files.map(() => SEED_MEMBER_AVATARS.m1);
   return mock.createGroupPhotos(groupId, memberId, urls, postId);
 }
 
