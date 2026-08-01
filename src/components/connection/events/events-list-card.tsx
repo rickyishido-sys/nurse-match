@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { MemberAvatar } from '@/components/connection/member-avatar';
 import { IdentityVerifiedBadge } from '@/components/connection/identity-verified-badge';
-import { formatFee } from '@/components/connection/events/event-card';
+import { formatEventParticipationFee } from '@/lib/connection/participation-fee';
 import { EVENT_CATEGORY_DEFAULT_IMAGE, EVENT_CATEGORY_META, formatEventDate } from '@/lib/connection/data';
 import type { EnrichedEventListItem } from '@/lib/connection/events-list-data';
 
@@ -108,8 +108,8 @@ export function EventsListCard({
               <dd className='mt-0.5 font-medium text-[#1a1a1a]'>{formatEventDate(event.startAt)}</dd>
             </div>
             <div>
-              <dt className='text-[10px] font-medium tracking-wide text-[#9a9a9a]'>参加費</dt>
-              <dd className='mt-0.5 font-medium text-[#1a1a1a]'>{formatFee(event.fee)}</dd>
+              <dt className='text-[10px] font-medium tracking-wide text-[#9a9a9a]'>イベント参加費</dt>
+              <dd className='mt-0.5 font-medium text-[#1a1a1a]'>{formatEventParticipationFee(event.fee)}</dd>
             </div>
             <div className='col-span-2'>
               <dt className='text-[10px] font-medium tracking-wide text-[#9a9a9a]'>場所</dt>

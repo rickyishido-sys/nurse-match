@@ -7,6 +7,7 @@ import {
   EVENT_APPLICATION_REASON_MAX,
   EVENT_APPLICATION_REASON_MIN,
 } from '@/lib/connection/types';
+import { ApplyFeeNotice } from '@/components/connection/events/event-fee-ui';
 
 export function ApplyForm({
   eventId,
@@ -55,6 +56,8 @@ export function ApplyForm({
           </span>
         </div>
       </div>
+
+      <ApplyFeeNotice />
 
       <motion.button
         type='submit'

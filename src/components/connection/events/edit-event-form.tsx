@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { cancelEventAction, deleteEventAction, updateEventAction } from '@/lib/connection/v1-actions';
 import { EVENT_CATEGORY_CREATE_ORDER, EVENT_CATEGORY_META } from '@/lib/connection/data';
+import { CreateEventFeeExplanation } from '@/components/connection/events/event-fee-ui';
 
 const fieldClass =
   'min-h-[44px] w-full rounded-2xl border border-[#ddd9d1] bg-white px-4 py-3 text-sm text-[#1a1a1a] outline-none focus:border-[#1f5d4f] focus:ring-2 focus:ring-[#1f5d4f]/15';
@@ -95,8 +96,9 @@ export function EditEventForm({ event, error }: EditEventFormProps) {
             <input type='number' name='capacity' min={2} max={50} defaultValue={event.capacity} className={fieldClass} />
           </label>
           <label className='block'>
-            <span className='mb-2 block text-sm font-semibold'>参加費（円）</span>
+            <span className='mb-2 block text-sm font-semibold'>イベント参加費（円）</span>
             <input type='number' name='fee' min={0} defaultValue={event.fee} className={fieldClass} />
+            <CreateEventFeeExplanation />
           </label>
         </div>
 

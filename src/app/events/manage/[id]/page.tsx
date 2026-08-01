@@ -15,6 +15,7 @@ import { getEventOperationsMeta, listEventCheckins } from '@/lib/connection/even
 import { getEventEligibility } from '@/lib/connection/identity-gate';
 import { memberMainPhotoUrl } from '@/lib/connection/member-photo';
 import { applicationStatusHostLabel } from '@/lib/connection/participation-finalize';
+import { getEventCapacityBreakdown } from '@/lib/connection/participation-payment';
 import { isIdentityVerified } from '@/lib/connection/trust';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getEvent, getMember, listApplications } from '@/lib/connection/repo';
@@ -71,8 +72,19 @@ export default async function ManageEventPage({ params, searchParams }: PageProp
   const applications = await listApplications(event.id);
   const pending = applications.filter((a) => a.status === 'pending');
   const selectedMembersApps = applications.filter((a) =>
-    ['awaiting_confirmation', 'confirmed', 'cancelled'].includes(a.status),
+    [
+      'payment_processing',
+      'payment_failed',
+      'awaiting_confirmation',
+      'confirmed',
+      'cancelled',
+      'payment_expired',
+      'not_selected',
+      'rejected',
+    ].includes(a.status),
   );
+
+  const capacityBreakdown = await getEventCapacityBreakdown(event.id);
 
   const memberIds = [...new Set(applications.map((a) => a.memberId))];
   const memberList = await Promise.all(memberIds.map((mid) => getMember(mid)));
@@ -81,7 +93,7 @@ export default async function ManageEventPage({ params, searchParams }: PageProp
   const opsMeta = await getEventOperationsMeta(event.id);
   const checkins = await listEventCheckins(event.id);
 
-  const finalized = Boolean(event.participantsDecidedAt);
+  const finalized = capacityBreakdown ? capacityBreakdown.additionalSlots <= 0 && pending.length === 0 : Boolean(event.participantsDecidedAt);
   const justFinalized = sp.finalized === '1' || sp.success === 'finalized';
   const errorMsg = typeof sp.error === 'string' ? sp.error : '';
 

@@ -1,7 +1,9 @@
 'use client';
 
+import type { EventApplicationStatus } from '@/lib/connection/types';
+
 type Props = {
-  status: 'confirmed' | 'rejected' | 'awaiting_confirmation' | 'cancelled';
+  status: EventApplicationStatus;
   decidedAt: string | null;
 };
 

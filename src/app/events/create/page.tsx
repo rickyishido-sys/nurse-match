@@ -170,7 +170,7 @@ export default async function CreateEventPage({ searchParams }: PageProps) {
               <p className='mt-3 text-sm leading-7 text-[#6b6b6b]'>
                 知らない誰かと、心地よい時間を。少人数で、丁寧に。
                 <br />
-                主催者であるあなたが、参加する人を選べます。
+                主催者であるあなたが、プロフィール・参加理由・趣味・価値観等を確認し、参加を承認または否認できます。本人確認はHANAKAI運営が行います。
               </p>
             </div>
           </div>

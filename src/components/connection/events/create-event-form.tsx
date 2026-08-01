@@ -3,6 +3,9 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { uploadEventImagesClient } from '@/lib/connection/upload-event-images-client';
+import { CreateEventFeeExplanation } from '@/components/connection/events/event-fee-ui';
+import { EventFeeFields, type EventFeeFormValues } from '@/components/connection/events/event-fee-fields';
+import { DEFAULT_EVENT_FEE_FORM, eventFeeMetaFromForm } from '@/lib/connection/event-fee-meta';
 
 type CategoryOption = { value: string; label: string; emoji: string };
 
@@ -27,7 +30,8 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
   const [venuePermissionConfirmed, setVenuePermissionConfirmed] = useState(false);
   const [venueFeeExplained, setVenueFeeExplained] = useState(false);
   const [venueBillingConsent, setVenueBillingConsent] = useState(false);
-  const [fee, setFee] = useState(0);
+  const [feeForm, setFeeForm] = useState<EventFeeFormValues>(DEFAULT_EVENT_FEE_FORM);
+  const fee = eventFeeMetaFromForm(feeForm).fee;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [images, setImages] = useState<{ file: File; url: string }[]>([]);
@@ -45,6 +49,7 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
       const files = images.map((item) => item.file);
       const imageUrls = files.length > 0 ? await uploadEventImagesClient(files) : [];
 
+      const feeMeta = eventFeeMetaFromForm(feeForm);
       const payload = {
         title: String(fd.get('title') ?? '').trim(),
         category: String(fd.get('category') ?? 'other'),
@@ -53,13 +58,13 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
         area: String(fd.get('area') ?? '').trim(),
         venue: String(fd.get('venue') ?? '').trim(),
         capacity: Number(fd.get('capacity')) || 6,
-        fee: Number(fd.get('fee')) || 0,
+        ...feeMeta,
         conditions: String(fd.get('conditions') ?? '').trim(),
         approvalMode: String(fd.get('approvalMode') ?? 'host_approval'),
         imageUrls,
         externalRecruitment,
         venuePermissionConfirmed,
-        venueFeeExplained: fee > 0 ? venueFeeExplained : true,
+        venueFeeExplained: feeMeta.fee > 0 ? venueFeeExplained : true,
         billingTarget,
         venueBillingName: String(fd.get('venueBillingName') ?? '').trim(),
         venueBillingContact: String(fd.get('venueBillingContact') ?? '').trim(),
@@ -73,7 +78,7 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
         setSubmitError('開催場所の事前確認・許可取得についてご確認ください。');
         return;
       }
-      if (fee > 0 && !venueFeeExplained) {
+      if (feeMeta.fee > 0 && !venueFeeExplained) {
         setSubmitError('参加費を徴収する場合は、開催場所への説明についてご確認ください。');
         return;
       }
@@ -291,23 +296,9 @@ export function CreateEventForm({ categories }: { categories: CategoryOption[] }
             />
             <p className={helpClass}>少人数ほど、深いConnectionが生まれます。</p>
           </div>
-          <div>
-            <label htmlFor='fee' className={labelClass}>
-              参加費（円）
-            </label>
-            <input
-              id='fee'
-              name='fee'
-              type='number'
-              min={0}
-              step={100}
-              value={fee}
-              onChange={(e) => setFee(Number(e.target.value) || 0)}
-              className={fieldClass}
-            />
-            <p className={helpClass}>0 で無料になります。</p>
-          </div>
         </div>
+
+        <EventFeeFields values={feeForm} onChange={setFeeForm} />
 
         <div>
           <label htmlFor='conditions' className={labelClass}>

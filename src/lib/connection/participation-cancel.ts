@@ -7,7 +7,12 @@ import type { EventApplicationStatus } from '@/lib/connection/types';
 
 const useSupabase = HANAKAI_CONNECTION_BACKEND === 'supabase';
 
-const CANCELLABLE: EventApplicationStatus[] = ['pending', 'awaiting_confirmation', 'confirmed'];
+const CANCELLABLE: EventApplicationStatus[] = [
+  'pending',
+  'awaiting_confirmation',
+  'payment_failed',
+  'confirmed',
+];
 
 export type CancelParticipationResult =
   | { ok: true; eventId: string }

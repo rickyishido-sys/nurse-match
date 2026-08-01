@@ -16,7 +16,7 @@ import {
   listHanakaiAdminEventOptions,
 } from '@/lib/connection/hanakai-admin-repo';
 import { memberMainPhotoUrl } from '@/lib/connection/member-photo';
-import { applicationStatusHostLabel } from '@/lib/connection/participation-finalize';
+import { applicationStatusAdminTone, applicationStatusHostLabel } from '@/lib/connection/participation-finalize';
 import { isIdentityVerified } from '@/lib/connection/trust';
 import { getEvent, getMember, listApplications } from '@/lib/connection/repo';
 
@@ -36,21 +36,6 @@ const statusOptions = [
   { value: 'cancelled', label: '辞退済み' },
 ];
 
-const statusTone = {
-  pending: 'amber' as const,
-  awaiting_confirmation: 'amber' as const,
-  confirmed: 'green' as const,
-  rejected: 'gray' as const,
-  cancelled: 'gray' as const,
-};
-
-const statusLabel = {
-  pending: '選定待ち',
-  awaiting_confirmation: '参加確認待ち',
-  confirmed: '参加確定',
-  rejected: '今回のご案内なし',
-  cancelled: '辞退',
-};
 
 async function EventFinalizePanel({ eventId }: { eventId: string }) {
   const event = await getEvent(eventId);
@@ -168,7 +153,7 @@ async function ApplicationsContent({
                 <td className='max-w-[200px] truncate px-4 py-3 text-[#6b6b6b]'>{a.reason || '—'}</td>
                 <td className='px-4 py-3 text-[#6b6b6b]'>{formatAdminDate(a.appliedAt)}</td>
                 <td className='px-4 py-3'>
-                  <Badge tone={statusTone[a.status]}>{statusLabel[a.status]}</Badge>
+                  <Badge tone={applicationStatusAdminTone(a.status)}>{applicationStatusHostLabel(a.status)}</Badge>
                 </td>
                 <td className='px-4 py-3 text-[#6b6b6b]'>{formatAdminDate(a.decidedAt)}</td>
                 <td className='px-4 py-3'>
@@ -199,7 +184,7 @@ async function ApplicationsContent({
                   {a.memberNickname}
                 </Link>
               </div>
-              <Badge tone={statusTone[a.status]}>{statusLabel[a.status]}</Badge>
+              <Badge tone={applicationStatusAdminTone(a.status)}>{applicationStatusHostLabel(a.status)}</Badge>
             </div>
             {a.reason ? <p className='mt-2 text-xs leading-6 text-[#6b6b6b]'>{a.reason}</p> : null}
             <p className='mt-2 text-[11px] text-[#9a9a9a]'>申請: {formatAdminDate(a.appliedAt)}</p>

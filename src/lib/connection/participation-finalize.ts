@@ -10,6 +10,8 @@ import {
 import { buildParticipationDecisionPayload, logParticipationDecisionEmail } from '@/lib/connection/notifications/participation-decision';
 import { getEvent, listApplications } from '@/lib/connection/repo';
 import * as mock from '@/lib/connection/data';
+import { chargeParticipationPaymentsBatch } from '@/lib/connection/participation-payment';
+import { getSquareConfig } from '@/lib/square/config';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import type { ConnectionEvent, EventApplication } from '@/lib/connection/types';
 
@@ -53,7 +55,6 @@ function eventBlockedForFinalize(event: ConnectionEvent): string | null {
   if (event.isPast) return 'すでに終了した体験です';
   if (event.status === 'cancelled') return '中止された体験です';
   if (event.status === 'completed') return '完了した体験です';
-  if (event.participantsDecidedAt) return 'すでに参加メンバーが決定されています';
   return null;
 }
 
@@ -198,6 +199,66 @@ async function finalizeMock(
   };
 }
 
+async function finalizeSupabaseWithPayments(
+  eventId: string,
+  selectedApplicationIds: string[],
+  decidedByMemberId: string,
+): Promise<FinalizeParticipantsResult> {
+  const admin = createAdminSupabaseClient();
+  if (!admin) return { ok: false, error: 'データベースに接続できません' };
+
+  const event = await getEvent(eventId);
+  if (!event) return { ok: false, error: 'イベントが見つかりません' };
+
+  const blocked = eventBlockedForFinalize(event);
+  if (blocked) return { ok: false, error: blocked };
+
+  const selectedIds = uniqueIds(selectedApplicationIds);
+  if (selectedIds.length === 0) return { ok: false, error: '参加メンバーを1名以上選択してください' };
+  if (selectedIds.length > event.capacity) {
+    return { ok: false, error: '定員を超えて選択することはできません' };
+  }
+
+  const paymentDeadline = new Date(
+    Math.min(Date.now() + 24 * 60 * 60 * 1000, new Date(event.startAt).getTime() - 3 * 60 * 60 * 1000),
+  ).toISOString();
+
+  const { data, error } = await admin.rpc('hanakai_select_participants_for_payment', {
+    p_event_id: eventId,
+    p_selected_application_ids: selectedIds,
+    p_decided_by_member_id: decidedByMemberId,
+    p_payment_deadline_at: paymentDeadline,
+  });
+
+  if (error) {
+    return { ok: false, error: error.message || '参加案内の送信に失敗しました' };
+  }
+
+  const payload = data as {
+    ok?: boolean;
+    error?: string;
+    selected_count?: number;
+    not_selected_count?: number;
+    payments?: Array<{ payment_id: string }>;
+  } | null;
+
+  if (!payload?.ok) {
+    return { ok: false, error: payload?.error ?? '参加案内の送信に失敗しました' };
+  }
+
+  const paymentIds = (payload.payments ?? []).map((p) => p.payment_id).filter(Boolean);
+  if (paymentIds.length > 0 && getSquareConfig().isConfigured) {
+    await chargeParticipationPaymentsBatch(paymentIds);
+  }
+
+  return {
+    ok: true,
+    selectedCount: payload.selected_count ?? selectedIds.length,
+    notSelectedCount: payload.not_selected_count ?? 0,
+    notificationsQueued: paymentIds.length,
+  };
+}
+
 async function finalizeSupabase(
   eventId: string,
   selectedApplicationIds: string[],
@@ -304,21 +365,56 @@ export async function finalizeEventParticipants(
   }
 
   if (useSupabase) {
+    if (getSquareConfig().isConfigured) {
+      return finalizeSupabaseWithPayments(input.eventId, selectedIds, input.decidedByMemberId);
+    }
     return finalizeSupabase(input.eventId, selectedIds, input.decidedByMemberId);
   }
   return await finalizeMock(input.eventId, selectedIds, input.decidedByMemberId);
 }
 
+
+export function applicationStatusAdminTone(
+  status: EventApplication['status'],
+): 'amber' | 'green' | 'gray' | 'redSoft' {
+  switch (status) {
+    case 'confirmed':
+      return 'green';
+    case 'payment_failed':
+    case 'not_selected':
+    case 'rejected':
+      return 'redSoft';
+    case 'cancelled':
+    case 'refunded':
+    case 'payment_expired':
+      return 'gray';
+    case 'payment_processing':
+    case 'awaiting_confirmation':
+    case 'pending':
+    default:
+      return 'amber';
+  }
+}
+
 export function applicationStatusHostLabel(status: EventApplication['status']): string {
   switch (status) {
+    case 'payment_processing':
+      return '決済処理中';
+    case 'payment_failed':
+      return '決済再確認待ち';
+    case 'payment_expired':
+      return '期限切れ';
+    case 'not_selected':
+    case 'rejected':
+      return '今回の参加案内なし';
     case 'awaiting_confirmation':
-      return '参加確認待ち';
+      return '決済処理中';
     case 'confirmed':
-      return '参加確定';
+      return '正式参加';
+    case 'refunded':
+      return '返金済み';
     case 'cancelled':
       return '辞退';
-    case 'rejected':
-      return '今回のご案内なし';
     case 'pending':
       return '選定待ち';
     default:

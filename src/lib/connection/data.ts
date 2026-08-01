@@ -864,6 +864,15 @@ export type CreateEventInput = {
   venue: string;
   capacity: number;
   fee: number;
+  eventFeeType?: import('@/lib/connection/types').EventFeeType;
+  eventFeeAmount?: number | null;
+  eventFeeMin?: number | null;
+  eventFeeMax?: number | null;
+  eventFeePaymentRecipient?: string | null;
+  eventFeePaymentMethod?: string | null;
+  eventFeeIncludes?: string | null;
+  eventFeeExcludes?: string | null;
+  eventFeeNotes?: string | null;
   coverUrl: string;
   conditions: string;
   approvalMode: import('@/lib/connection/types').EventApprovalMode;
@@ -891,6 +900,15 @@ export function createEvent(input: CreateEventInput): ConnectionEvent {
     isUserCreated: true,
     approvalMode: input.approvalMode,
     fee: input.fee,
+    eventFeeType: input.eventFeeType,
+    eventFeeAmount: input.eventFeeAmount,
+    eventFeeMin: input.eventFeeMin,
+    eventFeeMax: input.eventFeeMax,
+    eventFeePaymentRecipient: input.eventFeePaymentRecipient,
+    eventFeePaymentMethod: input.eventFeePaymentMethod,
+    eventFeeIncludes: input.eventFeeIncludes,
+    eventFeeExcludes: input.eventFeeExcludes,
+    eventFeeNotes: input.eventFeeNotes,
     conditions: input.conditions,
     description: input.description,
     coverUrl: input.coverUrl,

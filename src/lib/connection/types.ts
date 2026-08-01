@@ -22,13 +22,23 @@ export type EventRecruitmentType = 'standard' | 'additional';
 /** 参加申請の承認方式 */
 export type EventApprovalMode = 'host_approval' | 'auto';
 
+/** イベント当日参加費の表示タイプ（主催者設定・当日現地払い） */
+export type EventFeeType = 'free' | 'fixed' | 'estimate' | 'range' | 'variable' | 'undecided';
+
 /** 参加申請ステータス */
 export type EventApplicationStatus =
   | 'pending'
-  | 'awaiting_confirmation'
+  | 'payment_processing'
+  | 'payment_failed'
   | 'confirmed'
-  | 'rejected'
-  | 'cancelled';
+  | 'payment_expired'
+  | 'not_selected'
+  | 'cancelled'
+  | 'refunded'
+  /** @deprecated legacy — treat as payment pending in UI */
+  | 'awaiting_confirmation'
+  /** @deprecated legacy — UI shows「今回の参加案内なし」 */
+  | 'rejected';
 
 /**
  * Hostバッジ（現時点ではUI/ダミーデータのみ。将来は開催実績・評価・本人確認の
@@ -231,8 +241,17 @@ export type ConnectionEvent = {
   status: ConnectionEventStatus;
   isPast: boolean;
   confirmedMemberIds: string[];
-  /** 参加費（円・税込）。0 または未設定は無料扱い */
+  /** イベント参加費（円・当日現地払い）。0 または未設定は詳細確認扱い */
   fee?: number;
+  eventFeeType?: EventFeeType;
+  eventFeeAmount?: number | null;
+  eventFeeMin?: number | null;
+  eventFeeMax?: number | null;
+  eventFeePaymentRecipient?: string | null;
+  eventFeePaymentMethod?: string | null;
+  eventFeeIncludes?: string | null;
+  eventFeeExcludes?: string | null;
+  eventFeeNotes?: string | null;
   /** 承認方式。未設定は主催者承認制（host_approval）として扱う */
   approvalMode?: EventApprovalMode;
   /** 主催メンバーID（運営主催のシードイベントでは未設定） */

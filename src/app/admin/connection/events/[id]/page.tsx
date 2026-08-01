@@ -11,6 +11,7 @@ import {
   getSelectionStats,
 } from '@/lib/connection/admin-data';
 import { formatEventDate } from '@/lib/connection/data';
+import { resolveAvatarDisplayUrl } from '@/lib/connection/member-photo';
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -94,7 +95,7 @@ export default async function AdminEventDetailPage({ params }: PageProps) {
             {members.map((m) => (
               <AdminCard key={m!.id}>
                 <div className='flex items-center gap-3'>
-                  <Image src={m!.avatarUrl} alt={m!.nickname} width={40} height={40} className='h-10 w-10 rounded-full object-cover' />
+                  <Image src={resolveAvatarDisplayUrl({ avatarUrl: m!.avatarUrl, gender: m!.gender })} alt={m!.nickname} width={40} height={40} className='h-10 w-10 rounded-full object-cover object-top' />
                   <div>
                     <p className='text-sm font-medium text-[#1a1a1a]'>{m!.nickname}</p>
                     <p className='text-[11px] text-[#6b6b6b]'>

@@ -5,7 +5,7 @@ import { createEvent } from '@/lib/connection/repo';
 import { ensureHanakaiMemberForAuthUser } from '@/lib/connection/identity';
 import { getIdentityVerifiedMemberOrNull } from '@/lib/connection/identity-gate';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import type { ConnectionEventCategory, EventApprovalMode } from '@/lib/connection/types';
+import type { ConnectionEventCategory, EventApprovalMode, EventFeeType } from '@/lib/connection/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +31,15 @@ type CreateEventBody = {
   venue?: string;
   capacity?: number;
   fee?: number;
+  eventFeeType?: EventFeeType;
+  eventFeeAmount?: number | null;
+  eventFeeMin?: number | null;
+  eventFeeMax?: number | null;
+  eventFeePaymentRecipient?: string | null;
+  eventFeePaymentMethod?: string | null;
+  eventFeeIncludes?: string | null;
+  eventFeeExcludes?: string | null;
+  eventFeeNotes?: string | null;
   conditions?: string;
   approvalMode?: string;
   imageUrls?: string[];
@@ -130,6 +139,15 @@ export async function POST(request: Request) {
     const venue = String(body.venue ?? '').trim();
     const capacity = Math.max(2, Math.min(50, Number(body.capacity) || 6));
     const fee = Math.max(0, Number(body.fee) || 0);
+    const eventFeeType = body.eventFeeType as EventFeeType | undefined;
+    const eventFeeAmount = body.eventFeeAmount != null ? Math.max(0, Number(body.eventFeeAmount)) : null;
+    const eventFeeMin = body.eventFeeMin != null ? Math.max(0, Number(body.eventFeeMin)) : null;
+    const eventFeeMax = body.eventFeeMax != null ? Math.max(0, Number(body.eventFeeMax)) : null;
+    const eventFeePaymentRecipient = String(body.eventFeePaymentRecipient ?? '').trim() || null;
+    const eventFeePaymentMethod = String(body.eventFeePaymentMethod ?? 'on_site').trim() || 'on_site';
+    const eventFeeIncludes = String(body.eventFeeIncludes ?? '').trim() || null;
+    const eventFeeExcludes = String(body.eventFeeExcludes ?? '').trim() || null;
+    const eventFeeNotes = String(body.eventFeeNotes ?? '').trim() || null;
     const conditions = String(body.conditions ?? '').trim();
     const approvalMode = (body.approvalMode === 'auto' ? 'auto' : 'host_approval') as EventApprovalMode;
     const imageUrls = Array.isArray(body.imageUrls)
@@ -190,6 +208,15 @@ export async function POST(request: Request) {
       venue,
       capacity,
       fee,
+      eventFeeType,
+      eventFeeAmount,
+      eventFeeMin,
+      eventFeeMax,
+      eventFeePaymentRecipient,
+      eventFeePaymentMethod,
+      eventFeeIncludes,
+      eventFeeExcludes,
+      eventFeeNotes,
       coverUrl: '',
       conditions,
       approvalMode,

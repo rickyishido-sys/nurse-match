@@ -1,10 +1,16 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
-import { ApplyForm } from '@/components/connection/events/apply-form';
+import { ApplyWithCardGate } from '@/components/connection/events/apply-with-card-gate';
+import { PaymentFailedPanel } from '@/components/connection/payments/payment-failed-panel';
 import { CancelParticipationButton } from '@/components/connection/events/cancel-participation-button';
 import { EventDetailCta } from '@/components/connection/events/event-detail-cta';
 import { EventDetailGallery } from '@/components/connection/events/event-detail-gallery';
+import {
+  EventFeeCards,
+  EventPreDescriptionNotice,
+  ParticipationDecidedNotice,
+} from '@/components/connection/events/event-fee-ui';
 import {
   EventBloomAfterCard,
   EventBloomIntroCard,
@@ -15,11 +21,10 @@ import {
   EventSafetyStrip,
   EventSectionShell,
 } from '@/components/connection/events/event-detail-sections';
-import { formatFee } from '@/components/connection/events/event-card';
+import { Chip } from '@/components/connection/ui';
 import { ReportButton } from '@/components/connection/report-button';
 import { IdentityRequiredPanel } from '@/components/connection/identity-required-panel';
 import { IdentityVerifiedBadge } from '@/components/connection/identity-verified-badge';
-import { Chip } from '@/components/connection/ui';
 import { getBloomProfile } from '@/lib/connection/bloom-profile';
 import { EVENT_CATEGORY_LABEL, formatEventDate } from '@/lib/connection/data';
 import {
@@ -31,6 +36,7 @@ import {
 import { getApplication, getEvent, getEventMembers, getMember } from '@/lib/connection/repo';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getEventEligibility } from '@/lib/connection/identity-gate';
+import { memberHasActivePaymentMethod, getApplicationPaymentContext } from '@/lib/connection/participation-payment';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = {
@@ -49,6 +55,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
   const viewerMember = viewerMemberId ? await getMember(viewerMemberId) : null;
   const eligibility = getEventEligibility(viewerMember);
   const applied = sp.applied === '1';
+  const participationConfirmed = sp.participation === 'confirmed';
   const reasonError = sp.error === 'reason';
   const created = sp.created === '1';
   const cancelled = sp.cancelled === '1';
@@ -60,8 +67,23 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
   const isHost = !!viewerMemberId && event.hostId === viewerMemberId;
   const approvalMode = event.approvalMode ?? 'host_approval';
   const isFull = event.status === 'full' || event.reservedCount >= event.capacity;
-  const showApplyCta = !event.isPast && !isHost && !['confirmed', 'pending', 'awaiting_confirmation'].includes(existingApp?.status ?? '');
-  const participationScheduled = ['pending', 'awaiting_confirmation', 'confirmed'].includes(existingApp?.status ?? '');
+  const hasPaymentMethod = viewerMemberId ? await memberHasActivePaymentMethod(viewerMemberId) : false;
+  const paymentContext =
+    viewerMemberId && existingApp
+      ? await getApplicationPaymentContext(existingApp.id, viewerMemberId)
+      : null;
+  const activeParticipationStatuses = [
+    'pending',
+    'payment_processing',
+    'payment_failed',
+    'awaiting_confirmation',
+    'confirmed',
+  ];
+  const showApplyCta =
+    !event.isPast &&
+    !isHost &&
+    !activeParticipationStatuses.includes(existingApp?.status ?? '');
+  const participationScheduled = activeParticipationStatuses.includes(existingApp?.status ?? '');
   const ctaLabel = participationScheduled ? '参加予定です' : '参加する';
   const loginHref = `/login?next=/events/${event.id}`;
   const useScrollCta = !!viewerMemberId;
@@ -72,6 +94,12 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
     <ConnectionShell viewer={viewer}>
       <article className='mx-auto max-w-3xl space-y-10 lg:max-w-4xl'>
         <EventDetailGallery event={event} />
+
+        {participationConfirmed ? (
+          <div className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-5 py-5'>
+            <ParticipationDecidedNotice />
+          </div>
+        ) : null}
 
         {created ? (
           <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
@@ -123,9 +151,19 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
           <dl className='grid gap-2 rounded-2xl border border-[#ebe9e4] bg-white px-4 py-4 text-sm sm:grid-cols-2 sm:gap-x-6'>
             <MetaRow label='開催日時' value={formatEventDate(event.startAt)} />
             <MetaRow label='場所' value={`${event.area}${event.venue ? ` · ${event.venue}` : ''}`} />
-            <MetaRow label='参加費' value={formatFee(event.fee)} />
             <MetaRow label='定員' value={`${event.reservedCount} / ${event.capacity}名`} />
           </dl>
+
+          <EventFeeCards
+            eventFee={event.fee}
+            eventFeeType={event.eventFeeType}
+            eventFeeAmount={event.eventFeeAmount}
+            eventFeeMin={event.eventFeeMin}
+            eventFeeMax={event.eventFeeMax}
+            eventFeeIncludes={event.eventFeeIncludes}
+            eventFeeExcludes={event.eventFeeExcludes}
+            eventFeeNotes={event.eventFeeNotes}
+          />
 
           {host ? (
             <div className='flex flex-wrap items-center gap-2'>
@@ -158,17 +196,18 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
           <EventRecommendedCards items={getRecommendedFor(event)} />
         </EventSectionShell>
 
-        {event.description.trim() ? (
-          <EventSectionShell kicker='ABOUT' title='イベントについて'>
-            <p className='whitespace-pre-line text-sm leading-8 text-[#4a4a4a]'>{event.description}</p>
-            {event.conditions ? (
-              <p className='mt-3 rounded-xl bg-[#fafaf8] px-4 py-3 text-xs leading-7 text-[#6b6b6b]'>
-                <span className='font-semibold text-[#4a4a4a]'>参加条件: </span>
-                {event.conditions}
-              </p>
-            ) : null}
-          </EventSectionShell>
-        ) : null}
+        <EventSectionShell kicker='ABOUT' title='イベントについて'>
+          <EventPreDescriptionNotice />
+          {event.description.trim() ? (
+            <p className='mt-4 whitespace-pre-line text-sm leading-8 text-[#4a4a4a]'>{event.description}</p>
+          ) : null}
+          {event.conditions ? (
+            <p className={`${event.description.trim() ? 'mt-3' : 'mt-4'} rounded-xl bg-[#fafaf8] px-4 py-3 text-xs leading-7 text-[#6b6b6b]`}>
+              <span className='font-semibold text-[#4a4a4a]'>参加条件: </span>
+              {event.conditions}
+            </p>
+          ) : null}
+        </EventSectionShell>
 
         <EventSectionShell kicker='COMMUNITY' title='参加予定者のイメージ'>
           <EventParticipantPreview cards={participantCards} isPlaceholder={isPlaceholderParticipants} />
@@ -232,6 +271,23 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                 </Link>
               </div>
             </div>
+          ) : existingApp?.status === 'payment_failed' && paymentContext ? (
+            <PaymentFailedPanel
+              paymentId={paymentContext.paymentId}
+              brand={paymentContext.brand}
+              last4={paymentContext.last4}
+              deadlineAt={paymentContext.deadlineAt}
+              failureMessage={paymentContext.failureMessage}
+            />
+          ) : existingApp?.status === 'payment_processing' ? (
+            <div className='rounded-2xl border border-[#dfe9e4] bg-[#faf9f6] px-5 py-5'>
+              <p className='inline-flex rounded-full bg-[#eef4f0] px-3 py-1 text-xs font-semibold text-[#1f5d4f]'>
+                決済処理中
+              </p>
+              <p className='mt-3 text-sm leading-7 text-[#4a4a4a]'>
+                参加案内をお送りしました。HANAKAI参加費500円の決済処理中です。完了次第、正式参加として通知します。
+              </p>
+            </div>
           ) : existingApp?.status === 'awaiting_confirmation' ? (
             <div className='rounded-2xl border border-[#e8dfd0] bg-[#fbf8f3] px-5 py-5'>
               <p className='inline-flex rounded-full bg-[#fff4e6] px-3 py-1 text-xs font-semibold text-[#b8956a]'>
@@ -251,10 +307,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
             </div>
           ) : existingApp?.status === 'confirmed' ? (
             <div className='rounded-2xl border border-[#dfe9e4] bg-[#faf9f6] px-5 py-5'>
-              <p className='text-sm font-semibold text-[#1a1a1a]'>参加が確定しました</p>
-              <p className='mt-1 text-xs leading-6 text-[#6b6b6b]'>
-                当日お会いできるのを楽しみにしています。到着したらチェックインしてください。
-              </p>
+              <ParticipationDecidedNotice />
               <Link
                 href={`/events/${event.id}/checkin`}
                 className='mt-4 inline-flex h-11 w-full items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white'
@@ -272,7 +325,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
             <div className='rounded-2xl border border-[#ebe9e4] bg-white px-5 py-5'>
               {applied || existingApp ? (
                 <div className='space-y-2'>
-                  {existingApp?.status === 'rejected' ? (
+                  {existingApp?.status === 'not_selected' || existingApp?.status === 'rejected' ? (
                     <>
                       <p className='text-sm font-semibold text-[#1a1a1a]'>今回の参加メンバーが決まりました</p>
                       <p className='text-sm leading-7 text-[#4a4a4a]'>
@@ -315,7 +368,11 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                       ? 'あなたの想いを添えて参加できます。主催者と参加者が、心地よいConnectionを育てます。'
                       : 'あなたの想いを添えて申請してください。主催者がプロフィール・参加理由を確認し、この体験に合うメンバーを選びます。'}
                   </p>
-                  <ApplyForm eventId={event.id} approvalMode={approvalMode} />
+                  <ApplyWithCardGate
+                    eventId={event.id}
+                    approvalMode={approvalMode}
+                    hasPaymentMethod={hasPaymentMethod}
+                  />
                 </>
               )}
             </div>

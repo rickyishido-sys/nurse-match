@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { EVENT_CATEGORY_DEFAULT_IMAGE, EVENT_CATEGORY_META, formatEventDate } from '@/lib/connection/data';
+import { formatEventParticipationFee } from '@/lib/connection/participation-fee';
 import type { ConnectionEvent } from '@/lib/connection/types';
 
 function statusLabel(status: string) {
@@ -11,8 +12,7 @@ function statusLabel(status: string) {
 }
 
 export function formatFee(fee?: number) {
-  if (!fee || fee <= 0) return '無料';
-  return `¥${fee.toLocaleString('ja-JP')}`;
+  return formatEventParticipationFee(fee);
 }
 
 export function EventCard({ event }: { event: ConnectionEvent }) {

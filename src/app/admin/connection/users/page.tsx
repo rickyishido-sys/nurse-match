@@ -21,6 +21,7 @@ import {
   updateUserVerificationAction,
 } from '@/lib/connection/admin-actions';
 import type { AdminUser } from '@/lib/connection/admin-types';
+import { resolveAvatarDisplayUrl } from '@/lib/connection/member-photo';
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
 
@@ -75,7 +76,7 @@ function UserRow({ user: u }: { user: AdminUser }) {
     <AdminCard>
       <div className='flex flex-wrap items-start justify-between gap-4'>
         <div className='flex items-start gap-3'>
-          <Image src={u.avatarUrl} alt={u.nickname} width={48} height={48} className='h-12 w-12 shrink-0 rounded-full object-cover' />
+          <Image src={resolveAvatarDisplayUrl({ avatarUrl: u.avatarUrl, gender: u.gender })} alt={u.nickname} width={48} height={48} className='h-12 w-12 shrink-0 rounded-full object-cover object-top' />
           <div className='space-y-1.5'>
             <div className='flex flex-wrap items-center gap-2'>
               <p className='text-sm font-semibold text-[#1a1a1a]'>{u.nickname}</p>

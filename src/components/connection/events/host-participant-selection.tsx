@@ -268,7 +268,7 @@ export function HostParticipantSelection({
             onClick={() => setShowConfirm(true)}
             className='h-12 w-full rounded-full bg-[#1f5d4f] text-sm font-semibold text-white transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40'
           >
-            このメンバーで開催する
+            このメンバーへ参加案内を送る
           </button>
         </div>
       ) : null}
@@ -282,11 +282,11 @@ export function HostParticipantSelection({
         >
           <div className='w-full max-w-md rounded-2xl bg-white p-5 shadow-xl'>
             <h3 id='finalize-dialog-title' className='text-base font-semibold text-[#1a1a1a]'>
-              参加メンバーを決定しますか？
+              参加案内を送りますか？
             </h3>
             <p className='mt-3 text-sm leading-7 text-[#5a5247]'>
-              選択した{selectedCount}名を「{eventTitle}」の参加メンバーとして決定します。
-              決定後、申請者へ結果が通知されます。
+              選択した{selectedCount}名へ参加案内を送り、登録済みカードへHANAKAI参加費500円を自動請求します。
+              決済に成功した方のみ、正式な参加メンバーとして確定します。
             </p>
             <ul className='mt-3 space-y-1 text-xs text-[#6b6b6b]'>
               {selectedSummary.map((a) => (

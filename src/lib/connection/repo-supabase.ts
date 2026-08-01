@@ -177,7 +177,7 @@ function appFromRow(row: AppRow): EventApplication {
 }
 
 function activeApplicationStatuses(): string[] {
-  return ['pending', 'awaiting_confirmation', 'confirmed'];
+  return ['pending', 'payment_processing', 'payment_failed', 'awaiting_confirmation', 'confirmed'];
 }
 
 function eventFromRow(row: EventRow, apps: AppRow[]): ConnectionEvent {
@@ -202,6 +202,15 @@ function eventFromRow(row: EventRow, apps: AppRow[]): ConnectionEvent {
     isPast,
     confirmedMemberIds: confirmed,
     fee: row.fee ?? 0,
+    eventFeeType: row.event_fee_type ?? undefined,
+    eventFeeAmount: row.event_fee_amount ?? null,
+    eventFeeMin: row.event_fee_min ?? null,
+    eventFeeMax: row.event_fee_max ?? null,
+    eventFeePaymentRecipient: row.event_fee_payment_recipient ?? null,
+    eventFeePaymentMethod: row.event_fee_payment_method ?? null,
+    eventFeeIncludes: row.event_fee_includes ?? null,
+    eventFeeExcludes: row.event_fee_excludes ?? null,
+    eventFeeNotes: row.event_fee_notes ?? null,
     approvalMode: row.approval_mode ?? 'host_approval',
     hostId: row.host_member_id ?? undefined,
     isUserCreated: row.is_user_created ?? false,
@@ -380,6 +389,15 @@ export async function createEvent(input: CreateEventInput): Promise<ConnectionEv
     cover_url: input.coverUrl,
     status: 'open',
     fee: input.fee,
+    event_fee_type: input.eventFeeType ?? (input.fee > 0 ? 'fixed' : 'undecided'),
+    event_fee_amount: input.eventFeeAmount ?? null,
+    event_fee_min: input.eventFeeMin ?? null,
+    event_fee_max: input.eventFeeMax ?? null,
+    event_fee_payment_recipient: input.eventFeePaymentRecipient ?? null,
+    event_fee_payment_method: input.eventFeePaymentMethod ?? 'on_site',
+    event_fee_includes: input.eventFeeIncludes ?? null,
+    event_fee_excludes: input.eventFeeExcludes ?? null,
+    event_fee_notes: input.eventFeeNotes ?? null,
     approval_mode: input.approvalMode,
     is_user_created: true,
     is_past: false,

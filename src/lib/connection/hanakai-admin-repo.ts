@@ -33,7 +33,7 @@ import type {
   AdminReportStatus,
   HanakaiAdminDashboard,
 } from '@/lib/connection/hanakai-admin-types';
-import type { ConnectionEventCategory, ConnectionMember, InterestTag, LifePhase, ValueTag } from '@/lib/connection/types';
+import type { ConnectionEventCategory, ConnectionMember, EventApplicationStatus, InterestTag, LifePhase, ValueTag } from '@/lib/connection/types';
 
 const useSupabase = HANAKAI_CONNECTION_BACKEND === 'supabase';
 
@@ -141,7 +141,7 @@ type RawApplication = {
   eventId: string;
   memberId: string;
   appliedAt: string;
-  status: 'pending' | 'awaiting_confirmation' | 'confirmed' | 'rejected' | 'cancelled';
+  status: EventApplicationStatus;
   reason?: string;
   decidedAt: string | null;
   decisionNote?: string | null;

@@ -9,6 +9,7 @@ import {
 } from '@/lib/connection/event-operations/actions';
 import type { EventCheckin } from '@/lib/connection/event-operations/types';
 import type { ConnectionMember } from '@/lib/connection/types';
+import { memberMainPhotoUrl } from '@/lib/connection/member-photo';
 
 type Props = {
   eventId: string;
@@ -58,7 +59,7 @@ export function HostCheckinPanel({ eventId, hasCheckinCode, newCheckinCode, conf
               return (
                 <div key={m.id} className='flex items-center justify-between gap-3'>
                   <div className='flex items-center gap-3'>
-                    <Image src={m.avatarUrl} alt={m.nickname} width={36} height={36} className='h-9 w-9 rounded-full object-cover' />
+                    <Image src={memberMainPhotoUrl(m)} alt={m.nickname} width={36} height={36} className='h-9 w-9 rounded-full object-cover object-top' />
                     <div>
                       <p className='text-sm font-medium'>{m.nickname}</p>
                       {checkedIn ? <Chip tone='accent'>チェックイン済</Chip> : <Chip tone='muted'>未チェックイン</Chip>}

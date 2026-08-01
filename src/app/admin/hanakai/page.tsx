@@ -7,22 +7,8 @@ import {
 } from '@/components/admin/hanakai/hanakai-admin-shared';
 import { HanakaiAdminMemberAvatar } from '@/components/admin/hanakai/hanakai-admin-member-avatar';
 import { getHanakaiAdminDashboard } from '@/lib/connection/hanakai-admin-repo';
+import { applicationStatusAdminTone, applicationStatusHostLabel } from '@/lib/connection/participation-finalize';
 
-const statusTone = {
-  pending: 'amber' as const,
-  awaiting_confirmation: 'amber' as const,
-  confirmed: 'green' as const,
-  rejected: 'redSoft' as const,
-  cancelled: 'gray' as const,
-};
-
-const statusLabel = {
-  pending: '承認待ち',
-  awaiting_confirmation: '参加確認待ち',
-  confirmed: '参加確定',
-  rejected: '却下',
-  cancelled: '辞退',
-};
 
 export default async function HanakaiAdminDashboardPage() {
   const data = await getHanakaiAdminDashboard();
@@ -151,7 +137,7 @@ export default async function HanakaiAdminDashboardPage() {
                     <td className='px-4 py-3'>{a.memberNickname}</td>
                     <td className='px-4 py-3 text-[#6b6b6b]'>{formatAdminDate(a.appliedAt)}</td>
                     <td className='px-4 py-3'>
-                      <Badge tone={statusTone[a.status]}>{statusLabel[a.status]}</Badge>
+                      <Badge tone={applicationStatusAdminTone(a.status)}>{applicationStatusHostLabel(a.status)}</Badge>
                     </td>
                   </tr>
                 ))}

@@ -1,3 +1,5 @@
+import type { EventApplicationStatus } from '@/lib/connection/types';
+
 export type AdminMemberStatus = 'active' | 'warning' | 'suspended' | 'deleted';
 
 export type AdminMemberRow = {
@@ -45,7 +47,7 @@ export type AdminApplicationRow = {
   memberNickname: string;
   reason?: string;
   appliedAt: string;
-  status: 'pending' | 'awaiting_confirmation' | 'confirmed' | 'rejected' | 'cancelled';
+  status: EventApplicationStatus;
   decidedAt: string | null;
   decisionNote?: string | null;
 };
@@ -92,7 +94,7 @@ export type AdminMemberApplicationHistory = {
   id: string;
   eventId: string;
   eventTitle: string;
-  status: 'pending' | 'awaiting_confirmation' | 'confirmed' | 'rejected' | 'cancelled';
+  status: EventApplicationStatus;
   appliedAt: string;
   decidedAt: string | null;
 };
