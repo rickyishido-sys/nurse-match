@@ -114,13 +114,13 @@ export function HeroVideoRotator({ videos, initialSrc, visibilityClassName }: He
 
         skipAttemptsRef.current = 0;
         setOpacities(inactiveSlot === 0 ? [1, 0] : [0, 1]);
+        currentSrcRef.current = nextSrc;
+        activeSlotRef.current = inactiveSlot;
+        setActiveSlot(inactiveSlot);
+        transitioningRef.current = false;
 
         window.setTimeout(() => {
           refs[fromSlot].current?.pause();
-          currentSrcRef.current = nextSrc;
-          activeSlotRef.current = inactiveSlot;
-          setActiveSlot(inactiveSlot);
-          transitioningRef.current = false;
         }, FADE_MS);
       } catch {
         failedRef.current.add(nextSrc);
