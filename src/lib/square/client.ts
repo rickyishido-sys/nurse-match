@@ -156,6 +156,10 @@ export function verifySquareWebhookSignature(rawBody: string, signatureHeader: s
   }
 }
 
+export function isSquareWebhookVerificationConfigured(): boolean {
+  return Boolean(getSquareConfig().webhookSignatureKey);
+}
+
 export function mapSquareFailureMessage(code?: string): string {
   switch (code) {
     case 'CARD_DECLINED':

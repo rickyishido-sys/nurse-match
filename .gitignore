@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 .env*.local
 tmp-e2e/
+
+# E2E run outputs (logs/screenshots may contain connection strings) & supabase CLI temp
+scripts/e2e-screenshots/
+supabase/.temp/

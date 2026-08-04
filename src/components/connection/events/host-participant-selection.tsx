@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { Chip } from '@/components/connection/ui';
 import { INTEREST_TAG_LABEL } from '@/lib/connection/data';
+import { formatHanakaiUsageFee, HANAKAI_USAGE_FEE_LABEL } from '@/lib/connection/hanakai-usage-fee';
 import { finalizeEventParticipantsAction } from '@/lib/connection/actions';
 import type { EventApplicationStatus } from '@/lib/connection/types';
 
@@ -285,7 +286,8 @@ export function HostParticipantSelection({
               参加案内を送りますか？
             </h3>
             <p className='mt-3 text-sm leading-7 text-[#5a5247]'>
-              選択した{selectedCount}名へ参加案内を送り、登録済みカードへHANAKAI参加費500円を自動請求します。
+              選択した{selectedCount}名へ参加案内を送り、登録済みカードへ{HANAKAI_USAGE_FEE_LABEL}
+              {formatHanakaiUsageFee()}を自動請求します。
               決済に成功した方のみ、正式な参加メンバーとして確定します。
             </p>
             <ul className='mt-3 space-y-1 text-xs text-[#6b6b6b]'>

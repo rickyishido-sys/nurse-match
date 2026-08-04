@@ -1,8 +1,8 @@
 import {
   formatEventParticipationFee,
-  formatHanakaiParticipationFee,
-  HANAKAI_PARTICIPATION_FEE_LABEL,
-} from '@/lib/connection/participation-fee';
+  formatHanakaiUsageFee,
+  HANAKAI_USAGE_FEE_LABEL,
+} from '@/lib/connection/hanakai-usage-fee';
 import { formatEventFeeDisplay, eventFeeFormFromEvent } from '@/lib/connection/event-fee-meta';
 import type { EventFeeType } from '@/lib/connection/types';
 import { HK } from '@/lib/connection/brand/tokens';
@@ -43,10 +43,10 @@ export function EventFeeCards(props: EventFeeCardsProps) {
         style={{ borderColor: `${HK.green}33`, backgroundColor: `${HK.green}0a` }}
       >
         <p className='text-xs font-semibold' style={{ color: HK.green }}>
-          {HANAKAI_PARTICIPATION_FEE_LABEL}
+          {HANAKAI_USAGE_FEE_LABEL}
         </p>
         <p className='mt-2 text-2xl font-semibold tabular-nums' style={{ color: HK.green }}>
-          {formatHanakaiParticipationFee()}
+          {formatHanakaiUsageFee()}
         </p>
         <p className='mt-1 text-xs leading-6 text-[#5b6f67]'>参加メンバーに選ばれた場合のみ自動請求</p>
         <p className='mt-1 text-xs leading-6 text-[#5b6f67]'>選ばれなかった場合、請求は発生しません</p>
@@ -93,14 +93,14 @@ export function ApplyFeeNotice() {
     <div className='space-y-3'>
       <div className='rounded-2xl border px-4 py-4' style={{ borderColor: `${HK.green}33`, backgroundColor: `${HK.green}08` }}>
         <p className='text-sm font-semibold' style={{ color: HK.green }}>
-          【{HANAKAI_PARTICIPATION_FEE_LABEL}】
+          【{HANAKAI_USAGE_FEE_LABEL}】
         </p>
         <p className='mt-2 text-sm leading-7 text-[#4a4a4a]'>
           イベント参加メンバーに選ばれた場合、
           <br />
-          {HANAKAI_PARTICIPATION_FEE_LABEL}として
+          {HANAKAI_USAGE_FEE_LABEL}として
           <br />
-          {formatHanakaiParticipationFee()}を登録済みのお支払い方法へ自動決済します。
+          {formatHanakaiUsageFee()}を登録済みのお支払い方法へ自動決済します。
         </p>
         <p className='mt-2 text-sm leading-7 text-[#4a4a4a]'>
           ※参加メンバーに選ばれなかった場合は
@@ -132,7 +132,7 @@ export function EventPreDescriptionNotice() {
     <div className='rounded-2xl border border-[#e8dfd0] bg-[#fbf8f3] px-4 py-4 text-sm leading-7 text-[#4a4a4a]'>
       <p className='font-semibold text-[#1a1a1a]'>【ご参加前にご確認ください】</p>
       <ul className='mt-3 list-none space-y-2'>
-        <li>・{HANAKAI_PARTICIPATION_FEE_LABEL}{formatHanakaiParticipationFee()}は参加メンバー決定時に自動決済されます。</li>
+        <li>・{HANAKAI_USAGE_FEE_LABEL}{formatHanakaiUsageFee()}は参加メンバー決定時に自動決済されます。</li>
         <li>・イベント当日に必要な費用は主催者または店舗へ直接お支払いください。</li>
         <li>・イベント参加費の詳細は以下のイベント説明をご確認ください。</li>
       </ul>
@@ -143,11 +143,14 @@ export function EventPreDescriptionNotice() {
 export function CreateEventHanakaiFeeNotice() {
   return (
     <div className='rounded-2xl border border-[#ebe9e4] bg-[#fafaf8] px-4 py-4 text-xs leading-6 text-[#4a4a4a]'>
-      <p className='text-sm font-semibold text-[#1a1a1a]'>HANAKAI参加費について</p>
+      <p className='text-sm font-semibold text-[#1a1a1a]'>{HANAKAI_USAGE_FEE_LABEL}について</p>
       <p className='mt-2'>
-        参加メンバーに選ばれた方には、HANAKAIから参加費{formatHanakaiParticipationFee()}が登録済みカードへ自動請求されます。
+        参加メンバーに選ばれた方には、HANAKAIから{HANAKAI_USAGE_FEE_LABEL}
+        {formatHanakaiUsageFee()}が登録済みカードへ自動請求されます。
       </p>
-      <p className='mt-1'>この500円はHANAKAIの参加費であり、主催者への分配はありません。</p>
+      <p className='mt-1'>
+        この{formatHanakaiUsageFee()}はHANAKAIの{HANAKAI_USAGE_FEE_LABEL}であり、主催者への分配はありません。
+      </p>
       <p className='mt-2'>
         イベント当日の飲食代・材料費・施設利用料などは、主催者または店舗が参加者から直接受領してください。
       </p>
@@ -169,8 +172,8 @@ export function ParticipationDecidedNotice() {
     <div className='space-y-3'>
       <p className='text-base font-semibold text-[#1a1a1a]'>参加が決定しました！</p>
       <p className='text-sm leading-7 text-[#4a4a4a]'>
-        {HANAKAI_PARTICIPATION_FEE_LABEL}
-        {formatHanakaiParticipationFee()}の決済が完了しました。
+        {HANAKAI_USAGE_FEE_LABEL}
+        {formatHanakaiUsageFee()}の決済が完了しました。
       </p>
       <p className='text-sm leading-7 text-[#4a4a4a]'>
         イベント当日に必要となる費用は、イベント詳細をご確認のうえ、当日主催者または店舗へ直接お支払いください。

@@ -1,7 +1,12 @@
 import 'server-only';
 
 import { randomBytes } from 'crypto';
-import { HANAKAI_PARTICIPATION_FEE_JPY } from '@/lib/connection/participation-fee';
+import {
+  buildHanakaiUsageFeeChargeFailedBody,
+  buildHanakaiUsageFeeChargeSuccessBody,
+  buildHanakaiUsageFeePaymentNote,
+  getHanakaiUsageFeeJpy,
+} from '@/lib/connection/hanakai-usage-fee/server';
 import {
   createSquareCard,
   createSquareCustomer,
@@ -263,7 +268,11 @@ export async function chargeParticipationPayment(paymentId: string, options?: { 
 
   if (!payment) return { ok: false as const, error: '決済が見つかりません' };
   if (payment.status === 'completed') return { ok: true as const, alreadyCompleted: true as const };
-  if (payment.amount !== HANAKAI_PARTICIPATION_FEE_JPY || payment.currency !== 'JPY') {
+  if (payment.currency !== 'JPY') {
+    return { ok: false as const, error: '決済金額が不正です' };
+  }
+  const chargeAmountJpy = Number(payment.amount);
+  if (!Number.isFinite(chargeAmountJpy) || chargeAmountJpy < 0) {
     return { ok: false as const, error: '決済金額が不正です' };
   }
 
@@ -290,13 +299,28 @@ export async function chargeParticipationPayment(paymentId: string, options?: { 
     ? idempotencyKey(`pay_${payment.application_id}_${payment.attempt_number + 1}`)
     : (payment.idempotency_key as string);
 
+  if (chargeAmountJpy === 0) {
+    await markPaymentOutcome({
+      paymentId,
+      applicationId: payment.application_id,
+      success: true,
+    });
+    await createParticipationNotification({
+      memberId: payment.member_id,
+      eventId: payment.event_id,
+      type: 'participation_payment_succeeded',
+      amountJpy: chargeAmountJpy,
+    });
+    return { ok: true as const, waived: true as const };
+  }
+
   const result = await createSquarePayment({
     idempotencyKey: payIdempotencyKey,
     sourceId: method.square_card_id,
     customerId: method.square_customer_id,
-    amountJpy: HANAKAI_PARTICIPATION_FEE_JPY,
+    amountJpy: chargeAmountJpy,
     referenceId: payment.application_id,
-    note: `HANAKAI参加費 / ${eventTitle}`,
+    note: buildHanakaiUsageFeePaymentNote(String(eventTitle)),
   });
 
   if (!result.ok) {
@@ -325,6 +349,7 @@ export async function chargeParticipationPayment(paymentId: string, options?: { 
       memberId: payment.member_id,
       eventId: payment.event_id,
       type: 'participation_payment_succeeded',
+      amountJpy: chargeAmountJpy,
     });
     return { ok: true as const, squarePaymentId };
   }
@@ -341,6 +366,7 @@ export async function chargeParticipationPayment(paymentId: string, options?: { 
     memberId: payment.member_id,
     eventId: payment.event_id,
     type: 'participation_payment_failed',
+    amountJpy: chargeAmountJpy,
   });
   return { ok: false as const, error: '決済を完了できませんでした' };
 }
@@ -407,7 +433,7 @@ export async function syncSquarePaymentFromWebhook(squarePaymentId: string) {
   const currency = String((payment.amount_money as { currency?: string })?.currency ?? '');
   const status = String(payment.status ?? '');
 
-  if (amount !== HANAKAI_PARTICIPATION_FEE_JPY || currency !== 'JPY') {
+  if (currency !== 'JPY') {
     return { ok: false as const, error: 'Amount/currency mismatch' };
   }
 
@@ -420,6 +446,9 @@ export async function syncSquarePaymentFromWebhook(squarePaymentId: string) {
     .maybeSingle();
 
   if (!row) return { ok: false as const, error: 'Local payment not found' };
+  if (Number(row.amount) !== amount) {
+    return { ok: false as const, error: 'Amount/currency mismatch' };
+  }
 
   if (status === 'COMPLETED') {
     await markPaymentOutcome({
@@ -460,10 +489,11 @@ export async function adminRefundParticipationPayment(paymentId: string, adminMe
   }
 
   const refundKey = idempotencyKey(`ref_${payment.id}`);
+  const refundAmountJpy = Number(payment.amount);
   const result = await refundSquarePayment({
     idempotencyKey: refundKey,
     paymentId: payment.square_payment_id,
-    amountJpy: HANAKAI_PARTICIPATION_FEE_JPY,
+    amountJpy: refundAmountJpy,
     reason: `Admin refund by ${adminMemberId}`,
   });
 
@@ -535,18 +565,21 @@ async function createParticipationNotification(input: {
   memberId: string;
   eventId: string;
   type: 'participation_payment_succeeded' | 'participation_payment_failed' | 'participation_payment_expiring' | 'participation_payment_expired';
+  amountJpy?: number;
 }) {
   const admin = createAdminSupabaseClient();
   if (!admin) return;
 
+  const amountJpy = input.amountJpy ?? (await getHanakaiUsageFeeJpy());
+
   const copy = {
     participation_payment_succeeded: {
       title: '参加が決定しました',
-      body: '登録済みカードへHANAKAI参加費500円を決済し、正式な参加が決定しました。',
+      body: buildHanakaiUsageFeeChargeSuccessBody(amountJpy),
     },
     participation_payment_failed: {
       title: 'お支払い方法をご確認ください',
-      body: '参加メンバーに選ばれましたが、500円を決済できませんでした。期限までにカード情報をご確認ください。',
+      body: buildHanakaiUsageFeeChargeFailedBody(amountJpy),
     },
     participation_payment_expiring: {
       title: 'お支払い確認期限が近づいています',

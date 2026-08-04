@@ -22,6 +22,11 @@ import {
   EventSectionShell,
 } from '@/components/connection/events/event-detail-sections';
 import { Chip } from '@/components/connection/ui';
+import {
+  formatHanakaiUsageFee,
+  HANAKAI_USAGE_FEE_LABEL,
+} from '@/lib/connection/hanakai-usage-fee';
+import { getHanakaiUsageFeeJpy } from '@/lib/connection/hanakai-usage-fee/server';
 import { ReportButton } from '@/components/connection/report-button';
 import { IdentityRequiredPanel } from '@/components/connection/identity-required-panel';
 import { IdentityVerifiedBadge } from '@/components/connection/identity-verified-badge';
@@ -49,6 +54,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
   const sp = searchParams ? await searchParams : {};
   const event = await getEvent(id);
   if (!event) notFound();
+  const usageFeeJpy = await getHanakaiUsageFeeJpy();
 
   const viewer = await getHanakaiViewer();
   const viewerMemberId = await getViewerMemberId();
@@ -285,7 +291,8 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                 決済処理中
               </p>
               <p className='mt-3 text-sm leading-7 text-[#4a4a4a]'>
-                参加案内をお送りしました。HANAKAI参加費500円の決済処理中です。完了次第、正式参加として通知します。
+                参加案内をお送りしました。{HANAKAI_USAGE_FEE_LABEL}
+                {formatHanakaiUsageFee(usageFeeJpy)}の決済処理中です。完了次第、正式参加として通知します。
               </p>
             </div>
           ) : existingApp?.status === 'awaiting_confirmation' ? (

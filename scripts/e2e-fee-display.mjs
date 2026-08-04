@@ -19,9 +19,9 @@ const viewports = [
 ];
 
 const REQUIRED = [
-  'HANAKAI参加手数料',
+  'HANAKAI利用料',
   '500円',
-  '参加決定時に自動決済',
+  '参加メンバーに選ばれた場合のみ自動請求',
   'イベント参加費',
   '当日現地払い',
   'ご参加前にご確認ください',
@@ -107,7 +107,7 @@ async function main() {
         status: res?.status() ?? 0,
         checks,
         pass: target.name === 'event-create'
-          ? html.includes('イベント参加費') && html.includes('HANAKAI参加手数料')
+          ? html.includes('イベント参加費') && html.includes('HANAKAI利用料')
           : REQUIRED.every((t) => html.includes(t)),
       });
       await page.close();

@@ -1,7 +1,10 @@
 import Link from 'next/link';
+import { HANAKAI_USAGE_FEE_LABEL } from '@/lib/connection/hanakai-usage-fee';
+import { getHanakaiUsageFeeJpy } from '@/lib/connection/hanakai-usage-fee/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 
 export default async function AdminParticipationPaymentsPage() {
+  const usageFeeJpy = await getHanakaiUsageFeeJpy();
   const admin = createAdminSupabaseClient();
   const payments = admin
     ? (
@@ -16,8 +19,10 @@ export default async function AdminParticipationPaymentsPage() {
   return (
     <div className='space-y-6 p-6'>
       <div>
-        <h1 className='text-xl font-semibold text-[#1a1a1a]'>HANAKAI参加費決済（管理者）</h1>
-        <p className='mt-1 text-sm text-[#6b6b6b]'>Square Sandbox / Preview専用。Production決済は表示されません。</p>
+        <h1 className='text-xl font-semibold text-[#1a1a1a]'>{HANAKAI_USAGE_FEE_LABEL}決済（管理者）</h1>
+        <p className='mt-1 text-sm text-[#6b6b6b]'>
+          現在の{HANAKAI_USAGE_FEE_LABEL}: {usageFeeJpy.toLocaleString('ja-JP')}円（税込）。Square Sandbox / Preview専用。
+        </p>
       </div>
 
       <div className='overflow-x-auto rounded-2xl border border-[#ebe9e4] bg-white'>

@@ -3,7 +3,7 @@
 import Script from 'next/script';
 import { useCallback, useEffect, useId, useState } from 'react';
 import { getPublicSquareConfig, PAYMENT_CONSENT_TEXT } from '@/lib/square/public-config';
-import { HANAKAI_PARTICIPATION_FEE_LABEL, formatHanakaiParticipationFee } from '@/lib/connection/participation-fee';
+import { HANAKAI_USAGE_FEE_LABEL, formatHanakaiUsageFee } from '@/lib/connection/hanakai-usage-fee';
 import { HK } from '@/lib/connection/brand/tokens';
 
 declare global {
@@ -118,8 +118,8 @@ export function SquareCardRegistration({ onSaved, onCancel }: SquareCardRegistra
       <div>
         <h2 className='text-lg font-semibold text-[#1a1a1a]'>お支払い方法の登録</h2>
         <p className='mt-2 text-sm leading-7 text-[#4a4a4a]'>
-          参加メンバーに選ばれた場合のみ、{HANAKAI_PARTICIPATION_FEE_LABEL}
-          {formatHanakaiParticipationFee()}を登録済みのカードへ自動請求します。
+          参加メンバーに選ばれた場合のみ、{HANAKAI_USAGE_FEE_LABEL}
+          {formatHanakaiUsageFee()}を登録済みのカードへ自動請求します。
         </p>
         <p className='mt-2 text-sm leading-7 text-[#4a4a4a]'>選ばれなかった場合、請求は発生しません。</p>
         <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>

@@ -11,7 +11,7 @@ import { buildParticipationDecisionPayload, logParticipationDecisionEmail } from
 import { getEvent, listApplications } from '@/lib/connection/repo';
 import * as mock from '@/lib/connection/data';
 import { chargeParticipationPaymentsBatch } from '@/lib/connection/participation-payment';
-import { getSquareConfig } from '@/lib/square/config';
+import { getSquareConfig, getSquareEnvironment } from '@/lib/square/config';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import type { ConnectionEvent, EventApplication } from '@/lib/connection/types';
 
@@ -228,6 +228,10 @@ async function finalizeSupabaseWithPayments(
     p_selected_application_ids: selectedIds,
     p_decided_by_member_id: decidedByMemberId,
     p_payment_deadline_at: paymentDeadline,
+    // Preview => 'sandbox', Production => 'production'. The payment row's
+    // environment must match how cards are saved (getSquareEnvironment()),
+    // otherwise the charge cannot find the saved card.
+    p_environment: getSquareEnvironment(),
   });
 
   if (error) {

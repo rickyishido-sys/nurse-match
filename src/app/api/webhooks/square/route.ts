@@ -1,14 +1,25 @@
 import { NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { syncSquarePaymentFromWebhook } from '@/lib/connection/participation-payment';
-import { verifySquareWebhookSignature } from '@/lib/square/client';
+import {
+  isSquareWebhookVerificationConfigured,
+  verifySquareWebhookSignature,
+} from '@/lib/square/client';
 import { getSquareConfig } from '@/lib/square/config';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
-  const rawBody = await request.text();
+  if (!isSquareWebhookVerificationConfigured()) {
+    return NextResponse.json({ ok: false, error: 'Webhook verification not configured' }, { status: 503 });
+  }
+
   const signature = request.headers.get('x-square-hmacsha256-signature');
+  if (!signature) {
+    return NextResponse.json({ ok: false, error: 'Missing signature header' }, { status: 401 });
+  }
+
+  const rawBody = await request.text();
   const config = getSquareConfig();
   const notificationUrl = config.webhookNotificationUrl || request.url;
 

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
 import { listPaymentMethods } from '@/lib/connection/participation-payment';
 import { getViewerMemberId } from '@/lib/connection/identity';
+import { formatHanakaiUsageFee, HANAKAI_USAGE_FEE_LABEL } from '@/lib/connection/hanakai-usage-fee';
+import { getHanakaiUsageFeeJpy } from '@/lib/connection/hanakai-usage-fee/server';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { redirect } from 'next/navigation';
 
@@ -11,6 +13,7 @@ export default async function PaymentMethodsPage() {
   if (!memberId) redirect('/login?next=/my-profile/payment-methods');
 
   const methods = await listPaymentMethods(memberId);
+  const usageFeeJpy = await getHanakaiUsageFeeJpy();
 
   return (
     <ConnectionShell viewer={viewer}>
@@ -21,7 +24,8 @@ export default async function PaymentMethodsPage() {
           </Link>
           <h1 className='mt-3 text-xl font-semibold text-[#1a1a1a]'>お支払い方法</h1>
           <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>
-            参加メンバーに選ばれた場合のみ、HANAKAI参加費500円が自動請求されます。
+            参加メンバーに選ばれた場合のみ、{HANAKAI_USAGE_FEE_LABEL}
+            {formatHanakaiUsageFee(usageFeeJpy)}が自動請求されます。
           </p>
         </div>
 

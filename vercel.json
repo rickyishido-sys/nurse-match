@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/hanakai/cron/payment-expiry",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
