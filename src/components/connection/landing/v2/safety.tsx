@@ -67,12 +67,12 @@ const ICONS: Record<string, ReactNode> = {
 };
 
 const ITEMS = [
-  { icon: 'review', title: '参加審査', body: '主催者または運営が参加申請を確認し、心地よい場を保ちます。', accent: HK.coral, tilt: -3 },
-  { icon: 'report', title: '通報機能', body: '気になる言動は、アプリからいつでも運営へ通報できます。', accent: HK.sky, tilt: -2 },
-  { icon: 'block', title: 'ブロック機能', body: 'つながりたくない相手とは、自分で距離を取れます。', accent: HK.coral, tilt: 3 },
-  { icon: 'admin', title: '運営管理体制', body: '通報・問い合わせに運営が対応し、必要に応じて利用制限を行います。', accent: HK.amber, tilt: 5 },
-  { icon: 'guideline', title: 'コミュニティガイドライン', body: '尊重と安心のための共通ルールを定めています。', accent: HK.lime, tilt: -4 },
-  { icon: 'identity', title: '本人確認の提出', body: '任意で本人確認書類を提出できます。運営が確認し、安心の参考情報として扱います。', accent: HK.violet, tilt: 4 },
+  { icon: 'identity', title: '本人確認', body: 'HANAKAIでは、すべてのユーザーに本人確認をお願いしています。運営が確認し、安心して利用できる参加環境を整えます。', accent: HK.violet, tilt: -3 },
+  { icon: 'review', title: '参加者選定', body: 'イベントの主催者または運営が参加者を選び、心地よい場を保ちます。', accent: HK.coral, tilt: -2 },
+  { icon: 'report', title: '通報機能', body: '気になる言動は、アプリからいつでも運営へ通報できます。', accent: HK.sky, tilt: 3 },
+  { icon: 'block', title: 'ブロック機能', body: 'つながりたくない相手とは、自分で距離を取れます。', accent: HK.coral, tilt: 5 },
+  { icon: 'admin', title: '運営対応', body: '通報・問い合わせに運営が対応し、必要に応じて利用制限を行います。', accent: HK.amber, tilt: -4 },
+  { icon: 'guideline', title: 'コミュニティガイドライン', body: '尊重と安心のための共通ルールを定めています。', accent: HK.lime, tilt: 4 },
 ] as const;
 
 export function LandingSafety() {
@@ -91,7 +91,7 @@ export function LandingSafety() {
         <Reveal delay={0.1}>
           <Lead className='mt-6 max-w-[42ch]'>
             はじめての方も、一人参加も大歓迎。
-            参加審査・通報・ブロック・運営対応で、安心して体験に集中できます。
+            本人確認・参加者選定・通報・ブロック・運営対応で、安心して体験に集中できます。
           </Lead>
         </Reveal>
       </div>

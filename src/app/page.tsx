@@ -8,6 +8,7 @@ import { LandingHostEvents } from '@/components/connection/landing/v2/host-event
 import { LandingHowItWorks } from '@/components/connection/landing/v2/how-it-works';
 import { LandingBloomIntro } from '@/components/connection/landing/v2/bloom-intro';
 import { LandingRecommend } from '@/components/connection/landing/v2/recommend';
+import { LandingGuideFlows } from '@/components/connection/landing/v2/guide-flows';
 import { LandingSafety } from '@/components/connection/landing/v2/safety';
 import { LandingFaq } from '@/components/connection/landing/v2/faq';
 import { LandingFinalCta } from '@/components/connection/landing/v2/final-cta';
@@ -75,6 +76,7 @@ export default async function LandingPage() {
         <LandingThemes />
         <LandingBloomIntro joinHref={joinHref} viewer={viewer} />
         <LandingRecommend />
+        <LandingGuideFlows joinHref={joinHref} />
         <LandingSafety />
         <LandingVoices />
         <LandingAppMock />
