@@ -34,7 +34,13 @@ export const HANAKAI_PUBLIC_EXACT = new Set([
   '/experience-request',
 ]);
 
-export const HANAKAI_AUTH_EXACT = new Set(['/home', '/my-profile', '/manage', '/events/create']);
+export const HANAKAI_AUTH_EXACT = new Set([
+  '/home',
+  '/my-profile',
+  '/my-profile/payment-methods',
+  '/manage',
+  '/events/create',
+]);
 
 export const HANAKAI_AUTH_PREFIXES = [
   '/account/',

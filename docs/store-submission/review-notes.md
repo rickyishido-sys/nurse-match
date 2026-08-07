@@ -7,63 +7,63 @@ App Store / Google Play 審査チーム向けの説明メモです。各スト�
 | アプリ名 | HANAKAI Connection Ver1.0 |
 | 本番URL | https://hanakai.kranz.design/ |
 | 提供事業者 | RePowera株式会社 |
-| 最終更新 | 2026年7月14日 |
+| 最終更新 | 2026年8月7日 |
 
 ---
 
 ## 英語版（App Store 推奨 — 審査チームは英語対応）
 
 ```
-HANAKAI Connection Ver1.0 is a community app for real-world weekly events (walks, cafes, flowers, etc.). Users discover events, create a profile, apply to participate, and attend in person.
+HANAKAI Connection is a community app for real-world, in-person events (walks, cafes, flower workshops, etc.). Members create a profile, complete mandatory identity verification, browse events, apply to attend, and meet in person. Members can also host their own events, select participants, and use report/block safety tools.
 
-ARCHITECTURE:
-- This is a Capacitor wrapper around our production PWA hosted at https://hanakai.kranz.design/
-- The native app loads the production web app in a WebView. No separate native UI.
+WHAT THIS APP DOES (native value, not just a website)
+- Installable iOS app with a native splash screen, status-bar integration, and iOS permission handling.
+- Uses the device Camera and Photo Library to capture and upload profile photos and identity-verification documents.
+- Provides an integrated membership experience: account + email verification, mandatory identity verification, event discovery/participation, event hosting, and safety tools (report/block), designed for repeated real-world use.
 
-TEST ACCOUNT:
-See the credentials provided in the "App Review Information" section (or attached review-account-template.md).
-Login URL: https://hanakai.kranz.design/login
+TEST ACCOUNT (pre-verified — please use this)
+- Username / Password: see the "App Review Information" fields (and review-account-template.md).
+- This account is already identity-approved, so you can immediately test apply/create flows.
+- Login: https://hanakai.kranz.design/login
 
-KEY FEATURES TO TEST (Ver1.0):
-1. Login with the test account
-2. Browse events: /events
-3. View event detail and apply / cancel participation
-4. View/edit profile: /my-profile
-5. Create / edit / cancel an event: /events/create, /events/edit/[id]
-6. Report a member or event (Report button on profile/event pages)
-7. Block a member (Block button on member profile) — manage at /account/blocked
-8. Account deletion: /account/delete (login required)
+KEY FLOWS TO TEST (Ver1.0)
+1. Log in with the test account.
+2. Browse events: /events → open an event detail.
+3. Apply to an event. Before the first application, the app asks you to register a payment card (see PAYMENTS). You may stop after the card form to avoid any charge.
+4. View/edit profile and identity verification: /my-profile
+5. Manage saved payment cards: /my-profile/payment-methods
+6. Create / edit / cancel an event: /events/create, /events/edit/[id]
+7. Report a member or event (Report button on profile / event pages).
+8. Block a member (Block button on a member profile); manage blocks at /account/blocked
+9. Account deletion — fully in-app, no external link: /account/delete
 
-NOT IN Ver1.0 (intentionally removed or deferred):
-- Direct messages / DM
-- Posts / comments / timeline
-- Live streaming
-- Tipping / cheer / in-app payments
-- Post-event in-app community messaging
+PAYMENTS (this is NOT Apple In-App Purchase)
+- The only fee is a HANAKAI usage fee of JPY 500 (tax included).
+- It is charged ONLY when a member is selected to attend a real, in-person event. It is a fee for a physical, real-world service (in-person event participation) — not digital content, not a subscription, and it does not unlock any app feature.
+- Per App Store Review Guideline 3.1.3(e) / 3.1.5(a), payment for real-world services may be processed outside Apple In-App Purchase. We process it with Square. Card data is tokenized by Square; we never store the full card number.
+- Other event-day costs (food, activity, entry fees) are paid directly to the venue or host, NOT collected by HANAKAI.
+- To avoid a real charge during review: register the test card and stop. You are not charged unless a host selects you for an event.
 
-PAYMENTS:
-- No in-app purchases
-- No subscriptions
-- Event fees (if any) are paid on-site at the event venue, NOT in the app
+IDENTITY VERIFICATION
+- Identity verification is MANDATORY for all users. After the operator approves the submitted document, the member can apply to events and create events.
+- The provided test account is already approved so review is not blocked.
 
-LOCATION:
-- We do NOT use continuous or background location tracking
-- Users may enter a text-based residence area (e.g., "Tokyo") in their profile — this is NOT GPS data
+LOCATION
+- No continuous or background location tracking. Residence area is free text (e.g., "Tokyo"), not GPS.
 
-USER-GENERATED CONTENT:
-- Profile photos and event descriptions
-- Report and block features are available
-- Admin moderation via internal dashboard
+USER-GENERATED CONTENT & SAFETY
+- Profile photos and event descriptions. Report and Block are available; operator moderation via an internal dashboard.
 
-AGE REQUIREMENT:
-- Users must be 18+ per our Terms of Service
+AGE REQUIREMENT
+- 18+ per our Terms of Service.
 
-SUPPORT:
+SUPPORT
 - Contact form: https://hanakai.kranz.design/contact
 - Privacy Policy: https://hanakai.kranz.design/privacy
 - Terms: https://hanakai.kranz.design/terms
+- Community Guidelines: https://hanakai.kranz.design/community-guidelines
 
-Please contact us via the support email if you need additional test accounts or event setup.
+Please contact us via the support email if you need an additional test account or a fresh test event.
 ```
 
 ---
@@ -72,33 +72,37 @@ Please contact us via the support email if you need additional test accounts or 
 
 ```
 【アプリ概要】
-HANAKAI Connection Ver1.0 は、週替わりのリアルイベント（散歩・カフェ・花など）を探して参加申請できるコミュニティアプリです。
+HANAKAI Connection は、散歩・カフェ・花などのリアルな対面イベントを探して参加・主催できるコミュニティアプリです。会員登録・本人確認（必須）・イベント参加・主催・通報／ブロックまでをアプリ内で提供します。
 
-【技術構成】
-本番 PWA（https://hanakai.kranz.design/）を Capacitor でラップした WebView アプリです。ネイティブ専用 UI はありません。
+【ネイティブとしての価値】
+- インストール型のiOS/Androidアプリ（ネイティブSplash、ステータスバー連携、OS権限管理）
+- カメラ／写真ライブラリを使ったプロフィール写真・本人確認書類の撮影とアップロード
+- 会員認証・本人確認・イベント参加・主催・安全機能を統合した継続利用サービス
 
-【審査用アカウント】
+【審査用アカウント（本人確認承認済み）】
 メール: [REVIEW_EMAIL_PLACEHOLDER]
 パスワード: [REVIEW_PASSWORD_PLACEHOLDER]
 ログイン: https://hanakai.kranz.design/login
 
 【確認いただきたい機能（Ver1.0）】
 1. ログイン
-2. イベント一覧・詳細・参加申込・キャンセル（/events）
-3. プロフィール閲覧・編集（/my-profile）
-4. イベントの作成・編集・中止
-5. 通報（イベント・メンバーの Report ボタン）
-6. ブロック（メンバープロフィールの Block ボタン、一覧: /account/blocked）
-7. アカウント削除（/account/delete）
+2. イベント一覧・詳細・参加申込（/events）
+3. プロフィール・本人確認（/my-profile）
+4. 支払いカード管理（/my-profile/payment-methods）
+5. イベントの作成・編集・中止
+6. 通報（Reportボタン）
+7. ブロック（Blockボタン、一覧: /account/blocked）
+8. アカウント削除（/account/delete）
 
-【Ver1.0で提供していない機能】
-メッセージ・DM、投稿・コメント、ライブ配信、投げ花・応援・決済、イベント後のアプリ内交流
-
-【課金】
-アプリ内課金・サブスクリプションはありません。イベント参加費がある場合は当日会場での現地払いです。
+【課金について（アプリ内課金ではありません）】
+- 徴収するのはHANAKAI利用料 税込500円のみ。
+- 実世界の対面イベントへの参加が決定した時点でのみ課金します（実世界サービスへの対価。デジタルコンテンツ／サブスク／機能アンロックではありません）。
+- Squareでカード決済。カード情報はSquareがトークン化し、完全なカード番号は保存しません。
+- 飲食代・体験料・入場料などはHANAKAIでは徴収せず、店舗・会場・主催者へ当日直接お支払いいただきます。
+- 審査時に実課金を避けるには、カード登録画面の確認までで留めてください（選定されない限り課金されません）。
 
 【位置情報】
-常時・バックグラウンドでの位置追跡は行いません。居住エリアはテキスト入力のみです。
+常時・バックグラウンド追跡なし。居住エリアはテキスト入力のみ。
 
 【年齢制限】
 利用規約上、18歳以上が対象です。
@@ -114,7 +118,7 @@ https://hanakai.kranz.design/contact
 | 項目 | 説明 |
 |------|------|
 | サービス種別 | イベント型コミュニティ（マッチングアプリではない） |
-| 主要導線 | イベント閲覧 → プロフィール作成 → 参加申込 → リアル体験 |
+| 主要導線 | イベント閲覧 → プロフィール作成 → 本人確認 → 参加申込 → リアル体験 |
 | スワイプ型マッチング | なし |
 | 位置ベースの近隣検索 | なし |
 | 常時位置追跡 | なし |
@@ -128,7 +132,8 @@ https://hanakai.kranz.design/contact
 | 機能 | パス | 審査アカウント必要 |
 |------|------|-------------------|
 | イベント参加申込・キャンセル | `/events/[id]` | はい |
-| プロフィール編集 | `/my-profile?mode=edit` | はい |
+| 支払いカード管理 | `/my-profile/payment-methods` | はい |
+| プロフィール・本人確認 | `/my-profile` | はい |
 | イベント作成・編集・中止 | `/events/create`, `/events/edit/[id]` | はい |
 | 通報 | 各所 Report ボタン | はい |
 | ブロック | プロフィール Block ボタン | はい |
@@ -142,10 +147,10 @@ https://hanakai.kranz.design/contact
 審査提出前に以下を完了してください:
 
 1. **審査用アカウントの作成** — `review-account-template.md` 参照
-2. **参加可能なイベントの用意** — 審査期間中に有効なイベントを1件以上公開
-3. **審査用アカウントをイベントに承認済みにする**
+2. **本人確認の承認** — 審査アカウントを管理画面で承認済みにする（`/admin/hanakai/identity-reviews`）
+3. **参加可能なイベントの用意** — 審査期間中に有効なイベントを1件以上公開
 4. **本番 URL の安定稼働確認**
-5. **レガシールートの無効化** — 旧マッチング系ページが審査員に露出しないこと
+5. **レガシールートの無効化確認** — 旧マッチング系ページ（/discover, /matches 等）が 404 であること
 6. **公開トップページと Ver1.0 実機能の一致確認**
 
 > ⚠️ **要人間対応:** 審査用イベントの日程・内容は実際の運営スケジュールと調整してください。
@@ -160,7 +165,7 @@ Ver1.0 で意図的に提供していない機能:
 |------|------|
 | DM（メッセージ送信） | Ver1.0 スコープ外（UI 非表示） |
 | 投稿・コメント・ライブ | Ver1.0 スコープ外（ルート 404） |
-| 投げ花・応援・決済 | Ver1.0 スコープ外 |
+| 投げ花・応援 | Ver1.0 スコープ外 |
 | イベント後のアプリ内交流 | Ver1.0 スコープ外 |
 | プッシュ通知 | 未実装（権限要求なし） |
 | アプリ内通知一覧 | 未実装 |
@@ -182,8 +187,8 @@ Ver1.0 で意図的に提供していない機能:
 | 項目 | 担当 | 内容 |
 |------|------|------|
 | Apple Developer Program | 人間 | 年間登録・法人確認 |
-| App Store Connect 設定 | 人間 | メタデータ入力・ビルドアップロード |
+| App Store Connect 設定 | 人間 | メタデータ入力・ビルドアップロード・App Privacy 入力 |
 | Google Play Console 設定 | 人間 | メタデータ・AAB アップロード |
-| 審査用アカウント発行 | 人間 | Supabase でユーザー作成 |
+| 審査用アカウント発行・本人確認承認 | 人間 | Supabase でユーザー作成 + 本人確認承認 |
 | 審査メモ最終確認 | 人間 | 英語版の誤字・機能説明の正確性 |
 | サポートメール監視 | 人間 | 審査期間中の Apple / Google からの連絡対応 |

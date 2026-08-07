@@ -91,6 +91,7 @@ function loginRedirect(request: NextRequest, pathname: string, admin = false): N
     pathname === '/manage' ||
     pathname.startsWith('/account/') ||
     pathname === '/my-profile' ||
+    pathname.startsWith('/my-profile/') ||
     pathname === '/home'
   ) {
     loginUrl.searchParams.set('next', pathname);

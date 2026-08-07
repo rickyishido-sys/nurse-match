@@ -143,13 +143,15 @@ npx cap sync ios
 ### 4.3 Xcode での作業（要人間）
 
 1. `npx cap open ios` で Xcode を開く
-2. **Signing & Capabilities** で Team・Bundle Identifier を設定
-3. App Icon（1024×1024）を `Assets.xcassets` に設定
-4. Splash Screen を設定
-5. **Product → Archive** でビルド
-6. **Organizer → Distribute App → App Store Connect** でアップロード
+2. **Signing & Capabilities** で Team・Bundle Identifier（`design.kranz.hanakai`）を設定
+3. **Build Settings → Targeted Device Family = iPhone（`1`）** に設定（**iPhone 専用**。`ios/` は Capacitor が再生成し Git 管理外のため、`cap add ios` 後は毎回確認すること）
+4. App Icon（1024×1024）を `Assets.xcassets` に設定
+5. Splash Screen を設定
+6. **Product → Archive** でビルド
+7. **Organizer → Distribute App → App Store Connect** でアップロード
 
 > ⚠️ **要人間対応:** 証明書・プロビジョニングプロファイルの作成は Apple Developer Portal で行います。
+> ⚠️ **iPhone 専用の理由:** iPad 固有 UI を提供しないため、iPad 対応を残すと iPad レイアウト審査・iPad スクリーンショットの負担とリスクだけ増えます。`TARGETED_DEVICE_FAMILY = 1` を推奨します。
 
 ---
 

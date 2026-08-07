@@ -16,14 +16,16 @@ HANAKAI Connection Ver1.0 の App Store / Google Play 共通メタデータで�
 |------------|-----------|-------------|-----|
 | アプリ名 | App 名 | アプリ名 | HANAKAI Connection |
 | 短縮名 | — | — | HANAKAI |
-| バンドル ID / パッケージ名 | `[要設定]` | `[要設定]` | 例: `design.kranz.hanakai` |
+| バンドル ID / パッケージ名 | `design.kranz.hanakai` | `design.kranz.hanakai` | 設定済み（Xcode / capacitor.config 一致） |
 | SKU（Apple） | `[要設定]` | — | 例: `hanakai-connection-ios` |
-| バージョン | 1.0.0 | 1.0.0 | Ver1.0 |
-| ビルド番号 | `[要設定]` | `[要設定]` | 初回: `1` |
+| バージョン（CFBundleShortVersionString） | 1.0 | 1.0 | Ver1.0（MARKETING_VERSION） |
+| ビルド番号（CFBundleVersion） | 1 | 1 | CURRENT_PROJECT_VERSION（設定済み） |
+| 対応デバイス | iPhone のみ | スマートフォン | **iPhone 専用**（TARGETED_DEVICE_FAMILY = 1） |
 | プライマリカテゴリ | ソーシャルネットワーキング | ソーシャル | — |
 | 言語（デフォルト） | 日本語 | 日本語 | ja |
 
-> ⚠️ **要人間対応:** バンドル ID / パッケージ名は Apple Developer / Google Play Console で一度設定すると変更困難です。正式な命名を決定してから登録してください。
+> ✅ バンドル ID / バージョン / ビルド番号は iOS プロジェクト（`native/hanakai/ios/App/App.xcodeproj/project.pbxproj`）に設定済みです。
+> ⚠️ **要人間対応:** SKU は初回登録時に決定してください。
 
 ---
 
@@ -91,12 +93,16 @@ Capacitor ネイティブビルド時は `capacitor.config` および各プラ�
 
 | 項目 | 値 |
 |------|-----|
-| アプリ内課金（IAP） | **なし** |
+| Apple In-App Purchase（IAP） | **不使用** |
 | サブスクリプション | **なし** |
 | 広告 | **なし** |
-| イベント参加費 | **当日会場で現地払い**（アプリ外） |
+| HANAKAI利用料 | **税込500円**（イベント参加決定時にSquareでカード決済） |
+| 決済の性質 | 実世界の対面イベント参加に伴う料金（デジタルコンテンツ販売ではない） |
+| IAP対象外の根拠 | App Store Review Guideline 3.1.3(e) / 3.1.5(a)（実世界サービスへの対価） |
+| 当日費用（飲食・体験・入場料等） | HANAKAIでは徴収せず、店舗・会場・主催者へ当日直接支払い |
 
-> ⚠️ **要確認（法務・ストア）:** イベント参加費の案内方法が「アプリ外決済の誘導」とみなされないか、各ストアの外部決済ポリシーを確認してください。
+> ✅ 決済は「実世界サービスへの対価」であり Apple IAP の対象外です。Review Notes に 3.1.3(e)/3.1.5(a) を根拠として明記してください。
+> ⚠️ **要確認（ストア）:** 本番の Square 環境変数・Webhook・Cron の設定はリリース前に別途完了させてください（本メタデータの対象外）。
 
 ---
 
