@@ -1,23 +1,23 @@
 'use client';
 
 import Script from 'next/script';
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { getPublicSquareConfig, PAYMENT_CONSENT_TEXT } from '@/lib/square/public-config';
 import { HANAKAI_USAGE_FEE_LABEL, formatHanakaiUsageFee } from '@/lib/connection/hanakai-usage-fee';
 import { HK } from '@/lib/connection/brand/tokens';
+
+type SquareTokenResult = { status: string; token?: string; errors?: unknown[] };
+type SquareCard = {
+  attach: (selector: string) => Promise<void>;
+  tokenize: (details?: Record<string, unknown>) => Promise<SquareTokenResult>;
+  destroy?: () => Promise<void> | void;
+};
 
 declare global {
   interface Window {
     Square?: {
       payments: (appId: string, locationId: string) => {
-        card: () => Promise<{
-          attach: (selector: string) => Promise<void>;
-          tokenize: (details?: Record<string, unknown>) => Promise<{
-            status: string;
-            token?: string;
-            errors?: unknown[];
-          }>;
-        }>;
+        card: () => Promise<SquareCard>;
       };
     };
   }
@@ -36,17 +36,27 @@ export function SquareCardRegistration({ onSaved, onCancel }: SquareCardRegistra
   const [error, setError] = useState<string | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
   const [cardReady, setCardReady] = useState(false);
+  // The SAME card instance must be used for attach() and tokenize(); a freshly
+  // created payments.card() has no attached iframe fields and always fails.
+  const cardRef = useRef<SquareCard | null>(null);
 
   useEffect(() => {
     if (!sdkReady || !window.Square || !config.applicationId || !config.locationId) return;
     let cancelled = false;
+    let localCard: SquareCard | null = null;
 
     (async () => {
       try {
         const payments = window.Square!.payments(config.applicationId, config.locationId);
         const card = await payments.card();
+        if (cancelled) {
+          await card.destroy?.();
+          return;
+        }
         await card.attach(`#${containerId}`);
-        if (!cancelled) setCardReady(true);
+        localCard = card;
+        cardRef.current = card;
+        setCardReady(true);
       } catch {
         if (!cancelled) setError('カード入力フォームの読み込みに失敗しました');
       }
@@ -54,6 +64,15 @@ export function SquareCardRegistration({ onSaved, onCancel }: SquareCardRegistra
 
     return () => {
       cancelled = true;
+      setCardReady(false);
+      cardRef.current = null;
+      if (localCard) {
+        try {
+          void localCard.destroy?.();
+        } catch {
+          // ignore teardown errors
+        }
+      }
     };
   }, [sdkReady, config.applicationId, config.locationId, containerId]);
 
@@ -62,8 +81,9 @@ export function SquareCardRegistration({ onSaved, onCancel }: SquareCardRegistra
       setError('同意が必要です');
       return;
     }
-    if (!window.Square || !config.applicationId || !config.locationId) {
-      setError('決済設定が完了していません');
+    const card = cardRef.current;
+    if (!card) {
+      setError('カード入力フォームが初期化されていません。少し待って再度お試しください。');
       return;
     }
 
@@ -71,13 +91,8 @@ export function SquareCardRegistration({ onSaved, onCancel }: SquareCardRegistra
     setError(null);
 
     try {
-      const payments = window.Square.payments(config.applicationId, config.locationId);
-      const card = await payments.card();
-      const tokenResult = await card.tokenize({
-        intent: 'STORE',
-        customerInitiated: true,
-        sellerKeyedIn: false,
-      });
+      // Tokenize the SAME attached card instance the user typed into.
+      const tokenResult = await card.tokenize();
 
       if (tokenResult.status !== 'OK' || !tokenResult.token) {
         throw new Error('カード情報を確認してください');
@@ -104,7 +119,7 @@ export function SquareCardRegistration({ onSaved, onCancel }: SquareCardRegistra
     } finally {
       setLoading(false);
     }
-  }, [consent, config.applicationId, config.locationId, onSaved]);
+  }, [consent, onSaved]);
 
   const sdkUrl =
     config.environment === 'production'
