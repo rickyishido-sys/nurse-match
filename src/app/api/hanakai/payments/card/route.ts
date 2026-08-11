@@ -45,7 +45,10 @@ export async function POST(request: Request) {
         expYear: result.paymentMethod.exp_year,
       },
     });
-  } catch {
+  } catch (e) {
+    console.error('HANAKAI_CARD_SAVE_ROUTE_FATAL', {
+      message: e instanceof Error ? e.message : String(e),
+    });
     return NextResponse.json({ ok: false, error: 'カードの保存に失敗しました' }, { status: 500 });
   }
 }

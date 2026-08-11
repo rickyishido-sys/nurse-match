@@ -103,14 +103,20 @@ async function getOrCreateSquareCustomer(memberId: string, nickname?: string) {
   });
 
   if (!result.ok) {
+    console.error('HANAKAI_CARD_SAVE_SQUARE_CREATECUSTOMER_ERROR', {
+      status: result.status,
+      codes: result.errors.map((e) => e.code),
+      categories: result.errors.map((e) => e.category),
+    });
     throw new Error(mapSquareFailureMessage(result.errors[0]?.code));
   }
   if (!result.data.customer?.id) {
+    console.error('HANAKAI_CARD_SAVE_SQUARE_CREATECUSTOMER_NO_ID', {});
     throw new Error(mapSquareFailureMessage());
   }
 
   const squareCustomerId = result.data.customer.id;
-  await admin.from('hanakai_square_customers').upsert(
+  const { error: custUpsertError } = await admin.from('hanakai_square_customers').upsert(
     {
       member_id: memberId,
       square_customer_id: squareCustomerId,
@@ -119,6 +125,14 @@ async function getOrCreateSquareCustomer(memberId: string, nickname?: string) {
     },
     { onConflict: 'member_id,environment' },
   );
+  if (custUpsertError) {
+    console.error('HANAKAI_CARD_SAVE_CUSTOMER_UPSERT_ERROR', {
+      code: custUpsertError.code,
+      message: custUpsertError.message,
+      details: custUpsertError.details,
+      hint: custUpsertError.hint,
+    });
+  }
 
   return squareCustomerId;
 }
@@ -150,6 +164,12 @@ export async function savePaymentMethodFromToken(input: {
   });
 
   if (!cardResult.ok) {
+    console.error('HANAKAI_CARD_SAVE_SQUARE_CREATECARD_ERROR', {
+      status: cardResult.status,
+      codes: cardResult.errors.map((e) => e.code),
+      categories: cardResult.errors.map((e) => e.category),
+      fields: cardResult.errors.map((e) => e.field),
+    });
     return { ok: false as const, error: mapSquareFailureMessage(cardResult.errors[0]?.code) };
   }
 
@@ -189,6 +209,12 @@ export async function savePaymentMethodFromToken(input: {
     .single();
 
   if (error || !method) {
+    console.error('HANAKAI_CARD_SAVE_DB_UPSERT_ERROR', {
+      code: error?.code,
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+    });
     return { ok: false as const, error: 'カード情報の保存に失敗しました' };
   }
 
