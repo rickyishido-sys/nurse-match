@@ -1,0 +1,22 @@
+<!-- Merge into ios/App/App/Info.plist before Archive -->
+<!-- native/hanakai/ios/ is gitignored; keep this file as source of truth -->
+
+<key>NSCameraUsageDescription</key>
+<string>プロフィール写真や本人確認書類を撮影するためにカメラを使用します。</string>
+<key>NSPhotoLibraryUsageDescription</key>
+<string>プロフィール写真や本人確認書類を選択するために写真ライブラリにアクセスします。</string>
+<key>NSPhotoLibraryAddUsageDescription</key>
+<string>撮影した写真を保存する場合に写真ライブラリへのアクセスが必要になることがあります。</string>
+<key>ITSAppUsesNonExemptEncryption</key>
+<false/>
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleURLName</key>
+    <string>design.kranz.hanakai</string>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>hanakai</string>
+    </array>
+  </dict>
+</array>

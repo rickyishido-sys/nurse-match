@@ -1,0 +1,7 @@
+{
+  "bundleId": "design.kranz.hanakai",
+  "marketingVersion": "1.0",
+  "currentProjectVersion": "6",
+  "targetedDeviceFamily": "1",
+  "notes": "App Store submission policy: iPhone only (not Universal). Capacitor regenerates TARGETED_DEVICE_FAMILY=1,2 — apply-ios-config.mjs rewrites after every sync."
+}
