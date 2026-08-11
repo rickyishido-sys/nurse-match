@@ -13,25 +13,13 @@
 
 ### 結論（この段階）
 
-**アップロード済み Build が `TARGETED_DEVICE_FAMILY=1`（iPhone専用）であることは、現環境からは確定できません。**
+**A/B 未確定。** 詳細調査は `build-v1.0.1-device-family-check.md` を参照。
 
-### 根拠
+- 申請方針・旧チェックリストの期待値は iPhone 専用（A）
+- Capacitor 生成デフォルトは `"1,2"`（B）で、device family を上書きする設定はリポジトリにない
+- アップロード済み v1.0(1) の実値・Archive ログ・ASC API は本環境から到達不可
 
-| 確認先 | 結果 |
-|--------|------|
-| リポジトリ内の `ios/` Xcode プロジェクト | **未コミット**（`native/hanakai/.gitignore` で除外）。ASC に載せたバイナリの設定はここにはない |
-| Capacitor 8 が生成する雛形（`npx cap add ios`） | `TARGETED_DEVICE_FAMILY = "1,2"`（**iPhone + iPad**） |
-| `docs/store-submission/store-metadata.md` | 配信デバイス表記が「iPhone / iPad」 |
-| App Store Connect API / 審査用認証情報 | この環境に未設定 |
-
-### 次に必要な確認（人間 / ASC）
-
-App Store Connect → 該当アプリ → 最新アップロード Build → 対応デバイスを確認:
-
-- **iPhone のみ** → iPhone 6.9" クラスのスクショだけで足りる（下記サイズ）
-- **Universal（iPhone + iPad）** → **iPad 13" スクショも必須**（2064×2752 または 2048×2732）
-
-> 推測で iPhone 専用と断定しないこと。雛形デフォルトは `"1,2"`。
+**人間が ASC / Xcode で A または B を確定するまで、スクショ撮影・加工・ASC アップロードは開始しない。**
 
 ---
 
