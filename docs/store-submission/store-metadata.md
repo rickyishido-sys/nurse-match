@@ -123,7 +123,7 @@ Capacitor ラッパーで要求する想定権限:
 |------|------|
 | 初期配信地域 | 日本 |
 | 価格 | 無料 |
-| デバイス | iPhone / iPad（iOS）、Android スマートフォン |
+| デバイス | **iPhone 専用**（`TARGETED_DEVICE_FAMILY=1`）。Build 1.0(5) は Universal だったため Build 6 で修正。設定正本: `native/hanakai/ios-config/release.json` |
 
 ---
 
