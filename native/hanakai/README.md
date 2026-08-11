@@ -13,6 +13,7 @@ npm run cap:add:ios
 npm run cap:add:android
 
 # Sync plugins and config into native projects
+# (iOS sync also applies ios-config: iPhone-only + Version/Build)
 npm run cap:sync
 
 # Open in IDE
@@ -21,6 +22,18 @@ npm run cap:open:android
 ```
 
 > **Note:** `ios/` and `android/` are created by `npx cap add ios` and `npx cap add android`. They are gitignored here; every developer runs the add commands after `npm install`.
+
+### App Store iOS release settings (tracked)
+
+`ios/` is gitignored, so release knobs live in `ios-config/` and are re-applied after every `cap sync` / `cap:add:ios`:
+
+| File | Purpose |
+|------|---------|
+| `ios-config/release.json` | Bundle ID, Version (`1.0`), Build (`6`), `TARGETED_DEVICE_FAMILY=1` (iPhone only) |
+| `ios-config/Info.plist.additions.xml` | Camera / Photo usage strings, URL scheme, export compliance |
+| `npm run ios:apply-config` | Patch `project.pbxproj` + merge plist without a full sync |
+
+Capacitor templates default to Universal (`1,2`). **Do not Archive until** `TARGETED_DEVICE_FAMILY = 1` is verified. See `docs/store-submission/ios-iphone-only-build-6.md`.
 
 ## Production vs development URLs
 
@@ -217,11 +230,12 @@ Until then, rely on email and in-app notifications on the web app.
 
 | Script | Description |
 |--------|-------------|
-| `npm run cap:sync` | Sync all platforms (`node scripts/sync.mjs`) |
-| `npm run cap:sync:ios` | Sync iOS only |
+| `npm run cap:sync` | Sync all platforms + apply iOS release config |
+| `npm run cap:sync:ios` | Sync iOS only + apply iOS release config |
 | `npm run cap:sync:android` | Sync Android only |
-| `npm run cap:add:ios` | Scaffold `ios/` project |
+| `npm run cap:add:ios` | Scaffold `ios/` then apply iPhone-only release config |
 | `npm run cap:add:android` | Scaffold `android/` project |
+| `npm run ios:apply-config` | Re-apply Version/Build/Device Family + plist additions |
 | `npm run cap:open:ios` | Open Xcode |
 | `npm run cap:open:android` | Open Android Studio |
 | `npm run cap:doctor` | Validate toolchain |

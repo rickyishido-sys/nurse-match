@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-08-11T23:36:16.565Z",
+  "baseUrl": "https://hanakai.kranz.design",
+  "pixelSize": "1290x2796",
+  "appleDisplayClass": "6.9\" Display (accepts 1290×2796 — former 6.7\")",
+  "format": "PNG, no alpha",
+  "ascUploadReady": true,
+  "uploadPerformed": false,
+  "authSource": ".env.secrets.local",
+  "shots": [
+    {
+      "order": 1,
+      "file": "01-events-list-1290x2796.png",
+      "screen": "イベント一覧",
+      "path": "/events",
+      "notes": "公開イベントカード中心"
+    },
+    {
+      "order": 2,
+      "file": "02-event-detail-1290x2796.png",
+      "screen": "イベント詳細",
+      "path": "/events/a27f5be8-a875-461c-9fd1-adfb936410ff",
+      "notes": "日時・場所・説明・参加導線"
+    },
+    {
+      "order": 3,
+      "file": "03-event-apply-1290x2796.png",
+      "screen": "参加申請",
+      "path": "/events/a27f5be8-a875-461c-9fd1-adfb936410ff#event-apply",
+      "notes": "参加申請セクション。カード入力UI非表示。送信・課金・カード登録なし"
+    },
+    {
+      "order": 4,
+      "file": "04-profile-1290x2796.png",
+      "screen": "プロフィール",
+      "path": "/my-profile",
+      "notes": "写真・自己紹介・本人確認等（メール非表示）"
+    },
+    {
+      "order": 5,
+      "file": "05-community-1290x2796.png",
+      "screen": "コミュニティ",
+      "path": "/connections",
+      "notes": "イベント参加後のつながり記録"
+    },
+    {
+      "order": 6,
+      "file": "06-host-create-1290x2796.png",
+      "screen": "イベント作成（主催者体験）",
+      "path": "/events/create",
+      "notes": "作成フォーム表示のみ。イベントは作成しない"
+    }
+  ]
+}
