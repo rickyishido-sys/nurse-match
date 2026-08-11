@@ -123,7 +123,7 @@ Capacitor ラッパーで要求する想定権限:
 |------|------|
 | 初期配信地域 | 日本 |
 | 価格 | 無料 |
-| デバイス | iPhone / iPad（iOS）、Android スマートフォン |
+| デバイス | `[要確認: ASCアップロード済みBuild]` iPhone専用なら iPhone のみ。Capacitor 雛形デフォルトは iPhone+iPad（`TARGETED_DEVICE_FAMILY=1,2`） |
 
 ---
 
