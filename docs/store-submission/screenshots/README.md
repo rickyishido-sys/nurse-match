@@ -6,68 +6,43 @@
 | 対象サイズ | **1290 × 2796**（Apple 6.9" Display 受理サイズ = 旧 6.7" / iPhone 15 Pro Max クラス） |
 | 出典 | [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications) |
 | Production | https://hanakai.kranz.design |
+| ログイン | App Review 一般ユーザー「レビュー太郎」（`.env.secrets.local` の `HANAKAI_REVIEW_*`） |
 | ASC アップロード | **未実施** |
 
 ---
 
-## 現状ステータス: BLOCKED（認証情報不足）
+## 現状ステータス: READY FOR HUMAN REVIEW
 
-6枚完成には **App Store 審査用アカウント**でのログインが必須です。
+6枚を Production から生成済み。App Store Connect へのアップロードは行っていません。
 
-| 確認 | 結果 |
-|------|------|
-| `HANAKAI_REVIEW_EMAIL` / `HANAKAI_REVIEW_PASSWORD` | 環境に未設定 |
-| `.env.secrets.local` | なし |
-| ドキュメントの審査用テンプレート | プレースホルダのみ |
-| 既存 E2E フォールバックアカウント | Production で `invalid-credentials`（使用不可・方針上も不使用） |
+| # | ファイル | 画面 | 検証 |
+|---|----------|------|------|
+| 1 | `ios-6.7/01-events-list-1290x2796.png` | イベント一覧 | 1290×2796 / PNG / 非透過 |
+| 2 | `ios-6.7/02-event-detail-1290x2796.png` | イベント詳細（審査用） | 同上 |
+| 3 | `ios-6.7/03-event-apply-1290x2796.png` | 参加申請（カード入力非表示・未送信） | 同上 |
+| 4 | `ios-6.7/04-profile-1290x2796.png` | プロフィール（レビュー太郎） | 同上 |
+| 5 | `ios-6.7/05-community-1290x2796.png` | コミュニティ | 同上 |
+| 6 | `ios-6.7/06-host-create-1290x2796.png` | イベント作成（未作成） | 同上 |
 
-未ログインでは次が完成しません:
+補足:
 
-- ホーム（`/home`）
-- 参加申請の「参加理由」フォーム（本番はカード登録 UI が先に出る）
-- プロフィール（`/my-profile`）
-- コミュニティの参加記録（空状態のみ）
-- イベント作成（ログイン必須）
-
-また未ログインの参加導線には **Square カード番号入力 UI** が表示されます。  
-App Store スクショでは **カード番号 / MM/YY / CVV を絶対に含めない**ため、審査用アカウント（カード登録済みが望ましい）での撮影が必要です。
+- 参加申請画面は Production 上カード未登録のため参加理由フォームの前に Square ゲートがある。スクショではカード入力 UI を非表示にし、申請コピーのみ撮影（カード登録・申請送信なし）。
+- ヘッダーのメール表示とサイトフッターは掲載用に撮影時のみ非表示。
+- `manifest.json` に撮影メタデータあり。
 
 ---
 
-## 人間がやること（最短）
-
-1. Cursor / 実行環境にシークレットを設定:
-   - `HANAKAI_REVIEW_EMAIL`
-   - `HANAKAI_REVIEW_PASSWORD`
-2. またはリポジトリ直下に gitignore 済み `.env.secrets.local` を作成（チャットに貼らない）
-3. 実行:
+## 再生成
 
 ```bash
-cd /workspace   # or repo root
-npm ci
-npx playwright install chromium
 node scripts/capture-app-store-screenshots.mjs
 ```
 
-4. 出力先: `docs/store-submission/screenshots/ios-6.7/`
-5. `manifest.json` と PNG 6枚を確認後、ASC アップロードは別タスク
+認証情報は `.env.secrets.local` の `HANAKAI_REVIEW_EMAIL` / `HANAKAI_REVIEW_PASSWORD`（値はログに出さない）。
 
 ---
 
-## 推奨6枚（スクリプト出力名）
+## サイズメモ
 
-| # | ファイル | 画面 |
-|---|----------|------|
-| 1 | `01-events-list-1290x2796.png` | イベント一覧 |
-| 2 | `02-event-detail-1290x2796.png` | イベント詳細 |
-| 3 | `03-event-apply-1290x2796.png` | 参加申請（カードUI非表示・未送信） |
-| 4 | `04-profile-1290x2796.png` | プロフィール |
-| 5 | `05-community-1290x2796.png` | コミュニティ |
-| 6 | `06-host-create-1290x2796.png`（または manage） | 主催者体験 |
-
----
-
-## サイズ検証メモ（Agent）
-
-Playwright `viewport 430×932` × `deviceScaleFactor 3` → **1290×2796** を確認済み（PNG・非透過）。  
+Playwright `viewport 430×932` × `deviceScaleFactor 3` → **1290×2796**（PNG・非透過）。  
 App Store Connect の 6.9" Display 枠にそのままアップロード可能な寸法です。
