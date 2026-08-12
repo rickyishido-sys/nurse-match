@@ -73,6 +73,56 @@ function fingerprint(dbUrl) {
   return m ? `${m[1].slice(0, 4)}…${m[1].slice(-4)}` : 'unknown';
 }
 
+/** Prefer direct URL; on IPv6-unreachable hosts fall back to Session/Transaction pooler (IPv4). */
+async function connectXuexClient(dbUrl, report) {
+  const direct = new pg.Client({
+    connectionString: dbUrl,
+    connectionTimeoutMillis: 8000,
+    ssl: { rejectUnauthorized: false },
+  });
+  try {
+    await direct.connect();
+    report.connection.mode = 'direct';
+    return direct;
+  } catch (e) {
+    const code = e && typeof e === 'object' && 'code' in e ? String(e.code) : '';
+    await direct.end().catch(() => {});
+    if (!['ENETUNREACH', 'ENOTFOUND', 'EHOSTUNREACH', 'ETIMEDOUT'].includes(code)) {
+      throw e;
+    }
+  }
+
+  const u = new URL(dbUrl);
+  const password = decodeURIComponent(u.password);
+  const ref = 'regjgwrugiwbmxcsxuex';
+  const candidates = [
+    { host: 'aws-1-ap-southeast-2.pooler.supabase.com', port: 6543 },
+    { host: 'aws-1-ap-southeast-2.pooler.supabase.com', port: 5432 },
+  ];
+  let lastErr;
+  for (const c of candidates) {
+    const client = new pg.Client({
+      host: c.host,
+      port: c.port,
+      user: `postgres.${ref}`,
+      password,
+      database: 'postgres',
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 15000,
+    });
+    try {
+      await client.connect();
+      report.connection.mode = 'pooler-ipv4';
+      report.connection.pooler = `${c.host}:${c.port}`;
+      return client;
+    } catch (err) {
+      lastErr = err;
+      await client.end().catch(() => {});
+    }
+  }
+  throw lastErr ?? new Error('Unable to connect to xuex via direct or pooler');
+}
+
 const report = {
   target: 'xuex (PRODUCTION) — payment method management',
   migration: MIGRATION,
@@ -94,8 +144,7 @@ try {
   }
 
   const sql = readFileSync(path.join(root, MIGRATION), 'utf8');
-  client = new pg.Client({ connectionString: dbUrl });
-  await client.connect();
+  client = await connectXuexClient(dbUrl, report);
   report.connection.database = (await client.query('select current_database() as db')).rows[0].db;
 
   // Pre-apply safety reads
@@ -161,6 +210,20 @@ try {
     where n.nspname='public' and p.proname='hanakai_set_default_payment_method'
   `);
   report.checks.rpc = rpc.rows;
+
+  // Supabase may auto-grant EXECUTE to anon/authenticated on CREATE; lock to service_role.
+  await client.query(
+    'revoke all on function public.hanakai_set_default_payment_method(uuid, uuid, text) from public',
+  );
+  await client.query(
+    'revoke all on function public.hanakai_set_default_payment_method(uuid, uuid, text) from anon',
+  );
+  await client.query(
+    'revoke all on function public.hanakai_set_default_payment_method(uuid, uuid, text) from authenticated',
+  );
+  await client.query(
+    'grant execute on function public.hanakai_set_default_payment_method(uuid, uuid, text) to service_role',
+  );
 
   const grants = await client.query(`
     select grantee, privilege_type

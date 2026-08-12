@@ -88,4 +88,6 @@ end;
 $$;
 
 revoke all on function public.hanakai_set_default_payment_method(uuid, uuid, text) from public;
+revoke all on function public.hanakai_set_default_payment_method(uuid, uuid, text) from anon;
+revoke all on function public.hanakai_set_default_payment_method(uuid, uuid, text) from authenticated;
 grant execute on function public.hanakai_set_default_payment_method(uuid, uuid, text) to service_role;
