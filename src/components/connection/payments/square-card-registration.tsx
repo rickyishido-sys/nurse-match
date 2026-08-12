@@ -46,25 +46,22 @@ export function SquareCardRegistration({
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sdkReady, setSdkReady] = useState(false);
+  // Remount after Square.js is already on the page (変更 → 新しいカードを追加)
+  // must start ready: Script onLoad will not fire again for a cached script.
+  const [sdkReady, setSdkReady] = useState(
+    () => typeof window !== 'undefined' && typeof window.Square !== 'undefined',
+  );
   const [cardReady, setCardReady] = useState(false);
   // The SAME card instance must be used for attach() and tokenize(); a freshly
   // created payments.card() has no attached iframe fields and always fails.
   const cardRef = useRef<SquareCard | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // When this component is mounted after Square.js is already on the page
-  // (e.g. "変更" → "新しいカードを追加"), Script onLoad does not fire again.
-  // onReady + this sync keep sdkReady true on every mount.
   const markSdkReady = useCallback(() => {
     if (typeof window !== 'undefined' && window.Square) {
       setSdkReady(true);
     }
   }, []);
-
-  useEffect(() => {
-    markSdkReady();
-  }, [markSdkReady]);
 
   useEffect(() => {
     if (!sdkReady || !window.Square || !config.applicationId || !config.locationId) return;
