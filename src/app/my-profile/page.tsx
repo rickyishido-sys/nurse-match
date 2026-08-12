@@ -7,20 +7,10 @@ import { IdentityVerificationSection } from '@/components/connection/identity-ve
 import { ProfileEditForm } from '@/components/connection/profile-edit-form';
 import { LegalLinks } from '@/components/connection/legal-links';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
-import { BloomCardOwner } from '@/components/connection/bloom-card';
-import { BloomPhase4Panel } from '@/components/connection/bloom-phase4-panel';
-import { BloomProfileUpdateButton, BloomVisibilityForm } from '@/components/connection/bloom-profile-panel';
 import { ProfileCompletionCard } from '@/components/connection/profile/profile-completion-card';
 import { ProfileNextRecommendationCard } from '@/components/connection/profile/profile-next-recommendation';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { isBloomAiEnabled } from '@/lib/connection/bloom-profile-ai';
-import { getBloomProfileOrEmpty } from '@/lib/connection/bloom-profile';
-import {
-  getBloomPhase4Settings,
-  listBloomMemories,
-  listBloomTimeline,
-  listBloomVersions,
-} from '@/lib/connection/bloom-phase4';
 import { MBTI_LABEL } from '@/lib/connection/bloom-profile-options';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
@@ -188,15 +178,10 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
   const editError = param(sp, 'error');
   const viewerMemberId = await getViewerMemberId();
   const member = viewerMemberId ? await getMember(viewerMemberId) : null;
-  const bloomProfile = viewerMemberId ? await getBloomProfileOrEmpty(viewerMemberId) : null;
   const bloomSaved = param(sp, 'bloomSaved') === '1';
   const phase4Saved = param(sp, 'phase4Saved') === '1';
   const memorySaved = param(sp, 'memorySaved') === '1';
   const reflectionUpdated = param(sp, 'reflectionUpdated') === '1';
-  const phase4Settings = viewerMemberId ? await getBloomPhase4Settings(viewerMemberId) : null;
-  const bloomTimeline = viewerMemberId ? await listBloomTimeline(viewerMemberId) : [];
-  const bloomMemories = viewerMemberId ? await listBloomMemories(viewerMemberId) : [];
-  const bloomVersions = viewerMemberId ? await listBloomVersions(viewerMemberId) : [];
 
   if (!member || !member.nickname.trim()) {
     return <EmptyProfile viewer={viewer} />;
@@ -231,11 +216,11 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
       ? (MBTI_LABEL[member.mbtiType] ?? member.mbtiType)
       : '';
 
-  const completion = computeProfileCompletion(member, bloomProfile);
+  const completion = computeProfileCompletion(member, null);
   const hasEventParticipation = viewerMemberId ? await memberHasEventParticipation(viewerMemberId) : false;
   const nextRecommendation = resolveProfileNextRecommendation({
     member,
-    bloomProfile,
+    bloomProfile: null,
     hasEventParticipation,
   });
 
@@ -348,38 +333,7 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
           <IdentityVerificationSection member={member} />
         </SectionCard>
 
-        {bloomProfile ? (
-          <section id={PROFILE_SECTION_IDS.intro} className='scroll-mt-24 space-y-4'>
-            <div className='space-y-1'>
-              <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>
-                紹介
-              </p>
-              <h2 className='text-lg font-semibold tracking-tight text-[#1a1a1a]'>あなたの紹介</h2>
-              <p className='text-sm leading-7 text-[#6b6b6b]'>
-                プロフィールをもとに整えた、あなたらしさの紹介です。
-              </p>
-            </div>
-            <BloomCardOwner profile={bloomProfile} />
-            <BloomProfileUpdateButton aiEnabled={isBloomAiEnabled()} hasProfile={completion.items.find((i) => i.id === 'intro')?.complete ?? false} />
-            <BloomVisibilityForm profile={bloomProfile} />
-          </section>
-        ) : null}
-
-        {phase4Settings ? (
-          <BloomPhase4Panel
-            mode='owner'
-            timeline={bloomTimeline}
-            memories={bloomMemories}
-            versions={bloomVersions}
-            aiReflection={phase4Settings.aiReflection}
-            settings={{
-              showTimeline: phase4Settings.showTimeline,
-              showMemories: phase4Settings.showMemories,
-              showReflection: phase4Settings.showReflection,
-            }}
-            aiEnabled={isBloomAiEnabled()}
-          />
-        ) : null}
+        {/* Bloom「あなたの紹介」は未実装のため一時非表示（backend / DB は維持） */}
 
         <Link
           href='/my-profile?mode=edit'

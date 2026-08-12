@@ -69,6 +69,7 @@ export function computeProfileCompletion(
   member: ConnectionMember,
   bloomProfile: BloomProfile | null | undefined,
 ): ProfileCompletionResult {
+  void bloomProfile;
   const items: ProfileCompletionItem[] = [
     {
       id: 'photos',
@@ -126,13 +127,7 @@ export function computeProfileCompletion(
       sectionId: PROFILE_SECTION_IDS.identity,
       complete: hasIdentityProgress(member),
     },
-    {
-      id: 'intro',
-      label: '紹介文',
-      incompleteLabel: '紹介文を作成する',
-      sectionId: PROFILE_SECTION_IDS.intro,
-      complete: hasGeneratedIntro(bloomProfile),
-    },
+    // Bloom「紹介文」は未実装のため完成度・導線から一時除外
   ];
 
   const completedCount = items.filter((i) => i.complete).length;
@@ -162,6 +157,7 @@ export function resolveProfileNextRecommendation(input: {
   hasEventParticipation: boolean;
 }): ProfileNextRecommendation {
   const { member, bloomProfile, hasEventParticipation } = input;
+  void bloomProfile;
   const candidates: ProfileNextRecommendation[] = [];
 
   if (!memberHasProfilePhotos(member)) {
@@ -181,16 +177,6 @@ export function resolveProfileNextRecommendation(input: {
       body: '本人確認が済むと、イベントへの参加申込・作成が可能になります。本人確認はHANAKAI運営が行います。',
       ctaLabel: '本人確認へ進む',
       href: '/my-profile?mode=edit#profile-section-identity',
-    });
-  }
-
-  if (!hasGeneratedIntro(bloomProfile)) {
-    candidates.push({
-      priority: 3,
-      title: 'あなたらしさを整理してみましょう',
-      body: 'プロフィールをもとに、紹介文や話しかけるきっかけを整えられます。',
-      ctaLabel: 'あなたらしさを整理する',
-      href: `#${PROFILE_SECTION_IDS.intro}`,
     });
   }
 

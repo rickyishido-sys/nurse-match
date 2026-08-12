@@ -1,13 +1,24 @@
 import Link from 'next/link';
 import { EVENTS_LIST_FILTERS, type EventsListFilterSlug } from '@/lib/connection/events-list-ux';
 
-export function EventsCategoryFilter({ active }: { active: EventsListFilterSlug }) {
+export function EventsCategoryFilter({
+  active,
+  region,
+}: {
+  active: EventsListFilterSlug;
+  /** Preserve region query when switching categories */
+  region?: string | null;
+}) {
   return (
     <div className='space-y-3'>
       <p className='text-xs font-medium tracking-wide text-[#9a9a9a]'>カテゴリーから探す</p>
       <div className='-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
         {EVENTS_LIST_FILTERS.map((filter) => {
-          const href = filter.slug ? `/events?category=${filter.slug}` : '/events';
+          const params = new URLSearchParams();
+          if (filter.slug) params.set('category', filter.slug);
+          if (region) params.set('region', region);
+          const q = params.toString();
+          const href = q ? `/events?${q}` : '/events';
           const isActive = active === filter.slug;
           return (
             <Link
