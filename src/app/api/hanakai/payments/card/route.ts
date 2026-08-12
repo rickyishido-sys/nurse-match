@@ -52,6 +52,11 @@ export async function POST(request: Request) {
     console.error('HANAKAI_CARD_SAVE_ROUTE_FATAL', {
       message: e instanceof Error ? e.message : String(e),
     });
-    return NextResponse.json({ ok: false, error: 'カードの保存に失敗しました' }, { status: 500 });
+    // CreateCustomer / unexpected throws from save flow may already carry user-facing copy.
+    const message =
+      e instanceof Error && e.message
+        ? e.message
+        : 'カード情報の保存に失敗しました';
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

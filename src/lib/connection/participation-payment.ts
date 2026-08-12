@@ -175,11 +175,11 @@ async function getOrCreateSquareCustomer(memberId: string, nickname?: string) {
       codes: result.errors.map((e) => e.code),
       categories: result.errors.map((e) => e.category),
     });
-    throw new Error(mapSquareFailureMessage(result.errors[0]?.code));
+    throw new Error(mapSquareFailureMessage(result.errors[0]?.code, 'card_registration'));
   }
   if (!result.data.customer?.id) {
     console.error('HANAKAI_CARD_SAVE_SQUARE_CREATECUSTOMER_NO_ID', {});
-    throw new Error(mapSquareFailureMessage());
+    throw new Error(mapSquareFailureMessage(undefined, 'card_registration'));
   }
 
   const squareCustomerId = result.data.customer.id;
@@ -239,12 +239,20 @@ export async function savePaymentMethodFromToken(input: {
       categories: cardResult.errors.map((e) => e.category),
       fields: cardResult.errors.map((e) => e.field),
     });
-    return { ok: false as const, error: mapSquareFailureMessage(cardResult.errors[0]?.code) };
+    return {
+      ok: false as const,
+      error: mapSquareFailureMessage(cardResult.errors[0]?.code, 'card_registration'),
+    };
   }
 
   const card = cardResult.data.card ?? {};
   const squareCardId = String(card.id ?? '');
-  if (!squareCardId) return { ok: false as const, error: 'カードの保存に失敗しました' };
+  if (!squareCardId) {
+    return {
+      ok: false as const,
+      error: mapSquareFailureMessage(undefined, 'card_registration'),
+    };
+  }
 
   const existing = await listPaymentMethods(input.memberId);
   const wantDefault = input.setAsDefault !== false || existing.length === 0;
@@ -456,9 +464,9 @@ export async function chargeParticipationPayment(paymentId: string, options?: { 
       applicationId: payment.application_id,
       success: false,
       failureCode: code,
-      failureMessage: mapSquareFailureMessage(code),
+      failureMessage: mapSquareFailureMessage(code, 'payment'),
     });
-    return { ok: false as const, error: mapSquareFailureMessage(code) };
+    return { ok: false as const, error: mapSquareFailureMessage(code, 'payment') };
   }
 
   const squarePaymentId = String(result.data.payment?.id ?? '');
@@ -480,13 +488,14 @@ export async function chargeParticipationPayment(paymentId: string, options?: { 
     return { ok: true as const, squarePaymentId };
   }
 
+  const paymentIncompleteMessage = 'お支払いを完了できませんでした';
   await markPaymentOutcome({
     paymentId,
     applicationId: payment.application_id,
     success: false,
     squarePaymentId: squarePaymentId || undefined,
     failureCode: squareStatus || 'UNKNOWN',
-    failureMessage: '決済を完了できませんでした',
+    failureMessage: paymentIncompleteMessage,
   });
   await createParticipationNotification({
     memberId: payment.member_id,
@@ -494,7 +503,7 @@ export async function chargeParticipationPayment(paymentId: string, options?: { 
     type: 'participation_payment_failed',
     amountJpy: chargeAmountJpy,
   });
-  return { ok: false as const, error: '決済を完了できませんでした' };
+  return { ok: false as const, error: paymentIncompleteMessage };
 }
 
 export async function chargeParticipationPaymentsBatch(paymentIds: string[]) {
@@ -624,7 +633,7 @@ export async function adminRefundParticipationPayment(paymentId: string, adminMe
   });
 
   if (!result.ok) {
-    return { ok: false as const, error: mapSquareFailureMessage(result.errors[0]?.code) };
+    return { ok: false as const, error: mapSquareFailureMessage(result.errors[0]?.code, 'payment') };
   }
 
   const now = new Date().toISOString();

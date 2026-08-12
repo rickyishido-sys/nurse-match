@@ -160,7 +160,17 @@ export function isSquareWebhookVerificationConfigured(): boolean {
   return Boolean(getSquareConfig().webhookSignatureKey);
 }
 
-export function mapSquareFailureMessage(code?: string): string {
+/** User-facing copy must match the operation stage (registration vs charge). */
+export type SquareFailureContext = 'card_registration' | 'payment';
+
+const CARD_REGISTRATION_DEFAULT =
+  'カードを登録できませんでした。カード情報をご確認のうえ、もう一度お試しください。';
+const PAYMENT_DEFAULT = 'お支払いを完了できませんでした。カード情報をご確認ください。';
+
+export function mapSquareFailureMessage(
+  code?: string,
+  context: SquareFailureContext = 'payment',
+): string {
   switch (code) {
     case 'CARD_DECLINED':
       return 'カードが拒否されました。別のカードをお試しください。';
@@ -173,6 +183,6 @@ export function mapSquareFailureMessage(code?: string): string {
     case 'CARD_TOKEN_USED':
       return 'カード情報の有効期限が切れました。再度入力してください。';
     default:
-      return '決済を完了できませんでした。カード情報をご確認ください。';
+      return context === 'card_registration' ? CARD_REGISTRATION_DEFAULT : PAYMENT_DEFAULT;
   }
 }

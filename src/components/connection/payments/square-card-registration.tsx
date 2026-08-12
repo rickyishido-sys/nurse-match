@@ -133,7 +133,9 @@ export function SquareCardRegistration({
       const tokenResult = await card.tokenize();
 
       if (tokenResult.status !== 'OK' || !tokenResult.token) {
-        throw new Error('カード情報を確認してください');
+        throw new Error(
+          'カードを登録できませんでした。カード情報をご確認のうえ、もう一度お試しください。',
+        );
       }
 
       const res = await fetch('/api/hanakai/payments/card', {
@@ -153,12 +155,19 @@ export function SquareCardRegistration({
         paymentMethod?: { id: string; brand: string | null; last4: string | null };
       };
       if (!res.ok || !data.ok || !data.paymentMethod) {
-        throw new Error(data.error ?? 'カードの保存に失敗しました');
+        throw new Error(
+          data.error ??
+            'カードを登録できませんでした。カード情報をご確認のうえ、もう一度お試しください。',
+        );
       }
 
       onSaved(data.paymentMethod);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'カードの保存に失敗しました');
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'カードを登録できませんでした。カード情報をご確認のうえ、もう一度お試しください。',
+      );
     } finally {
       setLoading(false);
     }
