@@ -41,7 +41,10 @@ import {
 import { getApplication, getEvent, getEventMembers, getMember } from '@/lib/connection/repo';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getEventEligibility } from '@/lib/connection/identity-gate';
-import { memberHasActivePaymentMethod, getApplicationPaymentContext } from '@/lib/connection/participation-payment';
+import {
+  listPaymentMethods,
+  getApplicationPaymentContext,
+} from '@/lib/connection/participation-payment';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
 type PageProps = {
@@ -63,6 +66,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
   const applied = sp.applied === '1';
   const participationConfirmed = sp.participation === 'confirmed';
   const reasonError = sp.error === 'reason';
+  const paymentMethodError = sp.error === 'payment_method';
   const created = sp.created === '1';
   const cancelled = sp.cancelled === '1';
   const cancelError = typeof sp.cancel_error === 'string' ? sp.cancel_error : '';
@@ -73,7 +77,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
   const isHost = !!viewerMemberId && event.hostId === viewerMemberId;
   const approvalMode = event.approvalMode ?? 'host_approval';
   const isFull = event.status === 'full' || event.reservedCount >= event.capacity;
-  const hasPaymentMethod = viewerMemberId ? await memberHasActivePaymentMethod(viewerMemberId) : false;
+  const paymentMethods = viewerMemberId ? await listPaymentMethods(viewerMemberId) : [];
   const paymentContext =
     viewerMemberId && existingApp
       ? await getApplicationPaymentContext(existingApp.id, viewerMemberId)
@@ -370,6 +374,11 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                       参加理由は10文字以上300文字以内で入力してください。
                     </p>
                   ) : null}
+                  {paymentMethodError ? (
+                    <p className='mb-3 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
+                      お支払い方法を選択してください。
+                    </p>
+                  ) : null}
                   <p className='mb-4 text-sm leading-7 text-[#6b6b6b]'>
                     {approvalMode === 'auto'
                       ? 'あなたの想いを添えて参加できます。主催者と参加者が、心地よいConnectionを育てます。'
@@ -378,7 +387,15 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                   <ApplyWithCardGate
                     eventId={event.id}
                     approvalMode={approvalMode}
-                    hasPaymentMethod={hasPaymentMethod}
+                    usageFeeJpy={usageFeeJpy}
+                    initialMethods={paymentMethods.map((m) => ({
+                      id: m.id,
+                      brand: m.brand,
+                      last4: m.last_4,
+                      expMonth: m.exp_month,
+                      expYear: m.exp_year,
+                      isDefault: m.is_default,
+                    }))}
                   />
                 </>
               )}

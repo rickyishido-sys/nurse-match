@@ -226,6 +226,7 @@ export async function createConnectionEventAction(formData: FormData) {
 export async function applyConnectionEventAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '');
   const reason = String(formData.get('reason') ?? '').trim();
+  const paymentMethodId = String(formData.get('paymentMethodId') ?? '').trim();
   const memberId = await ensureViewerMemberId();
   if (!memberId) redirect(`/login?next=${encodeURIComponent(`/events/${eventId}`)}`);
 
@@ -246,8 +247,38 @@ export async function applyConnectionEventAction(formData: FormData) {
     redirect(`/events/${eventId}?error=reason`);
   }
 
-  console.log('CONNECTION_APPLY', { eventId, memberId, reasonLength: reason.length });
-  if (eventId) await applyToEvent(eventId, memberId, reason);
+  const {
+    getPaymentMethodForMember,
+    getDefaultPaymentMethod,
+    memberHasActivePaymentMethod,
+  } = await import('@/lib/connection/participation-payment');
+
+  const hasCard = await memberHasActivePaymentMethod(memberId);
+  if (!hasCard) {
+    redirect(`/events/${eventId}?error=payment_method`);
+  }
+
+  let resolvedMethodId = paymentMethodId || null;
+  if (resolvedMethodId) {
+    const owned = await getPaymentMethodForMember(memberId, resolvedMethodId);
+    if (!owned) {
+      redirect(`/events/${eventId}?error=payment_method`);
+    }
+  } else {
+    const fallback = await getDefaultPaymentMethod(memberId);
+    resolvedMethodId = fallback?.id ?? null;
+  }
+  if (!resolvedMethodId) {
+    redirect(`/events/${eventId}?error=payment_method`);
+  }
+
+  console.log('CONNECTION_APPLY', {
+    eventId,
+    memberId,
+    reasonLength: reason.length,
+    hasPaymentMethodId: Boolean(resolvedMethodId),
+  });
+  if (eventId) await applyToEvent(eventId, memberId, reason, resolvedMethodId);
   revalidatePath(`/events/${eventId}`);
   revalidatePath('/events');
   revalidatePath('/manage');

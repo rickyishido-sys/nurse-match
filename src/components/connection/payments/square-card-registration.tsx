@@ -24,11 +24,23 @@ declare global {
 }
 
 type SquareCardRegistrationProps = {
-  onSaved: () => void;
+  onSaved: (paymentMethod?: { id: string; brand: string | null; last4: string | null }) => void;
   onCancel?: () => void;
+  /** When false, keep existing default (unless first card). Default true. */
+  setAsDefault?: boolean;
+  title?: string;
+  submitLabel?: string;
+  compact?: boolean;
 };
 
-export function SquareCardRegistration({ onSaved, onCancel }: SquareCardRegistrationProps) {
+export function SquareCardRegistration({
+  onSaved,
+  onCancel,
+  setAsDefault = true,
+  title = 'お支払い方法の登録',
+  submitLabel = 'カードを保存して続ける',
+  compact = false,
+}: SquareCardRegistrationProps) {
   const containerId = useId().replace(/:/g, '');
   const config = getPublicSquareConfig();
   const [consent, setConsent] = useState(false);
@@ -105,21 +117,26 @@ export function SquareCardRegistration({ onSaved, onCancel }: SquareCardRegistra
           sourceId: tokenResult.token,
           consentAccepted: true,
           platform: 'web',
+          setAsDefault,
         }),
       });
 
-      const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (!res.ok || !data.ok) {
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        paymentMethod?: { id: string; brand: string | null; last4: string | null };
+      };
+      if (!res.ok || !data.ok || !data.paymentMethod) {
         throw new Error(data.error ?? 'カードの保存に失敗しました');
       }
 
-      onSaved();
+      onSaved(data.paymentMethod);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'カードの保存に失敗しました');
     } finally {
       setLoading(false);
     }
-  }, [consent, onSaved]);
+  }, [consent, onSaved, setAsDefault]);
 
   const sdkUrl =
     config.environment === 'production'
@@ -131,15 +148,23 @@ export function SquareCardRegistration({ onSaved, onCancel }: SquareCardRegistra
       <Script src={sdkUrl} strategy='afterInteractive' onLoad={() => setSdkReady(true)} />
 
       <div>
-        <h2 className='text-lg font-semibold text-[#1a1a1a]'>お支払い方法の登録</h2>
-        <p className='mt-2 text-sm leading-7 text-[#4a4a4a]'>
-          参加メンバーに選ばれた場合のみ、{HANAKAI_USAGE_FEE_LABEL}
-          {formatHanakaiUsageFee()}を登録済みのカードへ自動請求します。
-        </p>
-        <p className='mt-2 text-sm leading-7 text-[#4a4a4a]'>選ばれなかった場合、請求は発生しません。</p>
-        <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>
-          飲食代・材料費・施設利用料など、イベント当日に必要な費用は含まれません。イベント詳細をご確認のうえ、当日、主催者または店舗へ直接お支払いください。
-        </p>
+        <h2 className='text-lg font-semibold text-[#1a1a1a]'>{title}</h2>
+        {compact ? (
+          <p className='mt-2 text-sm leading-7 text-[#4a4a4a]'>
+            カード番号は Square に安全に送信され、HANAKAI には保存されません。
+          </p>
+        ) : (
+          <>
+            <p className='mt-2 text-sm leading-7 text-[#4a4a4a]'>
+              参加メンバーに選ばれた場合のみ、{HANAKAI_USAGE_FEE_LABEL}
+              {formatHanakaiUsageFee()}を登録済みのカードへ自動請求します。
+            </p>
+            <p className='mt-2 text-sm leading-7 text-[#4a4a4a]'>選ばれなかった場合、請求は発生しません。</p>
+            <p className='mt-2 text-sm leading-7 text-[#6b6b6b]'>
+              飲食代・材料費・施設利用料など、イベント当日に必要な費用は含まれません。イベント詳細をご確認のうえ、当日、主催者または店舗へ直接お支払いください。
+            </p>
+          </>
+        )}
       </div>
 
       <div id={containerId} className='min-h-[56px] rounded-2xl border border-[#ddd9d1] bg-white px-3 py-3' />
@@ -164,7 +189,7 @@ export function SquareCardRegistration({ onSaved, onCancel }: SquareCardRegistra
           className='inline-flex h-12 flex-1 items-center justify-center rounded-full text-sm font-semibold text-white disabled:opacity-40'
           style={{ backgroundColor: HK.green }}
         >
-          {loading ? '保存中…' : 'カードを保存して続ける'}
+          {loading ? '保存中…' : submitLabel}
         </button>
         {onCancel ? (
           <button

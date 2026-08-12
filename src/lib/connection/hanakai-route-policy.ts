@@ -12,6 +12,7 @@ export const HANAKAI_ROUTE_REDIRECTS: Record<string, string> = {
   '/delete-account': '/account/delete',
   '/profile/edit': '/my-profile?mode=edit',
   '/blocked-users': '/account/blocked',
+  '/my-profile/payment-methods': '/account/payment-methods',
 };
 
 export const HANAKAI_PUBLIC_EXACT = new Set([

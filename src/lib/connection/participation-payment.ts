@@ -79,6 +79,73 @@ export async function memberHasActivePaymentMethod(memberId: string) {
   return Boolean(method);
 }
 
+export async function getPaymentMethodForMember(
+  memberId: string,
+  paymentMethodId: string,
+  environment?: SquareEnvironment,
+) {
+  const admin = createAdminSupabaseClient();
+  if (!admin) return null;
+  const env = environment ?? getSquareEnvironment();
+  const { data } = await admin
+    .from('hanakai_payment_methods')
+    .select('*')
+    .eq('id', paymentMethodId)
+    .eq('member_id', memberId)
+    .eq('environment', env)
+    .eq('status', 'active')
+    .maybeSingle();
+  return (data as PaymentMethodRow | null) ?? null;
+}
+
+/** Application statuses that still may charge the bound payment method. */
+export const PAYMENT_METHOD_IN_USE_APP_STATUSES = [
+  'pending',
+  'awaiting_confirmation',
+  'payment_processing',
+  'payment_failed',
+] as const;
+
+export async function countApplicationsUsingPaymentMethod(input: {
+  memberId: string;
+  paymentMethodId: string;
+}) {
+  const admin = createAdminSupabaseClient();
+  if (!admin) return 0;
+  const { count } = await admin
+    .from('hanakai_event_applications')
+    .select('*', { count: 'exact', head: true })
+    .eq('member_id', input.memberId)
+    .eq('payment_method_id', input.paymentMethodId)
+    .in('status', [...PAYMENT_METHOD_IN_USE_APP_STATUSES]);
+  return count ?? 0;
+}
+
+export async function setDefaultPaymentMethod(input: {
+  memberId: string;
+  paymentMethodId: string;
+}) {
+  const admin = createAdminSupabaseClient();
+  if (!admin) return { ok: false as const, error: 'データベースに接続できません' };
+
+  const env = getSquareEnvironment();
+  const { data, error } = await admin.rpc('hanakai_set_default_payment_method', {
+    p_member_id: input.memberId,
+    p_payment_method_id: input.paymentMethodId,
+    p_environment: env,
+  });
+
+  if (error) {
+    console.error('HANAKAI_SET_DEFAULT_PAYMENT_METHOD_ERROR', {
+      code: error.code,
+      message: error.message,
+    });
+    return { ok: false as const, error: 'デフォルトの支払い方法を更新できませんでした' };
+  }
+
+  return { ok: true as const, paymentMethod: data as PaymentMethodRow };
+}
+
 async function getOrCreateSquareCustomer(memberId: string, nickname?: string) {
   const admin = createAdminSupabaseClient();
   if (!admin) throw new Error('DB unavailable');
@@ -144,6 +211,8 @@ export async function savePaymentMethodFromToken(input: {
   consentAccepted: boolean;
   platform?: 'web' | 'ios' | 'android';
   nickname?: string;
+  /** When false, keep existing default (unless this is the first active card). Default true for apply-flow UX. */
+  setAsDefault?: boolean;
 }) {
   if (!input.consentAccepted) {
     return { ok: false as const, error: '同意が必要です' };
@@ -177,12 +246,18 @@ export async function savePaymentMethodFromToken(input: {
   const squareCardId = String(card.id ?? '');
   if (!squareCardId) return { ok: false as const, error: 'カードの保存に失敗しました' };
 
-  await admin
-    .from('hanakai_payment_methods')
-    .update({ is_default: false, updated_at: new Date().toISOString() })
-    .eq('member_id', input.memberId)
-    .eq('environment', env)
-    .eq('is_default', true);
+  const existing = await listPaymentMethods(input.memberId);
+  const wantDefault = input.setAsDefault !== false || existing.length === 0;
+
+  if (wantDefault) {
+    await admin
+      .from('hanakai_payment_methods')
+      .update({ is_default: false, updated_at: new Date().toISOString() })
+      .eq('member_id', input.memberId)
+      .eq('environment', env)
+      .eq('status', 'active')
+      .eq('is_default', true);
+  }
 
   const { data: method, error } = await admin
     .from('hanakai_payment_methods')
@@ -196,12 +271,13 @@ export async function savePaymentMethodFromToken(input: {
         exp_month: card.exp_month ? Number(card.exp_month) : null,
         exp_year: card.exp_year ? Number(card.exp_year) : null,
         cardholder_name: (card.cardholder_name as string | undefined) ?? null,
-        is_default: true,
+        is_default: wantDefault,
         status: 'active',
         environment: env,
         consent_version: PAYMENT_CONSENT_VERSION,
         consented_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        disabled_at: null,
       },
       { onConflict: 'square_card_id,environment' },
     )
@@ -221,7 +297,7 @@ export async function savePaymentMethodFromToken(input: {
   await admin.from('hanakai_payment_consents').insert({
     member_id: input.memberId,
     consent_version: PAYMENT_CONSENT_VERSION,
-    consent_context: 'first_event_application',
+    consent_context: existing.length === 0 ? 'first_event_application' : 'add_payment_method',
     platform: input.platform ?? 'web',
     payment_method_id: method.id,
     environment: env,
@@ -302,7 +378,25 @@ export async function chargeParticipationPayment(paymentId: string, options?: { 
     return { ok: false as const, error: '決済金額が不正です' };
   }
 
-  const method = await getDefaultPaymentMethod(payment.member_id, payment.environment as SquareEnvironment);
+  // Prefer payment method frozen on the application at apply time.
+  const { data: application } = await admin
+    .from('hanakai_event_applications')
+    .select('payment_method_id')
+    .eq('id', payment.application_id)
+    .maybeSingle();
+
+  let method: PaymentMethodRow | null = null;
+  const boundId = application?.payment_method_id as string | null | undefined;
+  if (boundId) {
+    method = await getPaymentMethodForMember(
+      payment.member_id,
+      boundId,
+      payment.environment as SquareEnvironment,
+    );
+  }
+  if (!method) {
+    method = await getDefaultPaymentMethod(payment.member_id, payment.environment as SquareEnvironment);
+  }
   if (!method) {
     await markPaymentOutcome({
       paymentId,
@@ -316,7 +410,13 @@ export async function chargeParticipationPayment(paymentId: string, options?: { 
 
   await admin
     .from('hanakai_participation_payments')
-    .update({ status: 'processing', attempted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .update({
+      status: 'processing',
+      attempted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      square_customer_id: method.square_customer_id,
+      square_card_id: method.square_card_id,
+    })
     .eq('id', paymentId)
     .in('status', options?.retry ? ['failed'] : ['pending', 'failed']);
 
@@ -551,22 +651,19 @@ export async function disableMemberPaymentMethod(input: {
   paymentMethodId: string;
 }) {
   const admin = createAdminSupabaseClient();
-  if (!admin) return { ok: false as const, error: 'DB unavailable' };
+  if (!admin) return { ok: false as const, error: 'データベースに接続できません' };
 
-  const { count } = await admin
-    .from('hanakai_event_applications')
-    .select('*', { count: 'exact', head: true })
-    .eq('member_id', input.memberId)
-    .in('status', ['payment_processing', 'payment_failed']);
-
-  const { data: methods } = await admin
-    .from('hanakai_payment_methods')
-    .select('id')
-    .eq('member_id', input.memberId)
-    .eq('status', 'active');
-
-  if ((count ?? 0) > 0 && (methods?.length ?? 0) <= 1) {
-    return { ok: false as const, error: '未決済の参加選定があるため、代替カードを登録してから削除してください' };
+  const inUseCount = await countApplicationsUsingPaymentMethod({
+    memberId: input.memberId,
+    paymentMethodId: input.paymentMethodId,
+  });
+  if (inUseCount > 0) {
+    return {
+      ok: false as const,
+      error:
+        '参加申請中のイベントで使用するカードに設定されています。先に支払い方法を変更してください。',
+      code: 'IN_USE_BY_APPLICATION' as const,
+    };
   }
 
   const { data: method } = await admin
@@ -574,15 +671,120 @@ export async function disableMemberPaymentMethod(input: {
     .select('*')
     .eq('id', input.paymentMethodId)
     .eq('member_id', input.memberId)
+    .eq('status', 'active')
     .maybeSingle();
 
   if (!method) return { ok: false as const, error: 'カードが見つかりません' };
 
-  await disableSquareCard(method.square_card_id);
+  // Square Cards API: disable first, then mark local row disabled.
+  const squareResult = await disableSquareCard(method.square_card_id);
+  if (!squareResult.ok) {
+    // Idempotent: treat already-disabled remote cards as success for local cleanup.
+    const code = squareResult.errors[0]?.code ?? '';
+    if (!/NOT_FOUND|CARD_DECLINED|GONE/i.test(code) && squareResult.status !== 404) {
+      console.error('HANAKAI_CARD_DISABLE_SQUARE_ERROR', {
+        status: squareResult.status,
+        codes: squareResult.errors.map((e) => e.code),
+      });
+      return { ok: false as const, error: 'カードの削除に失敗しました。しばらくしてから再度お試しください。' };
+    }
+  }
+
+  const env = getSquareEnvironment();
+  const wasDefault = Boolean(method.is_default);
+
   await admin
     .from('hanakai_payment_methods')
-    .update({ status: 'disabled', disabled_at: new Date().toISOString(), is_default: false })
+    .update({
+      status: 'disabled',
+      disabled_at: new Date().toISOString(),
+      is_default: false,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', method.id);
+
+  if (wasDefault) {
+    const { data: nextDefault } = await admin
+      .from('hanakai_payment_methods')
+      .select('id')
+      .eq('member_id', input.memberId)
+      .eq('environment', env)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (nextDefault?.id) {
+      await setDefaultPaymentMethod({
+        memberId: input.memberId,
+        paymentMethodId: nextDefault.id,
+      });
+    }
+  }
+
+  return { ok: true as const };
+}
+
+export function formatPaymentMethodLabel(method: Pick<PaymentMethodRow, 'brand' | 'last_4'>) {
+  const brand = (method.brand || 'カード').toUpperCase();
+  const last4 = method.last_4 || '****';
+  return `${brand} •••• ${last4}`;
+}
+
+export async function listApplicationsUsingPaymentMethod(input: {
+  memberId: string;
+  paymentMethodId: string;
+}) {
+  const admin = createAdminSupabaseClient();
+  if (!admin) return [];
+  const { data } = await admin
+    .from('hanakai_event_applications')
+    .select('id, event_id, status, hanakai_events(title)')
+    .eq('member_id', input.memberId)
+    .eq('payment_method_id', input.paymentMethodId)
+    .in('status', [...PAYMENT_METHOD_IN_USE_APP_STATUSES]);
+  return (data ?? []).map((row) => ({
+    applicationId: row.id as string,
+    eventId: row.event_id as string,
+    status: row.status as string,
+    eventTitle:
+      ((row.hanakai_events as { title?: string } | null)?.title as string | undefined) ?? 'イベント',
+  }));
+}
+
+/** Change the payment method bound to a still-open application (before charge). */
+export async function updateApplicationPaymentMethod(input: {
+  memberId: string;
+  applicationId: string;
+  paymentMethodId: string;
+}) {
+  const admin = createAdminSupabaseClient();
+  if (!admin) return { ok: false as const, error: 'データベースに接続できません' };
+
+  const method = await getPaymentMethodForMember(input.memberId, input.paymentMethodId);
+  if (!method) return { ok: false as const, error: '有効な支払い方法が見つかりません' };
+
+  const { data: app } = await admin
+    .from('hanakai_event_applications')
+    .select('id, status')
+    .eq('id', input.applicationId)
+    .eq('member_id', input.memberId)
+    .maybeSingle();
+
+  if (!app) return { ok: false as const, error: '参加申請が見つかりません' };
+  if (!PAYMENT_METHOD_IN_USE_APP_STATUSES.includes(app.status as (typeof PAYMENT_METHOD_IN_USE_APP_STATUSES)[number])) {
+    return { ok: false as const, error: 'この申請の支払い方法は変更できません' };
+  }
+
+  const { error } = await admin
+    .from('hanakai_event_applications')
+    .update({ payment_method_id: input.paymentMethodId })
+    .eq('id', input.applicationId)
+    .eq('member_id', input.memberId);
+
+  if (error) {
+    console.error('HANAKAI_UPDATE_APP_PAYMENT_METHOD_ERROR', { code: error.code, message: error.message });
+    return { ok: false as const, error: '支払い方法の変更に失敗しました' };
+  }
 
   return { ok: true as const };
 }
@@ -684,13 +886,28 @@ export async function getApplicationPaymentContext(applicationId: string, member
 
   if (!payment) return null;
 
-  const method = await getDefaultPaymentMethod(memberId);
+  const { data: application } = await admin
+    .from('hanakai_event_applications')
+    .select('payment_method_id')
+    .eq('id', applicationId)
+    .maybeSingle();
+
+  let method: PaymentMethodRow | null = null;
+  const boundId = application?.payment_method_id as string | null | undefined;
+  if (boundId) {
+    method = await getPaymentMethodForMember(memberId, boundId);
+  }
+  if (!method) {
+    method = await getDefaultPaymentMethod(memberId);
+  }
+
   return {
     paymentId: payment.id as string,
     deadlineAt: payment.payment_deadline_at as string | null,
     failureMessage: payment.failure_message as string | null,
     brand: method?.brand ?? null,
     last4: method?.last_4 ?? null,
+    paymentMethodId: method?.id ?? null,
   };
 }
 

@@ -392,6 +392,13 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
         <ProfileNextRecommendationCard recommendation={nextRecommendation} />
 
         <Link
+          href='/account/payment-methods'
+          className='block text-center text-sm font-semibold text-[#1f5d4f] underline-offset-2 hover:underline'
+        >
+          お支払い方法
+        </Link>
+
+        <Link
           href='/account/delete'
           className='block text-center text-xs text-[#9a9a9a] underline-offset-2 hover:text-[#b42318] hover:underline'
         >

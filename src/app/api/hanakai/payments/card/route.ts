@@ -15,6 +15,7 @@ export async function POST(request: Request) {
       verificationToken?: string;
       consentAccepted?: boolean;
       platform?: 'web' | 'ios' | 'android';
+      setAsDefault?: boolean;
     };
 
     if (!body.sourceId) {
@@ -29,6 +30,7 @@ export async function POST(request: Request) {
       consentAccepted: Boolean(body.consentAccepted),
       platform: body.platform ?? 'web',
       nickname: member?.nickname,
+      setAsDefault: body.setAsDefault,
     });
 
     if (!result.ok) {
@@ -43,6 +45,7 @@ export async function POST(request: Request) {
         last4: result.paymentMethod.last_4,
         expMonth: result.paymentMethod.exp_month,
         expYear: result.paymentMethod.exp_year,
+        isDefault: result.paymentMethod.is_default,
       },
     });
   } catch (e) {

@@ -8,17 +8,29 @@ import {
   EVENT_APPLICATION_REASON_MIN,
 } from '@/lib/connection/types';
 import { ApplyFeeNotice } from '@/components/connection/events/event-fee-ui';
+import { ApplyPaymentMethodField } from '@/components/connection/payments/apply-payment-method-field';
+import type { PaymentMethodDisplay } from '@/lib/connection/payment-method-display';
 
 export function ApplyForm({
   eventId,
   approvalMode,
+  paymentMethods,
+  usageFeeJpy,
 }: {
   eventId: string;
   approvalMode: 'host_approval' | 'auto';
+  paymentMethods: PaymentMethodDisplay[];
+  usageFeeJpy?: number;
 }) {
   const [reason, setReason] = useState('');
+  const [methods, setMethods] = useState(paymentMethods);
+  const defaultId = paymentMethods.find((m) => m.isDefault)?.id ?? paymentMethods[0]?.id ?? '';
+  const [selectedId, setSelectedId] = useState(defaultId);
   const count = reason.trim().length;
-  const valid = count >= EVENT_APPLICATION_REASON_MIN && count <= EVENT_APPLICATION_REASON_MAX;
+  const valid =
+    count >= EVENT_APPLICATION_REASON_MIN &&
+    count <= EVENT_APPLICATION_REASON_MAX &&
+    Boolean(selectedId);
 
   return (
     <form action={applyConnectionEventAction} className='space-y-3'>
@@ -56,6 +68,17 @@ export function ApplyForm({
           </span>
         </div>
       </div>
+
+      <ApplyPaymentMethodField
+        methods={methods}
+        selectedId={selectedId}
+        onChange={setSelectedId}
+        usageFeeJpy={usageFeeJpy}
+        onMethodsUpdated={(next, id) => {
+          setMethods(next);
+          setSelectedId(id);
+        }}
+      />
 
       <ApplyFeeNotice />
 

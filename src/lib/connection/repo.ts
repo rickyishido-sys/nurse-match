@@ -79,8 +79,13 @@ export async function canViewConnectionPage(eventId: string, viewerMemberId: str
 
 // --- writes -------------------------------------------------------------
 
-export async function applyToEvent(eventId: string, memberId: string, reason?: string): Promise<void> {
-  if (useSupabase) return supa.applyToEvent(eventId, memberId, reason);
+export async function applyToEvent(
+  eventId: string,
+  memberId: string,
+  reason?: string,
+  paymentMethodId?: string | null,
+): Promise<void> {
+  if (useSupabase) return supa.applyToEvent(eventId, memberId, reason, paymentMethodId);
   mock.applyToEvent(eventId, memberId, reason);
 }
 

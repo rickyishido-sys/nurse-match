@@ -344,7 +344,12 @@ export async function canViewConnectionPage(eventId: string, viewerMemberId: str
 
 // --- writes -------------------------------------------------------------
 
-export async function applyToEvent(eventId: string, memberId: string, reason?: string): Promise<void> {
+export async function applyToEvent(
+  eventId: string,
+  memberId: string,
+  reason?: string,
+  paymentMethodId?: string | null,
+): Promise<void> {
   const sb = await db();
   if (!sb) return;
   const existing = await getApplication(eventId, memberId);
@@ -357,6 +362,7 @@ export async function applyToEvent(eventId: string, memberId: string, reason?: s
     status: autoApprove ? 'confirmed' : 'pending',
     reason: reason?.trim() ? reason.trim() : null,
     decided_at: autoApprove ? new Date().toISOString() : null,
+    payment_method_id: paymentMethodId ?? null,
   });
 }
 
