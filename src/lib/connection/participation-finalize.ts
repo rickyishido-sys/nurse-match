@@ -140,8 +140,9 @@ async function queueOutcomeNotifications(
 async function finalizeMock(
   eventId: string,
   selectedApplicationIds: string[],
-  _decidedByMemberId: string,
+  decidedByMemberId: string,
 ): Promise<FinalizeParticipantsResult> {
+  void decidedByMemberId;
   const event = mock.getEvent(eventId);
   if (!event) return { ok: false, error: 'イベントが見つかりません' };
 
