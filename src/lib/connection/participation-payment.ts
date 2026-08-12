@@ -657,6 +657,8 @@ export async function adminRefundParticipationPayment(paymentId: string, adminMe
 export async function disableMemberPaymentMethod(input: {
   memberId: string;
   paymentMethodId: string;
+  /** Required when deleting the default card while other active cards remain. */
+  newDefaultPaymentMethodId?: string;
 }) {
   const admin = createAdminSupabaseClient();
   if (!admin) return { ok: false as const, error: 'データベースに接続できません' };
@@ -669,7 +671,7 @@ export async function disableMemberPaymentMethod(input: {
     return {
       ok: false as const,
       error:
-        '参加申請中のイベントで使用するカードに設定されています。先に支払い方法を変更してください。',
+        'このカードは参加申請中のイベントで使用されているため削除できません。申請のお支払い方法を変更してから削除してください。',
       code: 'IN_USE_BY_APPLICATION' as const,
     };
   }
@@ -684,7 +686,39 @@ export async function disableMemberPaymentMethod(input: {
 
   if (!method) return { ok: false as const, error: 'カードが見つかりません' };
 
+  const env = getSquareEnvironment();
+  const wasDefault = Boolean(method.is_default);
+
+  const { data: otherActive } = await admin
+    .from('hanakai_payment_methods')
+    .select('id')
+    .eq('member_id', input.memberId)
+    .eq('environment', env)
+    .eq('status', 'active')
+    .neq('id', method.id);
+
+  const remainingIds = (otherActive ?? []).map((row) => row.id as string);
+
+  if (wasDefault && remainingIds.length > 0) {
+    const nextId = input.newDefaultPaymentMethodId;
+    if (!nextId || !remainingIds.includes(nextId)) {
+      return {
+        ok: false as const,
+        error: 'デフォルトカードを削除する前に、代わりのデフォルトカードを選択してください。',
+        code: 'DEFAULT_REASSIGN_REQUIRED' as const,
+      };
+    }
+    const setDefaultResult = await setDefaultPaymentMethod({
+      memberId: input.memberId,
+      paymentMethodId: nextId,
+    });
+    if (!setDefaultResult.ok) {
+      return setDefaultResult;
+    }
+  }
+
   // Square Cards API: disable first, then mark local row disabled.
+  // Do not delete the Square customer; only disable this card.
   const squareResult = await disableSquareCard(method.square_card_id);
   if (!squareResult.ok) {
     // Idempotent: treat already-disabled remote cards as success for local cleanup.
@@ -698,9 +732,6 @@ export async function disableMemberPaymentMethod(input: {
     }
   }
 
-  const env = getSquareEnvironment();
-  const wasDefault = Boolean(method.is_default);
-
   await admin
     .from('hanakai_payment_methods')
     .update({
@@ -711,25 +742,11 @@ export async function disableMemberPaymentMethod(input: {
     })
     .eq('id', method.id);
 
-  if (wasDefault) {
-    const { data: nextDefault } = await admin
-      .from('hanakai_payment_methods')
-      .select('id')
-      .eq('member_id', input.memberId)
-      .eq('environment', env)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (nextDefault?.id) {
-      await setDefaultPaymentMethod({
-        memberId: input.memberId,
-        paymentMethodId: nextDefault.id,
-      });
-    }
-  }
-
-  return { ok: true as const };
+  return {
+    ok: true as const,
+    newDefaultPaymentMethodId:
+      wasDefault && remainingIds.length > 0 ? input.newDefaultPaymentMethodId : undefined,
+  };
 }
 
 export function formatPaymentMethodLabel(method: Pick<PaymentMethodRow, 'brand' | 'last_4'>) {

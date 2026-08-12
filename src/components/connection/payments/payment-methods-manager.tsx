@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { SquareCardRegistration } from '@/components/connection/payments/square-card-registration';
 import {
   formatCardBrand,
@@ -21,6 +21,12 @@ type Props = {
   boundApplications: BoundApp[];
 };
 
+type DeleteDialogState = {
+  method: PaymentMethodDisplay;
+  alternatives: PaymentMethodDisplay[];
+  newDefaultId: string;
+};
+
 export function PaymentMethodsManager({ initialMethods, boundApplications }: Props) {
   const router = useRouter();
   const [methods, setMethods] = useState(initialMethods);
@@ -29,6 +35,9 @@ export function PaymentMethodsManager({ initialMethods, boundApplications }: Pro
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState | null>(null);
+
+  const methodsById = useMemo(() => new Map(methods.map((m) => [m.id, m])), [methods]);
 
   async function setDefault(id: string) {
     setBusyId(id);
@@ -52,26 +61,60 @@ export function PaymentMethodsManager({ initialMethods, boundApplications }: Pro
     }
   }
 
-  async function disable(id: string) {
-    setBusyId(id);
+  function openDeleteDialog(method: PaymentMethodDisplay) {
+    const alternatives = methods.filter((m) => m.id !== method.id);
+    setError(null);
+    setMessage(null);
+    setDeleteDialog({
+      method,
+      alternatives,
+      newDefaultId: alternatives[0]?.id ?? '',
+    });
+  }
+
+  async function confirmDisable() {
+    if (!deleteDialog) return;
+    const { method, alternatives, newDefaultId } = deleteDialog;
+    if (method.isDefault && alternatives.length > 0 && !newDefaultId) {
+      setError('代わりのデフォルトカードを選択してください。');
+      return;
+    }
+
+    setBusyId(method.id);
     setError(null);
     setMessage(null);
     try {
       const res = await fetch('/api/hanakai/payments/card/disable', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentMethodId: id }),
+        body: JSON.stringify({
+          paymentMethodId: method.id,
+          ...(method.isDefault && alternatives.length > 0
+            ? { newDefaultPaymentMethodId: newDefaultId }
+            : {}),
+        }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string; code?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        code?: string;
+        newDefaultPaymentMethodId?: string;
+      };
       if (!res.ok || !data.ok) {
         throw new Error(data.error ?? '削除に失敗しました');
       }
-      const remaining = methods.filter((m) => m.id !== id);
-      if (remaining.length > 0 && !remaining.some((m) => m.isDefault)) {
-        remaining[0] = { ...remaining[0], isDefault: true };
-      }
-      setMethods(remaining);
-      setApps((prev) => prev.filter((a) => a.paymentMethodId !== id));
+      const nextDefaultId =
+        data.newDefaultPaymentMethodId ??
+        (method.isDefault && alternatives.length > 0 ? newDefaultId : undefined);
+      setMethods((prev) =>
+        prev
+          .filter((m) => m.id !== method.id)
+          .map((m) =>
+            nextDefaultId ? { ...m, isDefault: m.id === nextDefaultId } : m,
+          ),
+      );
+      setApps((prev) => prev.filter((a) => a.paymentMethodId !== method.id));
+      setDeleteDialog(null);
       setMessage('お支払い方法を削除しました');
       router.refresh();
     } catch (e) {
@@ -149,6 +192,9 @@ export function PaymentMethodsManager({ initialMethods, boundApplications }: Pro
                 {usedBy.length > 0 ? (
                   <div className='mt-3 rounded-xl bg-[#fafaf8] px-3 py-2 text-xs leading-6 text-[#6b6b6b]'>
                     <p className='font-semibold text-[#4a4a4a]'>参加申請中のイベントで使用中</p>
+                    <p className='mt-1'>
+                      このカードは参加申請中のイベントで使用されているため削除できません。申請のお支払い方法を変更してから削除してください。
+                    </p>
                     <ul className='mt-1 space-y-1'>
                       {usedBy.map((a) => (
                         <li key={a.applicationId}>{a.eventTitle}</li>
@@ -156,7 +202,7 @@ export function PaymentMethodsManager({ initialMethods, boundApplications }: Pro
                     </ul>
                     {methods.length > 1 ? (
                       <div className='mt-2 space-y-1'>
-                        <p>削除前に別の支払い方法へ変更してください。</p>
+                        <p>別の支払い方法へ変更してから削除できます。</p>
                         {usedBy.map((a) => (
                           <label key={a.applicationId} className='block'>
                             <span className='text-[11px] text-[#8a8a8a]'>{a.eventTitle}</span>
@@ -169,6 +215,7 @@ export function PaymentMethodsManager({ initialMethods, boundApplications }: Pro
                               {methods.map((opt) => (
                                 <option key={opt.id} value={opt.id}>
                                   {formatCardBrand(opt.brand)} {formatCardMask(opt.last4)}
+                                  {methodsById.get(opt.id)?.isDefault ? '（デフォルト）' : ''}
                                 </option>
                               ))}
                             </select>
@@ -193,7 +240,7 @@ export function PaymentMethodsManager({ initialMethods, boundApplications }: Pro
                   <button
                     type='button'
                     disabled={busyId === m.id || usedBy.length > 0}
-                    onClick={() => disable(m.id)}
+                    onClick={() => openDeleteDialog(m)}
                     className='rounded-full border border-[#e8d5d5] px-3 py-1.5 text-xs font-semibold text-[#b42318] disabled:opacity-40'
                   >
                     削除
@@ -239,6 +286,94 @@ export function PaymentMethodsManager({ initialMethods, boundApplications }: Pro
           />
         </div>
       )}
+
+      {deleteDialog ? (
+        <div
+          className='fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-4 sm:items-center'
+          role='dialog'
+          aria-modal='true'
+          aria-labelledby='delete-card-dialog-title'
+        >
+          <div className='w-full max-w-md rounded-2xl bg-white p-5 shadow-xl'>
+            <h3 id='delete-card-dialog-title' className='text-base font-semibold text-[#1a1a1a]'>
+              このカードを削除しますか？
+            </h3>
+            <p className='mt-3 text-sm leading-7 text-[#5a5247]'>
+              {formatCardBrand(deleteDialog.method.brand)}{' '}
+              {formatCardMask(deleteDialog.method.last4)}
+              を削除します。Square上でも利用できない状態になり、HANAKAIからは表示されなくなります。
+            </p>
+
+            {deleteDialog.method.isDefault && deleteDialog.alternatives.length > 0 ? (
+              <div className='mt-4 space-y-2'>
+                <p className='text-sm font-semibold text-[#1a1a1a]'>
+                  新しいデフォルトカードを選択してください
+                </p>
+                <div className='space-y-2'>
+                  {deleteDialog.alternatives.map((opt) => {
+                    const selected = deleteDialog.newDefaultId === opt.id;
+                    return (
+                      <label
+                        key={opt.id}
+                        className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-3 text-sm ${
+                          selected
+                            ? 'border-[#1f5d4f] bg-[#f3f7f5]'
+                            : 'border-[#ebe9e4] bg-white'
+                        }`}
+                      >
+                        <input
+                          type='radio'
+                          name='new-default-card'
+                          className='accent-[#1f5d4f]'
+                          checked={selected}
+                          onChange={() =>
+                            setDeleteDialog((prev) =>
+                              prev ? { ...prev, newDefaultId: opt.id } : prev,
+                            )
+                          }
+                        />
+                        <span className='font-medium text-[#1a1a1a]'>
+                          {formatCardBrand(opt.brand)} {formatCardMask(opt.last4)}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {deleteDialog.alternatives.length === 0 ? (
+              <p className='mt-3 text-xs leading-6 text-[#6b6b6b]'>
+                これが最後の登録カードです。削除後はイベント参加時に改めてカード登録が必要です。
+              </p>
+            ) : null}
+
+            <div className='mt-5 flex gap-3'>
+              <button
+                type='button'
+                disabled={busyId === deleteDialog.method.id}
+                onClick={() => setDeleteDialog(null)}
+                className='h-11 flex-1 rounded-full border border-[#d8d3cb] text-sm font-semibold text-[#6b6b6b] disabled:opacity-50'
+              >
+                キャンセル
+              </button>
+              <button
+                type='button'
+                disabled={
+                  busyId === deleteDialog.method.id ||
+                  (deleteDialog.method.isDefault &&
+                    deleteDialog.alternatives.length > 0 &&
+                    !deleteDialog.newDefaultId)
+                }
+                onClick={confirmDisable}
+                className='h-11 flex-1 rounded-full bg-[#b42318] text-sm font-semibold text-white disabled:opacity-50'
+              >
+                {busyId === deleteDialog.method.id ? '削除中…' : '削除する'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

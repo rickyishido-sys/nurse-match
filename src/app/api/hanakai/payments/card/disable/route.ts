@@ -9,7 +9,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: 'ログインが必要です' }, { status: 401 });
     }
 
-    const body = (await request.json()) as { paymentMethodId?: string };
+    const body = (await request.json()) as {
+      paymentMethodId?: string;
+      newDefaultPaymentMethodId?: string;
+    };
     if (!body.paymentMethodId) {
       return NextResponse.json({ ok: false, error: '支払い方法が指定されていません' }, { status: 400 });
     }
@@ -17,13 +20,17 @@ export async function POST(request: Request) {
     const result = await disableMemberPaymentMethod({
       memberId,
       paymentMethodId: body.paymentMethodId,
+      newDefaultPaymentMethodId: body.newDefaultPaymentMethodId,
     });
 
     if (!result.ok) {
       return NextResponse.json(result, { status: 400 });
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      newDefaultPaymentMethodId: result.newDefaultPaymentMethodId,
+    });
   } catch (e) {
     console.error('HANAKAI_CARD_DISABLE_ROUTE_FATAL', {
       message: e instanceof Error ? e.message : String(e),
