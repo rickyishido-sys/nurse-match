@@ -17,7 +17,6 @@ import {
   refundSquarePayment,
 } from '@/lib/square/client';
 import {
-  getSquareConfig,
   getSquareEnvironment,
   PAYMENT_CONSENT_VERSION,
   type SquareEnvironment,
