@@ -8,7 +8,7 @@ import { HK } from '@/lib/connection/brand/tokens';
 
 type SquareTokenResult = { status: string; token?: string; errors?: unknown[] };
 type SquareCard = {
-  attach: (selector: string) => Promise<void>;
+  attach: (selectorOrElement: string | HTMLElement) => Promise<void>;
   tokenize: (details?: Record<string, unknown>) => Promise<SquareTokenResult>;
   destroy?: () => Promise<void> | void;
 };
@@ -51,11 +51,31 @@ export function SquareCardRegistration({
   // The SAME card instance must be used for attach() and tokenize(); a freshly
   // created payments.card() has no attached iframe fields and always fails.
   const cardRef = useRef<SquareCard | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // When this component is mounted after Square.js is already on the page
+  // (e.g. "変更" → "新しいカードを追加"), Script onLoad does not fire again.
+  // onReady + this sync keep sdkReady true on every mount.
+  const markSdkReady = useCallback(() => {
+    if (typeof window !== 'undefined' && window.Square) {
+      setSdkReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    markSdkReady();
+  }, [markSdkReady]);
 
   useEffect(() => {
     if (!sdkReady || !window.Square || !config.applicationId || !config.locationId) return;
+    const el = containerRef.current;
+    if (!el) return;
+
     let cancelled = false;
     let localCard: SquareCard | null = null;
+
+    setError(null);
+    setCardReady(false);
 
     (async () => {
       try {
@@ -65,10 +85,16 @@ export function SquareCardRegistration({
           await card.destroy?.();
           return;
         }
-        await card.attach(`#${containerId}`);
+        // Attach to the live element (not only a selector) so remounts never
+        // target a detached node from a previous "新しいカードを追加" open.
+        await card.attach(el);
+        if (cancelled) {
+          await card.destroy?.();
+          return;
+        }
         localCard = card;
         cardRef.current = card;
-        setCardReady(true);
+        if (!cancelled) setCardReady(true);
       } catch {
         if (!cancelled) setError('カード入力フォームの読み込みに失敗しました');
       }
@@ -77,14 +103,17 @@ export function SquareCardRegistration({
     return () => {
       cancelled = true;
       setCardReady(false);
+      const toDestroy = localCard ?? cardRef.current;
       cardRef.current = null;
-      if (localCard) {
+      if (toDestroy) {
         try {
-          void localCard.destroy?.();
+          void toDestroy.destroy?.();
         } catch {
           // ignore teardown errors
         }
       }
+      // Ensure no stale Square iframes remain if destroy is async/no-op.
+      el.replaceChildren();
     };
   }, [sdkReady, config.applicationId, config.locationId, containerId]);
 
@@ -145,7 +174,13 @@ export function SquareCardRegistration({
 
   return (
     <div className='space-y-4'>
-      <Script src={sdkUrl} strategy='afterInteractive' onLoad={() => setSdkReady(true)} />
+      <Script
+        src={sdkUrl}
+        strategy='afterInteractive'
+        onLoad={markSdkReady}
+        // Fires on remount even when Square.js is already cached in the document.
+        onReady={markSdkReady}
+      />
 
       <div>
         <h2 className='text-lg font-semibold text-[#1a1a1a]'>{title}</h2>
@@ -167,7 +202,11 @@ export function SquareCardRegistration({
         )}
       </div>
 
-      <div id={containerId} className='min-h-[56px] rounded-2xl border border-[#ddd9d1] bg-white px-3 py-3' />
+      <div
+        id={containerId}
+        ref={containerRef}
+        className='min-h-[56px] rounded-2xl border border-[#ddd9d1] bg-white px-3 py-3'
+      />
 
       <label className='flex items-start gap-3 rounded-2xl border border-[#ebe9e4] bg-[#fafaf8] px-4 py-3 text-sm leading-7 text-[#4a4a4a]'>
         <input
