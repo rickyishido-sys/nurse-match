@@ -345,6 +345,36 @@ async function markPaymentOutcome(input: {
       })
       .eq('id', input.applicationId)
       .in('status', ['payment_processing', 'payment_failed']);
+
+    // Square charge → confirmed must sync event group membership (host + participant).
+    // Without this, /groups/[eventId] fails when the group row was never created.
+    const { data: appRow } = await admin
+      .from('hanakai_event_applications')
+      .select('event_id, member_id, status')
+      .eq('id', input.applicationId)
+      .maybeSingle();
+    if (appRow?.status === 'confirmed' && appRow.event_id && appRow.member_id) {
+      const { data: eventRow } = await admin
+        .from('hanakai_events')
+        .select('host_member_id')
+        .eq('id', appRow.event_id)
+        .maybeSingle();
+      try {
+        const { syncGroupAfterParticipantConfirmed } = await import('@/lib/connection/group-repo');
+        await syncGroupAfterParticipantConfirmed(
+          String(appRow.event_id),
+          String(appRow.member_id),
+          eventRow?.host_member_id ? String(eventRow.host_member_id) : null,
+        );
+      } catch (e) {
+        console.error('HANAKAI_GROUP_SYNC_AFTER_PAYMENT_FAILED', {
+          applicationId: input.applicationId,
+          eventId: appRow.event_id,
+          memberId: appRow.member_id,
+          error: String(e),
+        });
+      }
+    }
   } else {
     await admin
       .from('hanakai_participation_payments')

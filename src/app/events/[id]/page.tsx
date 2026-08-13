@@ -103,19 +103,20 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
   const isHost = !!viewerMemberId && event.hostId === viewerMemberId;
   const approvalMode = event.approvalMode ?? 'host_approval';
   const isFull = event.status === 'full' || event.reservedCount >= event.capacity;
-  const activeParticipationStatuses = [
+  const isParticipationConfirmed = existingApp?.status === 'confirmed';
+  const inFlightParticipationStatuses = [
     'pending',
     'payment_processing',
     'payment_failed',
     'awaiting_confirmation',
-    'confirmed',
   ];
+  const activeParticipationStatuses = [...inFlightParticipationStatuses, 'confirmed'];
   const showApplyCta =
     !event.isPast &&
     !isHost &&
     !activeParticipationStatuses.includes(existingApp?.status ?? '');
-  const participationScheduled = activeParticipationStatuses.includes(existingApp?.status ?? '');
-  const ctaLabel = participationScheduled ? '参加予定です' : '参加する';
+  const participationInFlight = inFlightParticipationStatuses.includes(existingApp?.status ?? '');
+  const ctaLabel = '参加する';
   const loginHref = `/login?next=/events/${event.id}`;
   const useScrollCta = !!viewerMemberId;
   const participantCards = anonymizeParticipants(confirmedMembers);
@@ -209,9 +210,49 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
               canApply={useScrollCta}
               label={ctaLabel}
             />
-          ) : participationScheduled ? (
+          ) : isParticipationConfirmed ? (
+            <div className='space-y-3 rounded-2xl border border-[#1f5d4f]/35 bg-[#eef6f2] px-5 py-5'>
+              <p className='text-center text-base font-semibold text-[#1f5d4f]'>参加が決定しました</p>
+              <p className='text-center text-sm leading-7 text-[#3f5a50]'>
+                {formatEventDate(event.startAt)}
+                <br />
+                {event.area}
+                {event.venue ? `・${event.venue}` : ''}
+              </p>
+              <p className='text-center text-xs leading-6 text-[#5b6f67]'>
+                当日はこの画面からチェックインできます。
+              </p>
+              {!event.isPast ? (
+                <div className='flex flex-col gap-2 sm:flex-row'>
+                  <Link
+                    href={`/events/${event.id}/checkin`}
+                    className='inline-flex h-11 flex-1 items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white'
+                  >
+                    チェックインする
+                  </Link>
+                  <Link
+                    href={`/groups/${event.id}`}
+                    className='inline-flex h-11 flex-1 items-center justify-center rounded-full border border-[#1f5d4f] text-sm font-semibold text-[#1f5d4f]'
+                  >
+                    イベントグループを見る
+                  </Link>
+                </div>
+              ) : null}
+              {viewerMemberId && !event.isPast ? (
+                <CancelParticipationButton eventId={event.id} eventTitle={event.title} returnTo={`/events/${event.id}`} />
+              ) : null}
+            </div>
+          ) : participationInFlight ? (
             <div className='space-y-3 rounded-2xl border border-[#dfe9e4] bg-[#eef4f0] px-5 py-4'>
-              <p className='text-center text-sm font-semibold text-[#1f5d4f]'>参加予定です</p>
+              <p className='text-center text-sm font-semibold text-[#1f5d4f]'>
+                {existingApp?.status === 'pending'
+                  ? '参加申請中です'
+                  : existingApp?.status === 'payment_processing'
+                    ? '決済処理中です'
+                    : existingApp?.status === 'payment_failed'
+                      ? 'お支払いの確認が必要です'
+                      : '参加確認待ちです'}
+              </p>
               {viewerMemberId && !event.isPast ? (
                 <CancelParticipationButton eventId={event.id} eventTitle={event.title} returnTo={`/events/${event.id}`} />
               ) : null}
@@ -338,7 +379,15 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
               ) : null}
             </div>
           ) : existingApp?.status === 'confirmed' ? (
-            <div className='rounded-2xl border border-[#dfe9e4] bg-[#faf9f6] px-5 py-5'>
+            <div className='rounded-2xl border border-[#1f5d4f]/30 bg-[#eef6f2] px-5 py-5'>
+              <p className='text-base font-semibold text-[#1f5d4f]'>参加が決定しました</p>
+              <p className='mt-2 text-sm leading-7 text-[#3f5a50]'>
+                {formatEventDate(event.startAt)} · {event.area}
+                {event.venue ? `・${event.venue}` : ''}
+              </p>
+              <p className='mt-2 text-xs leading-6 text-[#5b6f67]'>
+                当日はこの画面からチェックインできます。参加者同士の交流はイベントグループからどうぞ。
+              </p>
               <ParticipationDecidedNotice />
               <Link
                 href={`/events/${event.id}/checkin`}
@@ -350,7 +399,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                 href={`/groups/${event.id}`}
                 className='mt-2 inline-flex h-11 w-full items-center justify-center rounded-full border border-[#1f5d4f] text-sm font-semibold text-[#1f5d4f]'
               >
-                グループを開く
+                イベントグループを見る
               </Link>
             </div>
           ) : (

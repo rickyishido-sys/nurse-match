@@ -17,6 +17,8 @@ export type EventOperationsMeta = {
   venueBillingAddress?: string | null;
   venueBillingConsent: boolean;
   hasCheckinCode: boolean;
+  /** Host-readable 4-digit code when stored; null if only legacy hash exists. */
+  checkinCode?: string | null;
   endedAt?: string | null;
   revenueReportRequestedAt?: string | null;
   startAt?: string | null;
