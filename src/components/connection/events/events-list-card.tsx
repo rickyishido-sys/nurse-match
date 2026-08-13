@@ -176,7 +176,11 @@ export function EventsListCard({
         </Link>
         {hasParticipation ? (
           <span className='inline-flex h-11 min-h-11 w-full items-center justify-center whitespace-nowrap rounded-full border border-[#1f5d4f]/25 bg-[#eef4f0] px-6 text-sm font-semibold text-[#1f5d4f] sm:min-w-0 sm:flex-1'>
-            参加予定です
+            {viewerApplicationStatus === 'confirmed'
+              ? '参加が決定しました'
+              : viewerApplicationStatus === 'pending'
+                ? '参加申請中'
+                : '参加手続き中'}
           </span>
         ) : (
           <Link

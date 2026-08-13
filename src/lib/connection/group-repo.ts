@@ -63,6 +63,19 @@ export async function syncGroupHost(eventId: string, hostMemberId: string) {
   mock.syncGroupForConfirmedMember(eventId, hostMemberId, 'host');
 }
 
+/** Payment/confirm success path: ensure group + host + participant membership. */
+export async function syncGroupAfterParticipantConfirmed(
+  eventId: string,
+  participantMemberId: string,
+  hostMemberId?: string | null,
+) {
+  if (useSupabase) {
+    return supa.syncGroupAfterParticipantConfirmed(eventId, participantMemberId, hostMemberId);
+  }
+  mock.syncGroupForConfirmedMember(eventId, participantMemberId, 'participant');
+  if (hostMemberId) mock.syncGroupForConfirmedMember(eventId, hostMemberId, 'host');
+}
+
 export async function listGroupMemberIds(groupId: string) {
   if (useSupabase) return supa.listGroupMemberIds(groupId);
   return mock.listGroupMembers(groupId).map((m) => m.memberId);

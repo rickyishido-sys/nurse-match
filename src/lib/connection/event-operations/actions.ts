@@ -69,10 +69,13 @@ export async function hostCancelCheckinAction(formData: FormData) {
 
 export async function regenerateCheckinCodeAction(formData: FormData) {
   const eventId = String(formData.get('eventId') ?? '');
+  if (!eventId) redirect('/events');
   await requireEventHostAccess(eventId);
   const code = await regenerateCheckinCode(eventId);
+  revalidatePath(`/events/manage/${eventId}`);
+  revalidatePath(`/events/${eventId}`);
   if (!code) redirect(`/events/manage/${eventId}?regen_error=1`);
-  redirect(`/events/manage/${eventId}?new_checkin_code=${code}`);
+  redirect(`/events/manage/${eventId}?checkin_regen=1&new_checkin_code=${encodeURIComponent(code)}`);
 }
 
 export async function endEventAndRequestRevenueAction(formData: FormData) {

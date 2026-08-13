@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { participantCheckinAction } from '@/lib/connection/event-operations/actions';
 
@@ -15,9 +16,23 @@ export function CheckinCodeForm({ eventId, eventTitle, alreadyCheckedIn, error }
 
   if (alreadyCheckedIn) {
     return (
-      <div className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-5 py-5 text-center'>
+      <div className='space-y-4 rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-5 py-5 text-center'>
         <p className='text-sm font-semibold text-[#1f5d4f]'>チェックイン完了</p>
-        <p className='mt-2 text-xs leading-6 text-[#5b6f67]'>ご参加ありがとうございます。素敵な時間をお過ごしください。</p>
+        <p className='text-xs leading-6 text-[#5b6f67]'>ご参加ありがとうございます。素敵な時間をお過ごしください。</p>
+        <div className='flex flex-col gap-2 pt-1 sm:flex-row'>
+          <Link
+            href={`/groups/${eventId}`}
+            className='inline-flex h-11 flex-1 items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white'
+          >
+            イベントグループを見る
+          </Link>
+          <Link
+            href={`/events/${eventId}`}
+            className='inline-flex h-11 flex-1 items-center justify-center rounded-full border border-[#1f5d4f] text-sm font-semibold text-[#1f5d4f]'
+          >
+            イベント詳細へ戻る
+          </Link>
+        </div>
       </div>
     );
   }
@@ -29,13 +44,21 @@ export function CheckinCodeForm({ eventId, eventTitle, alreadyCheckedIn, error }
         「{eventTitle}」に到着したら、会場でお伝えいただいた4桁コードを入力してください。
       </p>
       {error === 'code' ? (
-        <p className='rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>チェックインコードが正しくありません。</p>
+        <p className='rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
+          チェックインコードが正しくありません。
+        </p>
       ) : error === 'window' ? (
-        <p className='rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>チェックイン可能時間外です（開始2時間前〜開始後6時間）。</p>
+        <p className='rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
+          チェックイン可能時間外です（開始2時間前〜開始後6時間）。
+        </p>
       ) : error === 'rate' ? (
-        <p className='rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>試行回数が多すぎます。しばらく待ってから再度お試しください。</p>
+        <p className='rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
+          試行回数が多すぎます。しばらく待ってから再度お試しください。
+        </p>
       ) : error ? (
-        <p className='rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>チェックインに失敗しました。もう一度お試しください。</p>
+        <p className='rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>
+          チェックインに失敗しました。もう一度お試しください。
+        </p>
       ) : null}
       <div>
         <label htmlFor='checkin-code' className='mb-2 block text-sm font-semibold text-[#1a1a1a]'>
@@ -55,7 +78,11 @@ export function CheckinCodeForm({ eventId, eventTitle, alreadyCheckedIn, error }
           className='w-full rounded-2xl border border-[#ddd9d1] bg-white px-4 py-4 text-center text-2xl font-semibold tracking-[0.4em] text-[#1a1a1a] outline-none focus:border-[#1f5d4f] focus:ring-2 focus:ring-[#1f5d4f]/15'
         />
       </div>
-      <button type='submit' disabled={code.length !== 4} className='w-full rounded-full bg-[#1f5d4f] py-4 text-sm font-semibold text-white disabled:opacity-50'>
+      <button
+        type='submit'
+        disabled={code.length !== 4}
+        className='w-full rounded-full bg-[#1f5d4f] py-4 text-sm font-semibold text-white disabled:opacity-50'
+      >
         チェックインする
       </button>
     </form>

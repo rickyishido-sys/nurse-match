@@ -109,12 +109,14 @@ export function buildEventOperationsPayload(input: CreateEventOperationsInput): 
       venue_billing_address: input.billingTarget === 'venue' ? input.venueBillingAddress ?? '' : null,
       venue_billing_consent: input.billingTarget === 'venue' ? Boolean(input.venueBillingConsent) : false,
       checkin_code_hash: hash,
+      checkin_code: code,
     },
   };
 }
 
 export async function getEventOperationsMeta(eventId: string): Promise<EventOperationsMeta | null> {
-  const sb = await db();
+  // Prefer admin so host manage can read checkin_code reliably.
+  const sb = (await adminDb()) ?? (await db());
   if (!sb) return null;
   const { data } = await sb.from('hanakai_events').select('*').eq('id', eventId).maybeSingle();
   if (!data) return null;
@@ -130,6 +132,10 @@ export async function getEventOperationsMeta(eventId: string): Promise<EventOper
     venueBillingAddress: data.venue_billing_address,
     venueBillingConsent: Boolean(data.venue_billing_consent),
     hasCheckinCode: Boolean(data.checkin_code_hash),
+    checkinCode:
+      typeof data.checkin_code === 'string' && /^\d{4}$/.test(data.checkin_code)
+        ? data.checkin_code
+        : null,
     endedAt: data.ended_at,
     revenueReportRequestedAt: data.revenue_report_requested_at,
     startAt: data.start_at ? String(data.start_at) : null,
@@ -175,8 +181,17 @@ export async function regenerateCheckinCode(eventId: string): Promise<string | n
   const sb = await adminDb();
   if (!sb) return null;
   const { code, hash } = generateCheckinCode();
-  const { error } = await sb.from('hanakai_events').update({ checkin_code_hash: hash }).eq('id', eventId);
-  return error ? null : code;
+  // Store both plaintext (host display) and hash (verification). Updating hash
+  // invalidates any previously issued code.
+  const { error } = await sb
+    .from('hanakai_events')
+    .update({ checkin_code_hash: hash, checkin_code: code })
+    .eq('id', eventId);
+  if (error) {
+    console.error('HANAKAI_CHECKIN_CODE_REGEN_FAILED', { eventId, message: error.message });
+    return null;
+  }
+  return code;
 }
 
 async function countRecentCheckinAttempts(eventId: string, memberId: string): Promise<number> {

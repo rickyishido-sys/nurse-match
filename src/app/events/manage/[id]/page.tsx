@@ -182,7 +182,10 @@ export default async function ManageEventPage({ params, searchParams }: PageProp
         <HostCheckinPanel
           eventId={event.id}
           hasCheckinCode={opsMeta?.hasCheckinCode ?? false}
+          currentCheckinCode={opsMeta?.checkinCode ?? null}
           newCheckinCode={typeof sp.new_checkin_code === 'string' ? sp.new_checkin_code : null}
+          regenerated={sp.checkin_regen === '1'}
+          regenError={sp.regen_error === '1'}
           confirmedMembers={confirmedForCheckin}
           checkins={checkins}
           endedAt={opsMeta?.endedAt}

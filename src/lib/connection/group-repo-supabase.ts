@@ -54,20 +54,34 @@ function photoFromRow(row: Record<string, unknown>): GroupPhoto {
 }
 
 export async function getGroupByEventId(eventId: string): Promise<ConnectionGroup | null> {
-  const sb = await db();
+  // Prefer admin so confirmed participants can still resolve a group when RLS
+  // blocks user-scoped selects in edge cases; fall back to session client.
+  const admin = createAdminSupabaseClient();
+  const sb = admin ?? (await db());
   if (!sb) return null;
   const { data, error } = await sb.from('hanakai_connection_groups').select('*').eq('event_id', eventId).maybeSingle();
   if (error) console.error('HANAKAI_GROUP_GET_FAILED', { eventId, message: error.message });
   return data ? groupFromRow(data) : null;
 }
 
+/**
+ * Ensure the event group row exists. Uses service_role when available so
+ * confirmed participants (who cannot INSERT groups under RLS) still heal
+ * missing groups created before syncGroupHost ran.
+ */
 export async function ensureGroupForEvent(eventId: string): Promise<ConnectionGroup | null> {
   const existing = await getGroupByEventId(eventId);
   if (existing) return existing;
-  const sb = await db();
+
+  const admin = createAdminSupabaseClient();
+  const sb = admin ?? (await db());
   if (!sb) return null;
+
   const { data, error } = await sb.from('hanakai_connection_groups').insert({ event_id: eventId }).select('*').single();
   if (error) {
+    // Race: another request created it — re-read.
+    const raced = await getGroupByEventId(eventId);
+    if (raced) return raced;
     console.error('HANAKAI_GROUP_ENSURE_FAILED', { eventId, message: error.message });
     return null;
   }
@@ -75,7 +89,9 @@ export async function ensureGroupForEvent(eventId: string): Promise<ConnectionGr
 }
 
 export async function addGroupMember(groupId: string, memberId: string, role: GroupMemberRole) {
-  const sb = await db();
+  // Membership sync after payment/confirm must not depend on host session RLS.
+  const admin = createAdminSupabaseClient();
+  const sb = admin ?? (await db());
   if (!sb) return;
   const { error } = await sb.from('hanakai_group_members').upsert(
     { group_id: groupId, member_id: memberId, role },
@@ -96,6 +112,23 @@ export async function syncGroupForConfirmedMember(
 
 export async function syncGroupHost(eventId: string, hostMemberId: string) {
   await syncGroupForConfirmedMember(eventId, hostMemberId, 'host');
+}
+
+/** After payment/confirm: ensure group + host + confirmed participant membership. */
+export async function syncGroupAfterParticipantConfirmed(
+  eventId: string,
+  participantMemberId: string,
+  hostMemberId?: string | null,
+) {
+  const group = await ensureGroupForEvent(eventId);
+  if (!group) {
+    console.error('HANAKAI_GROUP_SYNC_AFTER_CONFIRM_NO_GROUP', { eventId, participantMemberId });
+    return;
+  }
+  if (hostMemberId) {
+    await addGroupMember(group.id, hostMemberId, 'host');
+  }
+  await addGroupMember(group.id, participantMemberId, 'participant');
 }
 
 export async function listGroupMemberIds(groupId: string): Promise<string[]> {

@@ -169,14 +169,10 @@ export function CreateEventFeeExplanation() {
 
 export function ParticipationDecidedNotice() {
   return (
-    <div className='space-y-3'>
-      <p className='text-base font-semibold text-[#1a1a1a]'>参加が決定しました！</p>
-      <p className='text-sm leading-7 text-[#4a4a4a]'>
+    <div className='mt-3 space-y-2 border-t border-[#d5e5dc] pt-3'>
+      <p className='text-xs leading-6 text-[#5b6f67]'>
         {HANAKAI_USAGE_FEE_LABEL}
-        {formatHanakaiUsageFee()}の決済が完了しました。
-      </p>
-      <p className='text-sm leading-7 text-[#4a4a4a]'>
-        イベント当日に必要となる費用は、イベント詳細をご確認のうえ、当日主催者または店舗へ直接お支払いください。
+        {formatHanakaiUsageFee()}のお支払いは完了しています。当日必要な費用はイベント詳細をご確認ください。
       </p>
     </div>
   );

@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { Chip } from '@/components/connection/ui';
 import { INTEREST_TAG_LABEL } from '@/lib/connection/data';
-import { formatHanakaiUsageFee, HANAKAI_USAGE_FEE_LABEL } from '@/lib/connection/hanakai-usage-fee';
 import { finalizeEventParticipantsAction } from '@/lib/connection/actions';
 import type { EventApplicationStatus } from '@/lib/connection/types';
 
@@ -269,7 +268,7 @@ export function HostParticipantSelection({
             onClick={() => setShowConfirm(true)}
             className='h-12 w-full rounded-full bg-[#1f5d4f] text-sm font-semibold text-white transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40'
           >
-            このメンバーへ参加案内を送る
+            参加を確定する
           </button>
         </div>
       ) : null}
@@ -283,12 +282,10 @@ export function HostParticipantSelection({
         >
           <div className='w-full max-w-md rounded-2xl bg-white p-5 shadow-xl'>
             <h3 id='finalize-dialog-title' className='text-base font-semibold text-[#1a1a1a]'>
-              参加案内を送りますか？
+              参加を確定しますか？
             </h3>
             <p className='mt-3 text-sm leading-7 text-[#5a5247]'>
-              選択した{selectedCount}名へ参加案内を送り、登録済みカードへ{HANAKAI_USAGE_FEE_LABEL}
-              {formatHanakaiUsageFee()}を自動請求します。
-              決済に成功した方のみ、正式な参加メンバーとして確定します。
+              選択した{selectedCount}名の参加を確定します。確定後、参加者へ結果が通知されます。
             </p>
             <ul className='mt-3 space-y-1 text-xs text-[#6b6b6b]'>
               {selectedSummary.map((a) => (
@@ -310,7 +307,7 @@ export function HostParticipantSelection({
                 onClick={handleFinalize}
                 className='h-11 flex-1 rounded-full bg-[#1f5d4f] text-sm font-semibold text-white disabled:opacity-50'
               >
-                {isPending ? '決定中…' : 'このメンバーで決定する'}
+                {isPending ? '確定中…' : 'このメンバーの参加を確定する'}
               </button>
             </div>
           </div>
