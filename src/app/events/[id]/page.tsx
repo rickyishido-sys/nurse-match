@@ -47,41 +47,62 @@ import {
 } from '@/lib/connection/participation-payment';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
+type SearchParams = Record<string, string | string[] | undefined>;
+
 type PageProps = {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams?: Promise<SearchParams>;
 };
 
-export default async function EventDetailPage({ params, searchParams }: PageProps) {
-  const { id } = await params;
-  const sp = searchParams ? await searchParams : {};
-  const event = await getEvent(id);
-  if (!event) notFound();
-  const usageFeeJpy = await getHanakaiUsageFeeJpy();
+function spString(sp: SearchParams, key: string): string {
+  const v = sp[key];
+  return typeof v === 'string' ? v : '';
+}
 
-  const viewer = await getHanakaiViewer();
-  const viewerMemberId = await getViewerMemberId();
-  const viewerMember = viewerMemberId ? await getMember(viewerMemberId) : null;
-  const eligibility = getEventEligibility(viewerMember);
-  const applied = sp.applied === '1';
-  const participationConfirmed = sp.participation === 'confirmed';
-  const reasonError = sp.error === 'reason';
-  const paymentMethodError = sp.error === 'payment_method';
-  const created = sp.created === '1';
-  const cancelled = sp.cancelled === '1';
-  const cancelError = typeof sp.cancel_error === 'string' ? sp.cancel_error : '';
-  const existingApp = viewerMemberId ? await getApplication(event.id, viewerMemberId) : null;
-  const confirmedMembers = await getEventMembers(event.id);
-  const host = event.hostId ? await getMember(event.hostId) : null;
-  const hostBloom = event.hostId ? await getBloomProfile(event.hostId) : null;
-  const isHost = !!viewerMemberId && event.hostId === viewerMemberId;
-  const approvalMode = event.approvalMode ?? 'host_approval';
-  const isFull = event.status === 'full' || event.reservedCount >= event.capacity;
-  const paymentMethods = viewerMemberId ? await listPaymentMethods(viewerMemberId) : [];
+export default async function EventDetailPage({ params, searchParams }: PageProps) {
+  const [{ id }, sp] = await Promise.all([
+    params,
+    searchParams ?? Promise.resolve({} as SearchParams),
+  ]);
+
+  // Wave 1: event + independent public/auth lookups in parallel (no payment data).
+  // Auth/member reads are request-scoped React.cache — never cross-user shared cache.
+  const [event, usageFeeJpy, viewer, viewerMemberId] = await Promise.all([
+    getEvent(id),
+    getHanakaiUsageFeeJpy(),
+    getHanakaiViewer(),
+    getViewerMemberId(),
+  ]);
+  if (!event) notFound();
+
+  // Wave 2: event-dependent public data + viewer-scoped data together.
+  // Payment methods / application context stay isolated to this viewer.
+  const [confirmedMembers, host, hostBloom, viewerMember, existingApp, paymentMethods] =
+    await Promise.all([
+      getEventMembers(event.id),
+      event.hostId ? getMember(event.hostId) : Promise.resolve(null),
+      event.hostId ? getBloomProfile(event.hostId) : Promise.resolve(null),
+      viewerMemberId ? getMember(viewerMemberId) : Promise.resolve(null),
+      viewerMemberId ? getApplication(event.id, viewerMemberId) : Promise.resolve(null),
+      viewerMemberId ? listPaymentMethods(viewerMemberId) : Promise.resolve([]),
+    ]);
+
   const paymentContext =
     viewerMemberId && existingApp
       ? await getApplicationPaymentContext(existingApp.id, viewerMemberId)
       : null;
+
+  const eligibility = getEventEligibility(viewerMember);
+  const applied = spString(sp, 'applied') === '1';
+  const participationConfirmed = spString(sp, 'participation') === 'confirmed';
+  const reasonError = spString(sp, 'error') === 'reason';
+  const paymentMethodError = spString(sp, 'error') === 'payment_method';
+  const created = spString(sp, 'created') === '1';
+  const cancelled = spString(sp, 'cancelled') === '1';
+  const cancelError = spString(sp, 'cancel_error');
+  const isHost = !!viewerMemberId && event.hostId === viewerMemberId;
+  const approvalMode = event.approvalMode ?? 'host_approval';
+  const isFull = event.status === 'full' || event.reservedCount >= event.capacity;
   const activeParticipationStatuses = [
     'pending',
     'payment_processing',

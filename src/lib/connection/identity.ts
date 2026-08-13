@@ -8,6 +8,7 @@
 //       * 読み取り (getViewerMemberId): セッションが無ければ null（ゲスト閲覧）。
 //       * 書き込み (ensureViewerMemberId): セッション必須（本番は匿名 sign-in 不可）。
 //         ensureHanakaiMemberForAuthUser で hanakai_members 行を get-or-create。
+import { cache } from 'react';
 import { HANAKAI_CONNECTION_BACKEND, HANAKAI_DISABLE_ANONYMOUS_AUTH, USE_MOCK_DATA } from '@/lib/config';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
@@ -37,10 +38,12 @@ async function findMemberIdByAuthUser(authUserId: string): Promise<string | null
 }
 
 /** 既存の hanakai_members 行を検索する（新規作成しない） */
-export async function getHanakaiMemberIdForAuthUser(authUserId: string): Promise<string | null> {
+export const getHanakaiMemberIdForAuthUser = cache(async function getHanakaiMemberIdForAuthUser(
+  authUserId: string,
+): Promise<string | null> {
   if (!useSupabase) return null;
   return findMemberIdByAuthUser(authUserId);
-}
+});
 
 function fallbackNickname(metadataNickname?: string | null): string {
   if (metadataNickname?.trim()) return metadataNickname.trim();
@@ -121,12 +124,17 @@ export async function ensureHanakaiMemberForAuthUser(
   }
 }
 
+type AuthUser = {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, unknown> | null;
+};
+
 /**
- * 読み取り専用。セッションを新規作成しない（RSC からの呼び出しでも安全）。
- * mock では常に 'm1'。supabase では未ログイン時 null。
+ * Request-scoped auth user (getUser). Dedupes shell + page member lookups
+ * within one RSC render. Never shared across users/requests.
  */
-export async function getViewerMemberId(): Promise<string | null> {
-  if (!useSupabase) return mockViewerWhenDemoEnabled();
+export const getAuthUser = cache(async function getAuthUser(): Promise<AuthUser | null> {
   try {
     const sb = await createServerSupabaseClient();
     if (!sb) return null;
@@ -134,26 +142,40 @@ export async function getViewerMemberId(): Promise<string | null> {
       data: { user },
     } = await sb.auth.getUser();
     if (!user) return null;
-    return findMemberIdByAuthUser(user.id);
+    return {
+      id: user.id,
+      email: user.email ?? null,
+      user_metadata: user.user_metadata ?? null,
+    };
   } catch {
     return null;
   }
-}
+});
 
-/** ログイン済みか（Supabase Auth セッションあり） */
-export async function getAuthenticatedAuthUserId(): Promise<string | null> {
+/**
+ * 読み取り専用。セッションを新規作成しない（RSC からの呼び出しでも安全）。
+ * mock では常に 'm1'。supabase では未ログイン時 null。
+ * Request-scoped React.cache only — never shared across users/requests.
+ */
+export const getViewerMemberId = cache(async function getViewerMemberId(): Promise<string | null> {
   if (!useSupabase) return mockViewerWhenDemoEnabled();
   try {
-    const sb = await createServerSupabaseClient();
-    if (!sb) return null;
-    const {
-      data: { user },
-    } = await sb.auth.getUser();
-    return user?.id ?? null;
+    const user = await getAuthUser();
+    if (!user) return null;
+    return getHanakaiMemberIdForAuthUser(user.id);
   } catch {
     return null;
   }
-}
+});
+
+/** ログイン済みか（Supabase Auth セッションあり） */
+export const getAuthenticatedAuthUserId = cache(async function getAuthenticatedAuthUserId(): Promise<
+  string | null
+> {
+  if (!useSupabase) return mockViewerWhenDemoEnabled();
+  const user = await getAuthUser();
+  return user?.id ?? null;
+});
 
 /**
  * 書き込み導線（Server Actions）専用。

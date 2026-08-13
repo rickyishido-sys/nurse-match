@@ -20,13 +20,17 @@ import { getHanakaiViewer } from '@/lib/hanakai/session';
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
 
 export default async function EventsPage({ searchParams }: PageProps) {
-  const viewer = await getHanakaiViewer();
-  const viewerMemberId = await getViewerMemberId();
+  // Auth + list cache in parallel; member/area follow after member id (request-scoped cache).
+  const [viewer, viewerMemberId, sp, events] = await Promise.all([
+    getHanakaiViewer(),
+    getViewerMemberId(),
+    searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>),
+    listEventsCached(),
+  ]);
   const member = viewerMemberId ? await getMember(viewerMemberId) : null;
   const memberAreaRaw = member?.area?.trim() || '';
   const memberAreaLabel = resolvePrefectureLabel(memberAreaRaw);
 
-  const sp = searchParams ? await searchParams : {};
   const activeFilter = parseEventsListFilter(typeof sp.category === 'string' ? sp.category : undefined);
   const regionRaw = typeof sp.region === 'string' ? sp.region : undefined;
   const region = parseEventsRegionParam(regionRaw, memberAreaRaw);
@@ -45,7 +49,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
         ? 'local'
         : (focusPrefecture ?? 'all');
 
-  const allEvents = (await listEventsCached()).filter((e) => !e.isPast);
+  const allEvents = events.filter((e) => !e.isPast);
   const filtered = filterEventsBySlug(allEvents, activeFilter);
 
   const additionalEvents = filtered.filter((e) => e.recruitmentType === 'additional');
