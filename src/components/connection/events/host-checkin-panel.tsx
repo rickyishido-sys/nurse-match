@@ -1,11 +1,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, Chip } from '@/components/connection/ui';
+import { HostCheckinCodeCard } from '@/components/connection/events/host-checkin-code-card';
 import {
   hostCancelCheckinAction,
   hostManualCheckinAction,
   endEventAndRequestRevenueAction,
-  regenerateCheckinCodeAction,
 } from '@/lib/connection/event-operations/actions';
 import type { EventCheckin } from '@/lib/connection/event-operations/types';
 import type { ConnectionMember } from '@/lib/connection/types';
@@ -14,9 +14,7 @@ import { memberMainPhotoUrl } from '@/lib/connection/member-photo';
 type Props = {
   eventId: string;
   hasCheckinCode: boolean;
-  /** Persisted host-readable code from DB */
   currentCheckinCode?: string | null;
-  /** Just-regenerated code from redirect query (also shown) */
   newCheckinCode?: string | null;
   regenerated?: boolean;
   regenError?: boolean;
@@ -30,15 +28,13 @@ export function HostCheckinPanel({
   hasCheckinCode,
   currentCheckinCode,
   newCheckinCode,
-  regenerated = false,
-  regenError = false,
   confirmedMembers,
   checkins,
   endedAt,
 }: Props) {
   const activeCheckins = checkins.filter((c) => c.status === 'checked_in');
   const checkedInIds = new Set(activeCheckins.map((c) => c.memberId));
-  const displayCode =
+  const initialCode =
     (newCheckinCode && /^\d{4}$/.test(newCheckinCode) ? newCheckinCode : null) ??
     (currentCheckinCode && /^\d{4}$/.test(currentCheckinCode) ? currentCheckinCode : null);
 
@@ -46,54 +42,11 @@ export function HostCheckinPanel({
     <section className='space-y-4'>
       <h2 className='text-sm font-semibold text-[#1a1a1a]'>チェックイン管理</h2>
 
-      <Card className='space-y-3'>
-        <p className='text-sm font-semibold text-[#1a1a1a]'>現在のチェックインコード</p>
-        <p className='text-xs leading-6 text-[#6b6b6b]'>
-          イベント当日、参加者へ口頭で伝える4桁コードです。管理画面からいつでも確認・再発行できます。
-        </p>
-
-        {regenerated && displayCode ? (
-          <p className='rounded-xl border border-[#cfe3da] bg-[#f3f7f5] px-3 py-2 text-xs font-medium text-[#1f5d4f]'>
-            チェックインコードを再発行しました
-          </p>
-        ) : null}
-        {regenError ? (
-          <p className='rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs text-rose-700' role='alert'>
-            再発行に失敗しました。時間をおいて再度お試しください。
-          </p>
-        ) : null}
-
-        {displayCode ? (
-          <p className='text-3xl font-bold tracking-[0.35em] text-[#1f5d4f]' aria-label={`チェックインコード ${displayCode}`}>
-            {displayCode}
-          </p>
-        ) : hasCheckinCode ? (
-          <p className='text-sm text-[#4a4a4a]'>
-            以前のコードは表示できません。下のボタンから再発行すると、新しい4桁コードを確認できます。
-          </p>
-        ) : (
-          <p className='text-sm text-[#4a4a4a]'>コード未設定です。再発行で新しいコードを作成できます。</p>
-        )}
-
-        <form action={regenerateCheckinCodeAction}>
-          <input type='hidden' name='eventId' value={eventId} />
-          <button
-            type='submit'
-            className='rounded-full border border-[#1f5d4f] px-4 py-2 text-xs font-semibold text-[#1f5d4f]'
-          >
-            チェックインコードを再発行
-          </button>
-        </form>
-        <p className='text-[11px] leading-5 text-[#9a9a9a]'>
-          再発行すると以前のコードは無効になり、新しいコードのみが使えます。
-        </p>
-        <Link
-          href={`/events/${eventId}/checkin`}
-          className='text-xs font-medium text-[#1f5d4f] underline-offset-2 hover:underline'
-        >
-          参加者用チェックイン画面 →
-        </Link>
-      </Card>
+      <HostCheckinCodeCard
+        eventId={eventId}
+        hasCheckinCode={hasCheckinCode}
+        initialCode={initialCode}
+      />
 
       <Card>
         <p className='mb-3 text-sm font-semibold'>手動チェックイン</p>
