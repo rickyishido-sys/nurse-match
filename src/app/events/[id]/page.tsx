@@ -237,7 +237,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
         <EventBloomIntroCard />
         <EventSafetyStrip />
 
-        <section id='event-apply' className='scroll-mt-24 space-y-4'>
+        <section id='event-apply' className='scroll-mt-24 space-y-4 pb-28 lg:pb-0'>
           <h2 className='text-lg font-semibold text-[#1a1a1a]'>参加する</h2>
 
           {event.isPast ? (
@@ -379,11 +379,6 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                       お支払い方法を選択してください。
                     </p>
                   ) : null}
-                  <p className='mb-4 text-sm leading-7 text-[#6b6b6b]'>
-                    {approvalMode === 'auto'
-                      ? 'あなたの想いを添えて参加できます。主催者と参加者が、心地よいConnectionを育てます。'
-                      : 'あなたの想いを添えて申請してください。主催者がプロフィール・参加理由を確認し、この体験に合うメンバーを選びます。'}
-                  </p>
                   <ApplyWithCardGate
                     eventId={event.id}
                     approvalMode={approvalMode}

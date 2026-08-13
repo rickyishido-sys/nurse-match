@@ -14,6 +14,8 @@ type Props = {
   onChange: (id: string) => void;
   onMethodsUpdated: (methods: PaymentMethodDisplay[], selectedId: string) => void;
   usageFeeJpy?: number;
+  /** When multiple cards exist, open the picker so the user can confirm selection. */
+  preferPickerOpen?: boolean;
 };
 
 export function ApplyPaymentMethodField({
@@ -22,8 +24,9 @@ export function ApplyPaymentMethodField({
   onChange,
   onMethodsUpdated,
   usageFeeJpy,
+  preferPickerOpen = false,
 }: Props) {
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(preferPickerOpen && methods.length > 1);
   const [adding, setAdding] = useState(false);
   const selected = methods.find((m) => m.id === selectedId) ?? methods[0];
 
@@ -33,10 +36,17 @@ export function ApplyPaymentMethodField({
     <div className='space-y-3 rounded-2xl border border-[#ebe9e4] bg-[#fafaf8] px-4 py-4'>
       <div className='flex items-start justify-between gap-3'>
         <div className='min-w-0'>
-          <p className='text-xs font-semibold tracking-wide text-[#8a8a8a]'>支払い方法</p>
+          <p className='text-xs font-semibold tracking-wide text-[#8a8a8a]'>
+            今回のお支払い方法
+          </p>
           <p className='mt-1 text-sm font-semibold text-[#1a1a1a]'>
             {formatPaymentMethodLine(selected)}
           </p>
+          {methods.length > 1 ? (
+            <p className='mt-1 text-xs text-[#8a8a8a]'>
+              登録カードが複数あります。必要なら変更できます。
+            </p>
+          ) : null}
         </div>
         <button
           type='button'
@@ -46,7 +56,7 @@ export function ApplyPaymentMethodField({
           }}
           className='shrink-0 text-xs font-semibold text-[#1f5d4f] underline-offset-2 hover:underline'
         >
-          {pickerOpen ? '閉じる' : '変更'}
+          {pickerOpen ? '閉じる' : methods.length > 1 ? 'カードを選ぶ' : '変更'}
         </button>
       </div>
 
