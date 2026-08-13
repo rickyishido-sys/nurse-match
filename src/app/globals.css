@@ -84,6 +84,51 @@ body {
   color: transparent;
 }
 
+/* Route loading skeletons — subtle shimmer (not a full-screen takeover). */
+@keyframes hk-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes hk-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.hk-skeleton-bone {
+  background-color: #f0eeea;
+  background-image: linear-gradient(
+    90deg,
+    #f0eeea 0%,
+    #f7f5f1 45%,
+    #ebe9e4 55%,
+    #f0eeea 100%
+  );
+  background-size: 200% 100%;
+  animation: hk-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.hk-loading-spinner {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  border: 2px solid #d8d6d1;
+  border-top-color: #1f5d4f;
+  animation: hk-spinner-rotate 0.8s linear infinite;
+}
+
+.hk-loading-spinner--sm {
+  width: 0.875rem;
+  height: 0.875rem;
+  border-width: 1.5px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hk-tilt-1,
   .hk-tilt-2,
@@ -96,6 +141,21 @@ body {
   }
   .hk-brand-btn:hover:not(:disabled) {
     transform: none;
+  }
+  .hk-skeleton-bone {
+    animation: none;
+    background-image: none;
+    background-color: #ebe9e4;
+  }
+  .hk-loading-spinner,
+  .hk-loading-spinner--sm {
+    animation: none;
+    border-color: #1f5d4f;
+    border-top-color: #1f5d4f;
+    opacity: 0.55;
+  }
+  .animate-pulse {
+    animation: none !important;
   }
 }
 

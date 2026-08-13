@@ -1,5 +1,6 @@
+import { cache } from 'react';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { getHanakaiMemberIdForAuthUser } from '@/lib/connection/identity';
+import { getAuthUser, getHanakaiMemberIdForAuthUser } from '@/lib/connection/identity';
 import { isConnectionAdminMember } from '@/lib/connection/group-access';
 import { getMember } from '@/lib/connection/repo';
 
@@ -37,20 +38,19 @@ function resolveAvatarUrl(member: Awaited<ReturnType<typeof getMember>>): string
 
 // Lightweight auth read for the HANAKAI shell. Decoupled from the legacy
 // dating-domain `users` table; only used to show login/logout state.
-export async function getHanakaiViewer(): Promise<HanakaiViewer | null> {
+// Request-scoped React.cache only — never shared across users/requests.
+export const getHanakaiViewer = cache(async function getHanakaiViewer(): Promise<HanakaiViewer | null> {
   try {
-    const supabase = await createServerSupabaseClient();
-    if (!supabase) return null;
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return null;
 
     const email = user.email ?? null;
     const metaName = (user.user_metadata?.nickname as string | undefined) ?? null;
     const memberId = await getHanakaiMemberIdForAuthUser(user.id);
-    const member = memberId ? await getMember(memberId) : null;
-    const isSuperAdmin = await isSuperAdminUser(user.id);
+    const [member, isSuperAdmin] = await Promise.all([
+      memberId ? getMember(memberId) : Promise.resolve(null),
+      isSuperAdminUser(user.id),
+    ]);
     const role = resolveHanakaiUserRole(isSuperAdmin, memberId);
     const displayName =
       member?.nickname?.trim() || metaName?.trim() || (email ? email.split('@')[0] : 'ゲスト');
@@ -66,4 +66,4 @@ export async function getHanakaiViewer(): Promise<HanakaiViewer | null> {
   } catch {
     return null;
   }
-}
+});

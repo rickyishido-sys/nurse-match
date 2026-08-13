@@ -6,6 +6,7 @@
 //
 // NOTE: Static constants/labels (PURPOSE_LABEL, EVENT_CATEGORY_META, …) are NOT
 // part of this layer — import those directly from '@/lib/connection/data'.
+import { cache } from 'react';
 import { HANAKAI_CONNECTION_BACKEND } from '@/lib/config';
 import * as mock from '@/lib/connection/data';
 import { toPublicMemberView } from '@/lib/connection/member-status';
@@ -29,10 +30,13 @@ export async function listMembers(): Promise<ConnectionMember[]> {
   return useSupabase ? supa.listMembers() : mock.listMembers();
 }
 
-export async function getMember(id: string): Promise<ConnectionMember | null> {
+/** Request-scoped dedupe only (React cache). Never cross-request shared cache. */
+export const getMember = cache(async function getMember(
+  id: string,
+): Promise<ConnectionMember | null> {
   const member = useSupabase ? await supa.getMember(id) : mock.getMember(id);
   return member ? toPublicMemberView(member) : null;
-}
+});
 
 export async function listEvents(): Promise<ConnectionEvent[]> {
   return useSupabase ? supa.listEvents() : mock.listEvents();
@@ -42,9 +46,12 @@ export async function listUpcomingEvents(limit = 4): Promise<ConnectionEvent[]> 
   return useSupabase ? supa.listUpcomingEvents(limit) : mock.listUpcomingEvents(limit);
 }
 
-export async function getEvent(id: string): Promise<ConnectionEvent | null> {
+/** Request-scoped dedupe only (React cache). Never cross-request shared cache. */
+export const getEvent = cache(async function getEvent(
+  id: string,
+): Promise<ConnectionEvent | null> {
   return useSupabase ? supa.getEvent(id) : mock.getEvent(id);
-}
+});
 
 export async function listEventsByHost(hostId: string): Promise<ConnectionEvent[]> {
   return useSupabase ? supa.listEventsByHost(hostId) : mock.listEventsByHost(hostId);
@@ -58,9 +65,13 @@ export async function listPendingApplications(eventId: string): Promise<EventApp
   return useSupabase ? supa.listPendingApplications(eventId) : mock.listPendingApplications(eventId);
 }
 
-export async function getApplication(eventId: string, memberId: string): Promise<EventApplication | null> {
+/** Request-scoped dedupe only. Never cross-request / shared cache (viewer-scoped). */
+export const getApplication = cache(async function getApplication(
+  eventId: string,
+  memberId: string,
+): Promise<EventApplication | null> {
   return useSupabase ? supa.getApplication(eventId, memberId) : mock.getApplication(eventId, memberId);
-}
+});
 
 export async function listApplicationsForMember(memberId: string): Promise<EventApplication[]> {
   return useSupabase ? supa.listApplicationsForMember(memberId) : mock.listApplications().filter((a) => a.memberId === memberId);
