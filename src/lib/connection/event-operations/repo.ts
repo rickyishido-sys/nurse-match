@@ -179,7 +179,10 @@ export async function getMemberCheckin(eventId: string, memberId: string): Promi
 
 export async function regenerateCheckinCode(eventId: string): Promise<string | null> {
   const sb = await adminDb();
-  if (!sb) return null;
+  if (!sb) {
+    console.error('HANAKAI_CHECKIN_CODE_REGEN_NO_ADMIN', { eventId });
+    return null;
+  }
   const { code, hash } = generateCheckinCode();
   // Store both plaintext (host display) and hash (verification). Updating hash
   // invalidates any previously issued code.
@@ -187,8 +190,16 @@ export async function regenerateCheckinCode(eventId: string): Promise<string | n
     .from('hanakai_events')
     .update({ checkin_code_hash: hash, checkin_code: code })
     .eq('id', eventId);
-  if (error) {
-    console.error('HANAKAI_CHECKIN_CODE_REGEN_FAILED', { eventId, message: error.message });
+  if (!error) return code;
+
+  // Fallback: schema-cache lag or older env without checkin_code column.
+  console.warn('HANAKAI_CHECKIN_CODE_REGEN_RETRY_HASH_ONLY', { eventId, message: error.message });
+  const { error: hashOnlyError } = await sb
+    .from('hanakai_events')
+    .update({ checkin_code_hash: hash })
+    .eq('id', eventId);
+  if (hashOnlyError) {
+    console.error('HANAKAI_CHECKIN_CODE_REGEN_FAILED', { eventId, message: hashOnlyError.message });
     return null;
   }
   return code;

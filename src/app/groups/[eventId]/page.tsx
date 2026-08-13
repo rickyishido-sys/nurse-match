@@ -50,7 +50,12 @@ export default async function GroupPage({ params }: PageProps) {
     );
   }
 
-  const group = await refreshGroupMembership(eventId);
+  let group: Awaited<ReturnType<typeof refreshGroupMembership>> = null;
+  try {
+    group = await refreshGroupMembership(eventId);
+  } catch (e) {
+    console.error('HANAKAI_GROUP_REFRESH_THROW', { eventId, error: String(e) });
+  }
   if (!group) {
     return (
       <ConnectionShell viewer={viewer}>
@@ -65,12 +70,22 @@ export default async function GroupPage({ params }: PageProps) {
     );
   }
 
-  const [posts, photos, members] = await Promise.all([
-    listGroupPosts(group.id),
-    listGroupPhotos(group.id),
-    getEventMembers(eventId),
+  const [posts, photos, memberRows] = await Promise.all([
+    listGroupPosts(group.id).catch((e) => {
+      console.error('HANAKAI_GROUP_POSTS_THROW', { eventId, error: String(e) });
+      return [];
+    }),
+    listGroupPhotos(group.id).catch((e) => {
+      console.error('HANAKAI_GROUP_PHOTOS_THROW', { eventId, error: String(e) });
+      return [];
+    }),
+    getEventMembers(eventId).catch((e) => {
+      console.error('HANAKAI_GROUP_EVENT_MEMBERS_THROW', { eventId, error: String(e) });
+      return [];
+    }),
   ]);
 
+  const members = [...memberRows];
   const host = event.hostId ? await getMember(event.hostId) : null;
   const participantIds = new Set(members.map((m) => m.id));
   if (host && !participantIds.has(host.id)) members.unshift(host);

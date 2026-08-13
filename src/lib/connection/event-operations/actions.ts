@@ -67,15 +67,26 @@ export async function hostCancelCheckinAction(formData: FormData) {
   redirect(`/events/manage/${eventId}?checkin_cancelled=1`);
 }
 
-export async function regenerateCheckinCodeAction(formData: FormData) {
-  const eventId = String(formData.get('eventId') ?? '');
-  if (!eventId) redirect('/events');
+/** Client-callable: returns new code for immediate UI update (no redirect dependency). */
+export async function regenerateCheckinCodeForHost(
+  eventId: string,
+): Promise<{ ok: true; code: string } | { ok: false; error: string }> {
+  if (!eventId) return { ok: false, error: 'イベントが指定されていません' };
   await requireEventHostAccess(eventId);
   const code = await regenerateCheckinCode(eventId);
   revalidatePath(`/events/manage/${eventId}`);
   revalidatePath(`/events/${eventId}`);
-  if (!code) redirect(`/events/manage/${eventId}?regen_error=1`);
-  redirect(`/events/manage/${eventId}?checkin_regen=1&new_checkin_code=${encodeURIComponent(code)}`);
+  if (!code) return { ok: false, error: '再発行に失敗しました。時間をおいて再度お試しください。' };
+  return { ok: true, code };
+}
+
+/** Progressive-enhancement form action (redirects with query feedback). */
+export async function regenerateCheckinCodeAction(formData: FormData) {
+  const eventId = String(formData.get('eventId') ?? '');
+  if (!eventId) redirect('/events');
+  const result = await regenerateCheckinCodeForHost(eventId);
+  if (!result.ok) redirect(`/events/manage/${eventId}?regen_error=1`);
+  redirect(`/events/manage/${eventId}?checkin_regen=1&new_checkin_code=${encodeURIComponent(result.code)}`);
 }
 
 export async function endEventAndRequestRevenueAction(formData: FormData) {
