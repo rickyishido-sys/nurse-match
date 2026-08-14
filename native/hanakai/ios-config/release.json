@@ -1,0 +1,7 @@
+{
+  "bundleId": "design.kranz.hanakai",
+  "marketingVersion": "1.0",
+  "currentProjectVersion": "8",
+  "targetedDeviceFamily": "1",
+  "notes": "App Store: iPhone only. Version 1.0 / Build 8. Capacitor may regenerate TARGETED_DEVICE_FAMILY=1,2 — run apply-ios-config.mjs after every sync."
+}

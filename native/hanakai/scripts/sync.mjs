@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Sync Capacitor native projects with plugins and web assets.
+ * Sync Capacitor native projects with plugins and web assets,
+ * then re-apply tracked iOS release settings (iPhone-only, version/build).
  *
  * Usage:
  *   node scripts/sync.mjs          # sync all platforms
@@ -48,9 +49,14 @@ if (platform === 'ios' || platform === 'android') {
 
 run('npx', capArgs);
 
-const applyPlist = join(__dirname, 'apply-ios-plist.mjs');
-if (existsSync(applyPlist) && (!platform || platform === 'ios')) {
-  run('node', [applyPlist]);
+const applyIos = join(__dirname, 'apply-ios-config.mjs');
+if (existsSync(applyIos) && (!platform || platform === 'ios')) {
+  run('node', [applyIos]);
+} else {
+  const applyPlist = join(__dirname, 'apply-ios-plist.mjs');
+  if (existsSync(applyPlist) && (!platform || platform === 'ios')) {
+    run('node', [applyPlist]);
+  }
 }
 
 console.log('[hanakai] Sync complete.');
