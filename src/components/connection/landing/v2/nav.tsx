@@ -40,7 +40,7 @@ export function LandingNav({
               solid ? 'text-[#1a1a1a] hover:bg-black/5' : 'text-white hover:bg-white/10'
             }`}
           >
-            イベント
+            参加する
           </Link>
           <Link
             href='/events/create'
