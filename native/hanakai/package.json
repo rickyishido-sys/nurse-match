@@ -11,7 +11,9 @@
     "cap:open:android": "npx cap open android",
     "cap:add:ios": "npx cap add ios",
     "cap:add:android": "npx cap add android",
-    "cap:doctor": "npx cap doctor"
+    "cap:doctor": "npx cap doctor",
+    "ios:apply-config": "node scripts/apply-ios-config.mjs",
+    "ios:generate-appicon": "node scripts/generate-appicon.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",

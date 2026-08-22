@@ -137,6 +137,16 @@ For `https://hanakai.kranz.design/auth/callback` and `/reset-password` to open t
 
 These require server-side `.well-known` files (outside this wrapper). Until configured, custom scheme links still work.
 
+## App Icon (App Store)
+
+Tracked source of truth (survives `cap sync`):
+
+- `ios-config/AppIcon.appiconset/` — generated from `../../public/brand/hanakai-logo.png`
+- `node scripts/apply-ios-config.mjs` replaces Capacitor placeholder icons after every sync
+- Regenerate: `node scripts/generate-appicon.mjs`
+
+Do **not** Archive with the default Capacitor `AppIcon-512@2x.png` placeholder.
+
 ## Safe area (notch / home indicator)
 
 The WebView should respect device safe areas:

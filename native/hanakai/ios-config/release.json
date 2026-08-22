@@ -1,7 +1,7 @@
 {
   "bundleId": "design.kranz.hanakai",
   "marketingVersion": "1.0",
-  "currentProjectVersion": "8",
+  "currentProjectVersion": "9",
   "targetedDeviceFamily": "1",
-  "notes": "App Store: iPhone only. Version 1.0 / Build 8. Capacitor may regenerate TARGETED_DEVICE_FAMILY=1,2 — run apply-ios-config.mjs after every sync."
+  "notes": "App Store: iPhone only. Version 1.0 / Build 9 (App Icon fix + review community). Capacitor may regenerate TARGETED_DEVICE_FAMILY=1,2 and placeholder AppIcon — apply-ios-config.mjs rewrites both after every sync. Confirm Build 9 is unused in App Store Connect before Archive."
 }
