@@ -5,8 +5,8 @@
  * Apple Guideline 2.1(a): reviewers need Community peers to exercise Report/Block.
  * Community (/connections) lists past confirmed co-participants only.
  *
- * Creates 2 synthetic members + confirmed applications on a past review event
- * shared with the existing review participant. Does NOT touch real users.
+ * Creates a dedicated past Community Review event plus 2 synthetic demo members.
+ * Does NOT touch the legacy review event used for event-detail / participation QA.
  *
  * Required env (from .env.local / .env.secrets.local — never printed):
  *   NEXT_PUBLIC_SUPABASE_URL
@@ -14,7 +14,7 @@
  *   HANAKAI_REVIEW_EMAIL  (existing participant review account)
  *
  * Optional:
- *   HANAKAI_REVIEW_EVENT_ID (default: known review event id)
+ *   HANAKAI_REVIEW_COMMUNITY_EVENT_ID  (set automatically after first --apply)
  *
  * Usage:
  *   node scripts/seed-hanakai-review-community.mjs --dry-run
@@ -27,7 +27,13 @@ import { resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const SECRETS_FILE = resolve(ROOT, '.env.secrets.local');
-const DEFAULT_REVIEW_EVENT_ID = 'a27f5be8-a875-461c-9fd1-adfb936410ff';
+
+/** Legacy review event for event-detail / participation QA — never modified by this script. */
+const LEGACY_REVIEW_EVENT_ID = 'a27f5be8-a875-461c-9fd1-adfb936410ff';
+
+const COMMUNITY_REVIEW_EVENT_TITLE = 'HANAKAI Community Review Demo';
+const COMMUNITY_REVIEW_EVENT_DESCRIPTION =
+  'App Store Review専用。Community（通報・ブロック）確認用の過去イベント。一般公開対象外。';
 
 const DEMO_USERS = [
   {
@@ -51,6 +57,13 @@ const DEMO_USERS = [
     secretKey: 'HANAKAI_REVIEW_DEMO_B_PASSWORD',
   },
 ];
+
+const PLANNED_OPS = {
+  tables: [],
+  creates: [],
+  updates: [],
+  untouched: [LEGACY_REVIEW_EVENT_ID],
+};
 
 function loadEnvFile(path) {
   if (!existsSync(path)) return {};
@@ -92,6 +105,12 @@ function maskEmail(email) {
   return `${u.slice(0, 2)}***@${d}`;
 }
 
+function assertNotLegacyEventId(eventId, label = 'event id') {
+  if (eventId === LEGACY_REVIEW_EVENT_ID) {
+    throw new Error(`${label} must not be the legacy review event (${LEGACY_REVIEW_EVENT_ID})`);
+  }
+}
+
 function parseArgs(argv) {
   const dryRun = argv.includes('--dry-run');
   const apply = argv.includes('--apply');
@@ -120,6 +139,7 @@ async function ensureAuthUser(admin, email, password, { apply }) {
   const existing = await findAuthUserByEmail(admin, email);
   if (existing) {
     console.log(`[seed] auth user exists ${maskEmail(email)} id=${existing.id}`);
+    PLANNED_OPS.updates.push({ table: 'auth.users', key: maskEmail(email), action: 'update password + email_confirm' });
     if (apply) {
       const { error } = await admin.auth.admin.updateUserById(existing.id, {
         password,
@@ -130,6 +150,7 @@ async function ensureAuthUser(admin, email, password, { apply }) {
     return existing.id;
   }
   console.log(`[seed] create auth user ${maskEmail(email)}`);
+  PLANNED_OPS.creates.push({ table: 'auth.users', key: maskEmail(email) });
   if (!apply) return `dry-run-auth-${email}`;
   const { data, error } = await admin.auth.admin.createUser({
     email,
@@ -149,6 +170,7 @@ async function ensureMember(admin, authUserId, profile, { apply }) {
 
   if (existing?.id) {
     console.log(`[seed] member exists nickname=${existing.nickname} id=${existing.id}`);
+    PLANNED_OPS.updates.push({ table: 'hanakai_members', key: profile.nickname, action: 'sync review demo profile' });
     if (apply) {
       const { error } = await admin
         .from('hanakai_members')
@@ -175,6 +197,7 @@ async function ensureMember(admin, authUserId, profile, { apply }) {
   }
 
   console.log(`[seed] create member ${profile.nickname}`);
+  PLANNED_OPS.creates.push({ table: 'hanakai_members', key: profile.nickname });
   if (!apply) return `dry-run-member-${profile.nickname}`;
   const { data, error } = await admin
     .from('hanakai_members')
@@ -199,7 +222,9 @@ async function ensureMember(admin, authUserId, profile, { apply }) {
   return data.id;
 }
 
-async function ensureConfirmedApplication(admin, eventId, memberId, { apply }) {
+async function ensureConfirmedApplication(admin, eventId, memberId, memberLabel, { apply }) {
+  assertNotLegacyEventId(eventId, 'application event_id');
+
   const { data: existing } = await admin
     .from('hanakai_event_applications')
     .select('id, status')
@@ -209,7 +234,12 @@ async function ensureConfirmedApplication(admin, eventId, memberId, { apply }) {
 
   if (existing?.id) {
     if (existing.status !== 'confirmed') {
-      console.log(`[seed] upgrade application ${existing.id} -> confirmed`);
+      console.log(`[seed] upgrade application ${existing.id} -> confirmed (${memberLabel})`);
+      PLANNED_OPS.updates.push({
+        table: 'hanakai_event_applications',
+        key: `${memberLabel}@${eventId}`,
+        action: 'status -> confirmed (no payment rows)',
+      });
       if (apply) {
         const { error } = await admin
           .from('hanakai_event_applications')
@@ -218,12 +248,17 @@ async function ensureConfirmedApplication(admin, eventId, memberId, { apply }) {
         if (error) throw error;
       }
     } else {
-      console.log(`[seed] application already confirmed member=${memberId}`);
+      console.log(`[seed] application already confirmed member=${memberLabel}`);
     }
     return existing.id;
   }
 
-  console.log(`[seed] insert confirmed application member=${memberId}`);
+  console.log(`[seed] insert confirmed application member=${memberLabel}`);
+  PLANNED_OPS.creates.push({
+    table: 'hanakai_event_applications',
+    key: `${memberLabel}@${eventId}`,
+    action: 'confirmed, no payment_method_id',
+  });
   if (!apply) return `dry-run-app-${memberId}`;
   const { data, error } = await admin
     .from('hanakai_event_applications')
@@ -231,7 +266,7 @@ async function ensureConfirmedApplication(admin, eventId, memberId, { apply }) {
       event_id: eventId,
       member_id: memberId,
       status: 'confirmed',
-      reason: 'App Store review demo participation',
+      reason: 'App Store review community demo participation',
       decided_at: new Date().toISOString(),
     })
     .select('id')
@@ -240,43 +275,96 @@ async function ensureConfirmedApplication(admin, eventId, memberId, { apply }) {
   return data.id;
 }
 
-async function ensurePastEvent(admin, eventId, hostMemberId, { apply }) {
-  const { data: event, error } = await admin
+async function findCommunityReviewEvent(admin, communityEventIdHint) {
+  if (communityEventIdHint) {
+    assertNotLegacyEventId(communityEventIdHint, 'HANAKAI_REVIEW_COMMUNITY_EVENT_ID');
+    const { data, error } = await admin
+      .from('hanakai_events')
+      .select('id, title, start_at, is_past, status')
+      .eq('id', communityEventIdHint)
+      .maybeSingle();
+    if (error) throw error;
+    if (data) return data;
+    console.log(`[seed] HANAKAI_REVIEW_COMMUNITY_EVENT_ID not found; falling back to title lookup`);
+  }
+
+  const { data, error } = await admin
     .from('hanakai_events')
-    .select('id, title, start_at, is_past, host_member_id, status')
-    .eq('id', eventId)
+    .select('id, title, start_at, is_past, status')
+    .eq('title', COMMUNITY_REVIEW_EVENT_TITLE)
     .maybeSingle();
   if (error) throw error;
-  if (!event) {
-    throw new Error(`Review event not found: ${eventId}`);
+  return data;
+}
+
+async function ensureCommunityReviewEvent(admin, communityEventIdHint, { apply }) {
+  const pastStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const existing = await findCommunityReviewEvent(admin, communityEventIdHint);
+
+  if (existing?.id) {
+    assertNotLegacyEventId(existing.id, 'resolved community event id');
+    console.log(
+      `[seed] community event exists id=${existing.id} title=${existing.title} is_past=${existing.is_past} start_at=${existing.start_at}`,
+    );
+
+    const needsPast = !existing.is_past || new Date(existing.start_at).getTime() > Date.now();
+    if (needsPast) {
+      PLANNED_OPS.updates.push({
+        table: 'hanakai_events',
+        key: existing.id,
+        action: 'ensure past + closed on community review event only',
+      });
+      console.log(`[seed] community event needsPast=${needsPast}`);
+      if (apply) {
+        const { error: updErr } = await admin
+          .from('hanakai_events')
+          .update({
+            start_at: pastStart,
+            is_past: true,
+            status: 'closed',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id);
+        if (updErr) throw updErr;
+        console.log('[seed] ensured community review event is past/closed');
+      }
+    }
+    return existing.id;
   }
 
-  const pastStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const needsPast = !event.is_past || new Date(event.start_at).getTime() > Date.now();
-  console.log(
-    `[seed] event title=${event.title} is_past=${event.is_past} start_at=${event.start_at} needsPast=${needsPast}`,
-  );
+  console.log(`[seed] create community review event title=${COMMUNITY_REVIEW_EVENT_TITLE}`);
+  PLANNED_OPS.creates.push({
+    table: 'hanakai_events',
+    key: COMMUNITY_REVIEW_EVENT_TITLE,
+    action: 'past closed review-only event, fee=0, no host member',
+  });
+  if (!apply) return 'dry-run-community-event-id';
 
-  if (needsPast && apply) {
-    const { error: updErr } = await admin
-      .from('hanakai_events')
-      .update({
-        start_at: pastStart,
-        is_past: true,
-        status: event.status === 'open' ? 'closed' : event.status,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', eventId);
-    if (updErr) throw updErr;
-    console.log('[seed] marked review event as past for Community visibility');
-  }
-
-  // Ensure review participant stays confirmed (do not change payment rows)
-  if (hostMemberId) {
-    // no-op placeholder for clarity
-  }
-
-  return event;
+  const { data, error } = await admin
+    .from('hanakai_events')
+    .insert({
+      title: COMMUNITY_REVIEW_EVENT_TITLE,
+      category: 'other',
+      start_at: pastStart,
+      area: '東京都',
+      venue: '（審査用・非公開）',
+      capacity: 6,
+      host_member_id: null,
+      host_name: 'HANAKAI 運営',
+      conditions: 'App Store Review専用',
+      description: COMMUNITY_REVIEW_EVENT_DESCRIPTION,
+      cover_url: '',
+      status: 'closed',
+      fee: 0,
+      approval_mode: 'auto',
+      is_user_created: false,
+      is_past: true,
+      recruitment_type: 'standard',
+    })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
 }
 
 async function main() {
@@ -291,7 +379,11 @@ async function main() {
   const url = (fileEnv.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
   const serviceRole = fileEnv.SUPABASE_SERVICE_ROLE_KEY || '';
   const reviewEmail = (fileEnv.HANAKAI_REVIEW_EMAIL || '').trim().toLowerCase();
-  const eventId = (fileEnv.HANAKAI_REVIEW_EVENT_ID || DEFAULT_REVIEW_EVENT_ID).trim();
+  const communityEventIdHint = (fileEnv.HANAKAI_REVIEW_COMMUNITY_EVENT_ID || '').trim();
+
+  if (communityEventIdHint) {
+    assertNotLegacyEventId(communityEventIdHint, 'HANAKAI_REVIEW_COMMUNITY_EVENT_ID');
+  }
 
   if (!url || !serviceRole) {
     console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
@@ -302,7 +394,8 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`[seed] mode=${apply ? 'APPLY' : 'DRY-RUN'} review=${maskEmail(reviewEmail)} event=${eventId}`);
+  console.log(`[seed] mode=${apply ? 'APPLY' : 'DRY-RUN'} review=${maskEmail(reviewEmail)}`);
+  console.log(`[seed] legacy review event ${LEGACY_REVIEW_EVENT_ID} is untouched (out of scope)`);
 
   const admin = createClient(url, serviceRole, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -325,8 +418,11 @@ async function main() {
   }
   console.log(`[seed] review member id=${reviewMember.id} nickname=${reviewMember.nickname}`);
 
-  await ensurePastEvent(admin, eventId, reviewMember.id, { apply });
-  await ensureConfirmedApplication(admin, eventId, reviewMember.id, { apply });
+  const eventId = await ensureCommunityReviewEvent(admin, communityEventIdHint, { apply });
+  assertNotLegacyEventId(eventId, 'community event id');
+  console.log(`[seed] community event id=${eventId}`);
+
+  await ensureConfirmedApplication(admin, eventId, reviewMember.id, 'review-participant', { apply });
 
   const secretUpdates = {};
   const demoMemberIds = [];
@@ -341,8 +437,15 @@ async function main() {
     const authId = await ensureAuthUser(admin, demo.email, password, { apply });
     const memberId = await ensureMember(admin, authId, demo, { apply });
     demoMemberIds.push(memberId);
-    await ensureConfirmedApplication(admin, eventId, memberId, { apply });
+    await ensureConfirmedApplication(admin, eventId, memberId, demo.nickname, { apply });
   }
+
+  PLANNED_OPS.tables = [
+    'auth.users (demo A/B only)',
+    'hanakai_members (demo A/B only)',
+    'hanakai_events (community review event only)',
+    'hanakai_event_applications (community review event × review participant + demo A/B)',
+  ];
 
   if (apply) {
     upsertEnvFile(SECRETS_FILE, {
@@ -358,16 +461,20 @@ async function main() {
   console.log(
     JSON.stringify(
       {
+        legacyReviewEventUntouched: LEGACY_REVIEW_EVENT_ID,
         reviewMemberId: reviewMember.id,
-        eventId,
+        communityEventId: eventId,
+        communityEventTitle: COMMUNITY_REVIEW_EVENT_TITLE,
         demoMemberIds,
         communityPath: `/connections/${eventId}`,
+        plannedOperations: PLANNED_OPS,
         verify: [
-          'Login as review participant',
+          'Login as review participant (appstore-review@hanakai.kranz.design)',
           'Open Community tab (/connections)',
-          'Open past event card',
-          'Open demo profile',
-          'Use Report + Block',
+          'Open "HANAKAI Community Review Demo" past event card',
+          'See 審査デモA / 審査デモB',
+          'Report from /connections/{eventId} or /profile/{memberId}',
+          'Block from /profile/{memberId}',
         ],
       },
       null,
