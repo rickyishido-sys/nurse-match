@@ -359,7 +359,6 @@ async function ensureCommunityReviewEvent(admin, communityEventIdHint, { apply }
       approval_mode: 'auto',
       is_user_created: false,
       is_past: true,
-      recruitment_type: 'standard',
     })
     .select('id')
     .single();
