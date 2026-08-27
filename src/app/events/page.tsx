@@ -6,7 +6,7 @@ import { EventsCategoryFilter } from '@/components/connection/events/events-cate
 import { EventsRegionFilter } from '@/components/connection/events/events-region-filter';
 import { EventsListGrid, EventsListHero } from '@/components/connection/events/events-list-sections';
 import {
-  partitionEventsByPrefecture,
+  eventMatchesPrefecture,
   parseEventsRegionParam,
   resolvePrefectureLabel,
 } from '@/lib/connection/area-match';
@@ -51,35 +51,17 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
   const allEvents = events.filter((e) => !e.isPast);
   const filtered = filterEventsBySlug(allEvents, activeFilter);
+  const regionFiltered =
+    effectiveScope === 'all' || !focusPrefecture
+      ? filtered
+      : filtered.filter((e) => eventMatchesPrefecture(e.area, focusPrefecture));
 
-  const additionalEvents = filtered.filter((e) => e.recruitmentType === 'additional');
-  const standardEvents = filtered.filter((e) => e.recruitmentType !== 'additional');
+  const additionalEvents = regionFiltered.filter((e) => e.recruitmentType === 'additional');
+  const standardEvents = regionFiltered.filter((e) => e.recruitmentType !== 'additional');
 
-  const showSplit = Boolean(focusPrefecture) && effectiveScope !== 'all';
-  const { local: localStandard, other: otherStandard } = showSplit
-    ? partitionEventsByPrefecture(standardEvents, focusPrefecture)
-    : { local: [] as typeof standardEvents, other: standardEvents };
-  const { local: localAdditional, other: otherAdditional } = showSplit
-    ? partitionEventsByPrefecture(additionalEvents, focusPrefecture)
-    : { local: [] as typeof additionalEvents, other: additionalEvents };
-
-  const nationalStandard = showSplit ? otherStandard : standardEvents;
-  const nationalAdditional = showSplit ? otherAdditional : additionalEvents;
-
-  const [
-    localAdditionalItems,
-    localStandardItems,
-    nationalAdditionalItems,
-    nationalStandardItems,
-  ] = await Promise.all([
-    localAdditional.length > 0 ? enrichEventsForList(localAdditional, viewerMemberId) : Promise.resolve([]),
-    localStandard.length > 0 ? enrichEventsForList(localStandard, viewerMemberId) : Promise.resolve([]),
-    nationalAdditional.length > 0
-      ? enrichEventsForList(nationalAdditional, viewerMemberId)
-      : Promise.resolve([]),
-    nationalStandard.length > 0
-      ? enrichEventsForList(nationalStandard, viewerMemberId)
-      : Promise.resolve([]),
+  const [additionalItems, standardItems] = await Promise.all([
+    additionalEvents.length > 0 ? enrichEventsForList(additionalEvents, viewerMemberId) : Promise.resolve([]),
+    standardEvents.length > 0 ? enrichEventsForList(standardEvents, viewerMemberId) : Promise.resolve([]),
   ]);
 
   const showAreaHint = Boolean(viewerMemberId) && !memberAreaLabel;
@@ -110,59 +92,37 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
         <EventsCategoryFilter active={activeFilter} region={regionQueryForCategory} />
 
-        {showSplit ? (
-          <section className='space-y-5'>
-            <div className='space-y-1'>
-              <p className='text-xs font-semibold tracking-[0.16em] text-[#1f5d4f]'>YOUR AREA</p>
-              <h2 className='text-lg font-semibold text-[#1a1a1a]'>{focusPrefecture}のイベント</h2>
-            </div>
-
-            {localAdditionalItems.length > 0 ? (
-              <EventsAdditionalRecruitmentSection items={localAdditionalItems} />
-            ) : null}
-
-            {localStandardItems.length > 0 ? (
-              <EventsListGrid
-                items={localStandardItems}
-                activeFilter={activeFilter}
-                totalCount={allEvents.length}
-              />
-            ) : (
-              <p className='rounded-2xl border border-[#ebe9e4] bg-[#fafaf8] px-4 py-5 text-sm leading-7 text-[#6b6b6b]'>
-                {focusPrefecture}では現在募集中のイベントはありません
-              </p>
-            )}
-          </section>
-        ) : null}
-
         <section className='space-y-5'>
-          {showSplit ? (
-            <div className='space-y-1'>
-              <p className='text-xs font-semibold tracking-[0.16em] text-[#b8956a]'>NATIONWIDE</p>
-              <h2 className='text-lg font-semibold text-[#1a1a1a]'>全国のイベント</h2>
-              <p className='text-sm text-[#6b6b6b]'>その他の募集中イベント</p>
-            </div>
-          ) : null}
-
-          <EventsAdditionalRecruitmentSection items={nationalAdditionalItems} />
+          <EventsAdditionalRecruitmentSection items={additionalItems} />
 
           <div className='flex items-center justify-between gap-4'>
             <p className='text-sm text-[#6b6b6b]'>
-              {allEvents.length > 0 ? (
+              {regionFiltered.length > 0 ? (
                 <>
-                  <span className='font-semibold text-[#1a1a1a]'>{nationalStandard.length}</span>
+                  <span className='font-semibold text-[#1a1a1a]'>{standardEvents.length}</span>
                   件のイベント
-                  {showSplit ? '（全国）' : null}
                 </>
               ) : null}
             </p>
           </div>
 
-          <EventsListGrid
-            items={nationalStandardItems}
-            activeFilter={activeFilter}
-            totalCount={allEvents.length}
-          />
+          {standardItems.length > 0 ? (
+            <EventsListGrid
+              items={standardItems}
+              activeFilter={activeFilter}
+              totalCount={regionFiltered.length}
+            />
+          ) : allEvents.length === 0 ? (
+            <EventsListGrid items={[]} activeFilter={activeFilter} totalCount={0} />
+          ) : regionFiltered.length === 0 && activeFilter ? (
+            <EventsListGrid items={[]} activeFilter={activeFilter} totalCount={allEvents.length} />
+          ) : focusPrefecture ? (
+            <p className='rounded-2xl border border-[#ebe9e4] bg-[#fafaf8] px-4 py-5 text-sm leading-7 text-[#6b6b6b]'>
+              {focusPrefecture}では現在募集中のイベントはありません
+            </p>
+          ) : (
+            <EventsListGrid items={[]} activeFilter={activeFilter} totalCount={allEvents.length} />
+          )}
         </section>
       </div>
     </ConnectionShell>
