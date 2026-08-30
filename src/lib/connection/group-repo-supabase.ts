@@ -140,7 +140,10 @@ export async function listGroupMemberIds(groupId: string): Promise<string[]> {
 }
 
 export async function listGroupPosts(groupId: string): Promise<GroupPost[]> {
-  const sb = await db();
+  // Prefer admin after page-level access checks: some Production RLS graphs still
+  // recurse on hanakai_group_members and hide legitimate participant reads.
+  const admin = createAdminSupabaseClient();
+  const sb = admin ?? (await db());
   if (!sb) return [];
   const { data, error } = await sb
     .from('hanakai_group_posts')
@@ -153,7 +156,8 @@ export async function listGroupPosts(groupId: string): Promise<GroupPost[]> {
 }
 
 export async function listGroupPhotos(groupId: string): Promise<GroupPhoto[]> {
-  const sb = await db();
+  const admin = createAdminSupabaseClient();
+  const sb = admin ?? (await db());
   if (!sb) return [];
   const { data, error } = await sb
     .from('hanakai_group_photos')
