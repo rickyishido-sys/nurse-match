@@ -80,7 +80,7 @@ async function purgeMemberRelatedData(
     .or(`reporter_member_id.eq.${memberId},target_member_id.eq.${memberId},resolved_by_member_id.eq.${memberId}`);
   await admin.from('hanakai_contact_inquiries').delete().eq('member_id', memberId);
   await admin
-    .from('hanakai_blocks')
+    .from('hanakai_member_blocks')
     .delete()
     .or(`blocker_member_id.eq.${memberId},blocked_member_id.eq.${memberId}`);
   await admin.from('identity_documents').delete().eq('user_id', authUserId);

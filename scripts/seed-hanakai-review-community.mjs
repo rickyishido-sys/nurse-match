@@ -366,6 +366,97 @@ async function ensureCommunityReviewEvent(admin, communityEventIdHint, { apply }
   return data.id;
 }
 
+const DEMO_POST_MARKER = '[HANAKAI_APP_REVIEW_DEMO_POST]';
+const DEMO_POST_BODY =
+  'App Review用のコミュニティ投稿です。この投稿はブロック機能の確認に使用できます。\n\n' + DEMO_POST_MARKER;
+
+async function ensureGroupForEvent(admin, eventId, { apply }) {
+  assertNotLegacyEventId(eventId, 'group event_id');
+  const { data: existing } = await admin
+    .from('hanakai_connection_groups')
+    .select('id')
+    .eq('event_id', eventId)
+    .maybeSingle();
+  if (existing?.id) {
+    console.log(`[seed] connection group exists id=${existing.id}`);
+    return existing.id;
+  }
+  console.log(`[seed] create connection group for community event`);
+  PLANNED_OPS.creates.push({ table: 'hanakai_connection_groups', key: eventId });
+  if (!apply) return 'dry-run-group-id';
+  const { data, error } = await admin
+    .from('hanakai_connection_groups')
+    .insert({ event_id: eventId })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+async function ensureGroupMember(admin, groupId, memberId, role, label, { apply }) {
+  const { data: existing } = await admin
+    .from('hanakai_group_members')
+    .select('id')
+    .eq('group_id', groupId)
+    .eq('member_id', memberId)
+    .maybeSingle();
+  if (existing?.id) {
+    console.log(`[seed] group member exists ${label}`);
+    return existing.id;
+  }
+  console.log(`[seed] add group member ${label} role=${role}`);
+  PLANNED_OPS.creates.push({ table: 'hanakai_group_members', key: `${label}@${groupId}` });
+  if (!apply) return `dry-run-gm-${memberId}`;
+  const { data, error } = await admin
+    .from('hanakai_group_members')
+    .insert({ group_id: groupId, member_id: memberId, role })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+async function ensureReviewDemoPost(admin, groupId, authorMemberId, { apply }) {
+  const { data: existing } = await admin
+    .from('hanakai_group_posts')
+    .select('id, body, is_hidden')
+    .eq('group_id', groupId)
+    .eq('member_id', authorMemberId)
+    .ilike('body', `%${DEMO_POST_MARKER}%`)
+    .maybeSingle();
+
+  if (existing?.id) {
+    console.log(`[seed] review demo post exists id=${existing.id}`);
+    if (existing.is_hidden && apply) {
+      PLANNED_OPS.updates.push({ table: 'hanakai_group_posts', key: existing.id, action: 'unhide review demo post' });
+      const { error } = await admin.from('hanakai_group_posts').update({ is_hidden: false }).eq('id', existing.id);
+      if (error) throw error;
+    }
+    return existing.id;
+  }
+
+  console.log('[seed] create App Review demo group post by 審査デモA');
+  PLANNED_OPS.creates.push({
+    table: 'hanakai_group_posts',
+    key: 'App Review demo post',
+    action: 'idempotent marker post by 審査デモA only',
+  });
+  if (!apply) return 'dry-run-demo-post';
+  const { data, error } = await admin
+    .from('hanakai_group_posts')
+    .insert({
+      group_id: groupId,
+      member_id: authorMemberId,
+      body: DEMO_POST_BODY,
+      is_hidden: false,
+      report_count: 0,
+    })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
 async function main() {
   const { dryRun, apply } = parseArgs(process.argv.slice(2));
   const fileEnv = {
@@ -439,11 +530,20 @@ async function main() {
     await ensureConfirmedApplication(admin, eventId, memberId, demo.nickname, { apply });
   }
 
+  const groupId = await ensureGroupForEvent(admin, eventId, { apply });
+  await ensureGroupMember(admin, groupId, reviewMember.id, 'participant', 'review-participant', { apply });
+  await ensureGroupMember(admin, groupId, demoMemberIds[0], 'participant', '審査デモA', { apply });
+  await ensureGroupMember(admin, groupId, demoMemberIds[1], 'participant', '審査デモB', { apply });
+  const demoPostId = await ensureReviewDemoPost(admin, groupId, demoMemberIds[0], { apply });
+
   PLANNED_OPS.tables = [
     'auth.users (demo A/B only)',
     'hanakai_members (demo A/B only)',
     'hanakai_events (community review event only)',
     'hanakai_event_applications (community review event × review participant + demo A/B)',
+    'hanakai_connection_groups (community review event only)',
+    'hanakai_group_members (review participant + demo A/B)',
+    'hanakai_group_posts (one idempotent App Review demo post by 審査デモA)',
   ];
 
   if (apply) {
@@ -452,6 +552,7 @@ async function main() {
       HANAKAI_REVIEW_DEMO_B_EMAIL: DEMO_USERS[1].email,
       ...secretUpdates,
       HANAKAI_REVIEW_COMMUNITY_EVENT_ID: eventId,
+      HANAKAI_REVIEW_DEMO_POST_ID: demoPostId,
     });
     console.log(`[seed] wrote demo emails (not passwords in logs) to ${SECRETS_FILE}`);
   }
@@ -465,15 +566,19 @@ async function main() {
         communityEventId: eventId,
         communityEventTitle: COMMUNITY_REVIEW_EVENT_TITLE,
         demoMemberIds,
+        groupId,
+        demoPostId,
         communityPath: `/connections/${eventId}`,
+        groupPath: `/groups/${eventId}`,
         plannedOperations: PLANNED_OPS,
         verify: [
           'Login as review participant (appstore-review@hanakai.kranz.design)',
           'Open Community tab (/connections)',
           'Open "HANAKAI Community Review Demo" past event card',
-          'See 審査デモA / 審査デモB',
+          'Open Group (/groups/{eventId}) and see 審査デモA demo post',
           'Report from /connections/{eventId} or /profile/{memberId}',
           'Block from /profile/{memberId}',
+          'Confirm demo post disappears from Group feed immediately',
         ],
       },
       null,

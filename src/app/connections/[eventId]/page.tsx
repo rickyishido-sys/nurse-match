@@ -7,7 +7,7 @@ import { IdentityVerifiedBadge } from '@/components/connection/identity-verified
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { ReportButton } from '@/components/connection/report-button';
 import { Card, Chip } from '@/components/connection/ui';
-import { listBlockedMemberIds } from '@/lib/connection/block-repo';
+import { listHiddenMemberIdsForViewer } from '@/lib/connection/block-repo';
 import { BloomMemoryForm } from '@/components/connection/bloom-memory-form';
 import { canViewConnectionPage, getEvent, getEventMembers } from '@/lib/connection/repo';
 import { getBloomMemoryForEvent, recordEventJoinedTimeline } from '@/lib/connection/bloom-phase4';
@@ -30,7 +30,9 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
   const viewerMemberId = await getViewerMemberId();
   const canView = !!viewerMemberId && (await canViewConnectionPage(eventId, viewerMemberId));
   const members = await getEventMembers(eventId);
-  const blockedIds = viewerMemberId ? new Set(await listBlockedMemberIds(viewerMemberId)) : new Set<string>();
+  const blockedIds = viewerMemberId
+    ? new Set(await listHiddenMemberIdsForViewer(viewerMemberId))
+    : new Set<string>();
   const memorySaved = typeof sp.memorySaved === 'string';
 
   if (canView && event.isPast && viewerMemberId) {

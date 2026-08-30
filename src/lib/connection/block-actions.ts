@@ -2,7 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { blockMember, unblockMember } from '@/lib/connection/block-repo';
+import {
+  blockMember,
+  recordBlockModerationEvent,
+  unblockMember,
+} from '@/lib/connection/block-repo';
 import { ensureViewerMemberId } from '@/lib/connection/identity';
 
 export async function blockMemberAction(formData: FormData) {
@@ -17,9 +21,17 @@ export async function blockMemberAction(formData: FormData) {
     redirect(`${returnTo}?error=block_failed`);
   }
 
+  // Soft-fail: block must succeed even if moderation inbox write fails.
+  // Skip duplicate moderation rows when the block already existed.
+  if (!result.alreadyBlocked) {
+    await recordBlockModerationEvent(memberId, blockedMemberId);
+  }
+
   revalidatePath('/account/blocked');
   revalidatePath(`/profile/${blockedMemberId}`);
   revalidatePath('/connections');
+  revalidatePath('/groups');
+  revalidatePath('/admin/hanakai/reports');
   redirect(`${returnTo}?blocked=1`);
 }
 
@@ -34,5 +46,7 @@ export async function unblockMemberAction(formData: FormData) {
 
   revalidatePath('/account/blocked');
   revalidatePath(`/profile/${blockedMemberId}`);
+  revalidatePath('/connections');
+  revalidatePath('/groups');
   redirect('/account/blocked?unblocked=1');
 }

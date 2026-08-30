@@ -560,7 +560,9 @@ export async function listHanakaiAdminReports(options?: {
       const targetEventId = row.target_event_id ? String(row.target_event_id) : null;
       const category = String(row.category ?? row.reason ?? '');
       const categoryLabel =
-        (REPORT_CATEGORY_LABEL[category as keyof typeof REPORT_CATEGORY_LABEL] ?? category) || '—';
+        String(row.reason ?? '') === 'user_block'
+          ? 'ブロック（運営記録）'
+          : (REPORT_CATEGORY_LABEL[category as keyof typeof REPORT_CATEGORY_LABEL] ?? category) || '—';
       const description = String(row.description ?? row.detail ?? '');
       const targetMemberNickname = targetMemberId
         ? (nicknameMap.get(targetMemberId) ?? '（不明）')
