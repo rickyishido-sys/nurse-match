@@ -76,7 +76,7 @@ export default async function MemberProfilePage({ params }: PageProps) {
           <BlockMemberButton
             blockedMemberId={member.id}
             memberName={member.nickname}
-            returnTo={`/profile/${member.id}`}
+            returnTo='/connections'
           />
         ) : null}
 

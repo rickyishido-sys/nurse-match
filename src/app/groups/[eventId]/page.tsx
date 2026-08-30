@@ -6,6 +6,7 @@ import { GroupFeedList } from '@/components/connection/groups/group-feed';
 import { GroupPhotoGallery } from '@/components/connection/groups/group-photo-gallery';
 import { MemberAvatar } from '@/components/connection/member-avatar';
 import { Card, SectionHeading } from '@/components/connection/ui';
+import { listHiddenMemberIdsForViewer } from '@/lib/connection/block-repo';
 import { canAccessGroup } from '@/lib/connection/group-access';
 import { formatEventDate } from '@/lib/connection/data';
 import { listGroupPhotos, listGroupPosts, refreshGroupMembership } from '@/lib/connection/group-repo';
@@ -70,7 +71,7 @@ export default async function GroupPage({ params }: PageProps) {
     );
   }
 
-  const [posts, photos, memberRows] = await Promise.all([
+  const [postsRaw, photosRaw, memberRows, hiddenIds] = await Promise.all([
     listGroupPosts(group.id).catch((e) => {
       console.error('HANAKAI_GROUP_POSTS_THROW', { eventId, error: String(e) });
       return [];
@@ -83,16 +84,21 @@ export default async function GroupPage({ params }: PageProps) {
       console.error('HANAKAI_GROUP_EVENT_MEMBERS_THROW', { eventId, error: String(e) });
       return [];
     }),
+    viewerMemberId ? listHiddenMemberIdsForViewer(viewerMemberId) : Promise.resolve([] as string[]),
   ]);
 
-  const members = [...memberRows];
+  const hiddenSet = new Set(hiddenIds);
+  const posts = postsRaw.filter((p) => !hiddenSet.has(p.memberId));
+  const photos = photosRaw.filter((p) => !hiddenSet.has(p.memberId));
+
+  const members = [...memberRows].filter((m) => !hiddenSet.has(m.id));
   const host = event.hostId ? await getMember(event.hostId) : null;
   const participantIds = new Set(members.map((m) => m.id));
-  if (host && !participantIds.has(host.id)) members.unshift(host);
+  if (host && !participantIds.has(host.id) && !hiddenSet.has(host.id)) members.unshift(host);
 
   const memberMap = new Map(members.map((m) => [m.id, m]));
   for (const id of [...new Set(posts.map((p) => p.memberId).concat(photos.map((p) => p.memberId)))]) {
-    if (!memberMap.has(id)) {
+    if (!memberMap.has(id) && !hiddenSet.has(id)) {
       const m = await getMember(id);
       if (m) memberMap.set(id, m);
     }

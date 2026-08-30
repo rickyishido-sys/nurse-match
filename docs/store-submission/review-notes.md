@@ -52,7 +52,10 @@ LOCATION
 - No continuous or background location tracking. Residence area is free text (e.g., "Tokyo"), not GPS.
 
 USER-GENERATED CONTENT & SAFETY
-- Profile photos and event descriptions. Report and Block are available; operator moderation via an internal dashboard.
+- Profile photos, event descriptions, and participant group posts/photos.
+- Report: users can report members, profiles, events, and group content. Reports are stored for operator review in the internal moderation dashboard.
+- Block: users can block members. Blocking immediately removes the blocked member's content from the blocker's Community/Group feed and participant lists (server-side). Blocking also creates an admin-visible moderation record (no email spam). Operators can review these records in the dashboard.
+- Terms of Service (including prohibitions / reporting / suspension) and Privacy Policy are linked from the login and registration screens before sign-in.
 
 AGE REQUIREMENT
 - 18+ per our Terms of Service.
