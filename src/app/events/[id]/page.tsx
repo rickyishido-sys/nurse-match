@@ -346,6 +346,7 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
           ) : existingApp?.status === 'payment_failed' && paymentContext ? (
             <PaymentFailedPanel
               paymentId={paymentContext.paymentId}
+              applicationId={paymentContext.applicationId}
               brand={paymentContext.brand}
               last4={paymentContext.last4}
               deadlineAt={paymentContext.deadlineAt}

@@ -142,6 +142,7 @@ async function finalizeMock(
   selectedApplicationIds: string[],
   decidedByMemberId: string,
 ): Promise<FinalizeParticipantsResult> {
+  void decidedByMemberId;
   const event = mock.getEvent(eventId);
   if (!event) return { ok: false, error: 'イベントが見つかりません' };
 
@@ -405,7 +406,7 @@ export function applicationStatusHostLabel(status: EventApplication['status']): 
     case 'payment_processing':
       return '決済処理中';
     case 'payment_failed':
-      return '決済再確認待ち';
+      return '支払い方法の問題で未確定';
     case 'payment_expired':
       return '期限切れ';
     case 'not_selected':
