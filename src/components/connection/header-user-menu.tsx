@@ -76,15 +76,15 @@ export function HeaderUserMenu({ user }: HeaderUserMenuProps) {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-haspopup='menu'
-        className='flex max-w-[220px] items-center gap-2.5 rounded-2xl border border-[#e8e5df] bg-white px-2.5 py-2 text-left shadow-sm transition hover:border-[#d8d6d1] sm:max-w-[260px]'
+        className='flex max-w-[10.5rem] items-center gap-2 rounded-2xl border border-[#e8e5df] bg-white px-2 py-1.5 text-left shadow-sm transition hover:border-[#d8d6d1] sm:max-w-[260px] sm:gap-2.5 sm:px-2.5 sm:py-2'
       >
         <UserAvatar name={user.displayName} avatarUrl={user.avatarUrl} />
         <span className='min-w-0 flex-1'>
           <span className='block truncate text-xs font-semibold text-[#1a1a1a]'>{user.displayName}</span>
           {user.email ? (
-            <span className='block truncate text-[10px] text-[#8a8a8a]'>{user.email}</span>
+            <span className='hidden truncate text-[10px] text-[#8a8a8a] sm:block'>{user.email}</span>
           ) : null}
-          <span className={`mt-0.5 block text-[10px] font-medium ${roleTone}`}>{roleLabel}</span>
+          <span className={`mt-0.5 hidden text-[10px] font-medium sm:block ${roleTone}`}>{roleLabel}</span>
         </span>
         <span className='shrink-0 text-[10px] text-[#9a9a9a]' aria-hidden>
           ▾

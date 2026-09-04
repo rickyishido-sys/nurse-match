@@ -20,10 +20,12 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
 
   return (
     <div className={`${CONNECTION_SHELL_CLASS} hk-vibrant-gradient`}>
-      <header className='sticky top-0 z-20 border-b border-white/40 bg-white/70 px-5 pb-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] backdrop-blur-xl'>
-        <div className='flex items-center justify-between'>
-          <BrandLogo href='/' size='md' />
-          <div className='flex items-center gap-2'>
+      <header className='sticky top-0 z-20 border-b border-white/40 bg-white/70 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] backdrop-blur-xl sm:px-5 sm:pb-4 sm:pt-[calc(1rem+env(safe-area-inset-top,0px))]'>
+        <div className='flex items-center justify-between gap-3'>
+          <div className='min-w-0 shrink-0'>
+            <BrandLogo href='/' size='md' />
+          </div>
+          <div className='flex shrink-0 items-center gap-2'>
             {viewer ? (
               <HeaderUserMenu user={viewer} />
             ) : (

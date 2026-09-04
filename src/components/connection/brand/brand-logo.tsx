@@ -61,8 +61,12 @@ export function BrandLogo({
       </span>
       {!iconOnly ? (
         <span className='flex min-w-0 flex-col leading-none'>
-          <span className={`font-serif font-semibold tracking-[0.16em] ${jaSize} ${jaColor}`}>華会</span>
-          <span className={`mt-0.5 font-medium tracking-[0.28em] ${enSize} ${enColor}`}>HANAKAI</span>
+          <span className={`whitespace-nowrap font-serif font-semibold tracking-[0.16em] ${jaSize} ${jaColor}`}>
+            華会
+          </span>
+          <span className={`mt-0.5 whitespace-nowrap font-medium tracking-[0.28em] ${enSize} ${enColor}`}>
+            HANAKAI
+          </span>
         </span>
       ) : null}
     </span>
