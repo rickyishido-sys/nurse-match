@@ -20,7 +20,7 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
 
   return (
     <div className={`${CONNECTION_SHELL_CLASS} hk-vibrant-gradient`}>
-      <header className='sticky top-0 z-20 border-b border-white/40 bg-white/70 px-5 py-4 backdrop-blur-xl'>
+      <header className='sticky top-0 z-20 border-b border-white/40 bg-white/70 px-5 pb-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] backdrop-blur-xl'>
         <div className='flex items-center justify-between'>
           <BrandLogo href='/' size='md' />
           <div className='flex items-center gap-2'>
