@@ -93,9 +93,10 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
                   <MemberAvatar member={member} size={64} />
                   <div className='min-w-0 flex-1'>
                     <div className='flex flex-wrap items-center gap-2'>
-                      <Link href={`/profile/${member.id}`} className='text-sm font-semibold text-[#1a1a1a] hover:underline'>
+                      {/* Native <a>: Next.js Link soft-nav to /profile can no-op on iPhone. */}
+                      <a href={`/profile/${member.id}`} className='text-sm font-semibold text-[#1a1a1a] hover:underline'>
                         {member.nickname}
-                      </Link>
+                      </a>
                       {isSelf ? <Chip tone='muted'>あなた</Chip> : null}
                       <IdentityVerifiedBadge member={member} />
                     </div>
@@ -109,7 +110,14 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
                 </div>
 
                 {!isSelf ? (
-                  <div className='mt-4 text-right'>
+                  <div className='mt-4 flex flex-wrap items-center justify-between gap-3'>
+                    {/* Explicit CTA + native <a> so App Review can reach profile → block on iPhone. */}
+                    <a
+                      href={`/profile/${member.id}`}
+                      className='inline-flex min-h-[44px] items-center rounded-full border border-[#1f5d4f] bg-white px-4 text-xs font-semibold text-[#1f5d4f]'
+                    >
+                      プロフィールを見る →
+                    </a>
                     <ReportButton
                       target={{
                         targetType: 'member',
