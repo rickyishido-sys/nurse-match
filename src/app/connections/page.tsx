@@ -89,8 +89,11 @@ function PastConnectionCard({ row, members }: { row: Row; members: ConnectionMem
   const { event } = row;
   const meta = EVENT_CATEGORY_META[event.category];
   const others = members.slice(0, 5);
+  // Use a native <a> (full document navigation). Next.js <Link> soft-nav from
+  // /connections → /connections/[eventId] can no-op on iPhone/WebKit even though
+  // the destination page itself loads correctly via direct URL.
   return (
-    <Link
+    <a
       href={`/connections/${event.id}`}
       className='block rounded-2xl border border-[#ebe9e4] bg-white p-4 transition active:scale-[0.99]'
     >
@@ -124,7 +127,7 @@ function PastConnectionCard({ row, members }: { row: Row; members: ConnectionMem
           </p>
         </div>
       ) : null}
-    </Link>
+    </a>
   );
 }
 
