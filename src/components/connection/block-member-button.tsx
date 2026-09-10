@@ -1,7 +1,9 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useRef, useState, useTransition } from 'react';
 import { blockMemberAction } from '@/lib/connection/block-actions';
+import { reliableNavigate } from '@/lib/connection/reliable-navigate';
 
 type BlockMemberButtonProps = {
   blockedMemberId: string;
@@ -23,6 +25,7 @@ function withBlockedQuery(returnTo: string): string {
 }
 
 export function BlockMemberButton({ blockedMemberId, memberName, returnTo }: BlockMemberButtonProps) {
+  const router = useRouter();
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -78,10 +81,13 @@ export function BlockMemberButton({ blockedMemberId, memberName, returnTo }: Blo
             }
 
             setPhase('success');
-            // Hard navigation: soft redirect has been unreliable on iPhone WebKit/Capacitor.
+            // Prefer soft return; hard-fallback if iPhone soft-nav no-ops.
             window.setTimeout(() => {
-              window.location.assign(withBlockedQuery(result.returnTo));
-            }, 500);
+              reliableNavigate(withBlockedQuery(result.returnTo), router.push, router.replace, {
+                replace: true,
+                showOverlay: true,
+              });
+            }, 400);
           } catch {
             locked.current = false;
             setPhase('error');

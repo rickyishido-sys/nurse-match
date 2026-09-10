@@ -5,6 +5,7 @@ import { ProfileHeader } from '@/components/connection/profile-header';
 import { MemberInsights } from '@/components/connection/member-insights';
 import { ReportButton } from '@/components/connection/report-button';
 import { BlockMemberButton } from '@/components/connection/block-member-button';
+import { PrefetchRoutes } from '@/components/connection/prefetch-routes';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { BloomCardPublic } from '@/components/connection/bloom-card';
 import { BloomPhase4Panel } from '@/components/connection/bloom-phase4-panel';
@@ -37,12 +38,17 @@ function safeReturnTo(value: string | string[] | undefined): string {
 }
 
 export default async function MemberProfilePage({ params, searchParams }: PageProps) {
-  const { memberId } = await params;
-  const sp = searchParams ? await searchParams : {};
+  const [{ memberId }, sp] = await Promise.all([
+    params,
+    searchParams ? searchParams : Promise.resolve({} as Record<string, string | string[] | undefined>),
+  ]);
   const returnTo = safeReturnTo(sp.returnTo);
-  const viewer = await getHanakaiViewer();
-  const viewerMemberId = await getViewerMemberId();
-  const member = await getMember(memberId);
+
+  const [viewer, viewerMemberId, member] = await Promise.all([
+    getHanakaiViewer(),
+    getViewerMemberId(),
+    getMember(memberId),
+  ]);
   if (!member || member.status === 'deleted') notFound();
 
   const isSelf = viewerMemberId === memberId;
@@ -50,18 +56,26 @@ export default async function MemberProfilePage({ params, searchParams }: PagePr
     return notFound();
   }
 
-  if (viewerMemberId && (await isMemberBlocked(viewerMemberId, memberId) || await isMemberBlocked(memberId, viewerMemberId))) {
-    return notFound();
+  if (viewerMemberId) {
+    const [blockedByViewer, blockedByTarget] = await Promise.all([
+      isMemberBlocked(viewerMemberId, memberId),
+      isMemberBlocked(memberId, viewerMemberId),
+    ]);
+    if (blockedByViewer || blockedByTarget) notFound();
   }
 
   const purposeLabels = member.purposes.map((p) => PURPOSE_LABEL[p]).filter(Boolean);
   const interestLabels = member.interestTags.map((t) => INTEREST_TAG_LABEL[t]).filter(Boolean);
   const canReport = !!viewerMemberId;
-  const bloomRaw = await getBloomProfile(memberId);
+
+  // Bloom profile + phase4 settings share one table; public wrappers are request-cached.
+  const [bloomRaw, phase4Settings, timelineRaw, memoriesRaw] = await Promise.all([
+    getBloomProfile(memberId),
+    getBloomPhase4Settings(memberId),
+    listBloomTimeline(memberId),
+    listBloomMemories(memberId),
+  ]);
   const publicBloom = toPublicBloomProfile(bloomRaw, false);
-  const phase4Settings = await getBloomPhase4Settings(memberId);
-  const timelineRaw = await listBloomTimeline(memberId);
-  const memoriesRaw = await listBloomMemories(memberId);
   const publicTimeline = phase4Settings.showTimeline ? filterPublicTimeline(timelineRaw) : undefined;
   const publicMemories = phase4Settings.showMemories ? filterPublicMemories(memoriesRaw) : undefined;
   const publicReflection =
@@ -71,6 +85,7 @@ export default async function MemberProfilePage({ params, searchParams }: PagePr
 
   return (
     <ConnectionShell viewer={viewer}>
+      <PrefetchRoutes hrefs={[returnTo]} />
       <div className='space-y-5'>
         <div className='flex items-start justify-end gap-3'>
           <ReportButton

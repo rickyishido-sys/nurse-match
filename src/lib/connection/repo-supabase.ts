@@ -281,6 +281,19 @@ export async function getEvent(id: string): Promise<ConnectionEvent | null> {
   return eventFromRow(data, apps.get(id) ?? []);
 }
 
+/** Batch fetch events + applications in two queries (vs N getEvent round-trips). */
+export async function getEventsByIds(ids: string[]): Promise<ConnectionEvent[]> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (unique.length === 0) return [];
+  const sb = await db();
+  if (!sb) return [];
+  const { data } = await sb.from('hanakai_events').select('*').in('id', unique);
+  const rows = data ?? [];
+  if (rows.length === 0) return [];
+  const apps = await appsByEvent(rows.map((r) => r.id as string));
+  return rows.map((r) => eventFromRow(r, apps.get(r.id as string) ?? []));
+}
+
 export async function listEventsByHost(hostId: string): Promise<ConnectionEvent[]> {
   return (await listEvents()).filter((e) => e.hostId === hostId);
 }
@@ -331,8 +344,10 @@ export async function getEventMembers(eventId: string): Promise<ConnectionMember
     .eq('status', 'confirmed');
   const ids = (apps ?? []).map((a) => a.member_id);
   if (ids.length === 0) return [];
-  const { data: rows } = await sb.from('hanakai_members').select('*').in('id', ids);
-  const photoMap = await photosForMembers(ids);
+  const [{ data: rows }, photoMap] = await Promise.all([
+    sb.from('hanakai_members').select('*').in('id', ids),
+    photosForMembers(ids),
+  ]);
   return (rows ?? []).map((r) => memberFromRow(r, photoMap.get(r.id as string) ?? []));
 }
 

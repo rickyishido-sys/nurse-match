@@ -6,6 +6,8 @@ import { MemberInsights } from '@/components/connection/member-insights';
 import { IdentityVerifiedBadge } from '@/components/connection/identity-verified-badge';
 import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { ReportButton } from '@/components/connection/report-button';
+import { PrefetchRoutes } from '@/components/connection/prefetch-routes';
+import { ReliableNavLink } from '@/components/connection/reliable-nav-link';
 import { Card, Chip } from '@/components/connection/ui';
 import { listHiddenMemberIdsForViewer } from '@/lib/connection/block-repo';
 import { BloomMemoryForm } from '@/components/connection/bloom-memory-form';
@@ -21,28 +23,34 @@ type PageProps = {
 };
 
 export default async function ConnectionPage({ params, searchParams }: PageProps) {
-  const { eventId } = await params;
-  const sp = searchParams ? await searchParams : {};
+  const [{ eventId }, sp, viewer, viewerMemberId] = await Promise.all([
+    params,
+    searchParams ? searchParams : Promise.resolve({} as Record<string, string | string[] | undefined>),
+    getHanakaiViewer(),
+    getViewerMemberId(),
+  ]);
   const event = await getEvent(eventId);
   if (!event) notFound();
 
-  const viewer = await getHanakaiViewer();
-  const viewerMemberId = await getViewerMemberId();
-  const canView = !!viewerMemberId && (await canViewConnectionPage(eventId, viewerMemberId));
-  const members = await getEventMembers(eventId);
-  const blockedIds = viewerMemberId
-    ? new Set(await listHiddenMemberIdsForViewer(viewerMemberId))
-    : new Set<string>();
   const memorySaved = typeof sp.memorySaved === 'string';
   const blockedDone = sp.blocked === '1';
 
+  const [canView, members, blockedIdList] = await Promise.all([
+    viewerMemberId ? canViewConnectionPage(eventId, viewerMemberId) : Promise.resolve(false),
+    getEventMembers(eventId),
+    viewerMemberId ? listHiddenMemberIdsForViewer(viewerMemberId) : Promise.resolve([] as string[]),
+  ]);
+  const blockedIds = new Set(blockedIdList);
+
+  // Do not block first paint on timeline write.
   if (canView && event.isPast && viewerMemberId) {
-    await recordEventJoinedTimeline(viewerMemberId, eventId, event.title);
+    void recordEventJoinedTimeline(viewerMemberId, eventId, event.title).catch(() => {});
   }
 
-  const existingMemory =
-    canView && viewerMemberId ? await getBloomMemoryForEvent(viewerMemberId, eventId) : null;
-  const memorySkipped = canView ? await getBloomMemorySkipCookie(eventId) : true;
+  const [existingMemory, memorySkipped] = await Promise.all([
+    canView && viewerMemberId ? getBloomMemoryForEvent(viewerMemberId, eventId) : Promise.resolve(null),
+    canView ? getBloomMemorySkipCookie(eventId) : Promise.resolve(true),
+  ]);
   const showMemoryPrompt =
     canView && event.isPast && !existingMemory && !memorySkipped && !memorySaved;
 
@@ -62,8 +70,15 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
     );
   }
 
+  const visibleMembers = members.filter((member) => !blockedIds.has(member.id));
+  const prefetchHrefs = visibleMembers
+    .filter((m) => m.id !== viewerMemberId)
+    .slice(0, 8)
+    .map((m) => `/profile/${m.id}?returnTo=${encodeURIComponent(`/connections/${eventId}`)}`);
+
   return (
     <ConnectionShell viewer={viewer}>
+      <PrefetchRoutes hrefs={prefetchHrefs} />
       <div className='space-y-6'>
         <div>
           <p className='text-[11px] font-medium tracking-[0.2em] text-[#6b6b6b]'>PARTICIPANTS</p>
@@ -90,9 +105,7 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
         ) : null}
 
         <div className='space-y-4'>
-          {members
-            .filter((member) => !blockedIds.has(member.id))
-            .map((member) => {
+          {visibleMembers.map((member) => {
             const isSelf = member.id === viewerMemberId;
             const profileHref = `/profile/${member.id}?returnTo=${encodeURIComponent(`/connections/${eventId}`)}`;
             return (
@@ -101,10 +114,9 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
                   <MemberAvatar member={member} size={64} />
                   <div className='min-w-0 flex-1'>
                     <div className='flex flex-wrap items-center gap-2'>
-                      {/* Native <a>: Next.js Link soft-nav to /profile can no-op on iPhone. */}
-                      <a href={profileHref} className='text-sm font-semibold text-[#1a1a1a] hover:underline'>
+                      <ReliableNavLink href={profileHref} className='text-sm font-semibold text-[#1a1a1a] hover:underline'>
                         {member.nickname}
-                      </a>
+                      </ReliableNavLink>
                       {isSelf ? <Chip tone='muted'>あなた</Chip> : null}
                       <IdentityVerifiedBadge member={member} />
                     </div>
@@ -119,13 +131,12 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
 
                 {!isSelf ? (
                   <div className='mt-4 flex flex-wrap items-center justify-between gap-3'>
-                    {/* Explicit CTA + native <a> so App Review can reach profile → block on iPhone. */}
-                    <a
+                    <ReliableNavLink
                       href={profileHref}
                       className='inline-flex min-h-[44px] items-center rounded-full border border-[#1f5d4f] bg-white px-4 text-xs font-semibold text-[#1f5d4f]'
                     >
                       プロフィールを見る →
-                    </a>
+                    </ReliableNavLink>
                     <ReportButton
                       target={{
                         targetType: 'member',

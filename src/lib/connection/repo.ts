@@ -53,6 +53,21 @@ export const getEvent = cache(async function getEvent(
   return useSupabase ? supa.getEvent(id) : mock.getEvent(id);
 });
 
+/** Batch getEvent — one events query + one apps query. Request-scoped only. */
+export const getEventsByIds = cache(async function getEventsByIds(
+  ids: string[],
+): Promise<ConnectionEvent[]> {
+  const unique = [...new Set(ids.filter(Boolean))].sort();
+  if (unique.length === 0) return [];
+  if (useSupabase) return supa.getEventsByIds(unique);
+  const out: ConnectionEvent[] = [];
+  for (const id of unique) {
+    const event = mock.getEvent(id);
+    if (event) out.push(event);
+  }
+  return out;
+});
+
 export async function listEventsByHost(hostId: string): Promise<ConnectionEvent[]> {
   return useSupabase ? supa.listEventsByHost(hostId) : mock.listEventsByHost(hostId);
 }
