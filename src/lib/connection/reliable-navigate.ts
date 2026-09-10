@@ -12,9 +12,11 @@
 export const HANAKAI_NAV_PENDING_EVENT = 'hanakai:nav-pending';
 export const HANAKAI_NAV_DONE_EVENT = 'hanakai:nav-done';
 
-/** Soft-nav grace period before hard fallback. Keep short enough to recover from
- *  no-ops, but long enough not to abort a slow-but-working RSC fetch. */
-export const RELIABLE_NAV_FALLBACK_MS = 1600;
+/** Soft-nav grace period before hard fallback.
+ *  True iPhone no-ops never start an RSC fetch; slow-but-working soft nav can
+ *  take several seconds. Keep this high so we do not abort in-flight soft nav
+ *  and accidentally double-load via location.assign. */
+export const RELIABLE_NAV_FALLBACK_MS = 8000;
 
 export function notifyNavigationPending(href?: string) {
   if (typeof window === 'undefined') return;

@@ -97,6 +97,22 @@ export async function getEventMembers(eventId: string): Promise<ConnectionMember
   return members.map(toPublicMemberView);
 }
 
+export async function getEventMemberPreviewStrip(
+  eventId: string,
+  options?: { limit?: number; excludeMemberId?: string | null },
+): Promise<{ members: ConnectionMember[]; totalCount: number }> {
+  if (useSupabase) {
+    const strip = await supa.getEventMemberPreviewStrip(eventId, options);
+    return { members: strip.members.map(toPublicMemberView), totalCount: strip.totalCount };
+  }
+  const all = mock
+    .getEventMembers(eventId)
+    .filter((m) => m.id !== options?.excludeMemberId)
+    .map(toPublicMemberView);
+  const limit = Math.max(1, Math.min(options?.limit ?? 5, 8));
+  return { members: all.slice(0, limit), totalCount: all.length };
+}
+
 export async function canViewConnectionPage(eventId: string, viewerMemberId: string): Promise<boolean> {
   return useSupabase
     ? supa.canViewConnectionPage(eventId, viewerMemberId)
