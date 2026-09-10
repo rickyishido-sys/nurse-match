@@ -70,7 +70,6 @@ async function measureNav(page, label, trigger) {
   await trigger();
   const clickToContentMs = Date.now() - t0;
   const bg = await bgOf(page);
-  const soft = await page.evaluate(() => !performance.getEntriesByType('navigation').some((n) => n.type === 'navigate' && n.transferSize > 0 && performance.now() < 2000));
   return {
     label,
     clickToContentMs,
