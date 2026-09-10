@@ -5,7 +5,7 @@ import { PrefetchRoutes } from '@/components/connection/prefetch-routes';
 import { ReliableNavLink } from '@/components/connection/reliable-nav-link';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { getViewerMemberId } from '@/lib/connection/identity';
-import { getEventMembers, getEventsByIds, listApplicationsForMember } from '@/lib/connection/repo';
+import { getEventMemberPreviewStrip, getEventsByIds, listApplicationsForMember } from '@/lib/connection/repo';
 import { EVENT_CATEGORY_META, formatEventDate } from '@/lib/connection/data';
 import type { ConnectionEvent, ConnectionMember, EventApplication } from '@/lib/connection/types';
 import { memberMainPhotoUrl } from '@/lib/connection/member-photo';
@@ -87,7 +87,15 @@ function StatusRow({ row }: { row: Row }) {
   );
 }
 
-function PastConnectionCard({ row, members }: { row: Row; members: ConnectionMember[] }) {
+function PastConnectionCard({
+  row,
+  members,
+  totalCount,
+}: {
+  row: Row;
+  members: ConnectionMember[];
+  totalCount: number;
+}) {
   const { event } = row;
   const meta = EVENT_CATEGORY_META[event.category];
   const others = members.slice(0, 5);
@@ -114,7 +122,7 @@ function PastConnectionCard({ row, members }: { row: Row; members: ConnectionMem
         </div>
         <span className='shrink-0 text-xs font-semibold text-[#1f5d4f]'>見る →</span>
       </div>
-      {members.length > 0 ? (
+      {totalCount > 0 ? (
         <div className='mt-4 flex items-center gap-3 border-t border-[#f1efe9] pt-3'>
           <div className='flex -space-x-2'>
             {others.map((m) => (
@@ -124,7 +132,7 @@ function PastConnectionCard({ row, members }: { row: Row; members: ConnectionMem
             ))}
           </div>
           <p className='text-xs text-[#6b6b6b]'>
-            {members.length}人と出会いました
+            {totalCount}人と出会いました
           </p>
         </div>
       ) : null}
@@ -191,12 +199,15 @@ export default async function ConnectionsPage({
     .filter((r) => r.application.status === 'confirmed' && r.event.isPast)
     .sort(byStartDesc);
 
-  // 過去Connectionで出会ったメンバーを先読み（参加者ページへの導線用）。
-  const pastMembers = new Map<string, ConnectionMember[]>();
+  // 過去Connectionのアバター帯のみ先読み（全参加者フル取得はしない）。
+  const pastMembers = new Map<string, { members: ConnectionMember[]; totalCount: number }>();
   await Promise.all(
     past.map(async (r) => {
-      const members = (await getEventMembers(r.event.id)).filter((m) => m.id !== viewerMemberId);
-      pastMembers.set(r.event.id, members);
+      const strip = await getEventMemberPreviewStrip(r.event.id, {
+        limit: 5,
+        excludeMemberId: viewerMemberId,
+      });
+      pastMembers.set(r.event.id, strip);
     }),
   );
 
@@ -261,9 +272,17 @@ export default async function ConnectionsPage({
                 title='過去のイベント'
                 description='参加したイベントで出会ったメンバーのプロフィールを確認できます。'
               >
-                {past.map((row) => (
-                  <PastConnectionCard key={row.event.id} row={row} members={pastMembers.get(row.event.id) ?? []} />
-                ))}
+                {past.map((row) => {
+                  const strip = pastMembers.get(row.event.id) ?? { members: [], totalCount: 0 };
+                  return (
+                    <PastConnectionCard
+                      key={row.event.id}
+                      row={row}
+                      members={strip.members}
+                      totalCount={strip.totalCount}
+                    />
+                  );
+                })}
               </Section>
             ) : null}
           </div>

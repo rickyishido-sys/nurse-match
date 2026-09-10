@@ -351,6 +351,35 @@ export async function getEventMembers(eventId: string): Promise<ConnectionMember
   return (rows ?? []).map((r) => memberFromRow(r, photoMap.get(r.id as string) ?? []));
 }
 
+/**
+ * Avatar strip for connections list: one apps query, then at most `limit` members.
+ * Returns total other-participant count for the "N人と出会いました" label.
+ */
+export async function getEventMemberPreviewStrip(
+  eventId: string,
+  options?: { limit?: number; excludeMemberId?: string | null },
+): Promise<{ members: ConnectionMember[]; totalCount: number }> {
+  const limit = Math.max(1, Math.min(options?.limit ?? 5, 8));
+  const sb = await db();
+  if (!sb) return { members: [], totalCount: 0 };
+  const { data: apps } = await sb
+    .from('hanakai_event_applications')
+    .select('member_id')
+    .eq('event_id', eventId)
+    .eq('status', 'confirmed');
+  let ids = (apps ?? []).map((a) => a.member_id as string);
+  if (options?.excludeMemberId) ids = ids.filter((id) => id !== options.excludeMemberId);
+  const totalCount = ids.length;
+  const previewIds = ids.slice(0, limit);
+  if (previewIds.length === 0) return { members: [], totalCount };
+  const [{ data: rows }, photoMap] = await Promise.all([
+    sb.from('hanakai_members').select('*').in('id', previewIds),
+    photosForMembers(previewIds),
+  ]);
+  const members = (rows ?? []).map((r) => memberFromRow(r, photoMap.get(r.id as string) ?? []));
+  return { members, totalCount };
+}
+
 export async function canViewConnectionPage(eventId: string, viewerMemberId: string): Promise<boolean> {
   const event = await getEvent(eventId);
   if (!event?.isPast) return false;

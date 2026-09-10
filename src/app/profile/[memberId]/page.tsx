@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { ConnectionShell } from '@/components/connection/shell';
 import { ProfileHeader } from '@/components/connection/profile-header';
@@ -10,6 +11,7 @@ import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { BloomCardPublic } from '@/components/connection/bloom-card';
 import { BloomPhase4Panel } from '@/components/connection/bloom-phase4-panel';
 import { Card } from '@/components/connection/ui';
+import { LoadingStatus } from '@/components/connection/ui/loading-status';
 import { getBloomProfile } from '@/lib/connection/bloom-profile';
 import { toPublicBloomProfile } from '@/lib/connection/bloom-profile-types';
 import {
@@ -35,6 +37,34 @@ function safeReturnTo(value: string | string[] | undefined): string {
   if (!raw) return '/connections';
   if (!raw.startsWith('/') || raw.startsWith('//')) return '/connections';
   return raw;
+}
+
+async function PublicBloomSections({ memberId }: { memberId: string }) {
+  const [bloomRaw, phase4Settings, timelineRaw, memoriesRaw] = await Promise.all([
+    getBloomProfile(memberId),
+    getBloomPhase4Settings(memberId),
+    listBloomTimeline(memberId),
+    listBloomMemories(memberId),
+  ]);
+  const publicBloom = toPublicBloomProfile(bloomRaw, false);
+  const publicTimeline = phase4Settings.showTimeline ? filterPublicTimeline(timelineRaw) : undefined;
+  const publicMemories = phase4Settings.showMemories ? filterPublicMemories(memoriesRaw) : undefined;
+  const publicReflection =
+    phase4Settings.showReflection && phase4Settings.aiReflection.trim()
+      ? phase4Settings.aiReflection
+      : undefined;
+
+  return (
+    <>
+      {publicBloom ? <BloomCardPublic profile={publicBloom} /> : null}
+      <BloomPhase4Panel
+        mode='public'
+        timeline={publicTimeline}
+        memories={publicMemories}
+        aiReflection={publicReflection}
+      />
+    </>
+  );
 }
 
 export default async function MemberProfilePage({ params, searchParams }: PageProps) {
@@ -67,21 +97,6 @@ export default async function MemberProfilePage({ params, searchParams }: PagePr
   const purposeLabels = member.purposes.map((p) => PURPOSE_LABEL[p]).filter(Boolean);
   const interestLabels = member.interestTags.map((t) => INTEREST_TAG_LABEL[t]).filter(Boolean);
   const canReport = !!viewerMemberId;
-
-  // Bloom profile + phase4 settings share one table; public wrappers are request-cached.
-  const [bloomRaw, phase4Settings, timelineRaw, memoriesRaw] = await Promise.all([
-    getBloomProfile(memberId),
-    getBloomPhase4Settings(memberId),
-    listBloomTimeline(memberId),
-    listBloomMemories(memberId),
-  ]);
-  const publicBloom = toPublicBloomProfile(bloomRaw, false);
-  const publicTimeline = phase4Settings.showTimeline ? filterPublicTimeline(timelineRaw) : undefined;
-  const publicMemories = phase4Settings.showMemories ? filterPublicMemories(memoriesRaw) : undefined;
-  const publicReflection =
-    phase4Settings.showReflection && phase4Settings.aiReflection.trim()
-      ? phase4Settings.aiReflection
-      : undefined;
 
   return (
     <ConnectionShell viewer={viewer}>
@@ -124,14 +139,15 @@ export default async function MemberProfilePage({ params, searchParams }: PagePr
           ) : null}
         </Card>
 
-        {publicBloom ? <BloomCardPublic profile={publicBloom} /> : null}
-
-        <BloomPhase4Panel
-          mode='public'
-          timeline={publicTimeline}
-          memories={publicMemories}
-          aiReflection={publicReflection}
-        />
+        <Suspense
+          fallback={
+            <div className='flex flex-col items-center gap-3 py-8'>
+              <LoadingStatus variant='block' label='読み込み中' />
+            </div>
+          }
+        >
+          <PublicBloomSections memberId={memberId} />
+        </Suspense>
 
         <Card>
           <h2 className='mb-3 text-sm font-semibold text-[#1a1a1a]'>Connection情報</h2>
