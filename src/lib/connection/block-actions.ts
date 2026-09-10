@@ -16,7 +16,8 @@ export type BlockMemberActionResult =
 /**
  * Block a member and return a result (no redirect).
  * iPhone/WebKit: awaiting redirect() inside a client form action wrapper can no-op.
- * The client shows pending/success UI, then hard-navigates with window.location.assign.
+ * The client shows pending/success UI, then navigates via reliableNavigate
+ * (soft router.replace with hard location.assign fallback).
  */
 export async function blockMemberAction(formData: FormData): Promise<BlockMemberActionResult> {
   const blockedMemberId = String(formData.get('blockedMemberId') ?? '').trim();

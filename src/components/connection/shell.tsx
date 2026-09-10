@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { ConnectionBottomNav } from '@/components/connection/bottom-nav';
 import { BrandFooter } from '@/components/connection/brand/brand-footer';
 import { BrandLogo } from '@/components/connection/brand/brand-logo';
@@ -66,7 +67,9 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
       </div>
 
       {showNav ? <ConnectionBottomNav /> : null}
-      <NavigationPendingOverlay />
+      <Suspense fallback={null}>
+        <NavigationPendingOverlay />
+      </Suspense>
     </div>
   );
 }

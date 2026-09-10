@@ -237,22 +237,18 @@ export async function getBloomPhase4Settings(memberId: string): Promise<{
   showMemories: boolean;
   showReflection: boolean;
 }> {
-  const sb = await createServerSupabaseClient();
-  if (!sb) {
+  // Share request-scoped bloom profile row with getBloomProfile (same table).
+  const { getBloomProfileRow } = await import('@/lib/connection/bloom-profile-repo');
+  const data = await getBloomProfileRow(memberId);
+  if (!data) {
     return { aiReflection: '', showTimeline: true, showMemories: false, showReflection: true };
   }
 
-  const { data } = await sb
-    .from('hanakai_bloom_profiles')
-    .select('ai_reflection, show_timeline, show_memories, show_reflection')
-    .eq('member_id', memberId)
-    .maybeSingle();
-
   return {
-    aiReflection: String(data?.ai_reflection ?? ''),
-    showTimeline: data?.show_timeline !== false,
-    showMemories: Boolean(data?.show_memories),
-    showReflection: data?.show_reflection !== false,
+    aiReflection: String(data.ai_reflection ?? ''),
+    showTimeline: data.show_timeline !== false,
+    showMemories: Boolean(data.show_memories),
+    showReflection: data.show_reflection !== false,
   };
 }
 

@@ -1,20 +1,33 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { LoadingStatus } from '@/components/connection/ui/loading-status';
+import {
+  HANAKAI_NAV_DONE_EVENT,
+  HANAKAI_NAV_PENDING_EVENT,
+} from '@/lib/connection/reliable-navigate';
 
 /**
- * Shows a cream full-screen overlay before same-origin full document navigations
- * (native <a href>). Prevents a black WebView flash during Capacitor/iOS reloads.
+ * Cream full-screen overlay during navigations that would otherwise flash black
+ * in Capacitor/iOS WebView (full reloads) or feel "stuck" during soft RSC waits.
  */
 export function NavigationPendingOverlay() {
   const [visible, setVisible] = useState(false);
   const [label, setLabel] = useState('読み込み中');
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    setVisible(false);
+  }, [pathname, searchParams]);
 
   useEffect(() => {
     function shouldHandle(anchor: HTMLAnchorElement): boolean {
       if (anchor.target && anchor.target !== '_self') return false;
       if (anchor.hasAttribute('download')) return false;
+      // ReliableNavLink manages overlay + soft/hard fallback itself.
+      if (anchor.dataset.reliableNav === '1') return false;
       const href = anchor.getAttribute('href');
       if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return false;
       let url: URL;
@@ -44,14 +57,27 @@ export function NavigationPendingOverlay() {
       setVisible(true);
     }
 
+    function onPending() {
+      setLabel('読み込み中');
+      setVisible(true);
+    }
+
+    function onDone() {
+      setVisible(false);
+    }
+
     function onPageShow() {
       setVisible(false);
     }
 
     document.addEventListener('click', onClick, true);
+    window.addEventListener(HANAKAI_NAV_PENDING_EVENT, onPending);
+    window.addEventListener(HANAKAI_NAV_DONE_EVENT, onDone);
     window.addEventListener('pageshow', onPageShow);
     return () => {
       document.removeEventListener('click', onClick, true);
+      window.removeEventListener(HANAKAI_NAV_PENDING_EVENT, onPending);
+      window.removeEventListener(HANAKAI_NAV_DONE_EVENT, onDone);
       window.removeEventListener('pageshow', onPageShow);
     };
   }, []);

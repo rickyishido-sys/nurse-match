@@ -36,18 +36,22 @@ export async function listBlockedMemberIds(blockerMemberId: string): Promise<str
  */
 export async function listHiddenMemberIdsForViewer(viewerMemberId: string): Promise<string[]> {
   if (!useSupabase || !viewerMemberId) return [];
-  const blockedByMe = await listBlockedMemberIds(viewerMemberId);
-  const hidden = new Set(blockedByMe);
 
   const admin = createAdminSupabaseClient();
-  if (admin) {
-    const { data } = await admin
-      .from('hanakai_member_blocks')
-      .select('blocker_member_id')
-      .eq('blocked_member_id', viewerMemberId);
-    for (const row of data ?? []) {
-      hidden.add(String(row.blocker_member_id));
-    }
+  const [blockedByMe, blockedMeRows] = await Promise.all([
+    listBlockedMemberIds(viewerMemberId),
+    admin
+      ? admin
+          .from('hanakai_member_blocks')
+          .select('blocker_member_id')
+          .eq('blocked_member_id', viewerMemberId)
+          .then((res) => res.data ?? [])
+      : Promise.resolve([] as { blocker_member_id: string }[]),
+  ]);
+
+  const hidden = new Set(blockedByMe);
+  for (const row of blockedMeRows) {
+    hidden.add(String(row.blocker_member_id));
   }
 
   return [...hidden];

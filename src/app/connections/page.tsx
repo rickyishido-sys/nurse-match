@@ -1,9 +1,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
+import { PrefetchRoutes } from '@/components/connection/prefetch-routes';
+import { ReliableNavLink } from '@/components/connection/reliable-nav-link';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { getViewerMemberId } from '@/lib/connection/identity';
-import { getEvent, getEventMembers, listApplications } from '@/lib/connection/repo';
+import { getEventMembers, getEventsByIds, listApplicationsForMember } from '@/lib/connection/repo';
 import { EVENT_CATEGORY_META, formatEventDate } from '@/lib/connection/data';
 import type { ConnectionEvent, ConnectionMember, EventApplication } from '@/lib/connection/types';
 import { memberMainPhotoUrl } from '@/lib/connection/member-photo';
@@ -89,11 +91,10 @@ function PastConnectionCard({ row, members }: { row: Row; members: ConnectionMem
   const { event } = row;
   const meta = EVENT_CATEGORY_META[event.category];
   const others = members.slice(0, 5);
-  // Use a native <a> (full document navigation). Next.js <Link> soft-nav from
-  // /connections → /connections/[eventId] can no-op on iPhone/WebKit even though
-  // the destination page itself loads correctly via direct URL.
+  // Soft nav + hard fallback (ReliableNavLink). Plain <Link> previously no-oped on
+  // iPhone; native <a> full reloads made the same route feel 4–5s slow.
   return (
-    <a
+    <ReliableNavLink
       href={`/connections/${event.id}`}
       className='block rounded-2xl border border-[#ebe9e4] bg-white p-4 transition active:scale-[0.99]'
     >
@@ -127,7 +128,7 @@ function PastConnectionCard({ row, members }: { row: Row; members: ConnectionMem
           </p>
         </div>
       ) : null}
-    </a>
+    </ReliableNavLink>
   );
 }
 
@@ -163,18 +164,17 @@ export default async function ConnectionsPage({
 }) {
   const sp = searchParams ? await searchParams : {};
   const blockedDone = sp.blocked === '1';
-  const viewer = await getHanakaiViewer();
-  const viewerMemberId = await getViewerMemberId();
+  const [viewer, viewerMemberId] = await Promise.all([getHanakaiViewer(), getViewerMemberId()]);
 
-  // 自分の申請（却下を除く）を取得し、対応イベントを引き当てる。
+  // Member-scoped apps only — never listApplications() (whole table).
   const myApps = viewerMemberId
-    ? (await listApplications()).filter((a) => a.memberId === viewerMemberId && a.status !== 'rejected')
+    ? (await listApplicationsForMember(viewerMemberId)).filter((a) => a.status !== 'rejected')
     : [];
 
   const eventIds = [...new Set(myApps.map((a) => a.eventId))];
-  const events = await Promise.all(eventIds.map((id) => getEvent(id)));
+  const events = await getEventsByIds(eventIds);
   const eventMap = new Map<string, ConnectionEvent>();
-  for (const e of events) if (e) eventMap.set(e.id, e);
+  for (const e of events) eventMap.set(e.id, e);
 
   const rows: Row[] = myApps
     .map((application) => {
@@ -201,9 +201,11 @@ export default async function ConnectionsPage({
   );
 
   const isEmpty = rows.length === 0;
+  const prefetchHrefs = past.slice(0, 6).map((r) => `/connections/${r.event.id}`);
 
   return (
     <ConnectionShell viewer={viewer}>
+      <PrefetchRoutes hrefs={prefetchHrefs} />
       <div className='space-y-12'>
         <section className='space-y-2'>
           <p className='text-[11px] font-semibold tracking-[0.2em]' style={{ color: GOLD }}>

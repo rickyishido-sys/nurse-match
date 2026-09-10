@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   EMPTY_BLOOM_PROFILE,
@@ -54,6 +55,17 @@ function toRow(
 }
 
 export async function getBloomProfile(memberId: string): Promise<BloomProfile | null> {
+  const data = await getBloomProfileRow(memberId);
+  return data ? bloomFromRow(data) : null;
+}
+
+/**
+ * Request-scoped raw row cache so profile + phase4 settings share one DB round-trip.
+ * Never shared across users/requests.
+ */
+export const getBloomProfileRow = cache(async function getBloomProfileRow(
+  memberId: string,
+): Promise<Record<string, unknown> | null> {
   const sb = await createServerSupabaseClient();
   if (!sb) return null;
 
@@ -72,13 +84,12 @@ export async function getBloomProfile(memberId: string): Promise<BloomProfile | 
       console.warn('BLOOM_PROFILE_FETCH_SKIP', { memberId, message: error.message });
       return null;
     }
-    if (!data) return null;
-    return bloomFromRow(data);
+    return (data as Record<string, unknown> | null) ?? null;
   } catch (e) {
     console.warn('BLOOM_PROFILE_FETCH_FAILED', { memberId, error: String(e) });
     return null;
   }
-}
+});
 
 export async function getBloomProfileOrEmpty(memberId: string): Promise<BloomProfile> {
   return (await getBloomProfile(memberId)) ?? EMPTY_BLOOM_PROFILE(memberId);
