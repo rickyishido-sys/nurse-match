@@ -18,6 +18,8 @@ const config: CapacitorConfig = {
   appId,
   appName: '華会 HANAKAI',
   webDir: 'www',
+  // Prevent black WebView flash during full document navigations (iOS Dark Mode default).
+  backgroundColor: '#faf7f2',
 
   server: {
     // Production: load the deployed HANAKAI Connection web app.
@@ -31,16 +33,23 @@ const config: CapacitorConfig = {
     // url: 'https://your-preview.vercel.app',
   },
 
+  ios: {
+    backgroundColor: '#faf7f2',
+  },
+  android: {
+    backgroundColor: '#faf7f2',
+  },
+
   plugins: {
     SplashScreen: {
       launchShowDuration: 1500,
       launchAutoHide: true,
-      backgroundColor: '#ffffff',
+      backgroundColor: '#faf7f2',
       showSpinner: false,
     },
     StatusBar: {
       style: 'LIGHT',
-      backgroundColor: '#ffffff',
+      backgroundColor: '#faf7f2',
     },
     Camera: {
       // Photo upload uses getPhoto(); see README.

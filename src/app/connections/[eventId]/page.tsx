@@ -34,6 +34,7 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
     ? new Set(await listHiddenMemberIdsForViewer(viewerMemberId))
     : new Set<string>();
   const memorySaved = typeof sp.memorySaved === 'string';
+  const blockedDone = sp.blocked === '1';
 
   if (canView && event.isPast && viewerMemberId) {
     await recordEventJoinedTimeline(viewerMemberId, eventId, event.title);
@@ -72,6 +73,12 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
           </p>
         </div>
 
+        {blockedDone ? (
+          <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-xs text-[#1f5d4f]'>
+            ブロックしました。対象の参加者はこの一覧から非表示になります。
+          </p>
+        ) : null}
+
         {memorySaved ? (
           <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-xs text-[#1f5d4f]'>
             思い出のメモを保存しました。マイプロフィールでも確認できます。
@@ -87,6 +94,7 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
             .filter((member) => !blockedIds.has(member.id))
             .map((member) => {
             const isSelf = member.id === viewerMemberId;
+            const profileHref = `/profile/${member.id}?returnTo=${encodeURIComponent(`/connections/${eventId}`)}`;
             return (
               <Card key={member.id}>
                 <div className='flex gap-4'>
@@ -94,7 +102,7 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
                   <div className='min-w-0 flex-1'>
                     <div className='flex flex-wrap items-center gap-2'>
                       {/* Native <a>: Next.js Link soft-nav to /profile can no-op on iPhone. */}
-                      <a href={`/profile/${member.id}`} className='text-sm font-semibold text-[#1a1a1a] hover:underline'>
+                      <a href={profileHref} className='text-sm font-semibold text-[#1a1a1a] hover:underline'>
                         {member.nickname}
                       </a>
                       {isSelf ? <Chip tone='muted'>あなた</Chip> : null}
@@ -113,7 +121,7 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
                   <div className='mt-4 flex flex-wrap items-center justify-between gap-3'>
                     {/* Explicit CTA + native <a> so App Review can reach profile → block on iPhone. */}
                     <a
-                      href={`/profile/${member.id}`}
+                      href={profileHref}
                       className='inline-flex min-h-[44px] items-center rounded-full border border-[#1f5d4f] bg-white px-4 text-xs font-semibold text-[#1f5d4f]'
                     >
                       プロフィールを見る →

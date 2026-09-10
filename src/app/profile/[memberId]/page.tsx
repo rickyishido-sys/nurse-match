@@ -24,10 +24,22 @@ import { getMember } from '@/lib/connection/repo';
 import { getPublicTrustBadges } from '@/lib/connection/trust';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 
-type PageProps = { params: Promise<{ memberId: string }> };
+type PageProps = {
+  params: Promise<{ memberId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
 
-export default async function MemberProfilePage({ params }: PageProps) {
+function safeReturnTo(value: string | string[] | undefined): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (!raw) return '/connections';
+  if (!raw.startsWith('/') || raw.startsWith('//')) return '/connections';
+  return raw;
+}
+
+export default async function MemberProfilePage({ params, searchParams }: PageProps) {
   const { memberId } = await params;
+  const sp = searchParams ? await searchParams : {};
+  const returnTo = safeReturnTo(sp.returnTo);
   const viewer = await getHanakaiViewer();
   const viewerMemberId = await getViewerMemberId();
   const member = await getMember(memberId);
@@ -68,7 +80,7 @@ export default async function MemberProfilePage({ params }: PageProps) {
               label: `${member.nickname} のプロフィール`,
             }}
             canReport={canReport}
-            loginNext={`/profile/${member.id}`}
+            loginNext={`/profile/${member.id}?returnTo=${encodeURIComponent(returnTo)}`}
           />
         </div>
 
@@ -76,7 +88,7 @@ export default async function MemberProfilePage({ params }: PageProps) {
           <BlockMemberButton
             blockedMemberId={member.id}
             memberName={member.nickname}
-            returnTo='/connections'
+            returnTo={returnTo}
           />
         ) : null}
 
