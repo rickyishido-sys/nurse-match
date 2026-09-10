@@ -13,7 +13,7 @@ import { Card, Chip } from '@/components/connection/ui';
 import { LoadingStatus } from '@/components/connection/ui/loading-status';
 import { listHiddenMemberIdsForViewer } from '@/lib/connection/block-repo';
 import { BloomMemoryForm } from '@/components/connection/bloom-memory-form';
-import { canViewConnectionPage, getEvent, getEventMembers } from '@/lib/connection/repo';
+import { getEvent, getEventMembers } from '@/lib/connection/repo';
 import { getBloomMemoryForEvent, recordEventJoinedTimeline } from '@/lib/connection/bloom-phase4';
 import { getBloomMemorySkipCookie } from '@/lib/connection/bloom-phase4-actions';
 import { getViewerMemberId } from '@/lib/connection/identity';
@@ -122,19 +122,20 @@ async function ParticipantsSection({
 }
 
 export default async function ConnectionPage({ params, searchParams }: PageProps) {
-  const [{ eventId }, sp, viewer, viewerMemberId] = await Promise.all([
-    params,
+  const { eventId } = await params;
+  const [sp, viewer, viewerMemberId, event] = await Promise.all([
     searchParams ? searchParams : Promise.resolve({} as Record<string, string | string[] | undefined>),
     getHanakaiViewer(),
     getViewerMemberId(),
+    getEvent(eventId),
   ]);
-  const event = await getEvent(eventId);
   if (!event) notFound();
 
   const memorySaved = typeof sp.memorySaved === 'string';
   const blockedDone = sp.blocked === '1';
 
-  const canView = viewerMemberId ? await canViewConnectionPage(eventId, viewerMemberId) : false;
+  // Inline canView — event already loaded (avoids a redundant getEvent hop).
+  const canView = !!viewerMemberId && event.isPast && event.confirmedMemberIds.includes(viewerMemberId);
 
   if (canView && event.isPast && viewerMemberId) {
     void recordEventJoinedTimeline(viewerMemberId, eventId, event.title).catch(() => {});
