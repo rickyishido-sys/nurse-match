@@ -16,6 +16,10 @@
   box-sizing: border-box;
 }
 
+html {
+  background: #faf7f2;
+}
+
 body {
   margin: 0;
   background: #faf7f2;

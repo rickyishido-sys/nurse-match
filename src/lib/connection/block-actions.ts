@@ -9,16 +9,32 @@ import {
 } from '@/lib/connection/block-repo';
 import { ensureViewerMemberId } from '@/lib/connection/identity';
 
-export async function blockMemberAction(formData: FormData) {
+export type BlockMemberActionResult =
+  | { ok: true; alreadyBlocked?: boolean; returnTo: string }
+  | { ok: false; error: 'login_required' | 'missing_target' | 'block_failed'; loginNext?: string };
+
+/**
+ * Block a member and return a result (no redirect).
+ * iPhone/WebKit: awaiting redirect() inside a client form action wrapper can no-op.
+ * The client shows pending/success UI, then hard-navigates with window.location.assign.
+ */
+export async function blockMemberAction(formData: FormData): Promise<BlockMemberActionResult> {
   const blockedMemberId = String(formData.get('blockedMemberId') ?? '').trim();
-  const returnTo = String(formData.get('returnTo') ?? '/my-profile').trim();
+  const rawReturnTo = String(formData.get('returnTo') ?? '/connections').trim();
+  const returnTo =
+    rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//') ? rawReturnTo : '/connections';
+
   const memberId = await ensureViewerMemberId();
-  if (!memberId) redirect(`/login?next=${encodeURIComponent(returnTo)}`);
-  if (!blockedMemberId) redirect(`${returnTo}?error=block_missing`);
+  if (!memberId) {
+    return { ok: false, error: 'login_required', loginNext: `/login?next=${encodeURIComponent(returnTo)}` };
+  }
+  if (!blockedMemberId) {
+    return { ok: false, error: 'missing_target' };
+  }
 
   const result = await blockMember(memberId, blockedMemberId);
   if (!result.ok) {
-    redirect(`${returnTo}?error=block_failed`);
+    return { ok: false, error: 'block_failed' };
   }
 
   // Soft-fail: block must succeed even if moderation inbox write fails.
@@ -32,7 +48,8 @@ export async function blockMemberAction(formData: FormData) {
   revalidatePath('/connections');
   revalidatePath('/groups');
   revalidatePath('/admin/hanakai/reports');
-  redirect(`${returnTo}?blocked=1`);
+
+  return { ok: true, alreadyBlocked: result.alreadyBlocked, returnTo };
 }
 
 export async function unblockMemberAction(formData: FormData) {

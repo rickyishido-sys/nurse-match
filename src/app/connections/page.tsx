@@ -156,7 +156,13 @@ function Section({
   );
 }
 
-export default async function ConnectionsPage() {
+export default async function ConnectionsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = searchParams ? await searchParams : {};
+  const blockedDone = sp.blocked === '1';
   const viewer = await getHanakaiViewer();
   const viewerMemberId = await getViewerMemberId();
 
@@ -212,6 +218,12 @@ export default async function ConnectionsPage() {
             イベント参加の記録がここに集まります。
           </p>
         </section>
+
+        {blockedDone ? (
+          <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-xs text-[#1f5d4f]'>
+            ブロックしました。対象ユーザーのプロフィールと投稿は表示されなくなります。
+          </p>
+        ) : null}
 
         {isEmpty ? (
           <EmptyState />

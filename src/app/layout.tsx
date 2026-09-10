@@ -93,7 +93,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: AUTH_HASH_REDIRECT_SCRIPT }} />
       </head>
-      <body className='min-h-full font-sans text-slate-900'>
+      <body className='min-h-full bg-[#faf7f2] font-sans text-slate-900'>
         {children}
       </body>
     </html>
