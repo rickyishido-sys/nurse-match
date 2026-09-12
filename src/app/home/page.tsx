@@ -13,7 +13,9 @@ export default async function HomePage() {
   const events = await listUpcomingEvents(4);
   const viewerMemberId = await getViewerMemberId();
   const member = viewerMemberId ? await getMember(viewerMemberId) : null;
-  const displayName = member?.nickname ?? viewer?.displayName ?? 'ゲスト';
+  // Prefer member nickname, then authenticated viewer name. Avoid 「ゲストさん」
+  // when session/member lookup is briefly unavailable after long Server Actions.
+  const displayName = member?.nickname?.trim() || viewer?.displayName?.trim() || null;
 
   return (
     <ConnectionShell viewer={viewer}>
@@ -25,7 +27,7 @@ export default async function HomePage() {
               WELCOME
             </p>
             <h1 className='truncate text-[1.6rem] font-semibold leading-tight tracking-tight text-[#1a1a1a]'>
-              {displayName}さん
+              {displayName ? `${displayName}さん` : 'ようこそ'}
             </h1>
             <p className='text-sm leading-7 text-[#6b6b6b]'>
               知らない人同士が、リアルで出会う。

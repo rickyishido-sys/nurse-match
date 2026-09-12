@@ -46,14 +46,34 @@ export const getHanakaiViewer = cache(async function getHanakaiViewer(): Promise
 
     const email = user.email ?? null;
     const metaName = (user.user_metadata?.nickname as string | undefined) ?? null;
-    const memberId = await getHanakaiMemberIdForAuthUser(user.id);
-    const [member, isSuperAdmin] = await Promise.all([
-      memberId ? getMember(memberId) : Promise.resolve(null),
-      isSuperAdminUser(user.id),
-    ]);
+
+    // Member lookup can fail independently of auth (e.g. after a long Server Action).
+    // Never collapse an authenticated session into a guest-looking viewer.
+    let memberId: string | null = null;
+    let member: Awaited<ReturnType<typeof getMember>> = null;
+    let isSuperAdmin = false;
+    try {
+      memberId = await getHanakaiMemberIdForAuthUser(user.id);
+      [member, isSuperAdmin] = await Promise.all([
+        memberId ? getMember(memberId) : Promise.resolve(null),
+        isSuperAdminUser(user.id),
+      ]);
+    } catch (error) {
+      console.error('HANAKAI_VIEWER_MEMBER_LOOKUP_FAILED', {
+        authUserId: user.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      try {
+        isSuperAdmin = await isSuperAdminUser(user.id);
+      } catch {
+        isSuperAdmin = false;
+      }
+    }
+
     const role = resolveHanakaiUserRole(isSuperAdmin, memberId);
+    const emailLocal = email?.includes('@') ? email.split('@')[0]?.trim() : null;
     const displayName =
-      member?.nickname?.trim() || metaName?.trim() || (email ? email.split('@')[0] : 'ゲスト');
+      member?.nickname?.trim() || metaName?.trim() || emailLocal || 'ユーザー';
 
     return {
       id: user.id,

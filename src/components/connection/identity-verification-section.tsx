@@ -18,11 +18,51 @@ import {
 import type { ConnectionMember } from '@/lib/connection/types';
 
 const ACCENT = '#1f5d4f';
+const MAX_EDGE_PX = 2400;
+const COMPRESS_QUALITY = 0.9;
+const COMPRESS_IF_OVER_BYTES = 1.5 * 1024 * 1024;
 
 type IdentityVerificationSectionProps = {
   member: ConnectionMember;
   showUpload?: boolean;
 };
+
+type SubmitPhase = 'idle' | 'preparing' | 'uploading';
+
+async function maybeDownscaleIdentityImage(file: File): Promise<File> {
+  if (!file.type.startsWith('image/') || file.size <= COMPRESS_IF_OVER_BYTES) {
+    return file;
+  }
+  if (typeof createImageBitmap !== 'function' || typeof document === 'undefined') {
+    return file;
+  }
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const maxEdge = Math.max(bitmap.width, bitmap.height);
+    const scale = Math.min(1, MAX_EDGE_PX / maxEdge);
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      bitmap.close();
+      return file;
+    }
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((b) => resolve(b), 'image/jpeg', COMPRESS_QUALITY);
+    });
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], 'identity-document.jpg', { type: 'image/jpeg' });
+  } catch {
+    return file;
+  }
+}
 
 export function IdentityVerificationSection({
   member,
@@ -33,7 +73,7 @@ export function IdentityVerificationSection({
   const [fileName, setFileName] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitPhase, setSubmitPhase] = useState<SubmitPhase>('idle');
 
   async function handleFileChange(file: File | null) {
     setFileName(file?.name ?? '');
@@ -48,6 +88,46 @@ export function IdentityVerificationSection({
       }
     }
   }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    if (!selectedFile || validationError) {
+      event.preventDefault();
+      return;
+    }
+
+    event.preventDefault();
+    setSubmitPhase('preparing');
+    try {
+      const prepared = await maybeDownscaleIdentityImage(selectedFile);
+      const body = new FormData();
+      body.set('identityDocument', prepared);
+      setSubmitPhase('uploading');
+      await submitIdentityDocumentAction(body);
+    } catch (error) {
+      const digest =
+        typeof error === 'object' && error && 'digest' in error
+          ? String((error as { digest?: string }).digest ?? '')
+          : '';
+      if (digest.startsWith('NEXT_REDIRECT')) {
+        throw error;
+      }
+      console.error('CONNECTION_IDENTITY_CLIENT_SUBMIT_ERROR', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      setValidationError('送信に失敗しました。時間をおいて再度お試しください。');
+      setSubmitPhase('idle');
+    }
+  }
+
+  const submitting = submitPhase !== 'idle';
+  const submitLabel =
+    submitPhase === 'preparing'
+      ? '書類を準備しています…'
+      : submitPhase === 'uploading'
+        ? '送信中…（アップロードと審査登録）'
+        : buttonKind
+          ? IDENTITY_SUBMIT_BUTTON_LABEL[buttonKind]
+          : '';
 
   return (
     <div className='space-y-5'>
@@ -75,16 +155,22 @@ export function IdentityVerificationSection({
         <p className='text-xs leading-6 text-[#6b6b6b]'>
           {IDENTITY_STATUS_DESCRIPTION[status]}
         </p>
-        {showUpload ? (
+        {showUpload && status !== 'pending' ? (
           <p className='text-xs leading-6 text-[#9a9a9a]'>{IDENTITY_DOCUMENT_AUXILIARY_MESSAGE}</p>
         ) : null}
       </div>
+
+      {status === 'pending' ? (
+        <div className='rounded-2xl border border-[#e8dfd0] bg-[#fbf8f3] px-4 py-3 text-xs leading-6 text-[#6b6b6b]'>
+          審査が完了するまで、追加の書類提出はできません。
+        </div>
+      ) : null}
 
       {showUpload && buttonKind ? (
         <form
           action={submitIdentityDocumentAction}
           className='space-y-3'
-          onSubmit={() => setSubmitting(true)}
+          onSubmit={(e) => void handleSubmit(e)}
         >
           <label className='block'>
             <span className='sr-only'>本人確認書類</span>
@@ -93,6 +179,7 @@ export function IdentityVerificationSection({
               name='identityDocument'
               accept='image/*,.pdf'
               required
+              disabled={submitting}
               className='w-full rounded-2xl border border-dashed border-[#d8d6d1] bg-white px-4 py-4 text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-[#edf3ef] file:px-4 file:py-2 file:text-sm file:font-medium file:text-[#1f5d4f]'
               onChange={(e) => void handleFileChange(e.target.files?.[0] ?? null)}
             />
@@ -107,13 +194,18 @@ export function IdentityVerificationSection({
               {validationError}
             </p>
           ) : null}
+          {submitting ? (
+            <p className='text-xs leading-6 text-[#6b6b6b]'>
+              書類の確認・安全な保管・審査登録を行っています。完了までこの画面のままお待ちください。
+            </p>
+          ) : null}
           <button
             type='submit'
             disabled={submitting || !selectedFile || !!validationError}
             className='flex h-11 w-full items-center justify-center rounded-full text-sm font-semibold text-white transition active:scale-[0.99] disabled:opacity-50 sm:w-auto sm:px-8'
             style={{ backgroundColor: ACCENT }}
           >
-            {submitting ? '送信中…' : IDENTITY_SUBMIT_BUTTON_LABEL[buttonKind]}
+            {submitLabel}
           </button>
         </form>
       ) : null}

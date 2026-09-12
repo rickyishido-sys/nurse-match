@@ -234,7 +234,7 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
         ) : null}
         {identitySubmitted ? (
           <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
-            本人確認書類を受け付けました。審査完了までしばらくお待ちください。
+            本人確認書類を受け付けました。現在の状態は「審査中」です。確認が完了するまで追加提出は不要です。
           </p>
         ) : null}
         {photosSaved ? (

@@ -11,7 +11,7 @@ export type IdentityVerificationDisplayStatus = IdentityStatus;
 
 export const IDENTITY_STATUS_LABEL: Record<IdentityStatus, string> = {
   unsubmitted: '本人確認書類が未提出です',
-  pending: '本人確認書類を確認しています',
+  pending: '本人確認書類を提出済みです',
   verified: '本人確認済み',
   resubmission_required: '本人確認書類の再提出が必要です',
 };
@@ -23,7 +23,7 @@ export const IDENTITY_STATUS_DESCRIPTION: Record<IdentityStatus, string> = {
   unsubmitted:
     '本人確認書類を提出すると、審査完了後に本人確認済みバッジが付与されます。',
   pending:
-    '提出いただいた書類を確認しています。完了までしばらくお待ちください。',
+    '現在、運営で確認しています。確認が完了すると本人確認済みバッジが付与されます。',
   verified: '本人確認が完了しています。書類の更新が必要な場合は再提出できます。',
   resubmission_required:
     '書類の再提出が必要です。お手数ですが、本人確認書類を再度ご提出ください。',
