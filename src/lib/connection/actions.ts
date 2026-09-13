@@ -799,32 +799,106 @@ export async function updateMyProfileAction(formData: FormData) {
 async function persistIdentityDocumentUpload(
   authUserId: string,
   identityFile: File,
-): Promise<string | null> {
+): Promise<string> {
   const identityUrl = await uploadDocument(identityFile, authUserId, 'identity');
-  if (!identityUrl) return null;
+  if (!identityUrl) {
+    throw new Error('identity_upload_empty');
+  }
 
+  // identity_documents writes must use service_role (same path as admin review).
   const adminSupabase = createAdminSupabaseClient();
-  const dbClient = adminSupabase ?? (await createServerSupabaseClient());
-  if (dbClient) {
-    const { data: existingIdentity } = await dbClient
+  if (!adminSupabase) {
+    throw new Error('identity_admin_unavailable');
+  }
+
+  const { data: existingIdentity, error: existingError } = await adminSupabase
+    .from('identity_documents')
+    .select('id')
+    .eq('user_id', authUserId)
+    .maybeSingle();
+  if (existingError) {
+    console.error('CONNECTION_IDENTITY_DOC_READ_ERROR', {
+      authUserId,
+      code: existingError.code,
+      message: existingError.message,
+    });
+    throw new Error('identity_doc_read_failed');
+  }
+
+  if (existingIdentity?.id) {
+    const { error } = await adminSupabase
       .from('identity_documents')
-      .select('id')
-      .eq('user_id', authUserId)
-      .maybeSingle();
-    if (existingIdentity?.id) {
-      await dbClient
-        .from('identity_documents')
-        .update({ document_url: identityUrl, status: 'pending' })
-        .eq('id', existingIdentity.id);
-    } else {
-      await dbClient.from('identity_documents').insert({
-        user_id: authUserId,
-        document_url: identityUrl,
-        status: 'pending',
+      .update({ document_url: identityUrl, status: 'pending' })
+      .eq('id', existingIdentity.id);
+    if (error) {
+      console.error('CONNECTION_IDENTITY_DOC_UPDATE_ERROR', {
+        authUserId,
+        code: error.code,
+        message: error.message,
       });
+      throw new Error('identity_doc_update_failed');
+    }
+  } else {
+    const { error } = await adminSupabase.from('identity_documents').insert({
+      user_id: authUserId,
+      document_url: identityUrl,
+      status: 'pending',
+    });
+    if (error) {
+      console.error('CONNECTION_IDENTITY_DOC_INSERT_ERROR', {
+        authUserId,
+        code: error.code,
+        message: error.message,
+      });
+      throw new Error('identity_doc_insert_failed');
     }
   }
+
   return identityUrl;
+}
+
+/**
+ * Persist identity-submit trust columns via service_role.
+ * User-scoped updates are blocked by `hanakai_guard_member_trust_columns`.
+ */
+async function markMemberIdentitySubmitted(params: {
+  memberId: string;
+  identityRef: string;
+  safetyFlags: string[];
+}): Promise<void> {
+  const admin = createAdminSupabaseClient();
+  if (!admin) {
+    throw new Error('identity_admin_unavailable');
+  }
+
+  const { data, error } = await admin
+    .from('hanakai_members')
+    .update({
+      document_upload_status: 'pending',
+      trust_verification_status: 'pending',
+      verification_source: 'id_only',
+      identity_verified: false,
+      trust_notes: `identity:${params.identityRef}`,
+      identity_verification_method: 'manual_document',
+      safety_flags: params.safetyFlags,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', params.memberId)
+    .select('id, document_upload_status')
+    .maybeSingle();
+
+  if (error) {
+    console.error('CONNECTION_IDENTITY_MEMBER_UPDATE_ERROR', {
+      memberId: params.memberId,
+      code: error.code,
+      message: error.message,
+    });
+    throw new Error('identity_member_update_failed');
+  }
+  if (!data || data.document_upload_status !== 'pending') {
+    console.error('CONNECTION_IDENTITY_MEMBER_UPDATE_EMPTY', { memberId: params.memberId });
+    throw new Error('identity_member_update_empty');
+  }
 }
 
 export async function submitIdentityDocumentAction(formData: FormData) {
@@ -839,41 +913,55 @@ export async function submitIdentityDocumentAction(formData: FormData) {
     redirect('/my-profile?mode=edit&error=identity');
   }
 
+  const member = await getMember(memberId);
+  if (!member) redirect('/my-profile');
+
+  const { getIdentityStatus, IDENTITY_RESUBMIT_FLAG } = await import(
+    '@/lib/connection/identity-verification'
+  );
+  // Prevent duplicate submit while already under review.
+  if (getIdentityStatus(member) === 'pending') {
+    revalidatePath('/my-profile');
+    redirect('/my-profile?identity=submitted');
+  }
+
   const docCheck = await checkIdentityDocumentFileServer(identityFile);
   if (!docCheck.ok) {
     redirect('/my-profile?mode=edit&error=identity_document');
   }
 
-  const member = await getMember(memberId);
-  if (!member) redirect('/my-profile');
-
-  let identityUrl: string | null = null;
+  let identityUrl: string;
   try {
     identityUrl = await persistIdentityDocumentUpload(authUserId, identityFile);
   } catch (error) {
-    console.error('CONNECTION_IDENTITY_UPLOAD_ERROR', { authUserId, error: String(error) });
+    console.error('CONNECTION_IDENTITY_UPLOAD_ERROR', {
+      authUserId,
+      error: error instanceof Error ? error.message : String(error),
+    });
     redirect('/my-profile?mode=edit&error=identity');
   }
 
-  if (!identityUrl) {
-    redirect('/my-profile?mode=edit&error=identity');
-  }
-
-  const { IDENTITY_RESUBMIT_FLAG } = await import('@/lib/connection/identity-verification');
   const safetyFlags = member.safetyFlags.filter((flag) => flag !== IDENTITY_RESUBMIT_FLAG);
 
-  await updateMember(memberId, {
-    documentUploadStatus: 'pending',
-    trustVerificationStatus: 'pending' as TrustVerificationStatus,
-    verificationSource: 'id_only' as VerificationSource,
-    identityVerified: false,
-    trustNotes: `identity:${identityUrl}`,
-    identityVerificationMethod: 'manual_document',
-    safetyFlags,
-  });
+  try {
+    await markMemberIdentitySubmitted({
+      memberId,
+      identityRef: identityUrl,
+      safetyFlags,
+    });
+  } catch (error) {
+    console.error('CONNECTION_IDENTITY_STATUS_PERSIST_ERROR', {
+      memberId,
+      authUserId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    redirect('/my-profile?mode=edit&error=identity');
+  }
 
   revalidatePath('/my-profile');
+  revalidatePath('/home');
   revalidatePath('/admin/hanakai/members');
+  revalidatePath('/admin/hanakai/identity-reviews');
   redirect('/my-profile?identity=submitted');
 }
 
