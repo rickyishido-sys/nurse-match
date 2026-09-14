@@ -9,7 +9,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '..');
-const BASE = (process.env.BASE_URL || 'https://hanakai.kranz.design').replace(/\/$/, '');
+const BASE = (process.env.BASE_URL || process.env.BASE_URL || 'https://hanakai.kranz.design').replace(/\/$/, '');
 const RUNS = Math.max(3, Number(process.env.RUNS || 5));
 const LABEL = process.env.LABEL || 'run';
 const COMMUNITY_ID = '8554e519-52a7-49b9-ad66-fa33b7a395db';
@@ -77,12 +77,12 @@ try {
 
     // home → events (cold: first nav after home load)
     await page.goto(`${BASE}/home`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.waitForSelector('text=WELCOME, text=ようこそ', { timeout: 60000 }).catch(() => {});
+    await page.waitForSelector('text=WELCOME', { timeout: 60000 }).catch(() => {});
     await page.waitForTimeout(run === 1 ? 500 : 1500); // warm allow prefetch
     const homeEvents = await measure(page, `home→events (${run === 1 ? 'cold' : 'warm'})`, async () => {
       await page.locator('a[href="/events"]').first().click();
-      await page.waitForURL((u) => u.pathname.startsWith('/events'), { timeout: 60000 });
-      await page.waitForSelector('text=イベント, text=開催', { timeout: 60000 }).catch(() => {});
+      await page.waitForURL((u) => u.pathname === '/events' || u.pathname.startsWith('/events?'), { timeout: 60000 });
+      await page.waitForSelector('text=カテゴリーから探す', { timeout: 60000 });
     });
     const heKey = run === 1 ? 'home→events cold' : 'home→events warm';
     (samples[heKey] ||= []).push(homeEvents.ms);
