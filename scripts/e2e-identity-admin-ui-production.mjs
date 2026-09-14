@@ -100,20 +100,21 @@ async function loginMagic(page, next = '/my-profile') {
 }
 
 async function loginAdmin(page) {
+  // Regular /login rejects admin accounts with use-admin-login — use /admin/login.
   const next = '/admin/hanakai/identity-reviews';
-  await page.goto(`${BASE}/login?next=${encodeURIComponent(next)}`, {
+  await page.goto(`${BASE}/admin/login`, {
     waitUntil: 'domcontentloaded',
     timeout: 60000,
   });
   await page.locator('input[name="email"]').fill(adminEmail);
   await page.locator('input[name="password"]').fill(adminPassword);
-  await page.getByRole('button', { name: 'ログイン' }).click();
+  await page.getByRole('button', { name: '管理画面へログイン' }).click();
   await page
-    .waitForURL((url) => !url.pathname.includes('/login') || url.search.includes('error='), {
+    .waitForURL((url) => !url.pathname.includes('/admin/login') || url.search.includes('error='), {
       timeout: 90000,
     })
     .catch(() => null);
-  if (page.url().includes('/login')) return false;
+  if (page.url().includes('/admin/login')) return false;
   await page.goto(`${BASE}${next}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await page.waitForSelector('text=本人確認審査', { timeout: 60000 });
   return true;

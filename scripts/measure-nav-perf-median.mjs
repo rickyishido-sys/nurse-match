@@ -56,7 +56,7 @@ async function loginMagic(page) {
   );
   await page.waitForURL((u) => !u.pathname.includes('/api/auth'), { timeout: 60000 });
   await page.goto(`${BASE}/connections`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.waitForSelector('text=過去のイベント', { timeout: 60000 });
+  await page.waitForSelector('text=過去のイベント', { timeout: 90000 });
 }
 
 async function measure(page, label, trigger) {
@@ -90,7 +90,7 @@ try {
 
     // connections → event
     await page.goto(`${BASE}/connections`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.waitForSelector('text=過去のイベント', { timeout: 60000 });
+    await page.waitForSelector('text=過去のイベント', { timeout: 90000 });
     if (run > 1) await page.waitForTimeout(1500);
     const connColdWarm = run === 1 ? 'cold' : 'warm';
     const a = await measure(page, `connections→event (${connColdWarm})`, async () => {
