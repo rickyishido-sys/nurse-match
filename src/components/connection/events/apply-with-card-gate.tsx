@@ -1,5 +1,6 @@
 'use client';
 
+import { track } from '@/lib/analytics/track';
 import { useEffect, useState } from 'react';
 import { SquareCardRegistration } from '@/components/connection/payments/square-card-registration';
 import { ApplyForm } from '@/components/connection/events/apply-form';
@@ -22,7 +23,10 @@ export function ApplyWithCardGate({
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    const start = () => setStarted(true);
+    const start = () => {
+      setStarted(true);
+      track('event_apply_start', { event_id: eventId });
+    };
     window.addEventListener(HANAKAI_START_APPLY_EVENT, start);
 
     // Deep-link support: /events/{id}#event-apply opens the apply flow.
@@ -45,11 +49,14 @@ export function ApplyWithCardGate({
         <p className='text-sm leading-7 text-[#4a4a4a]'>
           {methods.length > 0
             ? '参加理由を入力し、今回使うお支払い方法を確認して申請できます。この時点では課金されません。'
-            : `参加申請の前に、お支払い方法の登録が必要です。登録後に申請フォームへ進みます。${HANAKAI_USAGE_FEE_LABEL}${formatHanakaiUsageFee(usageFeeJpy)}は、主催者が参加メンバーを選んだときにのみ請求されます。`}
+            : `参加申請の前に、お支払い方法の登録が必要です（カード登録の時点では請求されません）。登録後に申請フォームへ進みます。${HANAKAI_USAGE_FEE_LABEL}${formatHanakaiUsageFee(usageFeeJpy)}は、主催者が参加メンバーを選んだときにのみ請求されます。`}
         </p>
         <button
           type='button'
-          onClick={() => setStarted(true)}
+          onClick={() => {
+            setStarted(true);
+            track('event_apply_start', { event_id: eventId });
+          }}
           className='flex h-12 w-full items-center justify-center rounded-full bg-[#1f5d4f] text-sm font-semibold text-white'
         >
           {methods.length > 0 ? '参加申請をはじめる' : 'お支払い方法を登録してはじめる'}

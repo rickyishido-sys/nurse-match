@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { RegisterEmailForm } from '@/components/register-email-form';
 import { BrandAuthFrame, BrandAuthLinks } from '@/components/connection/brand/brand-auth-frame';
@@ -6,6 +7,7 @@ import { isDevAuthBypassEnabled } from '@/lib/connection/legal-consent';
 import { ensureHanakaiMemberForAuthUser } from '@/lib/connection/identity';
 import { getHanakaiRegistrationStatus, resolveJoinHref } from '@/lib/connection/registration-status';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { TrackPageEvent } from '@/components/analytics/track-page-event';
 
 type RegisterPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -87,6 +89,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
   return (
     <BrandAuthFrame title='新規登録' subtitle='まずはメール認証から始めます' characterId='W'>
+      <TrackPageEvent event='signup_start' onceKey='signup_start' />
       {sent === '1' ? (
         <p className='mb-4 rounded-2xl border border-[#d8e2d3] bg-[#eef4ea]/90 px-4 py-3 text-xs leading-5 text-[#4f7a4a]'>
           認証メールを送信しました。メール内のリンクを開くと、プロフィール入力画面へ進みます。
@@ -98,6 +101,16 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
           <p>{errorMessage}</p>
         </div>
       ) : null}
+
+            <div className='mb-4 rounded-2xl border border-[#e8dfd0] bg-[#fbf8f3] px-4 py-3 text-xs leading-6 text-[#4a4a4a]'>
+        <p className='font-semibold text-[#1a1a1a]'>本人確認について</p>
+        <p className='mt-1.5'>
+          HANAKAIでは、安心してイベントに参加いただくため、参加前に本人確認をお願いしています。提出された本人確認書類は他のユーザーには公開されません。
+        </p>
+        <Link href='/my-profile#profile-section-identity' className='mt-2 inline-block font-semibold text-[#1f5d4f] underline-offset-4 hover:underline'>
+          本人確認について詳しく
+        </Link>
+      </div>
 
       <RegisterEmailForm sent={sent === '1'} allowBurst={burst} legacyFlow={legacyFlow} />
       <BrandAuthLinks register />

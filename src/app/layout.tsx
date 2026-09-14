@@ -3,6 +3,7 @@ import { Noto_Sans_JP, Noto_Serif_JP } from 'next/font/google';
 import { SITE_URL } from '@/lib/config';
 import { BRAND_OG_TAGLINE } from '@/lib/connection/brand/logo';
 import './globals.css';
+import { AnalyticsProvider } from '@/components/analytics/analytics-provider';
 
 const SITE_TITLE = '華会 HANAKAI';
 const SITE_DESCRIPTION = '体験から始まる、新しい出会い。週替わりのリアルイベントを探して参加申請できるコミュニティ。';
@@ -94,7 +95,10 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: AUTH_HASH_REDIRECT_SCRIPT }} />
       </head>
       <body className='min-h-full bg-[#faf7f2] font-sans text-slate-900'>
-        {children}
+        <>
+          <AnalyticsProvider />
+          {children}
+        </>
       </body>
     </html>
   );

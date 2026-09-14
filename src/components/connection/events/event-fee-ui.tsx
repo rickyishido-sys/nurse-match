@@ -177,3 +177,28 @@ export function ParticipationDecidedNotice() {
     </div>
   );
 }
+
+
+/** Shown near the apply CTA — clarifies card registration is not an immediate charge. */
+export function PaymentTrustNote({
+  usageFeeJpy,
+  eventFeeLabel,
+}: {
+  usageFeeJpy?: number;
+  eventFeeLabel: string;
+}) {
+  return (
+    <div className='rounded-2xl border border-[#ebe9e4] bg-[#fafaf8] px-4 py-4 text-xs leading-6 text-[#4a4a4a]'>
+      <p className='text-sm font-semibold text-[#1a1a1a]'>お支払いについて</p>
+      <ul className='mt-2 list-none space-y-1.5'>
+        <li>・参加申請の前にカード登録が必要です（登録時点では課金されません）。</li>
+        <li>・参加申請の送信時点でも課金されません。</li>
+        <li>
+          ・{HANAKAI_USAGE_FEE_LABEL}
+          {formatHanakaiUsageFee(usageFeeJpy)}は、主催者が参加メンバーに選んだときにのみ決済されます。選ばれなければ請求はありません。
+        </li>
+        <li>・イベント参加費（{eventFeeLabel}）は当日、主催者または店舗へ現地払いです。</li>
+      </ul>
+    </div>
+  );
+}

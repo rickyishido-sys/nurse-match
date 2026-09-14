@@ -8,6 +8,7 @@ import { EventDetailCta } from '@/components/connection/events/event-detail-cta'
 import { EventDetailGallery } from '@/components/connection/events/event-detail-gallery';
 import {
   EventFeeCards,
+  PaymentTrustNote,
   EventPreDescriptionNotice,
   ParticipationDecidedNotice,
 } from '@/components/connection/events/event-fee-ui';
@@ -46,6 +47,7 @@ import {
   getApplicationPaymentContext,
 } from '@/lib/connection/participation-payment';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
+import { TrackPageEvent } from '@/components/analytics/track-page-event';
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -124,6 +126,10 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
 
   return (
     <ConnectionShell viewer={viewer}>
+      <TrackPageEvent event='event_detail_view' onceKey={`event_detail:${event.id}`} payload={{ event_id: event.id }} />
+      {applied ? (
+        <TrackPageEvent event='event_apply_complete' onceKey={`event_apply_complete:${event.id}`} payload={{ event_id: event.id }} />
+      ) : null}
       <article className='mx-auto max-w-3xl space-y-10 lg:max-w-4xl'>
         <EventDetailGallery event={event} />
 
@@ -449,6 +455,18 @@ export default async function EventDetailPage({ params, searchParams }: PageProp
                       お支払い方法を選択してください。
                     </p>
                   ) : null}
+                  <PaymentTrustNote
+                    usageFeeJpy={usageFeeJpy}
+                    eventFeeLabel={
+                      event.eventFeeType === 'free'
+                        ? '無料'
+                        : event.eventFeeAmount != null
+                          ? `${event.eventFeeAmount.toLocaleString('ja-JP')}円`
+                          : event.fee != null && event.fee > 0
+                            ? `${event.fee.toLocaleString('ja-JP')}円`
+                            : 'イベント詳細に記載'
+                    }
+                  />
                   <ApplyWithCardGate
                     eventId={event.id}
                     approvalMode={approvalMode}

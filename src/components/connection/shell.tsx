@@ -33,22 +33,30 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
             ) : (
               <>
                 <Link
+                  href='/events'
+                  className={`${ctaPrimary} !px-3 !py-1.5 !text-[13px] sm:!px-3.5 sm:!text-sm`}
+                >
+                  <span className='sm:hidden'>イベント</span>
+                  <span className='hidden sm:inline'>イベントを見る</span>
+                </Link>
+                <Link
                   href='/login'
-                  className='rounded-full border border-[#d8d6d1]/80 bg-white/60 px-3 py-1.5 text-xs font-medium text-[#6b6b6b] backdrop-blur transition hover:bg-white'
+                  className='rounded-full border border-[#d8d6d1]/80 bg-white/70 px-3 py-1.5 text-[13px] font-semibold text-[#1a1a1a] backdrop-blur transition hover:bg-white sm:text-sm'
                 >
                   ログイン
                 </Link>
                 <Link
-                  href='/events/create'
-                  className='rounded-full px-2.5 py-1.5 text-[10px] font-semibold text-white sm:px-3 sm:text-xs'
+                  href='/register'
+                  className='rounded-full px-3 py-1.5 text-[13px] font-semibold text-white sm:px-3.5 sm:text-sm'
                   style={{ background: HK.coral }}
                 >
-                  <span className='sm:hidden'>作る</span>
-                  <span className='hidden sm:inline'>イベントを作る</span>
+                  新規登録
                 </Link>
-                <Link href='/events' className={`${ctaPrimary} !px-2.5 !py-1.5 !text-[10px] sm:!px-3 sm:!text-xs`}>
-                  <span className='sm:hidden'>見る</span>
-                  <span className='hidden sm:inline'>イベントを見る</span>
+                <Link
+                  href='/events/create'
+                  className='hidden rounded-full px-2.5 py-1.5 text-[12px] font-medium text-[#9a9a9a] transition hover:bg-black/5 hover:text-[#6b6b6b] sm:inline'
+                >
+                  作る
                 </Link>
               </>
             )}
