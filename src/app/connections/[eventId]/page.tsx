@@ -13,7 +13,7 @@ import { Card, Chip } from '@/components/connection/ui';
 import { LoadingStatus } from '@/components/connection/ui/loading-status';
 import { listHiddenMemberIdsForViewer } from '@/lib/connection/block-repo';
 import { BloomMemoryForm } from '@/components/connection/bloom-memory-form';
-import { getEvent, getEventMembers } from '@/lib/connection/repo';
+import { getEvent, getMembersByConfirmedIds } from '@/lib/connection/repo';
 import { getBloomMemoryForEvent, recordEventJoinedTimeline } from '@/lib/connection/bloom-phase4';
 import { getBloomMemorySkipCookie } from '@/lib/connection/bloom-phase4-actions';
 import { getViewerMemberId } from '@/lib/connection/identity';
@@ -46,12 +46,15 @@ async function MemoryPrompt({
 async function ParticipantsSection({
   eventId,
   viewerMemberId,
+  confirmedMemberIds,
 }: {
   eventId: string;
   viewerMemberId: string;
+  confirmedMemberIds: string[];
 }) {
+  // Reuse confirmed ids from getEvent — skip a second applications query.
   const [members, blockedIdList] = await Promise.all([
-    getEventMembers(eventId),
+    getMembersByConfirmedIds(confirmedMemberIds),
     listHiddenMemberIdsForViewer(viewerMemberId),
   ]);
   const blockedIds = new Set(blockedIdList);
@@ -195,7 +198,7 @@ export default async function ConnectionPage({ params, searchParams }: PageProps
             </div>
           }
         >
-          <ParticipantsSection eventId={eventId} viewerMemberId={viewerMemberId!} />
+          <ParticipantsSection eventId={eventId} viewerMemberId={viewerMemberId!} confirmedMemberIds={event.confirmedMemberIds} />
         </Suspense>
       </div>
     </ConnectionShell>

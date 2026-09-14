@@ -179,11 +179,16 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
   const identitySubmitted = param(sp, 'identity') === 'submitted';
   const photosSaved = param(sp, 'photos') === 'saved';
   const editError = param(sp, 'error');
-  const member = viewerMemberId ? await getMember(viewerMemberId) : null;
   const bloomSaved = param(sp, 'bloomSaved') === '1';
   const phase4Saved = param(sp, 'phase4Saved') === '1';
   const memorySaved = param(sp, 'memorySaved') === '1';
   const reflectionUpdated = param(sp, 'reflectionUpdated') === '1';
+
+  // Overlap member fetch with participation check (member is request-cached with viewer).
+  const [member, hasEventParticipation] = await Promise.all([
+    viewerMemberId ? getMember(viewerMemberId) : Promise.resolve(null),
+    viewerMemberId ? memberHasEventParticipation(viewerMemberId) : Promise.resolve(false),
+  ]);
 
   if (!member || !member.nickname.trim()) {
     return <EmptyProfile viewer={viewer} />;
@@ -219,7 +224,6 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
       : '';
 
   const completion = computeProfileCompletion(member, null);
-  const hasEventParticipation = viewerMemberId ? await memberHasEventParticipation(viewerMemberId) : false;
   const nextRecommendation = resolveProfileNextRecommendation({
     member,
     bloomProfile: null,

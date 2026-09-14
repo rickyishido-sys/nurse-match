@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
+import { PrefetchRoutes } from '@/components/connection/prefetch-routes';
 import { EventCard } from '@/components/connection/events/event-card';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { getMember, listUpcomingEvents } from '@/lib/connection/repo';
@@ -23,6 +24,7 @@ export default async function HomePage() {
 
   return (
     <ConnectionShell viewer={viewer}>
+      <PrefetchRoutes hrefs={['/events', '/connections', '/my-profile']} />
       <div className='space-y-12'>
         {/* ようこそ */}
         <section className='flex items-center justify-between gap-4'>
