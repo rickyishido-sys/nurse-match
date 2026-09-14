@@ -805,53 +805,65 @@ async function persistIdentityDocumentUpload(
     throw new Error('identity_upload_empty');
   }
 
-  // identity_documents writes must use service_role (same path as admin review).
+  // Legacy `identity_documents.user_id` FKs to public.users (old nurse-match), not
+  // auth.users / hanakai_members. Hanakai admin review reads trust_notes on
+  // hanakai_members, so this mirror write is best-effort and must not block
+  // pending status persistence for pure Hanakai auth users.
   const adminSupabase = createAdminSupabaseClient();
   if (!adminSupabase) {
-    throw new Error('identity_admin_unavailable');
-  }
-
-  const { data: existingIdentity, error: existingError } = await adminSupabase
-    .from('identity_documents')
-    .select('id')
-    .eq('user_id', authUserId)
-    .maybeSingle();
-  if (existingError) {
-    console.error('CONNECTION_IDENTITY_DOC_READ_ERROR', {
+    console.warn('CONNECTION_IDENTITY_DOC_MIRROR_SKIPPED', {
       authUserId,
-      code: existingError.code,
-      message: existingError.message,
+      reason: 'admin_unavailable',
     });
-    throw new Error('identity_doc_read_failed');
+    return identityUrl;
   }
 
-  if (existingIdentity?.id) {
-    const { error } = await adminSupabase
+  try {
+    const { data: existingIdentity, error: existingError } = await adminSupabase
       .from('identity_documents')
-      .update({ document_url: identityUrl, status: 'pending' })
-      .eq('id', existingIdentity.id);
-    if (error) {
-      console.error('CONNECTION_IDENTITY_DOC_UPDATE_ERROR', {
+      .select('id')
+      .eq('user_id', authUserId)
+      .maybeSingle();
+    if (existingError) {
+      console.error('CONNECTION_IDENTITY_DOC_READ_ERROR', {
         authUserId,
-        code: error.code,
-        message: error.message,
+        code: existingError.code,
+        message: existingError.message,
       });
-      throw new Error('identity_doc_update_failed');
+      return identityUrl;
     }
-  } else {
-    const { error } = await adminSupabase.from('identity_documents').insert({
-      user_id: authUserId,
-      document_url: identityUrl,
-      status: 'pending',
+
+    if (existingIdentity?.id) {
+      const { error } = await adminSupabase
+        .from('identity_documents')
+        .update({ document_url: identityUrl, status: 'pending' })
+        .eq('id', existingIdentity.id);
+      if (error) {
+        console.error('CONNECTION_IDENTITY_DOC_UPDATE_ERROR', {
+          authUserId,
+          code: error.code,
+          message: error.message,
+        });
+      }
+    } else {
+      const { error } = await adminSupabase.from('identity_documents').insert({
+        user_id: authUserId,
+        document_url: identityUrl,
+        status: 'pending',
+      });
+      if (error) {
+        console.error('CONNECTION_IDENTITY_DOC_INSERT_ERROR', {
+          authUserId,
+          code: error.code,
+          message: error.message,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('CONNECTION_IDENTITY_DOC_MIRROR_ERROR', {
+      authUserId,
+      error: error instanceof Error ? error.message : String(error),
     });
-    if (error) {
-      console.error('CONNECTION_IDENTITY_DOC_INSERT_ERROR', {
-        authUserId,
-        code: error.code,
-        message: error.message,
-      });
-      throw new Error('identity_doc_insert_failed');
-    }
   }
 
   return identityUrl;
