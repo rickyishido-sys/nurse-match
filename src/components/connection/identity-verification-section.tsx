@@ -7,6 +7,7 @@ import {
   getIdentityStatus,
   IDENTITY_DOCUMENT_AUXILIARY_MESSAGE,
   IDENTITY_SUBMIT_BUTTON_LABEL,
+  IDENTITY_SUBMITTING_COPY,
   IDENTITY_STATUS_DESCRIPTION,
   IDENTITY_STATUS_LABEL,
   IDENTITY_STATUS_TONE,
@@ -18,21 +19,20 @@ import {
 import type { ConnectionMember } from '@/lib/connection/types';
 
 const ACCENT = '#1f5d4f';
-const MAX_EDGE_PX = 2400;
-const COMPRESS_QUALITY = 0.9;
-const COMPRESS_IF_OVER_BYTES = 1.5 * 1024 * 1024;
+/** Aggressive client resize so Server Action multipart stays small. */
+const MAX_EDGE_PX = 1600;
+const COMPRESS_QUALITY = 0.82;
+const COMPRESS_IF_OVER_BYTES = 400 * 1024;
 
 type IdentityVerificationSectionProps = {
   member: ConnectionMember;
   showUpload?: boolean;
 };
 
-type SubmitPhase = 'idle' | 'preparing' | 'uploading';
+type SubmitPhase = 'idle' | 'preparing' | 'uploading' | 'finalizing';
 
 async function maybeDownscaleIdentityImage(file: File): Promise<File> {
-  if (!file.type.startsWith('image/') || file.size <= COMPRESS_IF_OVER_BYTES) {
-    return file;
-  }
+  if (!file.type.startsWith('image/')) return file;
   if (typeof createImageBitmap !== 'function' || typeof document === 'undefined') {
     return file;
   }
@@ -40,6 +40,11 @@ async function maybeDownscaleIdentityImage(file: File): Promise<File> {
   try {
     const bitmap = await createImageBitmap(file);
     const maxEdge = Math.max(bitmap.width, bitmap.height);
+    const needsResize = maxEdge > MAX_EDGE_PX || file.size > COMPRESS_IF_OVER_BYTES;
+    if (!needsResize && file.type === 'image/jpeg') {
+      bitmap.close();
+      return file;
+    }
     const scale = Math.min(1, MAX_EDGE_PX / maxEdge);
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
@@ -80,6 +85,16 @@ export function IdentityVerificationSection({
     setValidationError(null);
     setSelectedFile(file);
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setValidationError('10MB以下のファイルを選択してください。');
+      setSelectedFile(null);
+      return;
+    }
+    if (file.type && !file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      setValidationError('対応形式は JPG / PNG / WebP / PDF です。');
+      setSelectedFile(null);
+      return;
+    }
     if (file.type.startsWith('image/')) {
       const result = await checkIdentityDocumentFileClient(file);
       if (!result.ok) {
@@ -102,6 +117,10 @@ export function IdentityVerificationSection({
       const body = new FormData();
       body.set('identityDocument', prepared);
       setSubmitPhase('uploading');
+      // Paint overlay before the long Server Action starts.
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
       await submitIdentityDocumentAction(body);
     } catch (error) {
       const digest =
@@ -114,23 +133,44 @@ export function IdentityVerificationSection({
       console.error('CONNECTION_IDENTITY_CLIENT_SUBMIT_ERROR', {
         message: error instanceof Error ? error.message : String(error),
       });
-      setValidationError('送信に失敗しました。時間をおいて再度お試しください。');
+      setValidationError('送信できませんでした。時間をおいて再度お試しください。');
       setSubmitPhase('idle');
     }
   }
 
   const submitting = submitPhase !== 'idle';
-  const submitLabel =
+  const phaseCopy =
     submitPhase === 'preparing'
-      ? '書類を準備しています…'
+      ? IDENTITY_SUBMITTING_COPY.preparing
       : submitPhase === 'uploading'
-        ? '送信中…（アップロードと審査登録）'
-        : buttonKind
-          ? IDENTITY_SUBMIT_BUTTON_LABEL[buttonKind]
-          : '';
+        ? IDENTITY_SUBMITTING_COPY.uploading
+        : submitPhase === 'finalizing'
+          ? IDENTITY_SUBMITTING_COPY.finalizing
+          : null;
+  const submitLabel = submitting
+    ? (phaseCopy?.title ?? '送信中…')
+    : buttonKind
+      ? IDENTITY_SUBMIT_BUTTON_LABEL[buttonKind]
+      : '';
 
   return (
-    <div className='space-y-5'>
+    <div className='relative space-y-5'>
+      {submitting && phaseCopy ? (
+        <div
+          className='fixed inset-0 z-[9998] flex flex-col items-center justify-center gap-4 bg-[#faf7f2]/95 px-6'
+          role='status'
+          aria-live='polite'
+          aria-busy='true'
+        >
+          <p className='text-sm font-semibold tracking-[0.18em] text-[#1f5d4f]'>HANAKAI</p>
+          <span className='hk-loading-spinner' aria-hidden />
+          <div className='max-w-xs space-y-2 text-center'>
+            <p className='text-sm font-semibold text-[#1a1a1a]'>{phaseCopy.title}</p>
+            <p className='text-xs leading-6 text-[#6b6b6b]'>{phaseCopy.body}</p>
+          </div>
+        </div>
+      ) : null}
+
       <div className='space-y-3 rounded-2xl border border-[#e8dfd0] bg-[#fbf8f3] px-4 py-4'>
         <p className='text-sm font-semibold text-[#1a1a1a]'>安心して人と会えるサービスを目指しています</p>
         <div className='space-y-2 text-xs leading-6 text-[#4a4a4a]'>
@@ -152,17 +192,23 @@ export function IdentityVerificationSection({
         <p className={`text-sm font-semibold ${IDENTITY_STATUS_TONE[status]}`}>
           {IDENTITY_STATUS_LABEL[status]}
         </p>
-        <p className='text-xs leading-6 text-[#6b6b6b]'>
-          {IDENTITY_STATUS_DESCRIPTION[status]}
-        </p>
+        <p className='text-xs leading-6 text-[#6b6b6b]'>{IDENTITY_STATUS_DESCRIPTION[status]}</p>
         {showUpload && status !== 'pending' ? (
           <p className='text-xs leading-6 text-[#9a9a9a]'>{IDENTITY_DOCUMENT_AUXILIARY_MESSAGE}</p>
         ) : null}
       </div>
 
       {status === 'pending' ? (
-        <div className='rounded-2xl border border-[#e8dfd0] bg-[#fbf8f3] px-4 py-3 text-xs leading-6 text-[#6b6b6b]'>
-          審査が完了するまで、追加の書類提出はできません。
+        <div className='space-y-2 rounded-2xl border border-[#e8dfd0] bg-[#fbf8f3] px-4 py-3 text-xs leading-6 text-[#6b6b6b]'>
+          <p className='font-semibold text-[#1a1a1a]'>本人確認書類を受け付けました</p>
+          <p>現在、運営にて確認中です。</p>
+          <p>確認が完了すると、この画面に結果が表示されます。審査完了まで追加の書類提出はできません。</p>
+        </div>
+      ) : null}
+
+      {status === 'verified' ? (
+        <div className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-xs leading-6 text-[#1f5d4f]'>
+          本人確認済みです。プロフィールにも反映されています。
         </div>
       ) : null}
 
@@ -187,16 +233,13 @@ export function IdentityVerificationSection({
           {fileName && !validationError ? (
             <p className='text-xs text-[#1f5d4f]'>選択中: {fileName}</p>
           ) : (
-            <p className='text-xs text-[#9a9a9a]'>運転免許証・マイナンバーカード・パスポートなど（JPG / PNG / PDF）</p>
+            <p className='text-xs text-[#9a9a9a]'>
+              運転免許証・マイナンバーカード・パスポートなど（JPG / PNG / PDF）
+            </p>
           )}
           {validationError ? (
             <p className='rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-6 text-rose-700'>
               {validationError}
-            </p>
-          ) : null}
-          {submitting ? (
-            <p className='text-xs leading-6 text-[#6b6b6b]'>
-              書類の確認・安全な保管・審査登録を行っています。完了までこの画面のままお待ちください。
             </p>
           ) : null}
           <button

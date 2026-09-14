@@ -53,12 +53,20 @@ export function NavigationPendingOverlay() {
       if (!(anchor instanceof HTMLAnchorElement)) return;
       if (!shouldHandle(anchor)) return;
 
-      setLabel('読み込み中');
+      const href = anchor.getAttribute('href') || '';
+      let nextLabel = '読み込み中です';
+      if (href.includes('/events')) nextLabel = 'イベントを読み込み中です';
+      else if (href.includes('/connections')) nextLabel = 'コミュニティを読み込み中です';
+      else if (href.includes('/my-profile') || href.includes('/profile')) nextLabel = 'プロフィールを読み込み中です';
+      else if (href.includes('/home')) nextLabel = 'ホームを読み込み中です';
+      else if (href.includes('/login')) nextLabel = 'ログイン画面を開いています';
+      else if (href.includes('/register')) nextLabel = '登録画面を開いています';
+      setLabel(nextLabel);
       setVisible(true);
     }
 
     function onPending() {
-      setLabel('読み込み中');
+      setLabel('読み込み中です');
       setVisible(true);
     }
 
