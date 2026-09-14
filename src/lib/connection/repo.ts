@@ -42,9 +42,35 @@ export async function listEvents(): Promise<ConnectionEvent[]> {
   return useSupabase ? supa.listEvents() : mock.listEvents();
 }
 
+/** Non-past events for /events list — DB-filtered when on Supabase. */
+export async function listActiveEvents(): Promise<ConnectionEvent[]> {
+  if (useSupabase) return supa.listActiveEvents();
+  return mock.listEvents().filter((e) => !e.isPast);
+}
+
 export async function listUpcomingEvents(limit = 4): Promise<ConnectionEvent[]> {
   return useSupabase ? supa.listUpcomingEvents(limit) : mock.listUpcomingEvents(limit);
 }
+
+/** Request-scoped batch getMember. includeSocial=false for list/chip paths. */
+export const getMembersByIds = cache(async function getMembersByIds(
+  ids: string[],
+  options?: { includeSocial?: boolean },
+): Promise<ConnectionMember[]> {
+  const unique = [...new Set(ids.filter(Boolean))].sort();
+  if (unique.length === 0) return [];
+  const includeSocial = options?.includeSocial !== false;
+  const key = `${includeSocial ? 's' : 'n'}:${unique.join(',')}`;
+  void key;
+  if (useSupabase) {
+    const members = await supa.getMembersByIds(unique, { includeSocial });
+    return members.map(toPublicMemberView);
+  }
+  return unique
+    .map((id) => mock.getMember(id))
+    .filter((m): m is ConnectionMember => Boolean(m))
+    .map(toPublicMemberView);
+});
 
 /** Request-scoped dedupe only (React cache). Never cross-request shared cache. */
 export const getEvent = cache(async function getEvent(
@@ -88,13 +114,22 @@ export const getApplication = cache(async function getApplication(
   return useSupabase ? supa.getApplication(eventId, memberId) : mock.getApplication(eventId, memberId);
 });
 
-export async function listApplicationsForMember(memberId: string): Promise<EventApplication[]> {
-  return useSupabase ? supa.listApplicationsForMember(memberId) : mock.listApplications().filter((a) => a.memberId === memberId);
-}
+/** Request-scoped dedupe — enrich + connections + participation share one fetch. */
+export const listApplicationsForMember = cache(async function listApplicationsForMember(
+  memberId: string,
+): Promise<EventApplication[]> {
+  return useSupabase
+    ? supa.listApplicationsForMember(memberId)
+    : mock.listApplications().filter((a) => a.memberId === memberId);
+});
 
 export async function getEventMembers(eventId: string): Promise<ConnectionMember[]> {
   const members = useSupabase ? await supa.getEventMembers(eventId) : mock.getEventMembers(eventId);
   return members.map(toPublicMemberView);
+}
+
+export async function getMembersByConfirmedIds(memberIds: string[]): Promise<ConnectionMember[]> {
+  return getMembersByIds(memberIds, { includeSocial: false });
 }
 
 export async function getEventMemberPreviewStrip(

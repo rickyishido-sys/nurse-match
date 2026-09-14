@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { PrefetchRoutes } from '@/components/connection/prefetch-routes';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import { CONNECTION_NAV_CLASS } from '@/lib/connection/layout-width';
@@ -15,7 +16,11 @@ const items = [
 export function ConnectionBottomNav() {
   const pathname = usePathname();
 
+  const prefetchHrefs = items.map((i) => i.href);
+
   return (
+    <>
+    <PrefetchRoutes hrefs={prefetchHrefs} />
     <nav className={`${CONNECTION_NAV_CLASS} !border-white/50 !bg-white/80 backdrop-blur-xl`}>
       <ul className='grid grid-cols-4 gap-1'>
         {items.map((item) => {
@@ -24,6 +29,7 @@ export function ConnectionBottomNav() {
             <li key={item.href}>
               <Link
                 href={item.href}
+                prefetch={true}
                 className={clsx(
                   'flex min-h-11 items-center justify-center rounded-full py-2.5 text-[11px] font-medium transition',
                   active ? 'bg-[#1f5d4f] text-white shadow-sm' : 'text-[#6b6b6b] hover:text-[#1a1a1a]',
@@ -36,5 +42,6 @@ export function ConnectionBottomNav() {
         })}
       </ul>
     </nav>
+    </>
   );
 }

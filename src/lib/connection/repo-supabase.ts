@@ -224,9 +224,10 @@ async function appsByEvent(eventIds: string[]): Promise<Map<string, AppRow[]>> {
   if (eventIds.length === 0) return map;
   const sb = await db();
   if (!sb) return map;
+  // List mapping only needs status + membership (eventFromRow).
   const { data } = await sb
     .from('hanakai_event_applications')
-    .select('*')
+    .select('id, event_id, member_id, applied_at, status, reason, confirmation_token, confirmed_at, cancelled_at, cancel_reason')
     .in('event_id', eventIds);
   for (const row of data ?? []) {
     const list = map.get(row.event_id) ?? [];
@@ -259,6 +260,30 @@ export async function getMember(id: string): Promise<ConnectionMember | null> {
   return memberFromRow(data, photoMap.get(id) ?? [], socialMap.get(id) ?? []);
 }
 
+/** Batch members in 3 queries (members + photos + optional social) instead of N getMember. */
+export async function getMembersByIds(
+  ids: string[],
+  options?: { includeSocial?: boolean },
+): Promise<ConnectionMember[]> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (unique.length === 0) return [];
+  const sb = await db();
+  if (!sb) return [];
+  const includeSocial = options?.includeSocial !== false;
+  const [{ data: rows }, photoMap, socialMap] = await Promise.all([
+    sb.from('hanakai_members').select('*').in('id', unique),
+    photosForMembers(unique),
+    includeSocial ? socialLinksForMembers(unique) : Promise.resolve(new Map<string, MemberSocialLink[]>()),
+  ]);
+  return (rows ?? []).map((r) =>
+    memberFromRow(
+      r,
+      photoMap.get(r.id as string) ?? [],
+      socialMap.get(r.id as string) ?? [],
+    ),
+  );
+}
+
 export async function listEvents(): Promise<ConnectionEvent[]> {
   const sb = await db();
   if (!sb) return [];
@@ -268,8 +293,41 @@ export async function listEvents(): Promise<ConnectionEvent[]> {
   return rows.map((r) => eventFromRow(r, apps.get(r.id) ?? []));
 }
 
+/** Active (non-past) events for public list pages — avoids loading every past event + apps. */
+export async function listActiveEvents(): Promise<ConnectionEvent[]> {
+  const sb = await db();
+  if (!sb) return [];
+  const nowIso = new Date().toISOString();
+  const { data } = await sb
+    .from('hanakai_events')
+    .select('*')
+    .or(`is_past.eq.false,start_at.gte.${nowIso}`)
+    .order('start_at', { ascending: true });
+  const rows = data ?? [];
+  if (rows.length === 0) return [];
+  const apps = await appsByEvent(rows.map((r) => r.id as string));
+  return rows
+    .map((r) => eventFromRow(r, apps.get(r.id as string) ?? []))
+    .filter((e) => !e.isPast);
+}
+
 export async function listUpcomingEvents(limit = 4): Promise<ConnectionEvent[]> {
-  return (await listEvents()).filter((e) => !e.isPast).slice(0, limit);
+  const sb = await db();
+  if (!sb) return [];
+  const nowIso = new Date().toISOString();
+  const { data } = await sb
+    .from('hanakai_events')
+    .select('*')
+    .or(`is_past.eq.false,start_at.gte.${nowIso}`)
+    .order('start_at', { ascending: true })
+    .limit(Math.max(1, Math.min(limit, 24)));
+  const rows = data ?? [];
+  if (rows.length === 0) return [];
+  const apps = await appsByEvent(rows.map((r) => r.id as string));
+  return rows
+    .map((r) => eventFromRow(r, apps.get(r.id as string) ?? []))
+    .filter((e) => !e.isPast)
+    .slice(0, limit);
 }
 
 export async function getEvent(id: string): Promise<ConnectionEvent | null> {
@@ -342,13 +400,13 @@ export async function getEventMembers(eventId: string): Promise<ConnectionMember
     .select('member_id')
     .eq('event_id', eventId)
     .eq('status', 'confirmed');
-  const ids = (apps ?? []).map((a) => a.member_id);
-  if (ids.length === 0) return [];
-  const [{ data: rows }, photoMap] = await Promise.all([
-    sb.from('hanakai_members').select('*').in('id', ids),
-    photosForMembers(ids),
-  ]);
-  return (rows ?? []).map((r) => memberFromRow(r, photoMap.get(r.id as string) ?? []));
+  const ids = (apps ?? []).map((a) => a.member_id as string);
+  return getMembersByIds(ids, { includeSocial: false });
+}
+
+/** Prefer when event.confirmedMemberIds is already loaded (skips apps re-query). */
+export async function getMembersByConfirmedIds(memberIds: string[]): Promise<ConnectionMember[]> {
+  return getMembersByIds(memberIds, { includeSocial: false });
 }
 
 /**

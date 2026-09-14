@@ -95,6 +95,33 @@ export async function getBloomProfileOrEmpty(memberId: string): Promise<BloomPro
   return (await getBloomProfile(memberId)) ?? EMPTY_BLOOM_PROFILE(memberId);
 }
 
+/** Batch bloom profiles for list enrichment (one query). */
+export async function getBloomProfilesByIds(memberIds: string[]): Promise<Map<string, BloomProfile>> {
+  const unique = [...new Set(memberIds.filter(Boolean))];
+  const map = new Map<string, BloomProfile>();
+  if (unique.length === 0) return map;
+  const sb = await createServerSupabaseClient();
+  if (!sb) return map;
+  try {
+    const { data, error } = await sb
+      .from('hanakai_bloom_profiles')
+      .select('member_id, bloom_summary_title, bloom_summary, ai_introduction, conversation_starters, connection_style, talk_topics, ai_tags, show_ai_intro, show_bloom_summary, show_conversation_starters, show_bloom_tags, show_connection_style, generated_at, updated_at')
+      .in('member_id', unique);
+    if (error) {
+      console.warn('BLOOM_PROFILES_BATCH_SKIP', { message: error.message });
+      return map;
+    }
+    for (const row of data ?? []) {
+      const profile = bloomFromRow(row as Record<string, unknown>);
+      map.set(profile.memberId, profile);
+    }
+  } catch (e) {
+    console.warn('BLOOM_PROFILES_BATCH_FAILED', { error: String(e) });
+  }
+  return map;
+}
+
+
 export async function upsertBloomProfile(
   memberId: string,
   data: Partial<BloomProfile> & Partial<BloomProfileGenerated>,

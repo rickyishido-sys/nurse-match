@@ -18,6 +18,12 @@ export async function getBloomProfileOrEmpty(memberId: string): Promise<BloomPro
   return bloomRepo.getBloomProfileOrEmpty(memberId);
 }
 
+/** Batch bloom for list cards (one query). */
+export async function getBloomProfilesByIds(memberIds: string[]): Promise<Map<string, BloomProfile>> {
+  if (!useSupabase) return new Map();
+  return bloomRepo.getBloomProfilesByIds(memberIds);
+}
+
 export {
   upsertBloomProfile,
   saveBloomVisibility,
