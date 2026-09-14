@@ -49,18 +49,18 @@ export function LandingFinalCta({ joinHref = '/register' }: { joinHref?: string 
             イベントを見る
           </Link>
           <Link
-            href='/events/create'
+            href={joinHref}
             className='hk-brand-btn flex h-14 flex-1 items-center justify-center rounded-full px-8 text-sm font-bold text-white shadow-xl'
             style={{ background: HK.coral }}
           >
-            イベントを作る
+            新規登録
           </Link>
         </div>
         <Link
-          href={joinHref}
-          className='mt-4 inline-flex min-h-11 items-center justify-center rounded-full border-2 border-white/60 px-8 text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white/10'
+          href='/events/create'
+          className='mt-4 inline-flex min-h-11 items-center justify-center text-sm font-semibold text-white/70 underline-offset-4 hover:text-white hover:underline'
         >
-          新規登録
+          イベントを作る
         </Link>
       </motion.div>
     </section>

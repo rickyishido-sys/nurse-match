@@ -48,6 +48,9 @@ export function BrandFooter({ dark = true, showCharacters = BRAND_CHARACTERS_ENA
           <Link href='/privacy' className='underline-offset-4 hover:underline'>
             プライバシー
           </Link>
+          <Link href='/legal/tokushoho' className='underline-offset-4 hover:underline'>
+            特定商取引法に基づく表記
+          </Link>
           <Link href='/contact' className='underline-offset-4 hover:underline'>
             お問い合わせ
           </Link>

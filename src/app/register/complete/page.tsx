@@ -4,6 +4,7 @@ import { getMember } from '@/lib/connection/repo';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getHanakaiRegistrationStatus } from '@/lib/connection/registration-status';
 import { PERSONALITY_TYPE_META } from '@/lib/connection/personality';
+import { TrackPageEvent } from '@/components/analytics/track-page-event';
 
 export default async function RegisterCompletePage() {
   const registration = await getHanakaiRegistrationStatus();
@@ -14,5 +15,10 @@ export default async function RegisterCompletePage() {
   const member = viewerMemberId ? await getMember(viewerMemberId) : null;
   const personality = member?.personality ? PERSONALITY_TYPE_META[member.personality.type] : null;
 
-  return <CompletionView nickname={member?.nickname} personality={personality} />;
+  return (
+    <>
+      <TrackPageEvent event='signup_complete' onceKey='signup_complete' />
+      <CompletionView nickname={member?.nickname} personality={personality} />
+    </>
+  );
 }

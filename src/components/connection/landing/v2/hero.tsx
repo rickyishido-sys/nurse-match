@@ -92,11 +92,11 @@ export function LandingHeroV2({
             イベントを見る
           </Link>
           <Link
-            href='/events/create'
+            href={joinHref}
             prefetch
             className='hk-brand-btn flex h-14 min-w-[200px] flex-1 items-center justify-center rounded-full border-2 border-white/70 bg-white/15 px-8 text-sm font-bold text-white backdrop-blur-md sm:flex-none'
           >
-            イベントを作る
+            新規登録
           </Link>
         </motion.div>
 
@@ -107,11 +107,11 @@ export function LandingHeroV2({
           className='mt-4 flex flex-wrap items-center gap-4'
         >
           <Link
-            href={joinHref}
+            href='/events/create'
             prefetch
-            className='text-sm font-semibold text-white/90 underline-offset-4 hover:underline'
+            className='text-sm font-semibold text-white/70 underline-offset-4 hover:text-white hover:underline'
           >
-            新規登録はこちら
+            イベントを作る
           </Link>
           <Link
             href='#host-events'

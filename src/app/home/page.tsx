@@ -6,6 +6,7 @@ import { EventCard } from '@/components/connection/events/event-card';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { getMember, listUpcomingEvents } from '@/lib/connection/repo';
 import { getViewerMemberId } from '@/lib/connection/identity';
+import { filterPublicEvents } from '@/lib/connection/app-review-events';
 
 const GOLD = '#b8956a';
 
@@ -17,6 +18,7 @@ export default async function HomePage() {
     listUpcomingEvents(4),
     getViewerMemberId(),
   ]);
+  const eventsForList = filterPublicEvents(events, viewer?.email);
   const member = viewerMemberId ? await getMember(viewerMemberId) : null;
   // Prefer member nickname, then authenticated viewer name. Avoid 「ゲストさん」
   // when session/member lookup is briefly unavailable after long Server Actions.
@@ -88,9 +90,9 @@ export default async function HomePage() {
               すべて
             </Link>
           </div>
-          {events.length > 0 ? (
+          {eventsForList.length > 0 ? (
             <div className='space-y-5 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0'>
-              {events.map((event) => (
+              {eventsForList.map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}
             </div>

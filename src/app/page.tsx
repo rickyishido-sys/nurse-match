@@ -17,6 +17,7 @@ import { getHanakaiRegistrationStatus, resolveJoinHref } from '@/lib/connection/
 import { getHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access';
 import { HANAKAI_ADMIN_CONSOLE_HREF } from '@/lib/connection/layout-width';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
+import { TrackPageEvent } from '@/components/analytics/track-page-event';
 import {
   HERO_MOBILE_VIDEOS,
   HERO_PC_VIDEOS,
@@ -65,6 +66,7 @@ export default async function LandingPage() {
       <link rel='preload' as='image' href='/images/avatars/aoi.webp' type='image/webp' />
 
       <LandingNav joinHref={joinHref} viewer={viewer} />
+      <TrackPageEvent event='landing_view' onceKey='landing_view' />
 
       <main>
         <LandingHeroV2 joinHref={joinHref} pcVideo={pcVideo} mobileVideo={mobileVideo} />

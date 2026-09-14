@@ -12,10 +12,12 @@ import {
 } from '@/lib/connection/area-match';
 import { enrichEventsForList } from '@/lib/connection/events-list-data';
 import { listEventsCached } from '@/lib/connection/events-list-cache';
+import { filterPublicEvents } from '@/lib/connection/app-review-events';
 import { filterEventsBySlug, parseEventsListFilter } from '@/lib/connection/events-list-ux';
 import { getViewerMemberId } from '@/lib/connection/identity';
 import { getMember } from '@/lib/connection/repo';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
+import { TrackPageEvent } from '@/components/analytics/track-page-event';
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
 
@@ -27,6 +29,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
     searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>),
     listEventsCached(),
   ]);
+  const eventsForList = filterPublicEvents(events, viewer?.email);
   const member = viewerMemberId ? await getMember(viewerMemberId) : null;
   const memberAreaRaw = member?.area?.trim() || '';
   const memberAreaLabel = resolvePrefectureLabel(memberAreaRaw);
@@ -49,7 +52,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
         ? 'local'
         : (focusPrefecture ?? 'all');
 
-  const allEvents = events.filter((e) => !e.isPast);
+  const allEvents = eventsForList.filter((e) => !e.isPast);
   const filtered = filterEventsBySlug(allEvents, activeFilter);
   const regionFiltered =
     effectiveScope === 'all' || !focusPrefecture
@@ -71,6 +74,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
   return (
     <ConnectionShell viewer={viewer}>
+      <TrackPageEvent event='event_list_view' onceKey='event_list_view' />
       <div className='space-y-8'>
         <EventsListHero />
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { track, trackOnce } from '@/lib/analytics/track';
+import { useEffect, useState } from 'react';
 import { submitIdentityDocumentAction } from '@/lib/connection/actions';
 import {
   getIdentitySubmitButtonLabel,
@@ -74,6 +75,12 @@ export function IdentityVerificationSection({
   showUpload = true,
 }: IdentityVerificationSectionProps) {
   const status = getIdentityStatus(member);
+
+  useEffect(() => {
+    if (status === 'verified') {
+      trackOnce(`identity_approved:${member.id}`, 'identity_approved', { member_id: member.id });
+    }
+  }, [status, member.id]);
   const buttonKind = getIdentitySubmitButtonLabel(status);
   const [fileName, setFileName] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -121,6 +128,7 @@ export function IdentityVerificationSection({
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => resolve());
       });
+      track('identity_submit');
       await submitIdentityDocumentAction(body);
     } catch (error) {
       const digest =
@@ -172,17 +180,15 @@ export function IdentityVerificationSection({
       ) : null}
 
       <div className='space-y-3 rounded-2xl border border-[#e8dfd0] bg-[#fbf8f3] px-4 py-4'>
-        <p className='text-sm font-semibold text-[#1a1a1a]'>安心して人と会えるサービスを目指しています</p>
+        <p className='text-sm font-semibold text-[#1a1a1a]'>本人確認について</p>
         <div className='space-y-2 text-xs leading-6 text-[#4a4a4a]'>
           <p>
-            HANAKAIでは、安心してイベントへ参加できる環境づくりのため、本人確認書類の提出をお願いしています。
+            安心してイベントに参加・開催できる環境づくりのため、参加前に本人確認をお願いしています。
           </p>
+          <p>運営が書類を確認します。他のユーザーには公開されません。</p>
+          <p>提出後は「確認中」になり、承認後に本人確認済みとなります。</p>
           <p>
-            提出された本人確認書類は、安全なイベント運営およびトラブル発生時の確認を目的として保管されます。
-          </p>
-          <p>提出内容は必要に応じて運営が確認を行う場合があります。</p>
-          <p>
-            本人確認書類以外の画像や、虚偽の内容を提出した場合は、イベント参加停止、イベント開催停止、アカウント停止等の対象となる場合があります。
+            本人確認書類以外の画像や虚偽の内容を提出した場合は、イベント参加停止・開催停止・アカウント停止等の対象となる場合があります。
           </p>
         </div>
       </div>
