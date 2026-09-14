@@ -591,17 +591,7 @@ export async function saveProfileAction(formData: FormData) {
     }
   }
 
-  const trustPatch: Partial<import('@/lib/connection/types').ConnectionMember> = {
-    documentUploadStatus,
-  };
-  if (identityUrl) {
-    trustPatch.trustVerificationStatus = 'pending' as TrustVerificationStatus;
-    trustPatch.verificationSource = 'id_only' as VerificationSource;
-    trustPatch.identityVerified = false;
-    trustPatch.trustNotes = `identity:${identityUrl}`;
-    trustPatch.identityVerificationMethod = 'manual_document';
-  }
-
+  // Trust columns are service_role-only (hanakai_guard_member_trust_columns).
   const purposes = formData.getAll('purposes') as ConnectionPurpose[];
   const interestTags = formData.getAll('interestTags') as InterestTag[];
   const valueTags = formData.getAll('valueTags') as ValueTag[];
@@ -622,7 +612,6 @@ export async function saveProfileAction(formData: FormData) {
   if (onboardingBioError) redirect('/register/profile?error=bio_contact');
 
   await updateMember(memberId, {
-    ...trustPatch,
     nickname,
     age: ageFromBand,
     ageBand: ageBand as import('@/lib/connection/bloom-profile-options').AgeBand,
@@ -668,6 +657,21 @@ export async function saveProfileAction(formData: FormData) {
       },
       completedAt: new Date().toISOString(),
     });
+  }
+
+  if (identityUrl) {
+    try {
+      await markMemberIdentitySubmitted({
+        memberId,
+        identityRef: identityUrl,
+        safetyFlags: [],
+      });
+    } catch (error) {
+      console.error('CONNECTION_IDENTITY_REGISTER_STATUS_ERROR', {
+        memberId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   console.log('CONNECTION_PROFILE_SAVE', {
@@ -887,7 +891,7 @@ async function markMemberIdentitySubmitted(params: {
     .from('hanakai_members')
     .update({
       document_upload_status: 'pending',
-      trust_verification_status: 'pending',
+      trust_verification_status: 'reviewing',
       verification_source: 'id_only',
       identity_verified: false,
       trust_notes: `identity:${params.identityRef}`,
@@ -914,6 +918,7 @@ async function markMemberIdentitySubmitted(params: {
 }
 
 export async function submitIdentityDocumentAction(formData: FormData) {
+  const t0 = Date.now();
   const memberId = await ensureViewerMemberId();
   if (!memberId) redirect('/register');
 
@@ -937,24 +942,31 @@ export async function submitIdentityDocumentAction(formData: FormData) {
     redirect('/my-profile?identity=submitted');
   }
 
+  const tCheck0 = Date.now();
   const docCheck = await checkIdentityDocumentFileServer(identityFile);
+  const checkMs = Date.now() - tCheck0;
   if (!docCheck.ok) {
     redirect('/my-profile?mode=edit&error=identity_document');
   }
 
   let identityUrl: string;
+  const tUpload0 = Date.now();
   try {
     identityUrl = await persistIdentityDocumentUpload(authUserId, identityFile);
   } catch (error) {
     console.error('CONNECTION_IDENTITY_UPLOAD_ERROR', {
       authUserId,
       error: error instanceof Error ? error.message : String(error),
+      fileSize: identityFile.size,
+      elapsedMs: Date.now() - tUpload0,
     });
     redirect('/my-profile?mode=edit&error=identity');
   }
+  const storageMs = Date.now() - tUpload0;
 
   const safetyFlags = member.safetyFlags.filter((flag) => flag !== IDENTITY_RESUBMIT_FLAG);
 
+  const tDb0 = Date.now();
   try {
     await markMemberIdentitySubmitted({
       memberId,
@@ -969,10 +981,18 @@ export async function submitIdentityDocumentAction(formData: FormData) {
     });
     redirect('/my-profile?mode=edit&error=identity');
   }
+  const dbMs = Date.now() - tDb0;
 
+  console.log('CONNECTION_IDENTITY_SUBMIT_TIMING', {
+    checkMs,
+    storageMs,
+    dbMs,
+    totalMs: Date.now() - t0,
+    fileSize: identityFile.size,
+  });
+
+  // Keep revalidation narrow — profile + admin review queue.
   revalidatePath('/my-profile');
-  revalidatePath('/home');
-  revalidatePath('/admin/hanakai/members');
   revalidatePath('/admin/hanakai/identity-reviews');
   redirect('/my-profile?identity=submitted');
 }

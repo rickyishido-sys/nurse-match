@@ -917,13 +917,12 @@ export async function listHanakaiIdentityReviews(): Promise<AdminIdentityReviewR
     )
     .or('document_upload_status.eq.pending,document_upload_status.eq.rejected,trust_verification_status.eq.reviewing');
 
-  const rows: AdminIdentityReviewRow[] = [];
-
-  for (const row of memberRows ?? []) {
+  const candidates = (memberRows ?? []).flatMap((row) => {
     const memberLike = {
       identityVerified: Boolean(row.identity_verified),
       documentUploadStatus: (row.document_upload_status as ConnectionMember['documentUploadStatus']) ?? 'none',
-      trustVerificationStatus: (row.trust_verification_status as ConnectionMember['trustVerificationStatus']) ?? 'pending',
+      trustVerificationStatus:
+        (row.trust_verification_status as ConnectionMember['trustVerificationStatus']) ?? 'pending',
       safetyFlags: Array.isArray(row.safety_flags) ? (row.safety_flags as string[]) : [],
       trustNotes: (row.trust_notes as string | null) ?? null,
       identityVerificationDate: (row.identity_verification_date as string | null) ?? null,
@@ -938,60 +937,67 @@ export async function listHanakaiIdentityReviews(): Promise<AdminIdentityReviewR
     >;
 
     const status = getIdentityStatus(memberLike as ConnectionMember);
-    if (status !== 'pending' && status !== 'resubmission_required') continue;
+    if (status !== 'pending' && status !== 'resubmission_required') return [];
+    return [{ row, memberLike, status }];
+  });
 
-    let email: string | null = null;
-    if (row.auth_user_id) {
-      const { data: authData } = await admin.auth.admin.getUserById(row.auth_user_id as string);
-      email = authData.user?.email ?? null;
-    }
+  const enriched = await Promise.all(
+    candidates.map(async ({ row, memberLike, status }) => {
+      const documentRef = extractIdentityDocumentRef(memberLike.trustNotes);
 
-    const documentRef = extractIdentityDocumentRef(memberLike.trustNotes);
-    const signedDocumentUrl = documentRef ? await getAdminSignedDocumentUrl(documentRef, true) : null;
+      const [emailResult, signedDocumentUrl, logResult] = await Promise.all([
+        row.auth_user_id
+          ? admin.auth.admin.getUserById(row.auth_user_id as string)
+          : Promise.resolve({ data: { user: null as { email?: string } | null } }),
+        documentRef ? getAdminSignedDocumentUrl(documentRef, true) : Promise.resolve(null),
+        admin
+          .from('hanakai_identity_review_logs')
+          .select('created_at, reviewer_member_id')
+          .eq('member_id', row.id as string)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
-    let lastReviewedAt: string | null = null;
-    let lastReviewedByNickname: string | null = null;
-    const { data: log } = await admin
-      .from('hanakai_identity_review_logs')
-      .select('created_at, reviewer_member_id')
-      .eq('member_id', row.id as string)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (log) {
-      lastReviewedAt = log.created_at;
-      if (log.reviewer_member_id) {
-        const { data: reviewerRow } = await admin
-          .from('hanakai_members')
-          .select('nickname')
-          .eq('id', log.reviewer_member_id)
-          .maybeSingle();
-        lastReviewedByNickname = (reviewerRow?.nickname as string | undefined) ?? null;
+      let lastReviewedAt: string | null = null;
+      let lastReviewedByNickname: string | null = null;
+      const log = logResult.data;
+      if (log) {
+        lastReviewedAt = log.created_at as string;
+        if (log.reviewer_member_id) {
+          const { data: reviewerRow } = await admin
+            .from('hanakai_members')
+            .select('nickname')
+            .eq('id', log.reviewer_member_id)
+            .maybeSingle();
+          lastReviewedByNickname = (reviewerRow?.nickname as string | undefined) ?? null;
+        }
       }
-    }
 
-    rows.push({
-      memberId: row.id as string,
-      nickname: (row.nickname as string) || '（未設定）',
-      email,
-      area: (row.area as string) || '—',
-      identityStatus: status === 'resubmission_required' ? 'resubmission_required' : 'pending',
-      documentUploadStatus: memberLike.documentUploadStatus ?? 'none',
-      submittedAt: (row.updated_at as string | null) ?? memberLike.identityVerificationDate,
-      documentRef,
-      signedDocumentUrl,
-      trustNotes: memberLike.trustNotes,
-      lastReviewedAt,
-      lastReviewedByNickname,
-    });
-  }
+      return {
+        memberId: row.id as string,
+        nickname: (row.nickname as string) || '（未設定）',
+        email: emailResult.data.user?.email ?? null,
+        area: (row.area as string) || '—',
+        identityStatus: (status === 'resubmission_required' ? 'resubmission_required' : 'pending') as AdminIdentityReviewRow['identityStatus'],
+        documentUploadStatus: memberLike.documentUploadStatus ?? 'none',
+        submittedAt: (row.updated_at as string | null) ?? memberLike.identityVerificationDate,
+        documentRef,
+        signedDocumentUrl,
+        trustNotes: memberLike.trustNotes,
+        lastReviewedAt,
+        lastReviewedByNickname,
+      } satisfies AdminIdentityReviewRow;
+    }),
+  );
 
-  return rows.sort((a, b) => {
+  return enriched.sort((a, b) => {
     const aTime = a.submittedAt ? Date.parse(a.submittedAt) : 0;
     const bTime = b.submittedAt ? Date.parse(b.submittedAt) : 0;
     return bTime - aTime;
   });
 }
+
 
 async function insertIdentityReviewLog(
   memberId: string,

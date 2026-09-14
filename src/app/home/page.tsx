@@ -9,9 +9,13 @@ import { getViewerMemberId } from '@/lib/connection/identity';
 const GOLD = '#b8956a';
 
 export default async function HomePage() {
-  const viewer = await getHanakaiViewer();
-  const events = await listUpcomingEvents(4);
-  const viewerMemberId = await getViewerMemberId();
+  // Parallelize independent reads (viewer/events/memberId). Member fetch still
+  // depends on memberId but shares the request-scoped auth cache with viewer.
+  const [viewer, events, viewerMemberId] = await Promise.all([
+    getHanakaiViewer(),
+    listUpcomingEvents(4),
+    getViewerMemberId(),
+  ]);
   const member = viewerMemberId ? await getMember(viewerMemberId) : null;
   // Prefer member nickname, then authenticated viewer name. Avoid 「ゲストさん」
   // when session/member lookup is briefly unavailable after long Server Actions.

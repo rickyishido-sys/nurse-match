@@ -168,15 +168,17 @@ function ValuesBlock({ member }: { member: ConnectionMember }) {
 }
 
 export default async function MyProfilePage({ searchParams }: PageProps) {
-  const viewer = await getHanakaiViewer();
-  const sp = searchParams ? await searchParams : {};
+  const [viewer, sp, viewerMemberId] = await Promise.all([
+    getHanakaiViewer(),
+    searchParams ? searchParams : Promise.resolve({} as Record<string, string | string[] | undefined>),
+    getViewerMemberId(),
+  ]);
   const mode = param(sp, 'mode');
   const isEditMode = mode === 'edit';
   const profileSaved = param(sp, 'saved') === '1';
   const identitySubmitted = param(sp, 'identity') === 'submitted';
   const photosSaved = param(sp, 'photos') === 'saved';
   const editError = param(sp, 'error');
-  const viewerMemberId = await getViewerMemberId();
   const member = viewerMemberId ? await getMember(viewerMemberId) : null;
   const bloomSaved = param(sp, 'bloomSaved') === '1';
   const phase4Saved = param(sp, 'phase4Saved') === '1';
@@ -233,8 +235,10 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
           </p>
         ) : null}
         {identitySubmitted ? (
-          <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm text-[#1f5d4f]'>
-            本人確認書類を受け付けました。現在の状態は「審査中」です。確認が完了するまで追加提出は不要です。
+          <p className='rounded-2xl border border-[#cfe3da] bg-[#f3f7f5] px-4 py-3 text-sm leading-7 text-[#1f5d4f]'>
+            本人確認書類を受け付けました。
+            <br />
+            現在、運営にて確認中です。確認が完了すると、この画面に結果が表示されます。
           </p>
         ) : null}
         {photosSaved ? (
