@@ -57,12 +57,13 @@ export default async function EventsPage({ searchParams }: PageProps) {
       : filtered.filter((e) => eventMatchesPrefecture(e.area, focusPrefecture));
 
   const additionalEvents = regionFiltered.filter((e) => e.recruitmentType === 'additional');
-  const standardEvents = regionFiltered.filter((e) => e.recruitmentType !== 'additional');
 
-  const [additionalItems, standardItems] = await Promise.all([
-    additionalEvents.length > 0 ? enrichEventsForList(additionalEvents, viewerMemberId) : Promise.resolve([]),
-    standardEvents.length > 0 ? enrichEventsForList(standardEvents, viewerMemberId) : Promise.resolve([]),
-  ]);
+  // Single enrich pass — avoids duplicate viewer apps / host / bloom fetches.
+  const enrichedAll =
+    regionFiltered.length > 0 ? await enrichEventsForList(regionFiltered, viewerMemberId) : [];
+  const additionalIdSet = new Set(additionalEvents.map((e) => e.id));
+  const additionalItems = enrichedAll.filter((item) => additionalIdSet.has(item.event.id));
+  const standardItems = enrichedAll.filter((item) => !additionalIdSet.has(item.event.id));
 
   const showAreaHint = Boolean(viewerMemberId) && !memberAreaLabel;
   const regionQueryForCategory =
@@ -99,7 +100,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
             <p className='text-sm text-[#6b6b6b]'>
               {regionFiltered.length > 0 ? (
                 <>
-                  <span className='font-semibold text-[#1a1a1a]'>{standardEvents.length}</span>
+                  <span className='font-semibold text-[#1a1a1a]'>{standardItems.length}</span>
                   件のイベント
                 </>
               ) : null}

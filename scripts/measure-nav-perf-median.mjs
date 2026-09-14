@@ -80,7 +80,8 @@ try {
 
     // home → events (cold: first nav after home load)
     await page.goto(`${BASE}/home`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.waitForSelector('text=WELCOME', { timeout: 60000 }).catch(() => {});
+    await page.waitForSelector('text=WELCOME', { timeout: 60000 });
+    await page.waitForSelector('a[href="/events"]', { timeout: 60000 });
     await page.waitForTimeout(run === 1 ? 500 : 1500); // warm allow prefetch
     const homeEvents = await measure(page, `home→events (${run === 1 ? 'cold' : 'warm'})`, async () => {
       await page.locator('a[href="/events"]').first().click();
@@ -124,7 +125,10 @@ try {
     const hp = await measure(page, `home→my-profile (${connColdWarm})`, async () => {
       await page.locator('a[href="/my-profile"]').first().click();
       await page.waitForURL((u) => u.pathname.startsWith('/my-profile'), { timeout: 60000 });
-      await page.waitForSelector('text=本人確認', { timeout: 60000 });
+      await Promise.race([
+        page.waitForSelector('text=本人確認', { timeout: 60000 }),
+        page.waitForSelector('text=プロフィール', { timeout: 60000 }),
+      ]);
     });
     const hpKey = `home→my-profile ${connColdWarm}`;
     (samples[hpKey] ||= []).push(hp.ms);

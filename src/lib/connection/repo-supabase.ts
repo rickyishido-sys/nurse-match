@@ -224,10 +224,10 @@ async function appsByEvent(eventIds: string[]): Promise<Map<string, AppRow[]>> {
   if (eventIds.length === 0) return map;
   const sb = await db();
   if (!sb) return map;
-  // List mapping only needs status + membership (eventFromRow).
+  // List mapping only needs status + membership for reservedCount / confirmedMemberIds.
   const { data } = await sb
     .from('hanakai_event_applications')
-    .select('id, event_id, member_id, applied_at, status, reason, confirmation_token, confirmed_at, cancelled_at, cancel_reason')
+    .select('event_id, member_id, status')
     .in('event_id', eventIds);
   for (const row of data ?? []) {
     const list = map.get(row.event_id) ?? [];

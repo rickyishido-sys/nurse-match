@@ -55,22 +55,22 @@ export async function enrichEventsForList(
   const chipIds = [
     ...new Set(events.flatMap((e) => (e.confirmedMemberIds ?? []).slice(0, 6))),
   ];
+  const memberIds = [...new Set([...hostIds, ...chipIds])];
 
-  const [hostMap, bloomMap, viewerApps, chipMap] = await Promise.all([
-    loadMembersByIds(hostIds),
+  const [memberMap, bloomMap, viewerApps] = await Promise.all([
+    loadMembersByIds(memberIds),
     getBloomProfilesByIds(hostIds),
     viewerMemberId ? listApplicationsForMember(viewerMemberId) : Promise.resolve([]),
-    loadMembersByIds(chipIds),
   ]);
   const viewerAppByEvent = new Map(
     viewerApps.map((a) => [a.eventId, a.status] as const),
   );
 
   return events.map((event) => {
-    const host = event.hostId ? hostMap.get(event.hostId) ?? null : null;
+    const host = event.hostId ? memberMap.get(event.hostId) ?? null : null;
     const bloom = event.hostId ? bloomMap.get(event.hostId) ?? null : null;
     const confirmed = (event.confirmedMemberIds ?? [])
-      .map((id) => chipMap.get(id))
+      .map((id) => memberMap.get(id))
       .filter((m): m is ConnectionMember => Boolean(m));
     const cards = anonymizeParticipants(confirmed);
     const joinedCount = Math.max(
