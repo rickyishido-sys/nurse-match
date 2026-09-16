@@ -28,6 +28,8 @@ export function isSystemPersonPlaceholderUrl(url: string | null | undefined): bo
   if (!trimmed) return true;
   if (GENDER_FALLBACK_SAMPLE_URLS.has(trimmed)) return true;
   if (STOCK_FACE_HOST.test(trimmed)) return true;
+  // E2E / 旧システムが入れた avatars バケットの共通 default（本人アップロード先は profile-photos）
+  if (/\/storage\/v1\/object\/public\/avatars\/default\.png/i.test(trimmed)) return true;
   return false;
 }
 

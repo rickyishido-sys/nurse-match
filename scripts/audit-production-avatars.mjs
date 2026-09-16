@@ -37,6 +37,7 @@ const GENDER_FALLBACK = new Set([
   '/images/profile-sample-male.webp',
 ]);
 const STOCK = /randomuser\.me|pravatar\.cc|i\.pravatar|picsum\.photos|images\.unsplash\.com/i;
+const SYSTEM_DEFAULT = /\/storage\/v1\/object\/public\/avatars\/default\.png/i;
 const SEED_LOCAL = /^\/images\/avatars\//;
 const UPLOAD = /\/storage\/v1\/object\/public\/profile-photos\//i;
 
@@ -46,6 +47,7 @@ function classify(url) {
   if (UPLOAD.test(t)) return 'user-upload';
   if (GENDER_FALLBACK.has(t)) return 'gender-fallback-sample';
   if (STOCK.test(t)) return 'stock-face';
+  if (SYSTEM_DEFAULT.test(t)) return 'system-default-png';
   if (SEED_LOCAL.test(t)) return 'seed-or-local-avatar';
   return 'other';
 }

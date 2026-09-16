@@ -17,6 +17,7 @@ function isSystemPersonPlaceholderUrl(url) {
   if (!trimmed) return true;
   if (GENDER_FALLBACK_SAMPLE_URLS.has(trimmed)) return true;
   if (STOCK_FACE_HOST.test(trimmed)) return true;
+  if (/\/storage\/v1\/object\/public\/avatars\/default\.png/i.test(trimmed)) return true;
   return false;
 }
 
@@ -30,7 +31,12 @@ assert.equal(isSystemPersonPlaceholderUrl(''), true);
 assert.equal(isSystemPersonPlaceholderUrl('/images/avatars/ken.webp'), true);
 assert.equal(isSystemPersonPlaceholderUrl('/images/avatars/aoi.webp'), true);
 assert.equal(isSystemPersonPlaceholderUrl('/images/avatars/ayaka.webp'), false);
-assert.equal(isSystemPersonPlaceholderUrl('https://i.pravatar.cc/150?img=3'), true);
+assert.equal(
+  isSystemPersonPlaceholderUrl(
+    'https://example.supabase.co/storage/v1/object/public/avatars/default.png',
+  ),
+  true,
+);
 assert.equal(
   isLikelyUserUploadedPhotoUrl(
     'https://xyz.supabase.co/storage/v1/object/public/profile-photos/m1/a.webp',
