@@ -1,7 +1,56 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { memberHasProfilePhotos, memberMainPhotoUrl } from '@/lib/connection/member-photo';
+import { NeutralProfileAvatar } from '@/components/connection/neutral-profile-avatar';
+import { memberHasProfilePhotos, memberMainPhotoUrl, resolveAvatarDisplayUrl } from '@/lib/connection/member-photo';
 import type { ConnectionMember } from '@/lib/connection/types';
+
+type Rounded = 'full' | '2xl';
+
+type ProfileAvatarMediaProps = {
+  src?: string | null;
+  alt: string;
+  size?: number;
+  className?: string;
+  rounded?: Rounded;
+  priority?: boolean;
+  objectPosition?: string;
+};
+
+/** 写真 URL があれば表示。未登録・空 URL はニュートラルアイコン。 */
+export function ProfileAvatarMedia({
+  src,
+  alt,
+  size = 40,
+  className = '',
+  rounded = 'full',
+  priority,
+  objectPosition = 'object-top',
+}: ProfileAvatarMediaProps) {
+  const url = resolveAvatarDisplayUrl({ avatarUrl: src });
+  const px = `${size}px`;
+  const radius = rounded === 'full' ? 'rounded-full' : 'rounded-2xl';
+
+  if (!url) {
+    return <NeutralProfileAvatar size={size} className={className} rounded={rounded} />;
+  }
+
+  return (
+    <div
+      data-testid='member-photo'
+      className={`relative shrink-0 overflow-hidden ${radius} ring-1 ring-[#ebe9e4] ${className}`}
+      style={{ width: px, height: px }}
+    >
+      <Image
+        src={url}
+        alt={alt}
+        fill
+        sizes={`${size}px`}
+        className={`object-cover ${objectPosition}`}
+        priority={priority}
+      />
+    </div>
+  );
+}
 
 type MemberAvatarProps = {
   member: Pick<ConnectionMember, 'nickname' | 'avatarUrl' | 'photos'> & {
@@ -10,41 +59,13 @@ type MemberAvatarProps = {
   size?: number;
   className?: string;
   priority?: boolean;
-  /** 写真未登録時に点線枠・カメラアイコン・ラベルを表示 */
+  /** 写真未登録時に「写真未登録」ラベルを表示（自分のプロフィール向け） */
   showEmptyPlaceholder?: boolean;
   /** 未登録時に編集画面へリンク */
   editHref?: string;
 };
 
-function EmptyAvatarPlaceholder({
-  size,
-  className,
-  showLabel,
-}: {
-  size: number;
-  className: string;
-  showLabel?: boolean;
-}) {
-  const px = `${size}px`;
-  return (
-    <div className={`flex shrink-0 flex-col items-center gap-1.5 ${className}`}>
-      <div
-        className='flex items-center justify-center rounded-full border-2 border-dashed border-[#c8c2b6] bg-[#faf9f6] text-[#9a9a9a]'
-        style={{ width: px, height: px, fontSize: Math.max(14, Math.round(size * 0.28)) }}
-        aria-hidden
-      >
-        📷
-      </div>
-      {showLabel ? (
-        <span className='rounded-full border border-[#e7e2d8] bg-white px-2 py-0.5 text-[10px] font-medium text-[#6b6b6b]'>
-          写真未登録
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
-/** メインプロフィール写真（1枚目）を表示。未設定時はイニシャルまたはプレースホルダー。 */
+/** メインプロフィール写真（1枚目）を表示。未設定時は HANAKAI ニュートラルアイコン。 */
 export function MemberAvatar({
   member,
   size = 40,
@@ -54,41 +75,32 @@ export function MemberAvatar({
   editHref,
 }: MemberAvatarProps) {
   const src = memberMainPhotoUrl(member);
-  const px = `${size}px`;
-  const hasPhoto = Boolean(src);
+  const media = (
+    <ProfileAvatarMedia src={src} alt={member.nickname} size={size} className={className} priority={priority} />
+  );
 
-  if (!hasPhoto && showEmptyPlaceholder) {
-    const placeholder = <EmptyAvatarPlaceholder size={size} className={className} showLabel={size >= 64} />;
+  if (!src && showEmptyPlaceholder) {
+    const labeled = (
+      <div className={`flex shrink-0 flex-col items-center gap-1.5 ${className}`}>
+        {media}
+        {size >= 64 ? (
+          <span className='rounded-full border border-[#e7e2d8] bg-white px-2 py-0.5 text-[10px] font-medium text-[#6b6b6b]'>
+            写真未登録
+          </span>
+        ) : null}
+      </div>
+    );
     if (editHref) {
       return (
         <Link href={editHref} className='inline-flex shrink-0 transition active:scale-[0.98]' aria-label='プロフィール写真を登録する'>
-          {placeholder}
+          {labeled}
         </Link>
       );
     }
-    return placeholder;
+    return labeled;
   }
 
-  if (hasPhoto) {
-    return (
-      <div
-        className={`relative shrink-0 overflow-hidden rounded-full ring-1 ring-[#ebe9e4] ${className}`}
-        style={{ width: px, height: px }}
-      >
-        <Image src={src} alt={member.nickname} fill sizes={`${size}px`} className='object-cover object-top' priority={priority} />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`flex shrink-0 items-center justify-center rounded-full bg-[#eef3ef] text-sm font-semibold text-[#1f5d4f] ring-1 ring-[#ebe9e4] ${className}`}
-      style={{ width: px, height: px }}
-      aria-hidden
-    >
-      {member.nickname.charAt(0) || '?'}
-    </div>
-  );
+  return media;
 }
 
 /** プロフィール写真ギャラリー（最大6枚・横スクロール） */

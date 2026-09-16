@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { HanakaiShell } from '@/components/hanakai/shell';
-import { MemberAvatar } from '@/components/connection/member-avatar';
+import { MemberAvatar, ProfileAvatarMedia } from '@/components/connection/member-avatar';
 import { Chip } from '@/components/hanakai/ui';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { getUser, listPosts } from '@/lib/hanakai/data';
@@ -33,9 +33,7 @@ export default async function PostsPage() {
                   {connectionMember ? (
                     <MemberAvatar member={connectionMember} size={32} />
                   ) : author ? (
-                    <div className='relative h-8 w-8 overflow-hidden rounded-full'>
-                      <Image src={author.avatarUrl} alt={author.nickname} fill className='object-cover' />
-                    </div>
+                    <ProfileAvatarMedia src={author.avatarUrl} alt={author.nickname} size={32} />
                   ) : null}
                   <span className='text-sm font-semibold text-slate-800'>{author?.nickname}</span>
                   <span className='text-xs text-slate-400'>@{author?.handle}</span>

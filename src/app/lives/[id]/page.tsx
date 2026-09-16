@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { HanakaiShell } from '@/components/hanakai/shell';
 import { LiveCheerPanel } from '@/components/hanakai/cheer';
+import { ProfileAvatarMedia } from '@/components/connection/member-avatar';
 import { Card, Chip } from '@/components/hanakai/ui';
 import { formatCoin, getLive, getUser, getWallet, LIVE_CATEGORY_LABEL, listLiveCheerFeed } from '@/lib/hanakai/data';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
@@ -41,9 +42,7 @@ export default async function LiveDetailPage({ params }: PageProps) {
           <h1 className='text-lg font-bold text-slate-800'>{live.title}</h1>
           {host ? (
             <Link href={`/members/${host.id}`} className='inline-flex items-center gap-2'>
-              <div className='relative h-7 w-7 overflow-hidden rounded-full'>
-                <Image src={host.avatarUrl} alt={host.nickname} fill className='object-cover' />
-              </div>
+              <ProfileAvatarMedia src={host.avatarUrl} alt={host.nickname} size={28} />
               <span className='text-sm text-slate-600'>{host.nickname}</span>
             </Link>
           ) : null}

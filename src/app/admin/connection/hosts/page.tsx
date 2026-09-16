@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import {
   AdminCard,
   AdminPageHeader,
@@ -8,6 +7,7 @@ import {
 } from '@/components/admin/ui';
 import { getAdminUser, listHostApplications } from '@/lib/connection/admin-data';
 import { updateHostApplicationAction, updateHostApplicationNoteAction } from '@/lib/connection/admin-actions';
+import { ProfileAvatarMedia } from '@/components/connection/member-avatar';
 import type { HostApplication } from '@/lib/connection/admin-types';
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
@@ -80,7 +80,7 @@ function HostRow({ application: a }: { application: HostApplication }) {
       <div className='flex flex-wrap items-start justify-between gap-3'>
         <div className='flex items-start gap-3'>
           {member ? (
-            <Image src={member.avatarUrl} alt={member.nickname} width={48} height={48} className='h-12 w-12 shrink-0 rounded-full object-cover' />
+            <ProfileAvatarMedia src={member.avatarUrl} alt={member.nickname} size={48} />
           ) : null}
           <div className='space-y-1.5'>
             <div className='flex flex-wrap items-center gap-2'>

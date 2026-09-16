@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { HanakaiShell } from '@/components/hanakai/shell';
+import { ProfileAvatarMedia } from '@/components/connection/member-avatar';
 import { Card, Chip } from '@/components/hanakai/ui';
 import { connectAction } from '@/lib/hanakai/actions';
 import {
@@ -40,9 +41,7 @@ export default async function MemberProfilePage({ params, searchParams }: PagePr
     <HanakaiShell viewer={viewer}>
       <div className='space-y-4'>
         <div className='flex items-center gap-4'>
-          <div className='relative h-20 w-20 shrink-0 overflow-hidden rounded-full border border-[#eaeee6]'>
-            <Image src={user.avatarUrl} alt={user.nickname} fill className='object-cover' />
-          </div>
+          <ProfileAvatarMedia src={user.avatarUrl} alt={user.nickname} size={80} />
           <div className='min-w-0'>
             <div className='flex items-center gap-2'>
               <h1 className='text-lg font-bold text-slate-800'>{user.nickname}</h1>

@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { ConnectionShell } from '@/components/connection/shell';
 import {
@@ -13,6 +12,7 @@ import { TrustBadgeList } from '@/components/connection/trust-badge';
 import { Card } from '@/components/connection/ui';
 import { removeMemberAction } from '@/lib/connection/actions';
 import { EVENT_CATEGORY_LABEL, formatEventDate } from '@/lib/connection/data';
+import { MemberAvatar } from '@/components/connection/member-avatar';
 import { memberMainPhotoUrl } from '@/lib/connection/member-photo';
 import { applicationStatusHostLabel } from '@/lib/connection/participation-finalize';
 import { isIdentityVerified } from '@/lib/connection/trust';
@@ -189,9 +189,7 @@ export default async function ManagePage({ searchParams }: PageProps) {
 function MemberHeader({ member }: { member: ConnectionMember }) {
   return (
     <div className='flex gap-3'>
-      <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full'>
-        <Image src={member.avatarUrl} alt={member.nickname} fill className='object-cover' />
-      </div>
+      <MemberAvatar member={member} size={48} />
       <div className='min-w-0 flex-1'>
         <p className='text-sm font-semibold text-[#1a1a1a]'>{member.nickname}</p>
         <p className='text-xs text-[#6b6b6b]'>

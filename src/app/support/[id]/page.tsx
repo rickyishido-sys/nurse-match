@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { HanakaiShell } from '@/components/hanakai/shell';
 import { CheerButton } from '@/components/hanakai/cheer';
+import { ProfileAvatarMedia } from '@/components/connection/member-avatar';
 import { Card, Chip, ProgressBar } from '@/components/hanakai/ui';
 import { formatCoin, getSupportProject, getUser, getWallet, SUPPORT_CATEGORY_LABEL } from '@/lib/hanakai/data';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
@@ -32,9 +33,7 @@ export default async function SupportDetailPage({ params }: PageProps) {
         <h1 className='text-lg font-bold text-slate-800'>{project.title}</h1>
         {owner ? (
           <Link href={`/members/${owner.id}`} className='inline-flex items-center gap-2'>
-            <div className='relative h-7 w-7 overflow-hidden rounded-full'>
-              <Image src={owner.avatarUrl} alt={owner.nickname} fill className='object-cover' />
-            </div>
+            <ProfileAvatarMedia src={owner.avatarUrl} alt={owner.nickname} size={28} />
             <span className='text-sm text-slate-600'>{owner.nickname}</span>
           </Link>
         ) : null}

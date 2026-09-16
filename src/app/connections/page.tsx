@@ -8,7 +8,7 @@ import { getViewerMemberId } from '@/lib/connection/identity';
 import { getEventMemberPreviewStrip, getEventsByIds, listApplicationsForMember } from '@/lib/connection/repo';
 import { EVENT_CATEGORY_META, formatEventDate } from '@/lib/connection/data';
 import type { ConnectionEvent, ConnectionMember, EventApplication } from '@/lib/connection/types';
-import { memberMainPhotoUrl } from '@/lib/connection/member-photo';
+import { MemberAvatar } from '@/components/connection/member-avatar';
 
 const GOLD = '#b8956a';
 
@@ -127,7 +127,7 @@ function PastConnectionCard({
           <div className='flex -space-x-2'>
             {others.map((m) => (
               <div key={m.id} className='relative h-8 w-8 overflow-hidden rounded-full ring-2 ring-white'>
-                <Image src={memberMainPhotoUrl(m)} alt={m.nickname} fill className='object-cover object-top' />
+                <MemberAvatar member={m} size={32} />
               </div>
             ))}
           </div>

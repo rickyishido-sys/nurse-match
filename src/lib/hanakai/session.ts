@@ -2,6 +2,7 @@ import { cache } from 'react';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getAuthUser, getHanakaiMemberIdForAuthUser } from '@/lib/connection/identity';
 import { isConnectionAdminMember } from '@/lib/connection/group-access';
+import { memberMainPhotoUrl } from '@/lib/connection/member-photo';
 import { getMember } from '@/lib/connection/repo';
 
 export type HanakaiUserRole = 'super_admin' | 'connection_admin' | 'user';
@@ -31,9 +32,7 @@ function resolveHanakaiUserRole(isSuperAdmin: boolean, memberId: string | null):
 
 function resolveAvatarUrl(member: Awaited<ReturnType<typeof getMember>>): string | null {
   if (!member) return null;
-  if (member.avatarUrl?.trim()) return member.avatarUrl;
-  const firstPhoto = member.photos.find((photo) => photo.url?.trim());
-  return firstPhoto?.url ?? null;
+  return memberMainPhotoUrl(member) || null;
 }
 
 // Lightweight auth read for the HANAKAI shell. Decoupled from the legacy

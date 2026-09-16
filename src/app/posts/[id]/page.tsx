@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { HanakaiShell } from '@/components/hanakai/shell';
+import { ProfileAvatarMedia } from '@/components/connection/member-avatar';
 import { Chip } from '@/components/hanakai/ui';
 import { addCommentAction, likePostAction } from '@/lib/hanakai/actions';
 import { getEvent, getPost, getUser, listComments } from '@/lib/hanakai/data';
@@ -28,9 +29,7 @@ export default async function PostDetailPage({ params, searchParams }: PageProps
     <HanakaiShell viewer={viewer}>
       <article className='space-y-4'>
         <Link href={`/members/${post.authorId}`} className='flex items-center gap-2'>
-          <div className='relative h-9 w-9 overflow-hidden rounded-full'>
-            {author ? <Image src={author.avatarUrl} alt={author.nickname} fill className='object-cover' /> : null}
-          </div>
+          <ProfileAvatarMedia src={author?.avatarUrl} alt={author?.nickname ?? ''} size={36} />
           <div>
             <p className='text-sm font-semibold text-slate-800'>{author?.nickname}</p>
             <p className='text-xs text-slate-400'>@{author?.handle}</p>
@@ -75,9 +74,7 @@ export default async function PostDetailPage({ params, searchParams }: PageProps
             const cAuthor = getUser(comment.authorId);
             return (
               <div key={comment.id} className='flex gap-2'>
-                <div className='relative h-7 w-7 shrink-0 overflow-hidden rounded-full'>
-                  {cAuthor ? <Image src={cAuthor.avatarUrl} alt={cAuthor.nickname} fill className='object-cover' /> : null}
-                </div>
+                <ProfileAvatarMedia src={cAuthor?.avatarUrl} alt={cAuthor?.nickname ?? ''} size={28} />
                 <div className='rounded-2xl bg-[#f5f8f3] px-3 py-2'>
                   <p className='text-xs font-semibold text-slate-700'>{cAuthor?.nickname}</p>
                   <p className='text-xs leading-5 text-slate-600'>{comment.body}</p>
