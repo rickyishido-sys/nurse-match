@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { Card, Chip } from '@/components/connection/ui';
 import { HostCheckinCodeCard } from '@/components/connection/events/host-checkin-code-card';
@@ -9,7 +8,7 @@ import {
 } from '@/lib/connection/event-operations/actions';
 import type { EventCheckin } from '@/lib/connection/event-operations/types';
 import type { ConnectionMember } from '@/lib/connection/types';
-import { memberMainPhotoUrl } from '@/lib/connection/member-photo';
+import { MemberAvatar } from '@/components/connection/member-avatar';
 
 type Props = {
   eventId: string;
@@ -59,13 +58,7 @@ export function HostCheckinPanel({
               return (
                 <div key={m.id} className='flex items-center justify-between gap-3'>
                   <div className='flex items-center gap-3'>
-                    <Image
-                      src={memberMainPhotoUrl(m)}
-                      alt={m.nickname}
-                      width={36}
-                      height={36}
-                      className='h-9 w-9 rounded-full object-cover object-top'
-                    />
+                    <MemberAvatar member={m} size={36} />
                     <div>
                       <p className='text-sm font-medium'>{m.nickname}</p>
                       {checkedIn ? <Chip tone='accent'>チェックイン済</Chip> : <Chip tone='muted'>未チェックイン</Chip>}

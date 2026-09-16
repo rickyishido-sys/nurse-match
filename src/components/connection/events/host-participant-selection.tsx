@@ -1,7 +1,7 @@
 'use client';
 
-import Image from 'next/image';
 import { useCallback, useMemo, useState, useTransition } from 'react';
+import { ProfileAvatarMedia } from '@/components/connection/member-avatar';
 import { Chip } from '@/components/connection/ui';
 import { INTEREST_TAG_LABEL } from '@/lib/connection/data';
 import { finalizeEventParticipantsAction } from '@/lib/connection/actions';
@@ -132,13 +132,7 @@ export function HostParticipantSelection({
                   key={m.applicationId}
                   className='flex items-center gap-3 rounded-2xl border border-[#ebe9e4] bg-white px-3 py-2.5'
                 >
-                  <Image
-                    src={m.avatarUrl}
-                    alt={m.nickname}
-                    width={40}
-                    height={40}
-                    className='h-10 w-10 shrink-0 rounded-full object-cover object-[center_20%]'
-                  />
+                  <ProfileAvatarMedia src={m.avatarUrl} alt={m.nickname} size={40} objectPosition='object-[center_20%]' />
                   <div className='min-w-0 flex-1'>
                     <p className='text-sm font-medium text-[#1a1a1a]'>{m.nickname}</p>
                     <p className='text-[11px] text-[#6b6b6b]'>
@@ -191,13 +185,7 @@ export function HostParticipantSelection({
                     }`}
                   >
                     <div className='flex items-start gap-3'>
-                      <Image
-                        src={applicant.avatarUrl}
-                        alt=''
-                        width={48}
-                        height={48}
-                        className='h-12 w-12 shrink-0 rounded-full object-cover object-[center_20%]'
-                      />
+                      <ProfileAvatarMedia src={applicant.avatarUrl} alt='' size={48} objectPosition='object-[center_20%]' />
                       <div className='min-w-0 flex-1 space-y-1'>
                         <div className='flex items-start justify-between gap-2'>
                           <div>

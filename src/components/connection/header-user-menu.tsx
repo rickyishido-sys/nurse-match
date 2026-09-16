@@ -1,8 +1,8 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { ProfileAvatarMedia } from '@/components/connection/member-avatar';
 import { logoutAction } from '@/lib/actions';
 import type { HanakaiUserRole } from '@/lib/hanakai/session';
 import { getRoleDisplayLabel, getRoleToneClass } from '@/lib/hanakai/user-role';
@@ -19,28 +19,7 @@ type HeaderUserMenuProps = {
 };
 
 function UserAvatar({ name, avatarUrl, size = 32 }: { name: string; avatarUrl: string | null; size?: number }) {
-  if (avatarUrl) {
-    return (
-      <Image
-        src={avatarUrl}
-        alt=''
-        width={size}
-        height={size}
-        className='rounded-full object-cover'
-        style={{ width: size, height: size }}
-      />
-    );
-  }
-
-  return (
-    <span
-      className='flex shrink-0 items-center justify-center rounded-full bg-[#eef4f1] text-sm'
-      style={{ width: size, height: size }}
-      aria-hidden
-    >
-      👤
-    </span>
-  );
+  return <ProfileAvatarMedia src={avatarUrl} alt={name} size={size} />;
 }
 
 export function HeaderUserMenu({ user }: HeaderUserMenuProps) {

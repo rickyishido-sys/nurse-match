@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { HanakaiShell } from '@/components/hanakai/shell';
+import { ProfileAvatarMedia } from '@/components/connection/member-avatar';
 import { Card, Chip } from '@/components/hanakai/ui';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import {
@@ -94,9 +94,7 @@ export default async function InstructorPage() {
           <div className='space-y-2'>
             {candidates.map((user) => (
               <Link key={user.id} href={`/members/${user.id}`} className='flex items-center gap-3 rounded-2xl border border-[#eaeee6] bg-white p-2.5'>
-                <div className='relative h-10 w-10 overflow-hidden rounded-full'>
-                  <Image src={user.avatarUrl} alt={user.nickname} fill className='object-cover' />
-                </div>
+                <ProfileAvatarMedia src={user.avatarUrl} alt={user.nickname} size={40} />
                 <div className='min-w-0 flex-1'>
                   <p className='truncate text-sm font-semibold text-slate-800'>{user.nickname}</p>
                   <p className='truncate text-xs text-slate-500'>花会{user.joinedEventCount}回・投稿{user.postCount}・応援{user.cheerPoints}pt</p>
@@ -112,9 +110,7 @@ export default async function InstructorPage() {
           <div className='space-y-2'>
             {certified.map((user) => (
               <Link key={user.id} href={`/members/${user.id}`} className='flex items-center gap-3 rounded-2xl border border-[#f0e6cf] bg-[#fbf7ee] p-2.5'>
-                <div className='relative h-10 w-10 overflow-hidden rounded-full'>
-                  <Image src={user.avatarUrl} alt={user.nickname} fill className='object-cover' />
-                </div>
+                <ProfileAvatarMedia src={user.avatarUrl} alt={user.nickname} size={40} />
                 <div className='min-w-0 flex-1'>
                   <p className='truncate text-sm font-semibold text-slate-800'>{user.nickname}</p>
                   <p className='truncate text-xs text-slate-500'>{user.area}</p>

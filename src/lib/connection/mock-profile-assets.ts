@@ -5,7 +5,7 @@
  */
 const avatar = (name: string) => `/images/avatars/${name}` as const;
 
-/** 汎用フォールバック（写真未設定時のみ） */
+/** LP / モック画面専用のキャラクター画像。未登録ユーザーのフォールバックには使わない。 */
 export const FEMALE_PROFILE_SAMPLE = avatar('aoi.webp');
 export const MALE_PROFILE_SAMPLE = avatar('ken.webp');
 
@@ -56,16 +56,13 @@ const LEGACY_PATH_MAP: Record<string, string> = {
   '/images/mock-profiles/mock-profile-male.webp': avatar('kenta.webp'),
 };
 
-export function resolveFixedSampleAvatarUrl(
-  rawUrl: string,
-  gender?: 'female' | 'male' | 'other' | string | null,
-): string {
+/**
+ * 保存済み URL のレガシー補正のみ。空・ストック顔写真は空のまま返す。
+ * 性別による人物写真の自動割当はしない。
+ */
+export function resolveFixedSampleAvatarUrl(rawUrl: string): string {
   const trimmed = rawUrl.trim();
-  if (!trimmed) {
-    if (gender === 'male') return MALE_PROFILE_SAMPLE;
-    if (gender === 'female') return FEMALE_PROFILE_SAMPLE;
-    return '';
-  }
+  if (!trimmed) return '';
   if (trimmed.startsWith('/images/avatars/')) return trimmed;
   if (LEGACY_PATH_MAP[trimmed]) return LEGACY_PATH_MAP[trimmed];
   if (trimmed.startsWith('/') || trimmed.startsWith('data:')) return trimmed;
@@ -75,7 +72,7 @@ export function resolveFixedSampleAvatarUrl(
   }
 
   if (/randomuser\.me|pravatar\.cc|i\.pravatar|picsum\.photos/i.test(trimmed)) {
-    return gender === 'male' ? MALE_PROFILE_SAMPLE : FEMALE_PROFILE_SAMPLE;
+    return '';
   }
 
   return trimmed;
