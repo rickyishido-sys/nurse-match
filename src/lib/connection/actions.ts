@@ -42,6 +42,11 @@ import { validateBioContactInfo } from '@/lib/connection/bio-validation';
 import { normalizeSocialLinks } from '@/lib/connection/social-link-normalize';
 import { checkIdentityDocumentFileServer } from '@/lib/connection/identity-document-check-server';
 import { isHanakaiProfileComplete } from '@/lib/connection/registration-status';
+import {
+  classifyPasswordUpdateError,
+  isSamePasswordError,
+  validateHanakaiPassword,
+} from '@/lib/connection/password-policy';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import type {
@@ -402,19 +407,15 @@ export async function setRegistrationPasswordAction(formData: FormData) {
   console.log('BLOOM_PASSWORD_UPDATE_START');
   const password = String(formData.get('password') ?? '');
   const confirm = String(formData.get('confirmPassword') ?? '');
-
-  if (password.length < 8) {
-    console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: 'password_too_short' });
-    return { error: 'short' as const };
-  }
-  if (password !== confirm) {
-    console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: 'password_mismatch' });
-    return { error: 'mismatch' as const };
+  const validation = validateHanakaiPassword(password, confirm);
+  if (validation) {
+    console.error('BLOOM_PASSWORD_UPDATE_ERROR', { reason: validation });
+    return { error: validation };
   }
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) {
-    console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: 'missing_supabase_client' });
+    console.error('BLOOM_PASSWORD_UPDATE_ERROR', { reason: 'missing_supabase_client' });
     return { error: 'config' as const };
   }
 
@@ -422,17 +423,20 @@ export async function setRegistrationPasswordAction(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: 'auth_user_missing' });
+    console.error('BLOOM_PASSWORD_UPDATE_ERROR', { reason: 'auth_user_missing' });
     return { error: 'auth' as const };
   }
 
-  const { error } = await supabase.auth.updateUser({
-    password,
-    data: { hanakai_password_set: true },
-  });
-  if (error) {
-    console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: error.message, userId: user.id });
-    return { error: 'failed' as const, detail: error.message };
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error && !isSamePasswordError(error)) {
+    const classified = classifyPasswordUpdateError(error);
+    console.error('BLOOM_PASSWORD_UPDATE_ERROR', {
+      reason: 'update_user_failed',
+      classified,
+      code: error.code ?? null,
+      userId: user.id,
+    });
+    return { error: classified };
   }
 
   console.log('BLOOM_PASSWORD_UPDATE_SUCCESS', { userId: user.id });
