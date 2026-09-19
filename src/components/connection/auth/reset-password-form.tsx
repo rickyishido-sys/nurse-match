@@ -41,7 +41,13 @@ export function ResetPasswordForm({ error }: ResetPasswordFormProps) {
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) {
         if (data.error === 'auth') {
-          setFormError('セッションの有効期限が切れています。もう一度メールのリンクをお試しください。');
+          setFormError('認証の有効期限が切れています。もう一度メールのリンクをお試しください。');
+        } else if (data.error === 'short') {
+          setFormError('8文字以上で入力してください。');
+        } else if (data.error === 'mismatch') {
+          setFormError('パスワードが一致していません。');
+        } else if (data.error === 'weak') {
+          setFormError('このパスワードは使えないか、推測されやすいため設定できません。別のパスワードを入力してください。');
         } else {
           setFormError('パスワードの更新に失敗しました。時間をおいて再度お試しください。');
         }

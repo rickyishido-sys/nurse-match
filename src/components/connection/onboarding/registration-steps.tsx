@@ -3,12 +3,31 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { requestRegisterVerificationAction } from '@/lib/actions';
 import { recordLegalConsentAction } from '@/lib/connection/actions';
-import { ONB, StepHeading } from './onboarding-ui';
 import { persistOnboardingStep } from '@/lib/connection/onboarding-progress';
+import {
+  passwordUpdateFailureMessage,
+  passwordValidationMessage,
+  validateHanakaiPassword,
+  type PasswordUpdateFailureCode,
+} from '@/lib/connection/password-policy';
+import { createClient } from '@/lib/supabase/client';
+import { ONB, StepHeading } from './onboarding-ui';
 
 const inputClass =
   'w-full rounded-2xl border bg-white px-5 py-[18px] text-base leading-relaxed outline-none transition focus:border-current';
+const REGISTER_EMAIL_KEY = 'hanakai_register_email';
+
+function mapPasswordApiError(error?: string): string {
+  if (error === 'short' || error === 'long' || error === 'mismatch') {
+    return passwordValidationMessage(error);
+  }
+  if (error === 'auth' || error === 'weak' || error === 'failed') {
+    return passwordUpdateFailureMessage(error);
+  }
+  return passwordUpdateFailureMessage('failed');
+}
 
 /** 本人確認前の利用規約・プライバシーポリシー同意 */
 export function PreIdentityConsentStep({
@@ -267,11 +286,51 @@ export function PasswordStep({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [pending, setPending] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [resendEmail, setResendEmail] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    try {
+      return window.sessionStorage.getItem(REGISTER_EMAIL_KEY) ?? '';
+    } catch {
+      return '';
+    }
+  });
   const submitting = useRef(false);
 
   useEffect(() => {
     console.log('BLOOM_PASSWORD_STEP_START');
   }, []);
+
+  async function tryClientPasswordUpdate(nextPassword: string): Promise<PasswordUpdateFailureCode | 'ok'> {
+    const supabase = createClient();
+    if (!supabase) return 'failed';
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) return 'auth';
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: nextPassword,
+      data: { hanakai_password_set: true },
+    });
+    if (!updateError) return 'ok';
+    const message = (updateError.message ?? '').toLowerCase();
+    const code = (updateError.code ?? '').toLowerCase();
+    if (code === 'same_password' || message.includes('should be different from the old')) return 'ok';
+    if (
+      code === 'weak_password' ||
+      message.includes('pwned') ||
+      message.includes('easy to guess') ||
+      message.includes('known to be weak')
+    ) {
+      return 'weak';
+    }
+    if (
+      message.includes('auth session missing') ||
+      message.includes('not authenticated') ||
+      code === 'session_not_found'
+    ) {
+      return 'auth';
+    }
+    return 'failed';
+  }
 
   async function handleNext(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
@@ -280,12 +339,9 @@ export function PasswordStep({
 
     setError('');
     setSuccess('');
-    if (password.length < 8) {
-      setError('パスワードは8文字以上で入力してください。');
-      return;
-    }
-    if (password !== confirm) {
-      setError('パスワードが一致しません。');
+    const validation = validateHanakaiPassword(password, confirm);
+    if (validation) {
+      setError(passwordValidationMessage(validation));
       return;
     }
 
@@ -294,36 +350,42 @@ export function PasswordStep({
     console.log('BLOOM_PASSWORD_UPDATE_START');
 
     try {
+      const clientResult = await tryClientPasswordUpdate(password);
+      if (clientResult === 'ok') {
+        console.log('BLOOM_PASSWORD_UPDATE_SUCCESS', { via: 'client' });
+        setSuccess('パスワードを設定しました。');
+        persistOnboardingStep('nickname');
+        onComplete();
+        return;
+      }
+
       const response = await fetch('/api/auth/set-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ password, confirmPassword: confirm }),
       });
-      const result = (await response.json()) as { ok?: boolean; error?: string; detail?: string };
+      const result = (await response.json()) as { ok?: boolean; error?: string };
 
-      if (!response.ok || result.error) {
-        const message =
-          result.error === 'mismatch'
-            ? 'パスワードが一致しません。'
-            : result.error === 'short'
-              ? 'パスワードは8文字以上で入力してください。'
-              : result.detail
-                ? `パスワードの設定に失敗しました: ${result.detail}`
-                : 'パスワードの設定に失敗しました。もう一度お試しください。';
-        console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: result.detail ?? result.error });
-        setError(message);
+      if (response.ok && result.ok) {
+        console.log('BLOOM_PASSWORD_UPDATE_SUCCESS', { via: 'api' });
+        setSuccess('パスワードを設定しました。');
+        persistOnboardingStep('nickname');
+        onComplete();
         return;
       }
 
-      console.log('BLOOM_PASSWORD_UPDATE_SUCCESS');
-      setSuccess('パスワードを設定しました。');
-      persistOnboardingStep('nickname');
-      console.log('BLOOM_ONBOARDING_MOVE_TO_NICKNAME');
-      onComplete();
+      const apiError = result.error ?? clientResult;
+      console.error('BLOOM_PASSWORD_UPDATE_ERROR', { error: apiError, status: response.status });
+      if (apiError === 'auth' || clientResult === 'auth') {
+        setSessionExpired(true);
+        setError(passwordUpdateFailureMessage('auth'));
+        return;
+      }
+      setError(mapPasswordApiError(apiError));
     } catch (err) {
-      console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: String(err) });
-      setError('パスワードの設定に失敗しました。通信環境を確認して再度お試しください。');
+      console.error('BLOOM_PASSWORD_UPDATE_ERROR', { message: err instanceof Error ? err.message : 'network' });
+      setError('通信に失敗しました。接続を確認して再度お試しください。');
     } finally {
       submitting.current = false;
       setPending(false);
@@ -343,7 +405,7 @@ export function PasswordStep({
         index={index}
         art={art}
         title='ログイン用パスワードを設定しましょう'
-        subtitle='必須 · 8文字以上 · 次回からパスワードでもログインできます'
+        subtitle='必須 · 8文字以上72文字以内 · 次回からパスワードでもログインできます'
       />
       <div className='mt-6 space-y-4'>
         <label className='block'>
@@ -355,6 +417,8 @@ export function PasswordStep({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete='new-password'
+            minLength={8}
+            maxLength={72}
             className={inputClass}
             style={{ borderColor: ONB.border, color: ONB.ink }}
           />
@@ -368,15 +432,46 @@ export function PasswordStep({
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             autoComplete='new-password'
+            minLength={8}
+            maxLength={72}
             className={inputClass}
             style={{ borderColor: ONB.border, color: ONB.ink }}
           />
         </label>
         {error ? (
-          <p className='rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700'>{error}</p>
+          <p className='rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700' role='alert'>
+            {error}
+          </p>
         ) : null}
         {success ? (
           <p className='rounded-2xl border border-[#d8e2d3] bg-[#eef4ea] px-4 py-3 text-xs text-[#4f7a4a]'>{success}</p>
+        ) : null}
+        {sessionExpired ? (
+          <form action={requestRegisterVerificationAction} className='space-y-3 rounded-2xl border border-[#ebe9e4] bg-[#faf9f6] px-4 py-4'>
+            <p className='text-xs leading-6 text-[#6b6b6b]'>
+              メールアプリや別ブラウザでリンクを開くと、認証が切れることがあります。同じブラウザで認証メールを開き直すか、下から再送してください。
+            </p>
+            <label className='block'>
+              <span className='mb-1.5 block text-xs font-medium' style={{ color: ONB.subtle }}>
+                登録メールアドレス
+              </span>
+              <input
+                type='email'
+                name='email'
+                required
+                value={resendEmail}
+                onChange={(e) => setResendEmail(e.target.value)}
+                className={inputClass}
+                style={{ borderColor: ONB.border, color: ONB.ink }}
+              />
+            </label>
+            <button
+              type='submit'
+              className='w-full rounded-2xl border border-[#1f5d4f] bg-white px-4 py-3 text-sm font-semibold text-[#1f5d4f]'
+            >
+              認証メールを再送する
+            </button>
+          </form>
         ) : null}
       </div>
       <button
@@ -386,7 +481,7 @@ export function PasswordStep({
         className='mt-auto rounded-2xl px-4 py-3.5 text-sm font-semibold text-white transition disabled:opacity-60'
         style={{ backgroundColor: ONB.accent }}
       >
-        {pending ? '設定中…' : '次へ'}
+        {pending ? 'パスワードを設定しています…' : '次へ'}
       </button>
     </div>
   );

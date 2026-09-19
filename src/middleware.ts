@@ -26,6 +26,38 @@ function isDeletedMemberExemptPath(pathname: string): boolean {
   return pathname.startsWith('/auth/') || pathname.startsWith('/onboarding/');
 }
 
+function shouldRefreshPublicAuthSession(pathname: string): boolean {
+  return (
+    pathname === '/register' ||
+    pathname.startsWith('/register/') ||
+    pathname === '/reset-password' ||
+    pathname.startsWith('/reset-password/') ||
+    pathname.startsWith('/auth/')
+  );
+}
+
+async function refreshSupabaseSession(request: NextRequest): Promise<NextResponse> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnon) return NextResponse.next({ request });
+
+  let response = NextResponse.next({ request });
+  const supabase = createServerClient(supabaseUrl, supabaseAnon, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+      },
+    },
+  });
+  await supabase.auth.getUser();
+  return response;
+}
+
 const USE_DEMO_AUTH = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
 async function redirectIfDeletedHanakaiMember(request: NextRequest): Promise<NextResponse | null> {
@@ -126,6 +158,9 @@ export async function middleware(request: NextRequest) {
     }
 
     if (decision.kind === 'allow_public') {
+      if (!USE_DEMO_AUTH && shouldRefreshPublicAuthSession(pathname)) {
+        return refreshSupabaseSession(request);
+      }
       return NextResponse.next();
     }
 

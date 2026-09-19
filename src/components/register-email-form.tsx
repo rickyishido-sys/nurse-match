@@ -85,6 +85,13 @@ export function RegisterEmailForm({ sent, allowBurst = false, legacyFlow = false
           required
           placeholder='email@example.com'
           className='w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100'
+          onChange={(e) => {
+            try {
+              window.sessionStorage.setItem('hanakai_register_email', e.target.value.trim());
+            } catch {
+              // noop
+            }
+          }}
         />
       </label>
       {allowBurst ? <input type='hidden' name='allowBurst' value='1' /> : null}
