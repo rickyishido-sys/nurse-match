@@ -2,6 +2,8 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
 import { HANAKAI_POST_AUTH_PROFILE_PATH } from '@/lib/connection/auth-redirect';
+import { HANAKAI_AUTH_COOKIE_OPTIONS } from '@/lib/supabase/auth-cookie-options';
+import { applyAuthCookies } from '@/lib/supabase/auth-cookies';
 
 type CookieToSet = {
   name: string;
@@ -43,12 +45,14 @@ export async function GET(request: Request) {
     });
 
   const cookiesToApply: CookieToSet[] = [];
+  const cookieResponseHeaders: Record<string, string> = {};
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookieOptions: HANAKAI_AUTH_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return parsedCookies;
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet, headers) {
         cookiesToApply.push(
           ...cookiesToSet.map((cookie) => ({
             name: cookie.name,
@@ -56,6 +60,7 @@ export async function GET(request: Request) {
             options: cookie.options as Record<string, unknown> | undefined,
           })),
         );
+        Object.assign(cookieResponseHeaders, headers);
       },
     },
   });
@@ -103,11 +108,9 @@ export async function GET(request: Request) {
   }
 
   const finalResponse = NextResponse.redirect(new URL(redirectPath, requestUrl.origin));
-  for (const cookie of cookiesToApply) {
-    finalResponse.cookies.set(cookie.name, cookie.value, {
-      path: '/',
-      ...(cookie.options as object | undefined),
-    } as never);
+  applyAuthCookies(finalResponse, cookiesToApply);
+  for (const [key, value] of Object.entries(cookieResponseHeaders)) {
+    finalResponse.headers.set(key, value);
   }
   return finalResponse;
 }

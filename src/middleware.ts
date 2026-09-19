@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { HANAKAI_AUTH_COOKIE_OPTIONS } from '@/lib/supabase/auth-cookie-options';
 import { isHanakaiAdminPath } from '@/lib/connection/hanakai-admin-path';
 import {
   isHanakaiStaticAsset,
@@ -43,6 +44,7 @@ async function refreshSupabaseSession(request: NextRequest): Promise<NextRespons
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(supabaseUrl, supabaseAnon, {
+    cookieOptions: HANAKAI_AUTH_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -50,7 +52,9 @@ async function refreshSupabaseSession(request: NextRequest): Promise<NextRespons
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, { ...options, path: '/' }),
+        );
       },
     },
   });
@@ -69,6 +73,7 @@ async function redirectIfDeletedHanakaiMember(request: NextRequest): Promise<Nex
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(supabaseUrl, supabaseAnon, {
+    cookieOptions: HANAKAI_AUTH_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -76,7 +81,9 @@ async function redirectIfDeletedHanakaiMember(request: NextRequest): Promise<Nex
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, { ...options, path: '/' }),
+        );
       },
     },
   });
@@ -134,6 +141,10 @@ function loginRedirect(request: NextRequest, pathname: string, admin = false): N
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (pathname === '/api/auth/set-password') {
+    return refreshSupabaseSession(request);
+  }
+
   if (isHanakaiStaticAsset(pathname)) {
     return NextResponse.next();
   }
@@ -179,6 +190,7 @@ export async function middleware(request: NextRequest) {
 
       let response = NextResponse.next({ request });
       const supabase = createServerClient(supabaseUrl, supabaseAnon, {
+        cookieOptions: HANAKAI_AUTH_COOKIE_OPTIONS,
         cookies: {
           getAll() {
             return request.cookies.getAll();
@@ -186,7 +198,9 @@ export async function middleware(request: NextRequest) {
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
             response = NextResponse.next({ request });
-            cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, { ...options, path: '/' }),
+            );
           },
         },
       });
@@ -204,5 +218,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)', '/api/auth/set-password'],
 };

@@ -358,6 +358,10 @@ export function PasswordStep({
         onComplete();
         return;
       }
+      if (clientResult === 'weak') {
+        setError(passwordUpdateFailureMessage('weak'));
+        return;
+      }
 
       const response = await fetch('/api/auth/set-password', {
         method: 'POST',
