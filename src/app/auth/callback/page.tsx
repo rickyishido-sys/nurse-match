@@ -37,8 +37,18 @@ export default function AuthCallbackPage() {
 
     const fallbackTimer = window.setTimeout(() => {
       if (redirected.current) return;
-      setFallbackPending(true);
-      redirectToProfile('fallback_timeout');
+      void (async () => {
+        const supabase = createClient();
+        const session = supabase ? (await supabase.auth.getSession()).data.session : null;
+        if (session) {
+          redirectToProfile('fallback_timeout_with_session');
+          return;
+        }
+        setFallbackPending(true);
+        setError(
+          '認証の確認が完了しませんでした。メールアプリ内のブラウザではなく Safari でリンクを開くか、登録画面から認証メールを再送してください。',
+        );
+      })();
     }, FALLBACK_MS);
 
     async function run() {
@@ -126,14 +136,14 @@ export default function AuthCallbackPage() {
               </div>
               <p className='mt-4 text-xs text-[#6b6b6b]'>
                 {fallbackPending
-                  ? 'プロフィール入力画面へ移動しています…'
-                  : '10秒以内にプロフィール入力画面へ移動します。'}
+                  ? '同じブラウザで認証リンクを開き直すか、登録画面からメールを再送してください。'
+                  : '認証が完了しない場合は、Safari でメールのリンクを開き直してください。'}
               </p>
               <Link
-                href={PROFILE_PATH}
+                href='/register'
                 className='mt-4 inline-block text-xs font-medium text-[#1f5d4f] underline underline-offset-2'
               >
-                プロフィール入力へ進む
+                登録画面へ戻る
               </Link>
             </>
           ) : (

@@ -32,6 +32,23 @@ export async function POST(request: Request) {
   }
 
   const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (session?.access_token && session.refresh_token) {
+    const { error: hydrateError } = await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+    });
+    if (hydrateError) {
+      console.error('BLOOM_PASSWORD_UPDATE_ERROR', {
+        reason: 'session_hydrate_failed',
+        code: hydrateError.code ?? null,
+        status: hydrateError.status ?? null,
+      });
+    }
+  }
+
+  const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();

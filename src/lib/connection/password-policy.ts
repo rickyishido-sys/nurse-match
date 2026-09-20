@@ -41,8 +41,8 @@ export function classifyPasswordUpdateError(error: {
   if (
     code === 'weak_password' ||
     message.includes('weak_password') ||
-    message.includes('pwned') ||
     message.includes('leaked') ||
+    message.includes('pwned') ||
     message.includes('easy to guess') ||
     message.includes('known to be weak')
   ) {

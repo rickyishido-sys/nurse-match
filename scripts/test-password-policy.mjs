@@ -17,7 +17,7 @@ function classifyPasswordUpdateError(error) {
   if (code === 'session_not_found' || message.includes('auth session missing') || error.status === 401) {
     return 'auth';
   }
-  if (code === 'weak_password' || message.includes('easy to guess') || message.includes('known to be weak')) {
+  if (code === 'weak_password' || message.includes('easy to guess') || message.includes('known to be weak') || message.includes('leaked') || message.includes('pwned')) {
     return 'weak';
   }
   return 'failed';
@@ -28,4 +28,5 @@ assert.equal(validateHanakaiPassword('longenough', 'different'), 'mismatch');
 assert.equal(validateHanakaiPassword('longenough', 'longenough'), null);
 assert.equal(classifyPasswordUpdateError({ message: 'Auth session missing!' }), 'auth');
 assert.equal(classifyPasswordUpdateError({ code: 'weak_password' }), 'weak');
+assert.equal(classifyPasswordUpdateError({ message: 'Password is known to be leaked.' }), 'weak');
 console.log('PASS password-policy');
