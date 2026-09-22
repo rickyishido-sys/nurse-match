@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { BrandAuthFrame } from '@/components/connection/brand/brand-auth-frame';
 import { ctaPrimaryFull } from '@/components/connection/ui/cta-classes';
@@ -11,7 +10,6 @@ type ResetPasswordFormProps = {
 };
 
 export function ResetPasswordForm({ error }: ResetPasswordFormProps) {
-  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -36,9 +34,10 @@ export function ResetPasswordForm({ error }: ResetPasswordFormProps) {
       const res = await fetch('/api/auth/set-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ password, confirmPassword: confirm }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      const data = (await res.json()) as { ok?: boolean; error?: string; redirectTo?: string };
       if (!res.ok || !data.ok) {
         if (data.error === 'auth') {
           setFormError('認証の有効期限が切れています。もう一度メールのリンクをお試しください。');
@@ -53,7 +52,11 @@ export function ResetPasswordForm({ error }: ResetPasswordFormProps) {
         }
         return;
       }
-      router.push('/reset-password/success');
+      const nextPath =
+        data.redirectTo === '/admin/login' || data.redirectTo === '/login' || data.redirectTo === '/reset-password/success'
+          ? data.redirectTo
+          : '/reset-password/success';
+      window.location.replace(nextPath);
     } catch {
       setFormError('通信に失敗しました。接続を確認して再度お試しください。');
     } finally {

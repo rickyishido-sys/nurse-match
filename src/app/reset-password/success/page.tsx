@@ -18,6 +18,12 @@ export default function ResetPasswordSuccessPage() {
       >
         ログインへ
       </Link>
+      <Link
+        href='/admin/login'
+        className='mt-3 flex min-h-[44px] items-center justify-center text-sm font-medium text-[#1f5d4f] underline-offset-2 hover:underline'
+      >
+        管理者ログインへ
+      </Link>
     </BrandAuthFrame>
   );
 }

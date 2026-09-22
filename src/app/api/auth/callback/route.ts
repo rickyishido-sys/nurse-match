@@ -2,6 +2,13 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
 import { HANAKAI_POST_AUTH_PROFILE_PATH } from '@/lib/connection/auth-redirect';
+import {
+  HANAKAI_PW_RECOVERY_COOKIE,
+  HANAKAI_RESET_PASSWORD_PATH,
+  isHanakaiPasswordRecovery,
+  recoveryCookieSetOptions,
+  resolvePostAuthPath,
+} from '@/lib/connection/auth-recovery';
 import { HANAKAI_AUTH_COOKIE_OPTIONS } from '@/lib/supabase/auth-cookie-options';
 import { applyAuthCookies } from '@/lib/supabase/auth-cookies';
 
@@ -17,12 +24,7 @@ export async function GET(request: Request) {
   const tokenHash = requestUrl.searchParams.get('token_hash');
   const otpType = requestUrl.searchParams.get('type');
   const next = requestUrl.searchParams.get('next');
-  const profilePath =
-    next === '/register/details'
-      ? '/register/details'
-      : next === '/reset-password'
-        ? '/reset-password'
-        : HANAKAI_POST_AUTH_PROFILE_PATH;
+  const profilePath = HANAKAI_POST_AUTH_PROFILE_PATH;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -67,15 +69,24 @@ export async function GET(request: Request) {
 
   let redirectPath = profilePath;
   let sessionEstablished = false;
+  let redirectType: string | null = null;
+  let accessToken: string | null = null;
+  let recoverySentAt: string | null = null;
 
   try {
     if (code) {
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) {
         console.error('AUTH_CALLBACK_EXCHANGE_ERROR', { code: error.code ?? null, status: error.status ?? null });
         redirectPath = '/register?error=auth-callback&detail=exchange_failed';
       } else {
         sessionEstablished = true;
+        redirectType = (data as { redirectType?: string | null } | null)?.redirectType ?? null;
+        accessToken = data.session?.access_token ?? null;
+        if (!accessToken) {
+          accessToken = (await supabase.auth.getSession()).data.session?.access_token ?? null;
+        }
+        recoverySentAt = data.user?.recovery_sent_at ?? data.session?.user?.recovery_sent_at ?? null;
       }
     } else if (tokenHash && otpType) {
       const allowedTypes: EmailOtpType[] = ['signup', 'invite', 'magiclink', 'recovery', 'email', 'email_change'];
@@ -83,7 +94,7 @@ export async function GET(request: Request) {
       if (!normalizedType) {
         redirectPath = '/register?error=auth-callback&detail=verify_failed';
       } else {
-        const { error } = await supabase.auth.verifyOtp({
+        const { data, error } = await supabase.auth.verifyOtp({
           type: normalizedType,
           token_hash: tokenHash,
         });
@@ -92,13 +103,23 @@ export async function GET(request: Request) {
           redirectPath = '/register?error=auth-callback&detail=verify_failed';
         } else {
           sessionEstablished = true;
+          redirectType = normalizedType;
+          accessToken = data.session?.access_token ?? null;
+          recoverySentAt = data.user?.recovery_sent_at ?? data.session?.user?.recovery_sent_at ?? null;
         }
       }
     }
 
     if (sessionEstablished) {
-      redirectPath =
-        next === '/reset-password' || next === '/register/details' ? next : profilePath;
+      redirectPath = resolvePostAuthPath({
+        sessionEstablished: true,
+        type: otpType,
+        next,
+        redirectType,
+        accessToken,
+        recoverySentAt,
+        profilePath,
+      });
     }
   } catch (error) {
     console.error('AUTH_CALLBACK_UNEXPECTED_ERROR', {
@@ -111,6 +132,16 @@ export async function GET(request: Request) {
   applyAuthCookies(finalResponse, cookiesToApply);
   for (const [key, value] of Object.entries(cookieResponseHeaders)) {
     finalResponse.headers.set(key, value);
+  }
+  if (
+    redirectPath === HANAKAI_RESET_PASSWORD_PATH ||
+    isHanakaiPasswordRecovery({ type: otpType, next, redirectType, accessToken, recoverySentAt })
+  ) {
+    finalResponse.cookies.set(
+      HANAKAI_PW_RECOVERY_COOKIE,
+      '1',
+      recoveryCookieSetOptions(process.env.NODE_ENV === 'production'),
+    );
   }
   return finalResponse;
 }

@@ -82,7 +82,7 @@ export const viewport: Viewport = {
 };
 
 /** Site URL 着地の auth パラメータを /auth/callback へ即時転送（トップを経由させない） */
-const AUTH_HASH_REDIRECT_SCRIPT = `(function(){try{var p=location.pathname,s=location.search,h=location.hash;if(p==='/auth/callback')return;if(s&&(s.indexOf('code=')>-1||s.indexOf('token_hash=')>-1)){location.replace('/auth/callback'+s);return}if(h&&(/access_token|refresh_token/.test(h))){location.replace('/auth/callback'+h)}}catch(e){}})();`;
+const AUTH_HASH_REDIRECT_SCRIPT = `(function(){try{var p=location.pathname,s=location.search,h=location.hash;if(p==='/auth/callback')return;if(s&&(s.indexOf('code=')>-1||s.indexOf('token_hash=')>-1)){location.replace('/auth/callback'+s);return}if(h&&(/access_token|refresh_token/.test(h))){var m=h.match(/(?:^|[?#&])type=([^&]+)/);var q=m?'?type='+m[1]:'';location.replace('/auth/callback'+q+h)}}catch(e){}})();`;
 
 export default function RootLayout({
   children,

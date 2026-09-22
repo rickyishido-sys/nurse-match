@@ -27,7 +27,7 @@ export async function requestPasswordResetAction(formData: FormData) {
 
   const supabase = await createServerSupabaseClient();
   if (supabase) {
-    const redirectTo = `${SITE_URL}/api/auth/callback?next=/reset-password`;
+    const redirectTo = `${SITE_URL}/api/auth/callback?type=recovery&next=/reset-password`;
     await supabase.auth.resetPasswordForEmail(email, { redirectTo });
   }
 
