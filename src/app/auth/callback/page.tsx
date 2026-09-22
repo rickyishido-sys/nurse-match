@@ -4,17 +4,27 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { HANAKAI_POST_AUTH_PROFILE_PATH } from '@/lib/connection/auth-redirect';
+import {
+  HANAKAI_PW_RECOVERY_COOKIE,
+  HANAKAI_RESET_PASSWORD_PATH,
+  isHanakaiPasswordRecovery,
+} from '@/lib/connection/auth-recovery';
 
 const PROFILE_PATH = HANAKAI_POST_AUTH_PROFILE_PATH;
 const FALLBACK_MS = 10_000;
 
-function parseHashTokens(hash: string) {
+function parseHashAuth(hash: string) {
   const raw = hash.startsWith('#') ? hash.slice(1) : hash;
   const params = new URLSearchParams(raw);
   return {
     access_token: params.get('access_token'),
     refresh_token: params.get('refresh_token'),
+    type: params.get('type'),
   };
+}
+
+function markRecoveryCookie() {
+  document.cookie = `${HANAKAI_PW_RECOVERY_COOKIE}=1; Path=/; Max-Age=${60 * 60}; SameSite=Lax`;
 }
 
 export default function AuthCallbackPage() {
@@ -22,17 +32,23 @@ export default function AuthCallbackPage() {
   const redirected = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [fallbackPending, setFallbackPending] = useState(false);
+  const [goingToReset, setGoingToReset] = useState(false);
 
   useEffect(() => {
     if (started.current) return;
     started.current = true;
 
-    function redirectToProfile(reason: string) {
+    function redirectAfterAuth(reason: string, recovery: boolean) {
       if (redirected.current) return;
       redirected.current = true;
-      window.history.replaceState(null, '', PROFILE_PATH);
-      console.log('AUTH_CALLBACK_REDIRECT_PROFILE', { reason });
-      window.location.replace(PROFILE_PATH);
+      const path = recovery ? HANAKAI_RESET_PASSWORD_PATH : PROFILE_PATH;
+      if (recovery) {
+        markRecoveryCookie();
+        setGoingToReset(true);
+      }
+      window.history.replaceState(null, '', path);
+      console.log(recovery ? 'AUTH_CALLBACK_REDIRECT_RESET' : 'AUTH_CALLBACK_REDIRECT_PROFILE', { reason });
+      window.location.replace(path);
     }
 
     const fallbackTimer = window.setTimeout(() => {
@@ -41,7 +57,15 @@ export default function AuthCallbackPage() {
         const supabase = createClient();
         const session = supabase ? (await supabase.auth.getSession()).data.session : null;
         if (session) {
-          redirectToProfile('fallback_timeout_with_session');
+          const query = new URLSearchParams(window.location.search);
+          const hashAuth = parseHashAuth(window.location.hash);
+          const recovery = isHanakaiPasswordRecovery({
+            type: query.get('type') ?? hashAuth.type,
+            next: query.get('next'),
+            accessToken: session.access_token,
+            recoverySentAt: session.user?.recovery_sent_at ?? null,
+          });
+          redirectAfterAuth('fallback_timeout_with_session', recovery);
           return;
         }
         setFallbackPending(true);
@@ -54,10 +78,17 @@ export default function AuthCallbackPage() {
     async function run() {
       const { search, hash } = window.location;
       const query = new URLSearchParams(search);
+      const hashAuth = parseHashAuth(hash);
+      const urlRecovery = isHanakaiPasswordRecovery({
+        type: query.get('type') ?? hashAuth.type,
+        next: query.get('next'),
+      });
+      if (urlRecovery) setGoingToReset(true);
 
       if (query.get('code') || query.get('token_hash')) {
         redirected.current = true;
         window.clearTimeout(fallbackTimer);
+        if (urlRecovery) markRecoveryCookie();
         window.location.replace(`/api/auth/callback${search}`);
         return;
       }
@@ -69,26 +100,44 @@ export default function AuthCallbackPage() {
         return;
       }
 
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY' && session && !redirected.current) {
+          window.clearTimeout(fallbackTimer);
+          redirectAfterAuth('password_recovery_event', true);
+        }
+      });
+
       const hasHashTokens = hash.includes('access_token') || hash.includes('refresh_token');
 
       if (!hasHashTokens) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           window.clearTimeout(fallbackTimer);
-          redirectToProfile('existing_session');
+          const recovery = isHanakaiPasswordRecovery({
+            type: query.get('type') ?? hashAuth.type,
+            next: query.get('next'),
+            accessToken: session.access_token,
+            recoverySentAt: session.user?.recovery_sent_at ?? null,
+          });
+          redirectAfterAuth('existing_session', recovery);
+          subscription.unsubscribe();
           return;
         }
         console.error('AUTH_CALLBACK_SET_SESSION_ERROR', { message: 'hash_not_found' });
         setError('認証情報が見つかりませんでした。メールのリンクをもう一度開いてください。');
+        subscription.unsubscribe();
         return;
       }
 
       console.log('AUTH_CALLBACK_HASH_FOUND', {
         hasAccessToken: hash.includes('access_token'),
         hasRefreshToken: hash.includes('refresh_token'),
+        type: hashAuth.type,
       });
 
-      const { access_token, refresh_token } = parseHashTokens(hash);
+      const { access_token, refresh_token, type: hashType } = hashAuth;
       if (!access_token || !refresh_token) {
         console.error('AUTH_CALLBACK_SET_SESSION_ERROR', {
           message: 'missing_tokens_in_hash',
@@ -96,6 +145,7 @@ export default function AuthCallbackPage() {
           hasRefreshToken: Boolean(refresh_token),
         });
         setError('認証トークンの読み取りに失敗しました。メールのリンクをもう一度開いてください。');
+        subscription.unsubscribe();
         return;
       }
 
@@ -105,13 +155,22 @@ export default function AuthCallbackPage() {
       if (sessionError) {
         console.error('AUTH_CALLBACK_SET_SESSION_ERROR', { message: sessionError.message });
         setError('セッションの確立に失敗しました。メールのリンクをもう一度開いてください。');
+        subscription.unsubscribe();
         return;
       }
 
       console.log('AUTH_CALLBACK_SET_SESSION_SUCCESS');
       window.clearTimeout(fallbackTimer);
       await new Promise((resolve) => window.setTimeout(resolve, 150));
-      redirectToProfile('set_session_success');
+      const recoverySentAt = (await supabase.auth.getUser()).data.user?.recovery_sent_at ?? null;
+      const recovery = isHanakaiPasswordRecovery({
+        type: query.get('type') ?? hashType,
+        next: query.get('next'),
+        accessToken: access_token,
+        recoverySentAt,
+      });
+      redirectAfterAuth('set_session_success', recovery);
+      subscription.unsubscribe();
     }
 
     void run();
@@ -149,7 +208,9 @@ export default function AuthCallbackPage() {
           ) : (
             <>
               <p className='text-sm font-medium text-[#1a1a1a]'>認証を確認しています…</p>
-              <p className='mt-2 text-xs text-[#6b6b6b]'>プロフィール入力画面へ移動します</p>
+              <p className='mt-2 text-xs text-[#6b6b6b]'>
+                {goingToReset ? 'パスワード再設定画面へ移動します' : '次の画面へ移動します'}
+              </p>
             </>
           )}
         </section>

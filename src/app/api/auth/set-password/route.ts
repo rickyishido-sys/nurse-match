@@ -6,6 +6,11 @@ import {
   isSamePasswordError,
   validateHanakaiPassword,
 } from '@/lib/connection/password-policy';
+import {
+  HANAKAI_PW_RECOVERY_COOKIE,
+  accessTokenHasRecoveryAmr,
+  recoveryCookieSetOptions,
+} from '@/lib/connection/auth-recovery';
 
 export async function POST(request: Request) {
   console.log('BLOOM_PASSWORD_UPDATE_START');
@@ -115,6 +120,35 @@ export async function POST(request: Request) {
     }
   }
 
-  console.log('BLOOM_PASSWORD_UPDATE_SUCCESS', { userId: user.id });
-  return NextResponse.json({ ok: true });
+  const recoveryCookie = request.headers
+    .get('cookie')
+    ?.split(';')
+    .map((item) => item.trim())
+    .find((item) => item.startsWith(`${HANAKAI_PW_RECOVERY_COOKIE}=`));
+  const recoveryCookieOn = recoveryCookie?.split('=')[1] === '1';
+  const recoverySession = accessTokenHasRecoveryAmr(session?.access_token);
+  const isRecovery = recoveryCookieOn || recoverySession;
+
+  let redirectTo: string | undefined;
+  if (isRecovery) {
+    const { data: roleRow } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
+    if (roleRow?.role === 'super_admin' || roleRow?.role === 'female_admin' || roleRow?.role === 'male_admin') {
+      redirectTo = '/admin/login';
+    } else if (roleRow) {
+      redirectTo = '/login';
+    } else {
+      redirectTo = '/reset-password/success';
+    }
+    await supabase.auth.signOut();
+  }
+
+  console.log('BLOOM_PASSWORD_UPDATE_SUCCESS', { userId: user.id, recovery: isRecovery });
+  const response = NextResponse.json(isRecovery ? { ok: true, redirectTo } : { ok: true });
+  if (isRecovery) {
+    response.cookies.set(HANAKAI_PW_RECOVERY_COOKIE, '', {
+      ...recoveryCookieSetOptions(process.env.NODE_ENV === 'production'),
+      maxAge: 0,
+    });
+  }
+  return response;
 }
