@@ -102,7 +102,7 @@ export const HANAKAI_BLOCKED_PREFIXES = [
   '/settings',
 ];
 
-export const HANAKAI_BLOCKED_EXACT = new Set(['/admin', '/settings']);
+export const HANAKAI_BLOCKED_EXACT = new Set(['/settings']);
 
 export type HanakaiRouteDecision =
   | { kind: 'allow_public' }
@@ -144,7 +144,7 @@ export function resolveHanakaiRoute(pathname: string): HanakaiRouteDecision {
 
   if (isBlockedPath(pathname)) return { kind: 'not_found' };
 
-  if (pathname === HANAKAI_ADMIN_PREFIX || pathname.startsWith(`${HANAKAI_ADMIN_PREFIX}/`)) {
+  if (pathname === '/admin' || pathname === HANAKAI_ADMIN_PREFIX || pathname.startsWith(`${HANAKAI_ADMIN_PREFIX}/`)) {
     return { kind: 'require_admin' };
   }
 

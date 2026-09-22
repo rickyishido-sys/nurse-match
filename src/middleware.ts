@@ -130,7 +130,10 @@ function loginRedirect(request: NextRequest, pathname: string, admin = false): N
     pathname.startsWith('/account/') ||
     pathname === '/my-profile' ||
     pathname.startsWith('/my-profile/') ||
-    pathname === '/home'
+    pathname === '/home' ||
+    pathname === '/admin' ||
+    pathname === '/admin/hanakai' ||
+    pathname.startsWith('/admin/hanakai/')
   ) {
     loginUrl.searchParams.set('next', pathname);
   }

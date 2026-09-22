@@ -3,22 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
+import { HANAKAI_ADMIN_FEATURE_LINKS, HANAKAI_ADMIN_TOP_PATH } from '@/lib/connection/hanakai-admin-links';
 
-const BASE = '/admin/hanakai';
-
-const items = [
-  { href: BASE, label: 'ダッシュボード', exact: true },
-  { href: `${BASE}/members`, label: '会員' },
-  { href: `${BASE}/identity-reviews`, label: '本人確認' },
-  { href: `${BASE}/events`, label: 'イベント' },
-  { href: `${BASE}/applications`, label: '参加申請' },
-  { href: `${BASE}/revenue-reports`, label: '売上報告' },
-  { href: `${BASE}/invoices`, label: '請求管理' },
-  { href: `${BASE}/payments`, label: '参加費決済' },
-  { href: `${BASE}/reports`, label: '通報管理' },
-  { href: `${BASE}/inquiries`, label: 'お問い合わせ' },
-  { href: '/manage', label: '参加者選定' },
-];
+const items = [{ href: HANAKAI_ADMIN_TOP_PATH, navLabel: '管理トップ', exact: true }, ...HANAKAI_ADMIN_FEATURE_LINKS];
 
 export function HanakaiAdminNav() {
   const pathname = usePathname();
@@ -27,7 +14,8 @@ export function HanakaiAdminNav() {
     <nav className='-mx-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:px-0'>
       <ul className='flex gap-1.5'>
         {items.map((item) => {
-          const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+          const exact = 'exact' in item ? Boolean(item.exact) : false;
+          const active = exact ? pathname === item.href : pathname.startsWith(item.href);
           return (
             <li key={item.href}>
               <Link
@@ -39,7 +27,7 @@ export function HanakaiAdminNav() {
                     : 'border border-[#e2ddd2] bg-white text-[#6b6b6b] hover:text-[#1a1a1a]',
                 )}
               >
-                {item.label}
+                {item.navLabel}
               </Link>
             </li>
           );
