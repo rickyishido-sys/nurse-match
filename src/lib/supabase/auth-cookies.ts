@@ -1,4 +1,5 @@
 import type { NextResponse } from 'next/server';
+import { mergeAuthCookieSetOptions } from '@/lib/supabase/auth-cookie-options';
 
 type CookieToApply = {
   name: string;
@@ -6,13 +7,9 @@ type CookieToApply = {
   options?: Record<string, unknown>;
 };
 
-/** Force Path=/ so Magic Link cookies are sent to pages and /api/auth/set-password. */
+/** Force Path=/ and a persistent Max-Age so Magic Link / login cookies survive app relaunch. */
 export function applyAuthCookies(response: NextResponse, cookies: CookieToApply[]) {
   for (const cookie of cookies) {
-    const incoming = { ...(cookie.options ?? {}) };
-    response.cookies.set(cookie.name, cookie.value, {
-      ...incoming,
-      path: '/',
-    } as never);
+    response.cookies.set(cookie.name, cookie.value, mergeAuthCookieSetOptions(cookie.options) as never);
   }
 }
