@@ -95,6 +95,16 @@ export function HeaderUserMenu({ user }: HeaderUserMenuProps) {
             >
               プロフィール
             </Link>
+            {user.role === 'super_admin' ? (
+              <Link
+                href='/admin'
+                role='menuitem'
+                onClick={() => setOpen(false)}
+                className='block px-4 py-2.5 text-sm text-[#1a1a1a] transition hover:bg-[#f7f6f3]'
+              >
+                管理画面
+              </Link>
+            ) : null}
             <Link
               href='/account/payment-methods'
               role='menuitem'
