@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { HANAKAI_AUTH_COOKIE_OPTIONS } from '@/lib/supabase/auth-cookie-options';
+import { HANAKAI_AUTH_COOKIE_OPTIONS, mergeAuthCookieSetOptions } from '@/lib/supabase/auth-cookie-options';
 import { isHanakaiAdminPath } from '@/lib/connection/hanakai-admin-path';
 import {
   isHanakaiStaticAsset,
@@ -27,14 +27,13 @@ function isDeletedMemberExemptPath(pathname: string): boolean {
   return pathname.startsWith('/auth/') || pathname.startsWith('/onboarding/');
 }
 
-function shouldRefreshPublicAuthSession(pathname: string): boolean {
-  return (
-    pathname === '/register' ||
-    pathname.startsWith('/register/') ||
-    pathname === '/reset-password' ||
-    pathname.startsWith('/reset-password/') ||
-    pathname.startsWith('/auth/')
-  );
+function applyAuthCookiesToResponse(
+  response: NextResponse,
+  cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>,
+) {
+  cookiesToSet.forEach(({ name, value, options }) => {
+    response.cookies.set(name, value, mergeAuthCookieSetOptions(options) as never);
+  });
 }
 
 async function refreshSupabaseSession(request: NextRequest): Promise<NextResponse> {
@@ -52,9 +51,7 @@ async function refreshSupabaseSession(request: NextRequest): Promise<NextRespons
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, { ...options, path: '/' }),
-        );
+        applyAuthCookiesToResponse(response, cookiesToSet);
       },
     },
   });
@@ -81,9 +78,7 @@ async function redirectIfDeletedHanakaiMember(request: NextRequest): Promise<Nex
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, { ...options, path: '/' }),
-        );
+        applyAuthCookiesToResponse(response, cookiesToSet);
       },
     },
   });
@@ -102,7 +97,11 @@ async function redirectIfDeletedHanakaiMember(request: NextRequest): Promise<Nex
   await supabase.auth.signOut();
   const redirectResponse = NextResponse.redirect(new URL('/?account=deleted', request.url));
   response.cookies.getAll().forEach((cookie) => {
-    redirectResponse.cookies.set(cookie.name, cookie.value);
+    redirectResponse.cookies.set(
+      cookie.name,
+      cookie.value,
+      mergeAuthCookieSetOptions({ maxAge: cookie.value ? undefined : 0 }) as never,
+    );
   });
   return redirectResponse;
 }
@@ -169,10 +168,10 @@ export async function middleware(request: NextRequest) {
     }
 
     if (decision.kind === 'allow_public') {
-      if (!USE_DEMO_AUTH && shouldRefreshPublicAuthSession(pathname)) {
-        return refreshSupabaseSession(request);
-      }
-      return NextResponse.next();
+      if (USE_DEMO_AUTH) return NextResponse.next();
+      // Public pages (including `/` which Capacitor opens) must refresh cookies
+      // in middleware. RSC getUser() cannot persist rotated refresh tokens.
+      return refreshSupabaseSession(request);
     }
 
     if (decision.kind === 'require_auth' || decision.kind === 'require_admin') {
@@ -198,9 +197,7 @@ export async function middleware(request: NextRequest) {
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
             response = NextResponse.next({ request });
-            cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, { ...options, path: '/' }),
-            );
+            applyAuthCookiesToResponse(response, cookiesToSet);
           },
         },
       });
