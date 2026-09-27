@@ -4,6 +4,7 @@ import { ConnectionBottomNav } from '@/components/connection/bottom-nav';
 import { BrandFooter } from '@/components/connection/brand/brand-footer';
 import { BrandLogo } from '@/components/connection/brand/brand-logo';
 import { HeaderUserMenu } from '@/components/connection/header-user-menu';
+import { LaunchOnboardingGate } from '@/components/connection/launch/launch-onboarding-gate';
 import { NavigationPendingOverlay } from '@/components/connection/navigation-pending-overlay';
 import { ctaPrimary } from '@/components/connection/ui/cta-classes';
 import { HK } from '@/lib/connection/brand/tokens';
@@ -75,6 +76,7 @@ export function ConnectionShell({ viewer, children, showNav = true, flushMain = 
       </div>
 
       {showNav ? <ConnectionBottomNav /> : null}
+      <LaunchOnboardingGate isAuthenticated={Boolean(viewer)} />
       <Suspense fallback={null}>
         <NavigationPendingOverlay />
       </Suspense>

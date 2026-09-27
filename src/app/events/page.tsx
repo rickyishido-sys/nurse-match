@@ -116,17 +116,18 @@ export default async function EventsPage({ searchParams }: PageProps) {
               items={standardItems}
               activeFilter={activeFilter}
               totalCount={regionFiltered.length}
+              canCreateEvent={Boolean(viewer)}
             />
           ) : allEvents.length === 0 ? (
-            <EventsListGrid items={[]} activeFilter={activeFilter} totalCount={0} />
+            <EventsListGrid items={[]} activeFilter={activeFilter} totalCount={0} canCreateEvent={Boolean(viewer)} />
           ) : regionFiltered.length === 0 && activeFilter ? (
-            <EventsListGrid items={[]} activeFilter={activeFilter} totalCount={allEvents.length} />
+            <EventsListGrid items={[]} activeFilter={activeFilter} totalCount={allEvents.length} canCreateEvent={Boolean(viewer)} />
           ) : focusPrefecture ? (
             <p className='rounded-2xl border border-[#ebe9e4] bg-[#fafaf8] px-4 py-5 text-sm leading-7 text-[#6b6b6b]'>
               {focusPrefecture}では現在募集中のイベントはありません
             </p>
           ) : (
-            <EventsListGrid items={[]} activeFilter={activeFilter} totalCount={allEvents.length} />
+            <EventsListGrid items={[]} activeFilter={activeFilter} totalCount={allEvents.length} canCreateEvent={Boolean(viewer)} />
           )}
         </section>
       </div>

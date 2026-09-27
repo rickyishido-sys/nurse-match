@@ -18,6 +18,7 @@ import { getHanakaiAdminAccess } from '@/lib/connection/hanakai-admin-access';
 import { HANAKAI_ADMIN_CONSOLE_HREF } from '@/lib/connection/layout-width';
 import { getHanakaiViewer } from '@/lib/hanakai/session';
 import { TrackPageEvent } from '@/components/analytics/track-page-event';
+import { LaunchOnboardingGate } from '@/components/connection/launch/launch-onboarding-gate';
 import {
   HERO_MOBILE_VIDEOS,
   HERO_PC_VIDEOS,
@@ -67,6 +68,7 @@ export default async function LandingPage() {
 
       <LandingNav joinHref={joinHref} viewer={viewer} />
       <TrackPageEvent event='landing_view' onceKey='landing_view' />
+      <LaunchOnboardingGate isAuthenticated={Boolean(viewer)} />
 
       <main>
         <LandingHeroV2 joinHref={joinHref} pcVideo={pcVideo} mobileVideo={mobileVideo} />
