@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { EventsEmptyState } from '@/components/connection/events/events-empty-state';
 import { EventsListCard } from '@/components/connection/events/events-list-card';
 import { EventsListHero } from '@/components/connection/events/events-list-hero';
+import { CreateEventCta } from '@/components/connection/events/create-event-cta';
 import { BrandFloatCard } from '@/components/connection/brand/brand-motion';
 import { ctaSecondary } from '@/components/connection/ui/cta-classes';
 import { HK } from '@/lib/connection/brand/tokens';
@@ -12,11 +13,12 @@ type Props = {
   items: EnrichedEventListItem[];
   activeFilter: EventsListFilterSlug;
   totalCount: number;
+  canCreateEvent?: boolean;
 };
 
-export function EventsListGrid({ items, activeFilter, totalCount }: Props) {
+export function EventsListGrid({ items, activeFilter, totalCount, canCreateEvent = false }: Props) {
   if (totalCount === 0) {
-    return <EventsEmptyState />;
+    return <EventsEmptyState canCreateEvent={canCreateEvent} />;
   }
 
   if (items.length === 0) {
@@ -26,19 +28,21 @@ export function EventsListGrid({ items, activeFilter, totalCount }: Props) {
           ✿
         </div>
         <p className='mt-5 text-sm font-semibold text-[#1a1a1a]'>
-          このカテゴリーでは、まだイベントがありません
+          {canCreateEvent ? 'やってみたいこと、ありませんか？' : 'このカテゴリーでは、まだイベントがありません'}
         </p>
         <p className='mx-auto mt-2 max-w-sm text-xs leading-7 text-[#6b6b6b]'>
-          あなたが最初のイベントを作ってみませんか？ほかのカテゴリーを見ることもできます。
+          {canCreateEvent
+            ? '参加したいイベントがまだ見つからなければ、あなたの好きなことからイベントを作ることもできます。'
+            : 'あなたが最初のイベントを作ってみませんか？ほかのカテゴリーを見ることもできます。'}
         </p>
         <div className='mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row'>
-          <Link
-            href='/events/create'
+          <CreateEventCta
+            source='events_category_empty'
             className='inline-flex min-h-11 items-center justify-center rounded-full px-6 text-sm font-semibold text-white'
             style={{ background: HK.coral }}
           >
             イベントを作る
-          </Link>
+          </CreateEventCta>
           <Link href='/events' className={ctaSecondary}>
             すべてのイベントを見る
           </Link>
