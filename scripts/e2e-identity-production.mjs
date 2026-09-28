@@ -164,7 +164,7 @@ try {
   const tUpload0 = Date.now();
   let sawLoading = false;
   const loadingPromise = page
-    .getByText(/送信中|書類を準備|審査登録/)
+    .getByText(/送信中|書類を準備|アップロードと審査登録|審査登録/)
     .first()
     .waitFor({ timeout: 30000 })
     .then(() => {
@@ -235,7 +235,7 @@ try {
   timings.ui_pending_switch_ms = Date.now() - tUpload0;
   pass('pending_ui', text.includes('本人確認書類を提出済みです'), 'pending label');
   pass('pending_hides_upload', fileCount === 0 && submitCount === 0, `file=${fileCount} submit=${submitCount}`);
-  pass('pending_blocks_resubmit_copy', text.includes('追加の書類提出はできません'), 'resubmit blocked');
+  pass('pending_blocks_resubmit_copy', text.includes('審査が完了するまで、追加の書類提出はできません'), 'resubmit blocked');
 
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForSelector('text=本人確認', { timeout: 60000 });
