@@ -133,11 +133,28 @@ export async function getSquarePayment(paymentId: string) {
   });
 }
 
+export async function getSquareCard(cardId: string) {
+  return squareFetch<{ card?: Record<string, unknown> }>(`/v2/cards/${encodeURIComponent(cardId)}`, {
+    method: 'GET',
+  });
+}
+
 export async function disableSquareCard(cardId: string) {
   return squareFetch<{ card?: Record<string, unknown> }>(`/v2/cards/${cardId}/disable`, {
     method: 'POST',
     body: JSON.stringify({}),
   });
+}
+
+/** True when Square reports the card as still chargeable. */
+export function isSquareCardChargeable(card: Record<string, unknown> | null | undefined): boolean {
+  if (!card) return false;
+  if (card.enabled === false) return false;
+  const status = String(card.card_status ?? card.status ?? '').toUpperCase();
+  if (status && /DISABLED|DEACTIVATED|EXPIRED|LOST|STOLEN|VOID|INACTIVE/.test(status)) {
+    return false;
+  }
+  return Boolean(card.id);
 }
 
 export function verifySquareWebhookSignature(rawBody: string, signatureHeader: string | null, notificationUrl: string): boolean {

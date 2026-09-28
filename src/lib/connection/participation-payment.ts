@@ -12,7 +12,9 @@ import {
   createSquareCustomer,
   createSquarePayment,
   disableSquareCard,
+  getSquareCard,
   getSquarePayment,
+  isSquareCardChargeable,
   mapSquareFailureMessage,
   refundSquarePayment,
 } from '@/lib/square/client';
@@ -25,6 +27,11 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 
 const CHARGE_CONCURRENCY = 3;
 
+/** Fail-closed copy when the bound apply-time card cannot be charged. */
+export const PAYMENT_METHOD_UNAVAILABLE_MESSAGE =
+  '登録されているお支払い方法を確認できないため、参加を確定できませんでした。お支払い方法を更新してください。';
+const PAYMENT_METHOD_UNAVAILABLE_CODE = 'PAYMENT_METHOD_UNAVAILABLE';
+
 export type PaymentMethodRow = {
   id: string;
   member_id: string;
@@ -36,6 +43,7 @@ export type PaymentMethodRow = {
   exp_year: number | null;
   is_default: boolean;
   status: string;
+  environment: SquareEnvironment | string;
 };
 
 function idempotencyKey(prefix: string) {
@@ -415,34 +423,78 @@ export async function chargeParticipationPayment(paymentId: string, options?: { 
     return { ok: false as const, error: '決済金額が不正です' };
   }
 
-  // Prefer payment method frozen on the application at apply time.
+  // Charge ONLY the payment method frozen on the application at apply time.
+  // Never fall back to another default/active card.
   const { data: application } = await admin
     .from('hanakai_event_applications')
-    .select('payment_method_id')
+    .select('payment_method_id, member_id')
     .eq('id', payment.application_id)
     .maybeSingle();
 
-  let method: PaymentMethodRow | null = null;
   const boundId = application?.payment_method_id as string | null | undefined;
+  const paymentEnv = payment.environment as SquareEnvironment;
+  let method: PaymentMethodRow | null = null;
+
   if (boundId) {
-    method = await getPaymentMethodForMember(
-      payment.member_id,
-      boundId,
-      payment.environment as SquareEnvironment,
-    );
+    method = await getPaymentMethodForMember(payment.member_id, boundId, paymentEnv);
   }
-  if (!method) {
-    method = await getDefaultPaymentMethod(payment.member_id, payment.environment as SquareEnvironment);
-  }
-  if (!method) {
+
+  const rejectPaymentMethod = async (detail?: string) => {
+    console.error('HANAKAI_CHARGE_PAYMENT_METHOD_UNAVAILABLE', {
+      paymentId,
+      applicationId: payment.application_id,
+      memberId: payment.member_id,
+      boundPaymentMethodId: boundId ?? null,
+      environment: paymentEnv,
+      detail: detail ?? 'unresolved',
+    });
     await markPaymentOutcome({
       paymentId,
       applicationId: payment.application_id,
       success: false,
-      failureCode: 'NO_CARD',
-      failureMessage: '有効なカードが登録されていません',
+      failureCode: PAYMENT_METHOD_UNAVAILABLE_CODE,
+      failureMessage: PAYMENT_METHOD_UNAVAILABLE_MESSAGE,
     });
-    return { ok: false as const, error: '有効なカードが登録されていません' };
+    await createParticipationNotification({
+      memberId: payment.member_id,
+      eventId: payment.event_id,
+      type: 'participation_payment_failed',
+      amountJpy: chargeAmountJpy,
+    });
+    return { ok: false as const, error: PAYMENT_METHOD_UNAVAILABLE_MESSAGE };
+  };
+
+  if (!boundId || !method) {
+    return rejectPaymentMethod(!boundId ? 'missing_bound_payment_method_id' : 'bound_method_not_active_or_mismatched');
+  }
+
+  if (
+    method.member_id !== payment.member_id ||
+    method.environment !== paymentEnv ||
+    method.status !== 'active' ||
+    !method.square_card_id ||
+    !method.square_customer_id
+  ) {
+    return rejectPaymentMethod('local_method_fields_invalid');
+  }
+
+  // Square-side usability check before CreatePayment.
+  const squareCard = await getSquareCard(method.square_card_id);
+  if (!squareCard.ok) {
+    console.error('HANAKAI_CHARGE_SQUARE_CARD_RETRIEVE_ERROR', {
+      paymentId,
+      status: squareCard.status,
+      codes: squareCard.errors.map((e) => e.code),
+    });
+    return rejectPaymentMethod('square_card_retrieve_failed');
+  }
+  const remoteCard = (squareCard.data.card ?? null) as Record<string, unknown> | null;
+  if (!isSquareCardChargeable(remoteCard)) {
+    return rejectPaymentMethod('square_card_not_chargeable');
+  }
+  const remoteCustomerId = remoteCard?.customer_id ? String(remoteCard.customer_id) : '';
+  if (remoteCustomerId && remoteCustomerId !== method.square_customer_id) {
+    return rejectPaymentMethod('square_customer_mismatch');
   }
 
   await admin
@@ -932,7 +984,7 @@ export async function getApplicationPaymentContext(applicationId: string, member
 
   const { data: payment } = await admin
     .from('hanakai_participation_payments')
-    .select('id, payment_deadline_at, failure_message, member_id')
+    .select('id, payment_deadline_at, failure_message, member_id, environment')
     .eq('application_id', applicationId)
     .eq('member_id', memberId)
     .order('created_at', { ascending: false })
@@ -947,22 +999,29 @@ export async function getApplicationPaymentContext(applicationId: string, member
     .eq('id', applicationId)
     .maybeSingle();
 
-  let method: PaymentMethodRow | null = null;
   const boundId = application?.payment_method_id as string | null | undefined;
+  let method: PaymentMethodRow | null = null;
   if (boundId) {
-    method = await getPaymentMethodForMember(memberId, boundId);
-  }
-  if (!method) {
-    method = await getDefaultPaymentMethod(memberId);
+    // Prefer the exact bound card for display (even if disabled) — never substitute default.
+    const env = (payment.environment as SquareEnvironment | undefined) ?? getSquareEnvironment();
+    const { data } = await admin
+      .from('hanakai_payment_methods')
+      .select('*')
+      .eq('id', boundId)
+      .eq('member_id', memberId)
+      .eq('environment', env)
+      .maybeSingle();
+    method = (data as PaymentMethodRow | null) ?? null;
   }
 
   return {
     paymentId: payment.id as string,
+    applicationId,
     deadlineAt: payment.payment_deadline_at as string | null,
     failureMessage: payment.failure_message as string | null,
     brand: method?.brand ?? null,
     last4: method?.last_4 ?? null,
-    paymentMethodId: method?.id ?? null,
+    paymentMethodId: method?.id ?? boundId ?? null,
   };
 }
 
